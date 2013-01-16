@@ -199,6 +199,7 @@ configure_file(${CMAKE_SOURCE_DIR}/src/bfam_config.h.in
 ##
 add_library(bfam
                  src/bfam_base.c
+                 src/bfam_log.c
                  src/bfam_version.c
            )
 add_dependencies(bfam version)
@@ -213,6 +214,8 @@ target_link_libraries(bfam ${MPI_C_LIBRARIES}
                            ${LAPACK_LIBRARIES}
                            ${BLAS_LIBRARIES})
 
+add_executable(bfam_exam_logging examples/logging/bfam_exam_logging.c)
+target_link_libraries(bfam_exam_logging bfam)
 
 ##
 ## Tests
