@@ -103,6 +103,12 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 ENDIF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
 ##
+## Look for header files
+##
+check_include_files(sysexits.h BFAM_HAVE_SYSEXITS_H)
+check_include_files(sys/sysexits.h BFAM_HAVE_SYS_SYSEXITS_H)
+
+##
 ## Map Fortran SYMBOLS we need
 ##
 FortranCInterface_HEADER(bfam_f2c.h MACRO_NAMESPACE "BFAM_" SYMBOL_NAMESPACE "BFAM_"
@@ -121,6 +127,12 @@ include_directories(${MPI_Fortran_INCLUDE_PATH})
 ##
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MPI_C_COMPILE_FLAG}")
 set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${MPI_Fortran_COMPILE_FLAG}")
+
+##
+## Write BFAM config file
+##
+configure_file(${CMAKE_SOURCE_DIR}/src/bfam_config.h.in
+               ${CMAKE_BINARY_DIR}/bfam_config.h)
 
 ##
 ## BFAM Library
