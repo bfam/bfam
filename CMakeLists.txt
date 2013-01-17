@@ -197,7 +197,10 @@ configure_file(${CMAKE_SOURCE_DIR}/src/bfam_config.h.in
 ##
 ## BFAM Library
 ##
-add_library(bfam src/bfam_version.c)
+add_library(bfam
+                 src/bfam_base.c
+                 src/bfam_version.c
+           )
 add_dependencies(bfam version)
 
 set_property(TARGET bfam APPEND_STRING PROPERTY LINK_FLAGS ${MPI_C_LINK_FLAGS})
