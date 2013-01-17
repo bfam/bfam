@@ -111,6 +111,15 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 ENDIF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
 ##
+## Note debug mode
+##
+if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
+  set(BFAM_DEBUG TRUE)
+else("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
+  set(BFAM_DEBUG FALSE)
+endif("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
+
+##
 ## Look for header files
 ##
 check_include_files(sysexits.h BFAM_HAVE_SYSEXITS_H)
@@ -176,6 +185,7 @@ add_test(bfam_test_mpi_test
 ## Print configuration
 ##
 message("============== Configure information ==============")
+message("BFAM_DEBUG:                ${BFAM_DEBUG}")
 message("BLAS_FOUND:                ${BLAS_FOUND}")
 message("BLAS_LINKER_FLAGS:         ${BLAS_LINKER_FLAGS}")
 message("BLAS_LIBRARIES:            ${BLAS_LIBRARIES}")
