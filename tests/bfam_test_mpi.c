@@ -6,8 +6,6 @@ main (int argc, char *argv[])
   int rank, size;
   int source, count;
   int buffer;
-  MPI_Status status;
-  MPI_Request request;
   const int val = 9;
 
   MPI_Init(&argc,&argv);
