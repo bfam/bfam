@@ -32,6 +32,8 @@
 #define BFAM_ASSERT(expression) BFAM_NOOP()
 #endif
 
+#define BFAM_CHECK_MPI(c) BFAM_ABORT_IF_NOT((c) == MPI_SUCCESS, "MPI Error")
+
 /** Abort function.
  *
  * This call will abort the program.
