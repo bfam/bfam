@@ -120,6 +120,49 @@ else("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
 endif("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
 
 ##
+## Set compiler flags
+##
+if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -fno-common")
+  set(CMAKE_C_FLAGS_DEBUG "-g3")
+  set(CMAKE_C_FLAGS_RELEASE "-g0 -O2 -DNDEBUG")
+endif("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
+
+if("${CMAKE_BUILD_TYPE}" MATCHES "Release")
+  if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native -ftree-vectorize -funroll-all-loops -fsplit-ivs-in-unroller")
+  endif("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
+  if("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native")
+  endif("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+endif("${CMAKE_BUILD_TYPE}" MATCHES "Release")
+
+option(WITH_WARNINGS "Compile with warnings" ON)
+if(WITH_WARNINGS)
+  # enable compiler warning flags
+  if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-parameter -Wno-long-long -Wcast-align -Wchar-subscripts -Wall -W -Wpointer-arith -Wwrite-strings -Wformat-security -pedantic -Wextra")
+  endif("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
+  if("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wcast-align -Wchar-subscripts -Wall -W -Wpointer-arith -Wwrite-strings -Wformat-security -Wextra -Wno-unused-parameter -Wno-long-long")
+  endif("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+  if("${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -w2 -Wcheck")
+  endif("${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
+  if ("${CMAKE_C_COMPILER_ID}" MATCHES "PGI")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Minform=inform")
+  endif("${CMAKE_C_COMPILER_ID}" MATCHES "PGI")
+endif(WITH_WARNINGS)
+
+option(WITH_VECTOR_VERBOSE "Compile with info about vectorization" ON)
+if(WITH_VECTOR_VERBOSE)
+  # enable verbose vector flags
+  if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorizer-verbose=2")
+  endif("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
+endif(WITH_VECTOR_VERBOSE)
+
+##
 ## Look for header files
 ##
 check_include_files(sysexits.h BFAM_HAVE_SYSEXITS_H)
@@ -186,6 +229,9 @@ add_test(bfam_test_mpi_test
 ##
 message("============== Configure information ==============")
 message("BFAM_DEBUG:                ${BFAM_DEBUG}")
+message("CMAKE_C_FLAGS:             ${CMAKE_C_FLAGS}")
+message("CMAKE_C_FLAGS_DEBUG:       ${CMAKE_C_FLAGS_DEBUG}")
+message("CMAKE_C_FLAGS_RELEASE:     ${CMAKE_C_FLAGS_RELEASE}")
 message("BLAS_FOUND:                ${BLAS_FOUND}")
 message("BLAS_LINKER_FLAGS:         ${BLAS_LINKER_FLAGS}")
 message("BLAS_LIBRARIES:            ${BLAS_LIBRARIES}")
