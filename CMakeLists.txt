@@ -95,6 +95,14 @@ execute_process(COMMAND cpack -G TGZ --config CPackSourceConfig.cmake
 endif(UNIX)
 
 ##
+## Ctags
+##
+add_custom_target (tags
+  COMMAND ctags -R --fields=+S src
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  )
+
+##
 ## Customize CMake defaults
 ##
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
