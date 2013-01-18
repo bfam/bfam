@@ -11,6 +11,7 @@ main (int argc, char *argv[])
   bfam_log_init(rank, stdout, BFAM_LL_DEFAULT);
 
   BFAM_ROOT_INFO("BFAM Version: %s", bfam_version_get());
+  BFAM_ROOT_INFO("BFAM Compile Info:\n" BFAM_COMPILE_INFO);
 
 
   BFAM_ROOT_TRACE("TRACE");

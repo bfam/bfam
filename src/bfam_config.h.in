@@ -4,5 +4,6 @@
 #cmakedefine BFAM_DEBUG
 #cmakedefine BFAM_HAVE_SYSEXITS_H
 #cmakedefine BFAM_HAVE_SYS_SYSEXITS_H
+#define BFAM_COMPILE_INFO "@BFAM_COMPILE_INFO@"
 
 #endif

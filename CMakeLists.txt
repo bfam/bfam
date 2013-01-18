@@ -189,12 +189,6 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MPI_C_COMPILE_FLAG}")
 set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${MPI_Fortran_COMPILE_FLAG}")
 
 ##
-## Write BFAM config file
-##
-configure_file(${CMAKE_SOURCE_DIR}/src/bfam_config.h.in
-               ${CMAKE_BINARY_DIR}/bfam_config.h)
-
-##
 ## BFAM Library
 ##
 add_library(bfam
@@ -233,33 +227,49 @@ add_test(bfam_test_mpi_test
 ##
 ## Print configuration
 ##
-message("============== Configure information ==============")
-message("BFAM_DEBUG:                ${BFAM_DEBUG}")
-message("CMAKE_C_FLAGS:             ${CMAKE_C_FLAGS}")
-message("CMAKE_C_FLAGS_DEBUG:       ${CMAKE_C_FLAGS_DEBUG}")
-message("CMAKE_C_FLAGS_RELEASE:     ${CMAKE_C_FLAGS_RELEASE}")
-message("BLAS_FOUND:                ${BLAS_FOUND}")
-message("BLAS_LINKER_FLAGS:         ${BLAS_LINKER_FLAGS}")
-message("BLAS_LIBRARIES:            ${BLAS_LIBRARIES}")
-message("LAPACK_FOUND:              ${LAPACK_FOUND}")
-message("LAPACK_LINKER_FLAGS:       ${LAPACK_LINKER_FLAGS}")
-message("LAPACK_LIBRARIES:          ${LAPACK_LIBRARIES}")
-message("MPI_C_FOUND:               ${MPI_C_FOUND}")
-message("MPI_C_COMPILER:            ${MPI_C_COMPILER}")
-message("MPI_C_COMPILE_FLAGS:       ${MPI_C_COMPILE_FLAGS}")
-message("MPI_C_INCLUDE_PATH:        ${MPI_C_INCLUDE_PATH}")
-message("MPI_C_LINK_FLAGS:          ${MPI_C_LINK_FLAGS}")
-message("MPI_C_LIBRARIES:           ${MPI_C_LIBRARIES}")
-message("MPI_Fortran_FOUND:         ${MPI_Fortran_FOUND}")
-message("MPI_Fortran_COMPILER:      ${MPI_Fortran_COMPILER}")
-message("MPI_Fortran_COMPILE_FLAGS: ${MPI_Fortran_COMPILE_FLAGS}")
-message("MPI_Fortran_INCLUDE_PATH:  ${MPI_Fortran_INCLUDE_PATH}")
-message("MPI_Fortran_LINK_FLAGS:    ${MPI_Fortran_LINK_FLAGS}")
-message("MPI_Fortran_LIBRARIES:     ${MPI_Fortran_LIBRARIES}")
-message("MPIEXEC:                   ${MPIEXEC}")
-message("MPIEXEC_NUMPROC_FLAG:      ${MPIEXEC_NUMPROC_FLAG}")
-message("MPIEXEC_PREFLAGS:          ${MPIEXEC_PREFLAGS}")
-message("MPIEXEC_POSTFLAGS:         ${MPIEXEC_POSTFLAGS}")
+set(BFAM_COMPILE_LIST
+  "             BFAM_DEBUG:                ${BFAM_DEBUG}\\\\n"
+  "             BFAM_HAVE_SYSEXITS_H:      ${BFAM_HAVE_SYSEXITS_H}\\\\n"
+  "             BFAM_HAVE_SYS_SYSEXITS_H:  ${BFAM_HAVE_SYS_SYSEXITS_H}\\\\n"
+  "             CMAKE_C_FLAGS:             ${CMAKE_C_FLAGS}\\\\n"
+  "             CMAKE_C_FLAGS_DEBUG:       ${CMAKE_C_FLAGS_DEBUG}\\\\n"
+  "             CMAKE_C_FLAGS_RELEASE:     ${CMAKE_C_FLAGS_RELEASE}\\\\n"
+  "             BLAS_FOUND:                ${BLAS_FOUND}\\\\n"
+  "             BLAS_LINKER_FLAGS:         ${BLAS_LINKER_FLAGS}\\\\n"
+  "             BLAS_LIBRARIES:            ${BLAS_LIBRARIES}\\\\n"
+  "             LAPACK_FOUND:              ${LAPACK_FOUND}\\\\n"
+  "             LAPACK_LINKER_FLAGS:       ${LAPACK_LINKER_FLAGS}\\\\n"
+  "             LAPACK_LIBRARIES:          ${LAPACK_LIBRARIES}\\\\n"
+  "             MPI_C_FOUND:               ${MPI_C_FOUND}\\\\n"
+  "             MPI_C_COMPILER:            ${MPI_C_COMPILER}\\\\n"
+  "             MPI_C_COMPILE_FLAGS:       ${MPI_C_COMPILE_FLAGS}\\\\n"
+  "             MPI_C_INCLUDE_PATH:        ${MPI_C_INCLUDE_PATH}\\\\n"
+  "             MPI_C_LINK_FLAGS:          ${MPI_C_LINK_FLAGS}\\\\n"
+  "             MPI_C_LIBRARIES:           ${MPI_C_LIBRARIES}\\\\n"
+  "             MPI_Fortran_FOUND:         ${MPI_Fortran_FOUND}\\\\n"
+  "             MPI_Fortran_COMPILER:      ${MPI_Fortran_COMPILER}\\\\n"
+  "             MPI_Fortran_COMPILE_FLAGS: ${MPI_Fortran_COMPILE_FLAGS}\\\\n"
+  "             MPI_Fortran_INCLUDE_PATH:  ${MPI_Fortran_INCLUDE_PATH}\\\\n"
+  "             MPI_Fortran_LINK_FLAGS:    ${MPI_Fortran_LINK_FLAGS}\\\\n"
+  "             MPI_Fortran_LIBRARIES:     ${MPI_Fortran_LIBRARIES}\\\\n"
+  "             MPIEXEC:                   ${MPIEXEC}\\\\n"
+  "             MPIEXEC_NUMPROC_FLAG:      ${MPIEXEC_NUMPROC_FLAG}\\\\n"
+  "             MPIEXEC_PREFLAGS:          ${MPIEXEC_PREFLAGS}\\\\n"
+  "             MPIEXEC_POSTFLAGS:         ${MPIEXEC_POSTFLAGS}")
+
+function(JOIN VALUES GLUE OUTPUT)
+  string (REGEX REPLACE "([^\\]|^);" "\\1${GLUE}" _TMP_STR "${VALUES}")
+  string (REGEX REPLACE "[\\](.)" "\\1" _TMP_STR "${_TMP_STR}") #fixes escaping
+  set (${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
+endfunction()
+
+join("${BFAM_COMPILE_LIST}" "" BFAM_COMPILE_INFO)
+
+##
+## Write BFAM config file
+##
+configure_file(${CMAKE_SOURCE_DIR}/src/bfam_config.h.in
+               ${CMAKE_BINARY_DIR}/bfam_config.h)
 
 # Set the CPack options
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "bfam")
