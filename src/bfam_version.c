@@ -2,8 +2,8 @@
 #include <bfam_version.h>
 #include <bfam_version_info.h>
 
-void
-bfam_print_version()
+const char *
+bfam_version_get()
 {
-  printf("BAMF Version " BFAM_VERSION_NUMBER "\n");
+  return BFAM_VERSION_NUMBER;
 }

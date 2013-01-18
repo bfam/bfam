@@ -3,8 +3,10 @@
 
 #include <bfam_base.h>
 
-/** Basic function that prints the version number
+/** Basic function that returns the version number.
+ *
+ * \return A pointer to a string literal containing the version number.
  */
-void bfam_print_version();
+const char * bfam_version_get();
 
 #endif

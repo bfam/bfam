@@ -10,6 +10,9 @@ main (int argc, char *argv[])
 
   bfam_log_init(rank, stdout, BFAM_LL_DEFAULT);
 
+  BFAM_ROOT_INFO("BFAM Version: %s", bfam_version_get());
+
+
   BFAM_ROOT_TRACE("TRACE");
   BFAM_ROOT_LDEBUG("LDEBUG");
   BFAM_ROOT_VERBOSE("VERBOSE");
