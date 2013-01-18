@@ -8,6 +8,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #if defined (BFAM_HAVE_SYSEXITS_H)
 #include <sysexits.h>
@@ -59,5 +60,48 @@ void bfam_abort();
  * \return This function called \c bfam_abort() and will not return.
  */
 void bfam_abort_verbose(const char *file, int line, const char *note);
+
+/** \c malloc wrapper.
+ *
+ * This wrapper calls \c malloc and aborts if there is a memory error.
+ * The returned pointer needs to be freed by \c bfam_free();
+ *
+ * \param[in] size allocation size
+ *
+ * \return pointer to allocated memory.
+ */
+void * bfam_malloc(size_t size);
+
+/** \c calloc wrapper.
+ *
+ * This wrapper calls \c calloc and aborts if there is a memory error.
+ * The returned pointer needs to be freed by \c bfam_free();
+ *
+ * \param[in] nmemb number of elements
+ * \param[in] size  size of each element
+ *
+ * \return pointer to allocated memory.
+ */
+void * bfam_calloc(size_t nmemb, size_t size);
+
+/** \c realloc wrapper.
+ *
+ * This wrapper calls \c realloc and aborts if there is a memory error.
+ * The returned pointer needs to be freed by \c bfam_free();
+ *
+ * \param[in] ptr  pointer to memory to reallocate
+ * \param[in] size allocation size
+ *
+ * \return pointer to reallocated memory.
+ */
+void * bfam_realloc(void *ptr, size_t size);
+
+/** \c free wrapper
+ *
+ * This function frees memory.
+ *
+ * \param[in,out] ptr pointer to memory to free.
+ */
+void bfam_free(void *ptr);
 
 #endif
