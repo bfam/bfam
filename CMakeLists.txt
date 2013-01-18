@@ -193,6 +193,7 @@ set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${MPI_Fortran_COMPILE_FLAG}")
 ##
 add_library(bfam
                  src/bfam_base.c
+                 src/bfam_gopt.c
                  src/bfam_log.c
                  src/bfam_version.c
            )
@@ -207,6 +208,11 @@ target_link_libraries(bfam ${MPI_C_LIBRARIES}
                            ${MPI_Fortran_LIBRARIES}
                            ${LAPACK_LIBRARIES}
                            ${BLAS_LIBRARIES})
+##
+## Examples
+##
+add_executable(bfam_gopt_usage examples/gopt/bfam_gopt_usage.c)
+target_link_libraries(bfam_gopt_usage bfam)
 
 add_executable(bfam_exam_logging examples/logging/bfam_exam_logging.c)
 target_link_libraries(bfam_exam_logging bfam)
