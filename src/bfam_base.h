@@ -6,9 +6,12 @@
 #include <bfam_config.h>
 
 #include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #if defined (BFAM_HAVE_SYSEXITS_H)
 #include <sysexits.h>
@@ -19,7 +22,22 @@
 #define EX_USAGE EXIT_FAILURE
 #endif
 
+#if defined(__APPLE__)
+#include <sys/sysctl.h>
+#elif defined(_WIN32)
+#include <windows.h>
+#endif
+
 #include <mpi.h>
+
+#if defined __GNUC__ && !defined __GNUC_PREREQ
+# ifndef __GNUC_MINOR__
+#    define __GNUC_PREREQ(maj, min) 0
+# else
+#    define __GNUC_PREREQ(maj, min) \
+         ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
+# endif
+#endif
 
 #define BFAM_NOOP() do {} while(0)
 #define BFAM_ABORT(s) bfam_abort_verbose(__FILE__, __LINE__, (s))
@@ -34,6 +52,56 @@
 #endif
 
 #define BFAM_CHECK_MPI(c) BFAM_ABORT_IF_NOT((c) == MPI_SUCCESS, "MPI Error")
+
+#define BFAM_IS_ALIGNED(p,a) (((intptr_t)(p) & ((a) - 1)) == 0)
+
+/*
+ * Switch for different compilers taken from this web page:
+ *
+ *     http://nadeausoftware.com/articles/2012/10/c_c_tip_how_detect_compiler_name_and_version_using_compiler_predefined_macros
+ *
+ */
+#if defined(__clang__)
+/* Clang/LLVM. ---------------------------------------------- */
+#    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
+
+#elif defined(__ICC) || defined(__INTEL_COMPILER)
+/* Intel ICC/ICPC. ------------------------------------------ */
+#    define BFAM_ASSUME_ALIGNED(lvalueptr, align) \
+         __assume_aligned(lvalueptr, align)
+
+#elif defined(__GNUC__) || defined(__GNUG__)
+/* GNU GCC/G++. --------------------------------------------- */
+#  if __GNUC_PREREQ(4,7)
+//      If  gcc_version >= 4.7
+#    define BFAM_ASSUME_ALIGNED(lvalueptr, align) \
+         lvalueptr = __builtin_assume_aligned (lvalueptr, align)
+#  else
+//       Else
+#    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
+#  endif
+
+#elif defined(__HP_cc) || defined(__HP_aCC)
+/* Hewlett-Packard C/aC++. ---------------------------------- */
+#    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
+
+#elif defined(__IBMC__) || defined(__IBMCPP__)
+/* IBM XL C/C++. -------------------------------------------- */
+#    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
+
+#elif defined(_MSC_VER)
+/* Microsoft Visual Studio. --------------------------------- */
+#    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
+
+#elif defined(__PGI)
+/* Portland Group PGCC/PGCPP. ------------------------------- */
+#    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
+
+#elif defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+/* Oracle Solaris Studio. ----------------------------------- */
+#    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
+
+#endif
 
 /** Abort function.
  *
@@ -103,5 +171,24 @@ void * bfam_realloc(void *ptr, size_t size);
  * \param[in,out] ptr pointer to memory to free.
  */
 void bfam_free(void *ptr);
+
+/** \c malloc wrapper for cache line aligned memory.
+ *
+ * This wrapper aligns memory to cache lines.  One needs to call \c
+ * bfam_free_aligned() to free the allocated memory.
+ *
+ * \param[in] size allocation size
+ *
+ * \return pointer to cache line aligned allocated memory.
+ */
+void *bfam_malloc_aligned(size_t size);
+
+/** \c free wrapper for cache line aligned memory.
+ *
+ * This function frees memory that was allocated with \c bfam_malloc_aligned().
+ *
+ * \param[in,out] ptr pointer to cache line aligned memory to free.
+ */
+void bfam_free_aligned(void *ptr);
 
 #endif

@@ -217,10 +217,18 @@ target_link_libraries(bfam_gopt_usage bfam)
 add_executable(bfam_exam_logging examples/logging/bfam_exam_logging.c)
 target_link_libraries(bfam_exam_logging bfam)
 
+add_executable(bfam_exam_vectorize examples/vectorize/bfam_exam_vectorize.c)
+target_link_libraries(bfam_exam_vectorize bfam)
+
 ##
 ## Tests
 ##
 enable_testing()
+
+add_executable(bfam_test_malloc tests/bfam_test_malloc.c)
+target_link_libraries(bfam_test_malloc bfam)
+
+add_test(bfam_test_malloc_test bfam_test_malloc)
 
 add_executable(bfam_test_mpi tests/bfam_test_mpi.c)
 target_link_libraries(bfam_test_mpi bfam)
