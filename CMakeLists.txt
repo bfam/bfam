@@ -130,7 +130,7 @@ endif("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
 
 if("${CMAKE_BUILD_TYPE}" MATCHES "Release")
   if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native -ftree-vectorize -funroll-all-loops -fsplit-ivs-in-unroller")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native -ftree-vectorize -save-temps") #  -funroll-all-loops -fsplit-ivs-in-unroller
   endif("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
   if("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native")
@@ -161,7 +161,7 @@ option(WITH_VECTOR_VERBOSE "Compile with info about vectorization" ON)
 if(WITH_VECTOR_VERBOSE)
   # enable verbose vector flags
   if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorizer-verbose=2")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorizer-verbose=7")
   endif("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
   if("${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Qvec_report3")
