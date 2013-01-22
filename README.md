@@ -19,7 +19,7 @@ and can be updated to the latest upstream version using:
         git://gitorious.org/findopencl/findopencl.git master
 
 ### gopt
-We use a slightly modified version Tom Vajzovic's Gopt/8.1 library which
+We use a slightly modified version of Tom Vajzovic's Gopt/8.1 library which
 is released in the public domain.  The original files were obtained from
 [here](http://www.purposeful.co.uk/software/gopt/).
 
