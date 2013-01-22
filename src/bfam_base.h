@@ -1,6 +1,7 @@
 #ifndef BFAM_BASE_H
 #define BFAM_BASE_H
 
+#define _POSIX_C_SOURCE 200112L
 #define _ISOC99_SOURCE
 
 #include <bfam_config.h>
@@ -12,6 +13,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include <sys/types.h>
+#include <errno.h>
 
 #if defined (BFAM_HAVE_SYSEXITS_H)
 #include <sysexits.h>

@@ -199,6 +199,7 @@ set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${MPI_Fortran_COMPILE_FLAG}")
 ##
 add_library(bfam
                  src/bfam_base.c
+                 src/bfam_critbit.c
                  src/bfam_gopt.c
                  src/bfam_log.c
                  src/bfam_version.c
@@ -230,6 +231,11 @@ target_link_libraries(bfam_exam_vectorize bfam)
 ## Tests
 ##
 enable_testing()
+
+add_executable(bfam_test_critbit tests/bfam_test_critbit.c)
+target_link_libraries(bfam_test_critbit bfam)
+
+add_test(bfam_test_critbit_test bfam_test_critbit)
 
 add_executable(bfam_test_malloc tests/bfam_test_malloc.c)
 target_link_libraries(bfam_test_malloc bfam)

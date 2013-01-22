@@ -22,3 +22,8 @@ and can be updated to the latest upstream version using:
 We use a slightly modified version Tom Vajzovic's Gopt/8.1 library which
 is released in the public domain.  The original files were obtained from
 [here](http://www.purposeful.co.uk/software/gopt/).
+
+### crit-bit
+We use a slightly modified version of Adam Langley's implementation of the
+binary crit-bit from Dan Bernstein's qhasm.  The original file were
+obtained from [here](https://github.com/agl/critbit.git).
