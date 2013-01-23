@@ -5,8 +5,8 @@ main (int argc, char *argv[])
 {
   int rank;
 
-  BFAM_CHECK_MPI(MPI_Init(&argc,&argv));
-  BFAM_CHECK_MPI(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+  BFAM_MPI_CHECK(MPI_Init(&argc,&argv));
+  BFAM_MPI_CHECK(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
 
   bfam_log_init(rank, stdout, BFAM_LL_DEFAULT);
 
@@ -42,7 +42,7 @@ main (int argc, char *argv[])
   BFAM_WARNING( "WARNING %09d", 7);
   BFAM_LERROR(  "LERROR  %09d", 8);
 
-  BFAM_CHECK_MPI(MPI_Finalize());
+  BFAM_MPI_CHECK(MPI_Finalize());
 
   return EXIT_SUCCESS;
 }

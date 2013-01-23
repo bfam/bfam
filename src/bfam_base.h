@@ -79,7 +79,7 @@
     }                                   \
   } while (0)
 
-#define BFAM_CHECK_MPI(c) BFAM_ABORT_IF_NOT((c) == MPI_SUCCESS, "MPI Error")
+#define BFAM_MPI_CHECK(c) BFAM_ABORT_IF_NOT((c) == MPI_SUCCESS, "MPI Error")
 
 #define BFAM_IS_ALIGNED(p,a) (((intptr_t)(p) & ((a) - 1)) == 0)
 
