@@ -160,7 +160,7 @@ macro(luajit_build)
   separate_arguments(luajit_ldflags)
   set (luajit_buildoptions ${luajit_buildoptions} CC="${luajit_cc}" TARGET_CC="${luajit_cc}" CCOPT="${luajit_copt}")
   set (luajit_buildoptions ${luajit_buildoptions} Q='' LDFLAGS="${luajit_ldflags}")
-  if ("${PROJECT_BINARY_DIR}" MATCHES "${PROJECT_SOURCE_DIR}")
+  if ("${PROJECT_BINARY_DIR}" STREQUAL "${PROJECT_SOURCE_DIR}")
     add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/third_party/luajit/src/libluajit.a
       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/third_party/luajit
       COMMAND $(MAKE) clean
