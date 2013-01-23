@@ -32,6 +32,14 @@
 #include <windows.h>
 #endif
 
+#ifdef BFAM_HAVE_OPENCL
+#  ifdef __APPLE__
+#    include <OpenCL/cl.h>
+#  else
+#    include <CL/cl.h>
+#  endif
+#endif
+
 #include <mpi.h>
 
 #if defined __GNUC__ && !defined __GNUC_PREREQ

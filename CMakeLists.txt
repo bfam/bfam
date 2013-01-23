@@ -10,6 +10,12 @@ find_package(BLAS REQUIRED)
 find_package(LAPACK REQUIRED)
 find_package(MPI REQUIRED)
 
+# Directory where customize cmake files reside
+set(CMAKE_MODULE_PATH
+  ${CMAKE_SOURCE_DIR}/cmake/findopencl ${CMAKE_MODULE_PATH}
+)
+find_package(OpenCL)
+
 ##
 ## Version Stuff
 ##
@@ -120,6 +126,24 @@ else("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
 endif("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
 
 ##
+## OpenCL
+##
+if(OPENCL_FOUND)
+  set(BFAM_HAVE_OPENCL ON)
+  include_directories(${OPENCL_INCLUDE_DIRS})
+endif(OPENCL_FOUND)
+
+add_executable(bfam_header_gen src/bfam_header_gen.c)
+
+function(FILE2HEADER FILE HEADER)
+  add_custom_command (
+    OUTPUT ${HEADER}
+    COMMAND bfam_header_gen ${FILE} ${HEADER}
+    DEPENDS bfam_header_gen ${FILE}
+    )
+endfunction()
+
+##
 ## Set compiler flags
 ##
 if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
@@ -202,6 +226,7 @@ add_library(bfam
                  src/bfam_critbit.c
                  src/bfam_gopt.c
                  src/bfam_log.c
+                 src/bfam_opencl.c
                  src/bfam_version.c
            )
 add_dependencies(bfam version)
@@ -213,6 +238,7 @@ set_property(TARGET bfam APPEND_STRING PROPERTY LINK_FLAGS ${BLAS_LINKER_FLAGS})
 
 target_link_libraries(bfam ${MPI_C_LIBRARIES}
                            ${MPI_Fortran_LIBRARIES}
+                           ${OPENCL_LIBRARIES}
                            ${LAPACK_LIBRARIES}
                            ${BLAS_LIBRARIES})
 ##
@@ -249,12 +275,22 @@ add_test(bfam_test_mpi_test
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
   ${MPIEXEC_PREFLAGS} bfam_test_mpi ${MPIEXEC_POSTFLAGS})
 
+file2header(${CMAKE_SOURCE_DIR}/tests/bfam_test_opencl_kernels.cl
+            ${CMAKE_BINARY_DIR}/bfam_test_opencl_kernels.h)
+
+add_executable(bfam_test_opencl tests/bfam_test_opencl.c
+  ${CMAKE_BINARY_DIR}/bfam_test_opencl_kernels.h)
+target_link_libraries(bfam_test_opencl bfam)
+add_test(bfam_test_opencl_test bfam_test_opencl)
+
+
 
 ##
 ## Print configuration
 ##
 set(BFAM_COMPILE_LIST
   "             BFAM_DEBUG:                ${BFAM_DEBUG}\\\\n"
+  "             BFAM_HAVE_OPENCL:          ${BFAM_HAVE_OPENCL}\\\\n"
   "             BFAM_HAVE_SYSEXITS_H:      ${BFAM_HAVE_SYSEXITS_H}\\\\n"
   "             BFAM_HAVE_SYS_SYSEXITS_H:  ${BFAM_HAVE_SYS_SYSEXITS_H}\\\\n"
   "             CMAKE_C_FLAGS:             ${CMAKE_C_FLAGS}\\\\n"
