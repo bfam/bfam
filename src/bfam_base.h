@@ -58,6 +58,16 @@
 #define BFAM_ASSERT(expression) BFAM_NOOP()
 #endif
 
+#define BFAM_SYS_ERROR_CHECK(cond, msg) \
+  do                                    \
+  {                                     \
+    if(cond)                            \
+    {                                   \
+      perror(msg);                      \
+      BFAM_ABORT("perror");             \
+    }                                   \
+  } while (0)
+
 #define BFAM_CHECK_MPI(c) BFAM_ABORT_IF_NOT((c) == MPI_SUCCESS, "MPI Error")
 
 #define BFAM_IS_ALIGNED(p,a) (((intptr_t)(p) & ((a) - 1)) == 0)
