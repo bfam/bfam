@@ -5,6 +5,36 @@ project(bfam C Fortran)
 include(InstallRequiredSystemLibraries)
 include(FortranCInterface)
 
+##
+## ispc stuff
+##
+find_program(ISPC_COMMAND ispc)
+if("${ISPC_COMMAND}" MATCHES "ISPC_COMMAND-NOTFOUND")
+  set(BFAM_HAVE_ISPC FALSE)
+  message("-- Ispc Not Found")
+else("${ISPC_COMMAND}" MATCHES "ISPC_COMMAND-NOTFOUND")
+  set(BFAM_HAVE_ISPC TRUE)
+  message("-- Ispc Found: ${ISPC_COMMAND}")
+endif("${ISPC_COMMAND}" MATCHES "ISPC_COMMAND-NOTFOUND")
+set(ISPC_FLAGS "" CACHE STRING "ISPC compile flags" )
+set(ISPC_FLAGS_DEBUG "-g -O0" CACHE STRING "ISPC debug compile flags")
+set(ISPC_FLAGS_RELEASE "-g -O2 -DNDEBUG" CACHE STRING "ISPC release compile flags")
+function(ispc_compile filename)
+  get_filename_component(base ${filename} NAME_WE)
+  set(base_abs ${CMAKE_CURRENT_BINARY_DIR}/${base})
+  set(output ${base_abs}.o ${base_abs}.h)
+  if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
+    set(ispc_compile_flags "${ISPC_FLAGS} ${ISPC_FLAGS_DEBUG}")
+  else("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
+    set(ispc_compile_flags "${ISPC_FLAGS} ${ISPC_FLAGS_RELEASE}")
+  endif("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
+  string(REPLACE " " ";" ispc_compile_flags_list ${ispc_compile_flags})
+  add_custom_command(
+    OUTPUT ${output}
+    COMMAND ${ISPC_COMMAND} ${ispc_compile_flags_list} ${filename} -o ${base_abs}.o -h ${base_abs}.h)
+  set_source_files_properties(${output} PROPERTIES GENERATED TRUE)
+endfunction()
+
 find_package(Git)
 find_package(BLAS REQUIRED)
 find_package(LAPACK REQUIRED)
@@ -311,14 +341,27 @@ add_executable(bfam_test_lua tests/bfam_test_lua.c
 target_link_libraries(bfam_test_lua bfam)
 add_test(bfam_test_lua_test bfam_test_lua)
 
+if(BFAM_HAVE_ISPC)
+ispc_compile(${CMAKE_SOURCE_DIR}/tests/bfam_test_ispc_kernels.ispc)
+add_executable(bfam_test_ispc tests/bfam_test_ispc.c
+  ${CMAKE_BINARY_DIR}/bfam_test_ispc_kernels.h)
+target_link_libraries(bfam_test_ispc
+  ${CMAKE_BINARY_DIR}/bfam_test_ispc_kernels.o bfam)
+add_test(bfam_test_ispc_test bfam_test_ispc)
+endif(BFAM_HAVE_ISPC)
+
 ##
 ## Print configuration
 ##
 set(BFAM_COMPILE_LIST
   "             BFAM_DEBUG:                ${BFAM_DEBUG}\\\\n"
+  "             BFAM_HAVE_ISPC:            ${BFAM_HAVE_ISPC}\\\\n"
   "             BFAM_HAVE_OPENCL:          ${BFAM_HAVE_OPENCL}\\\\n"
   "             BFAM_HAVE_SYSEXITS_H:      ${BFAM_HAVE_SYSEXITS_H}\\\\n"
   "             BFAM_HAVE_SYS_SYSEXITS_H:  ${BFAM_HAVE_SYS_SYSEXITS_H}\\\\n"
+  "             ISPC_FLAGS:                ${ISPC_FLAGS}\\\\n"
+  "             ISPC_FLAGS_DEBUG:          ${ISPC_FLAGS_DEBUG}\\\\n"
+  "             ISPC_FLAGS_RELEASE:        ${ISPC_FLAGS_RELEASE}\\\\n"
   "             CMAKE_C_FLAGS:             ${CMAKE_C_FLAGS}\\\\n"
   "             CMAKE_C_FLAGS_DEBUG:       ${CMAKE_C_FLAGS_DEBUG}\\\\n"
   "             CMAKE_C_FLAGS_RELEASE:     ${CMAKE_C_FLAGS_RELEASE}\\\\n"
