@@ -43,6 +43,9 @@
 # endif
 #endif
 
+#define BFAM_MIN(a,b) (((a)<(b))?(a):(b))
+#define BFAM_MAX(a,b) (((a)>(b))?(a):(b))
+
 #define BFAM_NOOP() do {} while(0)
 #define BFAM_ABORT(s) bfam_abort_verbose(__FILE__, __LINE__, (s))
 #define BFAM_ABORT_IF(q,s) ((q) ? BFAM_ABORT(s) : (void) 0)
