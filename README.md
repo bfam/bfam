@@ -58,3 +58,19 @@ files.
     CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
     TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
     SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+### LuaJIT
+Mike Pall's LuaJIT is included in BFAM.  See the file
+`third_party/luajit/COPYRIGHT` for license information.
+It is added to the repository using:
+
+    git subtree add --prefix=third_party/luajit --squash \
+        http://luajit.org/git/luajit-2.0.git master
+
+and can be updated to the latest upstream version using:
+
+    git subtree merge --prefix=third_party/luajit --squash \
+        http://luajit.org/git/luajit-2.0.git master
+
+We also use the CMake build script for LuaJIT from Tarantool, see
+`cmake/luajit.cmake` for more details.

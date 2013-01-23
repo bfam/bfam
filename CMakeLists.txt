@@ -12,8 +12,11 @@ find_package(MPI REQUIRED)
 
 # Directory where customize cmake files reside
 set(CMAKE_MODULE_PATH
-  ${CMAKE_SOURCE_DIR}/cmake/findopencl ${CMAKE_MODULE_PATH}
+  ${CMAKE_SOURCE_DIR}/cmake/findopencl
+  ${CMAKE_SOURCE_DIR}/cmake
+  ${CMAKE_MODULE_PATH}
 )
+
 find_package(OpenCL)
 
 ##
@@ -205,6 +208,18 @@ FortranCInterface_HEADER(bfam_f2c.h MACRO_NAMESPACE "BFAM_" SYMBOL_NAMESPACE "BF
   SYMBOLS DSTEQR)
 
 ##
+## Third-Party Libs
+##
+add_custom_target(build_bundled_libs)
+
+##
+## LuaJIT
+##
+include(luajit)
+
+subdirs(third_party)
+
+##
 ## Set build include path
 ##
 include_directories(${CMAKE_SOURCE_DIR}/src)
@@ -229,8 +244,9 @@ add_library(bfam
                  src/bfam_opencl.c
                  src/bfam_version.c
            )
-add_dependencies(bfam version)
+add_dependencies(bfam build_bundled_libs version)
 
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LUAJIT_LINK_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_C_LINK_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_Fortran_LINK_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LAPACK_LINKER_FLAGS}")
@@ -238,6 +254,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${BLAS_LINKER_FLAGS}")
 
 target_link_libraries(bfam ${MPI_C_LIBRARIES}
                            ${MPI_Fortran_LIBRARIES}
+                           ${LUAJIT_LIB}
                            ${OPENCL_LIBRARIES}
                            ${LAPACK_LIBRARIES}
                            ${BLAS_LIBRARIES})
@@ -283,7 +300,13 @@ add_executable(bfam_test_opencl tests/bfam_test_opencl.c
 target_link_libraries(bfam_test_opencl bfam)
 add_test(bfam_test_opencl_test bfam_test_opencl)
 
+file2header(${CMAKE_SOURCE_DIR}/tests/bfam_test_lua_script.lua
+            ${CMAKE_BINARY_DIR}/bfam_test_lua_script.h)
 
+add_executable(bfam_test_lua tests/bfam_test_lua.c
+  ${CMAKE_BINARY_DIR}/bfam_test_lua_script.h)
+target_link_libraries(bfam_test_lua bfam)
+add_test(bfam_test_lua_test bfam_test_lua)
 
 ##
 ## Print configuration
@@ -296,6 +319,9 @@ set(BFAM_COMPILE_LIST
   "             CMAKE_C_FLAGS:             ${CMAKE_C_FLAGS}\\\\n"
   "             CMAKE_C_FLAGS_DEBUG:       ${CMAKE_C_FLAGS_DEBUG}\\\\n"
   "             CMAKE_C_FLAGS_RELEASE:     ${CMAKE_C_FLAGS_RELEASE}\\\\n"
+  "             LUAJIT_INCLUDE:            ${LUAJIT_INCLUDE}\\\\n"
+  "             LUAJIT_LIB:                ${LUAJIT_LIB}\\\\n"
+  "             LUAJIT_LINK_FLAGS:         ${LUAJIT_LINK_FLAGS}\\\\n"
   "             BLAS_FOUND:                ${BLAS_FOUND}\\\\n"
   "             BLAS_LINKER_FLAGS:         ${BLAS_LINKER_FLAGS}\\\\n"
   "             BLAS_LIBRARIES:            ${BLAS_LIBRARIES}\\\\n"

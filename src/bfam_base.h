@@ -41,6 +41,10 @@
 
 #include <mpi.h>
 
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
+
 #if defined __GNUC__ && !defined __GNUC_PREREQ
 # ifndef __GNUC_MINOR__
 #    define __GNUC_PREREQ(maj, min) 0
