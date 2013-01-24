@@ -255,9 +255,12 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${BLAS_LINKER_FLAGS}")
 target_link_libraries(bfam ${MPI_C_LIBRARIES}
                            ${MPI_Fortran_LIBRARIES}
                            ${LUAJIT_LIB}
-                           ${OPENCL_LIBRARIES}
                            ${LAPACK_LIBRARIES}
                            ${BLAS_LIBRARIES})
+if(OPENCL_FOUND)
+  target_link_libraries(bfam ${OPENCL_LIBRARIES})
+endif(OPENCL_FOUND)
+
 ##
 ## Examples
 ##
@@ -328,6 +331,9 @@ set(BFAM_COMPILE_LIST
   "             LAPACK_FOUND:              ${LAPACK_FOUND}\\\\n"
   "             LAPACK_LINKER_FLAGS:       ${LAPACK_LINKER_FLAGS}\\\\n"
   "             LAPACK_LIBRARIES:          ${LAPACK_LIBRARIES}\\\\n"
+  "             OPENCL_FOUND:              ${OPENCL_FOUND}\\\\n"
+  "             OPENCL_INCLUDE_DIRS:       ${OPENCL_INCLUDE_DIRS}\\\\n"
+  "             OPENCL_LIBRARIES:          ${OPENCL_LIBRARIES}\\\\n"
   "             MPI_C_FOUND:               ${MPI_C_FOUND}\\\\n"
   "             MPI_C_COMPILER:            ${MPI_C_COMPILER}\\\\n"
   "             MPI_C_COMPILE_FLAGS:       ${MPI_C_COMPILE_FLAGS}\\\\n"
