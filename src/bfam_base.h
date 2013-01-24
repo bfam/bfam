@@ -1,7 +1,11 @@
 #ifndef BFAM_BASE_H
 #define BFAM_BASE_H
 
-#define _ISOC99_SOURCE
+#if !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__USLC__) && \
+    !defined(_M_UNIX) && !defined(__sgi) && !defined(__DragonFly__) && \
+    !defined(__TANDEM)
+#define _XOPEN_SOURCE 600
+#endif
 
 #include <bfam_config.h>
 
