@@ -35,7 +35,7 @@ main(int argc, char *argv[])
   base = basename(argv[2]);
 
   for (i = 0; base[i]; ++i) {
-    BASE[i] = toupper(base[i]);
+    BASE[i] = (char)toupper(base[i]);
     if (BASE[i] == '.')
       BASE[i] = '_';
   }
