@@ -10,5 +10,6 @@
 #include <bfam_jacobi.h>
 #include <bfam_opencl.h>
 #include <bfam_version.h>
+#include <bfam_subdomain.h>
 
 #endif
