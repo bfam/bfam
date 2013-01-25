@@ -104,7 +104,7 @@ different_byte_found:
   memcpy(x, ubytes, ulen+1);
 
   newnode->byte = newbyte;
-  newnode->otherbits = newotherbits;
+  newnode->otherbits = (int8_t)newotherbits;
   newnode->child[1-newdirection] = x;
 
   void **wherep = &t->root;
