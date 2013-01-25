@@ -179,12 +179,39 @@ endfunction()
 ##
 ## Set compiler flags
 ##
-if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU" OR "${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -fno-common")
+
+## Specify c99 compilers
+if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+endif("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
+if("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+endif("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+if("${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+endif("${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
+if("${CMAKE_C_COMPILER_ID}" MATCHES "PGI")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -c99")
+endif("${CMAKE_C_COMPILER_ID}" MATCHES "PGI")
+
+## Enhance debug flags
+if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-common")
   set(CMAKE_C_FLAGS_DEBUG "-g3")
   set(CMAKE_C_FLAGS_RELEASE "-g0 -O2 -DNDEBUG")
-endif("${CMAKE_C_COMPILER_ID}" MATCHES "GNU" OR "${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
+endif("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
+if("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-common")
+  set(CMAKE_C_FLAGS_DEBUG "-g3")
+  set(CMAKE_C_FLAGS_RELEASE "-g0 -O2 -DNDEBUG")
+endif("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+if("${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-common")
+  set(CMAKE_C_FLAGS_DEBUG "-g3")
+  set(CMAKE_C_FLAGS_RELEASE "-g0 -O2 -DNDEBUG")
+endif("${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
 
+# Turn on vectorization flags
 if("${CMAKE_BUILD_TYPE}" MATCHES "Release")
   if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native -ftree-vectorize -save-temps") #  -funroll-all-loops -fsplit-ivs-in-unroller
@@ -195,6 +222,9 @@ if("${CMAKE_BUILD_TYPE}" MATCHES "Release")
   if("${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -xHost -restrict")
   endif("${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
+  if ("${CMAKE_C_COMPILER_ID}" MATCHES "PGI")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Mvect")
+  endif("${CMAKE_C_COMPILER_ID}" MATCHES "PGI")
 endif("${CMAKE_BUILD_TYPE}" MATCHES "Release")
 
 option(WITH_WARNINGS "Compile with warnings" ON)
@@ -221,8 +251,11 @@ if(WITH_VECTOR_VERBOSE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorizer-verbose=7")
   endif("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
   if("${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Qvec_report3")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -vec-report3")
   endif("${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
+  if ("${CMAKE_C_COMPILER_ID}" MATCHES "PGI")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Minfo=all")
+  endif("${CMAKE_C_COMPILER_ID}" MATCHES "PGI")
 endif(WITH_VECTOR_VERBOSE)
 
 ##
