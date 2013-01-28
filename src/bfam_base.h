@@ -16,9 +16,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include <sys/types.h>
+#include <execinfo.h>
 #include <errno.h>
+#include <err.h>
 
 #if defined (BFAM_HAVE_SYSEXITS_H)
 #include <sysexits.h>
@@ -222,5 +225,9 @@ void *bfam_malloc_aligned(size_t size);
  * \param[in,out] ptr pointer to cache line aligned memory to free.
  */
 void bfam_free_aligned(void *ptr);
+
+/** Set a signal handler which prints stack traces on terminating signals.
+ */
+void bfam_signal_handler_set();
 
 #endif

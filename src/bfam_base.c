@@ -203,3 +203,163 @@ bfam_free_aligned(void *ptr)
   BFAM_ASSERT(ptr != NULL);
   free(ptr);
 }
+
+/*
+ * This signal handler code is a modified version of the one presented in
+ *
+ *     http://spin.atomicobject.com/2013/01/13/exceptions-stack-traces-c/
+ *
+ * by Job Vranish.  The code can be found here
+ *
+ *     https://gist.github.com/4441299
+ */
+
+#define BFAM_MAX_STACK_FRAMES 1024
+static void *stack_traces[BFAM_MAX_STACK_FRAMES];
+
+static void bfam_posix_print_stack_trace()
+{
+  int i, trace_size = 0;
+  char **messages = (char **)NULL;
+
+  trace_size = backtrace(stack_traces, BFAM_MAX_STACK_FRAMES);
+  messages = backtrace_symbols(stack_traces, trace_size);
+  BFAM_SYS_ERROR_CHECK(messages == NULL, "backtrace_symbols");
+
+  for(i = 0; i < trace_size; ++i)
+  {
+    BFAM_LERROR("%s", messages[i]);
+  }
+
+  if(messages)
+  {
+    free(messages);
+  }
+}
+
+void bfam_posix_signal_handler(int sig, siginfo_t *siginfo, void *context)
+{
+  (void)context;
+  switch(sig)
+  {
+    case SIGSEGV:
+      BFAM_LERROR("Caught SIGSEGV: Segmentation Fault");
+      break;
+    case SIGINT:
+      BFAM_LERROR(
+          "Caught SIGINT: Interactive attention signal, (usually ctrl+c)");
+      break;
+    case SIGFPE:
+      switch(siginfo->si_code)
+      {
+        case FPE_INTDIV:
+          BFAM_LERROR("Caught SIGFPE: (integer divide by zero)");
+          break;
+        case FPE_INTOVF:
+          BFAM_LERROR("Caught SIGFPE: (integer overflow)");
+          break;
+        case FPE_FLTDIV:
+          BFAM_LERROR("Caught SIGFPE: (floating-point divide by zero)");
+          break;
+        case FPE_FLTOVF:
+          BFAM_LERROR("Caught SIGFPE: (floating-point overflow)");
+          break;
+        case FPE_FLTUND:
+          BFAM_LERROR("Caught SIGFPE: (floating-point underflow)");
+          break;
+        case FPE_FLTRES:
+          BFAM_LERROR("Caught SIGFPE: (floating-point inexact result)");
+          break;
+        case FPE_FLTINV:
+          BFAM_LERROR("Caught SIGFPE: (floating-point invalid operation)");
+          break;
+        case FPE_FLTSUB:
+          BFAM_LERROR("Caught SIGFPE: (subscript out of range)");
+          break;
+        default:
+          BFAM_LERROR("Caught SIGFPE: Arithmetic Exception");
+          break;
+      }
+    case SIGILL:
+      switch(siginfo->si_code)
+      {
+        case ILL_ILLOPC:
+          BFAM_LERROR("Caught SIGILL: (illegal opcode)");
+          break;
+        case ILL_ILLOPN:
+          BFAM_LERROR("Caught SIGILL: (illegal operand)");
+          break;
+        case ILL_ILLADR:
+          BFAM_LERROR("Caught SIGILL: (illegal addressing mode)");
+          break;
+        case ILL_ILLTRP:
+          BFAM_LERROR("Caught SIGILL: (illegal trap)");
+          break;
+        case ILL_PRVOPC:
+          BFAM_LERROR("Caught SIGILL: (privileged opcode)");
+          break;
+        case ILL_PRVREG:
+          BFAM_LERROR("Caught SIGILL: (privileged register)");
+          break;
+        case ILL_COPROC:
+          BFAM_LERROR("Caught SIGILL: (coprocessor error)");
+          break;
+        case ILL_BADSTK:
+          BFAM_LERROR("Caught SIGILL: (internal stack error)");
+          break;
+        default:
+          BFAM_LERROR("Caught SIGILL: Illegal Instruction");
+          break;
+      }
+      break;
+    case SIGTERM:
+      BFAM_LERROR(
+          "Caught SIGTERM: a termination request was sent to the program");
+      break;
+    case SIGABRT:
+      BFAM_LERROR("Caught SIGABRT: usually caused by an abort() or assert()");
+      break;
+    default:
+      break;
+  }
+  bfam_posix_print_stack_trace();
+  _Exit(1);
+}
+
+static uint8_t alternate_stack[SIGSTKSZ];
+void bfam_signal_handler_set()
+{
+  /* setup alternate stack */
+  {
+    stack_t ss;
+    /* malloc is usually used here, I'm not 100% sure my static allocation
+       is valid but it seems to work just fine. */
+    ss.ss_sp = (void*)alternate_stack;
+    ss.ss_size = SIGSTKSZ;
+    ss.ss_flags = 0;
+
+    if(sigaltstack(&ss, NULL) != 0) { err(1, "sigaltstack"); }
+  }
+
+  /* register our signal handlers */
+  {
+    struct sigaction sig_action;
+    sig_action.sa_sigaction = bfam_posix_signal_handler;
+    sigemptyset(&sig_action.sa_mask);
+
+#ifdef __APPLE__
+    /* for some reason we backtrace() doesn't work on osx
+       when we use an alternate stack */
+    sig_action.sa_flags = SA_SIGINFO;
+#else
+    sig_action.sa_flags = SA_SIGINFO | SA_ONSTACK;
+#endif
+
+    if(sigaction(SIGSEGV, &sig_action, NULL) != 0) { err(1, "sigaction"); }
+    if(sigaction(SIGFPE,  &sig_action, NULL) != 0) { err(1, "sigaction"); }
+    if(sigaction(SIGINT,  &sig_action, NULL) != 0) { err(1, "sigaction"); }
+    if(sigaction(SIGILL,  &sig_action, NULL) != 0) { err(1, "sigaction"); }
+    if(sigaction(SIGTERM, &sig_action, NULL) != 0) { err(1, "sigaction"); }
+    if(sigaction(SIGABRT, &sig_action, NULL) != 0) { err(1, "sigaction"); }
+  }
+}

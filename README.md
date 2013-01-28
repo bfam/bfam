@@ -113,3 +113,12 @@ information below for this sample code.
     LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
     NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+### Catching Exceptions and Printing Stack Traces
+The signal handler code is a modified version of the one presented in:
+
+    http://spin.atomicobject.com/2013/01/13/exceptions-stack-traces-c/
+
+by Job Vranish.  The code can be found here:
+
+    https://gist.github.com/4441299

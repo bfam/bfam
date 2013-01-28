@@ -211,6 +211,20 @@ if("${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
   set(CMAKE_C_FLAGS_RELEASE "-g0 -O2 -DNDEBUG")
 endif("${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
 
+## Enhance stack trace message
+if(LINUX)
+  if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -rdynamic")
+  endif("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
+  if("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -rdynamic")
+  endif("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+  if("${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -rdynamic")
+  endif("${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
+endif(LINUX)
+
+
 # Turn on vectorization flags
 if("${CMAKE_BUILD_TYPE}" MATCHES "Release")
   if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
@@ -332,6 +346,9 @@ target_link_libraries(bfam_gopt_usage bfam)
 
 add_executable(bfam_exam_logging examples/logging/bfam_exam_logging.c)
 target_link_libraries(bfam_exam_logging bfam)
+
+add_executable(bfam_exam_signal examples/signal/bfam_exam_signal.c)
+target_link_libraries(bfam_exam_signal bfam)
 
 add_executable(bfam_exam_vectorize examples/vectorize/bfam_exam_vectorize.c)
 target_link_libraries(bfam_exam_vectorize bfam)
