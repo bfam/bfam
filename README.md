@@ -148,3 +148,19 @@ See the copyright and license information below for this library.
     Jean-loup Gailly        Mark Adler
     jloup@gzip.org          madler@alumni.caltech.edu
 
+### p4est
+The octree library p4est is included in bfam as a third-party library.
+Basic information about the library from its `README` file is:
+
+    p4est is a C library to manage a collection (a forest) of multiple
+    connected adaptive quadtrees or octrees in parallel.
+
+    p4est is written by Carsten Burstedde, Lucas C. Wilcox, and Tobin Isaac
+    and released under the GNU General Public Licence version 2 (or later),
+    Copyright (C) 2010 The University of Texas System.
+
+    The official web page for source code and documentation is www.p4est.org.
+    Please send bug reports and ideas for contribution to info@p4est.org.
+
+See the `INSTALL` file in `third_party/p4est-0.3.4.102-9441.tar.gz` for
+more information.
