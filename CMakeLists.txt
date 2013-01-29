@@ -288,6 +288,7 @@ FortranCInterface_HEADER(bfam_f2c.h MACRO_NAMESPACE "BFAM_" SYMBOL_NAMESPACE "BF
 ## Third-Party Libs
 ##
 add_custom_target(build_bundled_libs)
+add_custom_target(p4est_bundled_libs)
 
 ##
 ## LuaJIT
@@ -296,6 +297,8 @@ include(luajit)
 
 include(zlib)
 include_directories(${ZLIB_INCLUDE_DIRS})
+
+include(p4est)
 
 subdirs(third_party)
 
@@ -334,6 +337,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${BLAS_LINKER_FLAGS}")
 
 target_link_libraries(bfam ${MPI_C_LIBRARIES}
                            ${MPI_Fortran_LIBRARIES}
+                           ${P4EST_LIBRARIES}
                            ${LUAJIT_LIB}
                            ${ZLIB_LIBRARIES}
                            ${LAPACK_LIBRARIES}
@@ -350,6 +354,9 @@ target_link_libraries(bfam_gopt_usage bfam)
 
 add_executable(bfam_exam_logging examples/logging/bfam_exam_logging.c)
 target_link_libraries(bfam_exam_logging bfam)
+
+add_executable(bfam_exam_p4est examples/p4est/bfam_exam_p4est.c)
+target_link_libraries(bfam_exam_p4est bfam)
 
 add_executable(bfam_exam_signal examples/signal/bfam_exam_signal.c)
 target_link_libraries(bfam_exam_signal bfam)

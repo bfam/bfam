@@ -198,6 +198,7 @@ macro(luajit_build)
     DEPENDS ${PROJECT_BINARY_DIR}/third_party/luajit/src/libluajit.a
     )
   add_dependencies(build_bundled_libs libluajit)
+  add_dependencies(p4est_bundled_libs libluajit)
   unset (luajit_buildoptions)
 endmacro()
 
