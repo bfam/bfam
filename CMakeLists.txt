@@ -294,6 +294,9 @@ add_custom_target(build_bundled_libs)
 ##
 include(luajit)
 
+include(zlib)
+include_directories(${ZLIB_INCLUDE_DIRS})
+
 subdirs(third_party)
 
 ##
@@ -332,6 +335,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${BLAS_LINKER_FLAGS}")
 target_link_libraries(bfam ${MPI_C_LIBRARIES}
                            ${MPI_Fortran_LIBRARIES}
                            ${LUAJIT_LIB}
+                           ${ZLIB_LIBRARIES}
                            ${LAPACK_LIBRARIES}
                            ${BLAS_LIBRARIES})
 if(OPENCL_FOUND)
@@ -352,6 +356,9 @@ target_link_libraries(bfam_exam_signal bfam)
 
 add_executable(bfam_exam_vectorize examples/vectorize/bfam_exam_vectorize.c)
 target_link_libraries(bfam_exam_vectorize bfam)
+
+add_executable(bfam_exam_zpipe examples/zpipe/bfam_exam_zpipe.c)
+target_link_libraries(bfam_exam_zpipe bfam)
 
 ##
 ## Tests

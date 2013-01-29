@@ -1,0 +1,28 @@
+From 43024680817376f2528ce17c8aa0b39bc1b9eb11 Mon Sep 17 00:00:00 2001
+From: Lucas C Wilcox <lucas@swirlee.com>
+Date: Mon, 28 Jan 2013 17:51:24 -0800
+Subject: [PATCH 4/7] Fix zlib's build on Mac OS X
+
+The linker on Mac OS X does not support --version-script.
+---
+ third_party/zlib/CMakeLists.txt |    4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/third_party/zlib/CMakeLists.txt b/third_party/zlib/CMakeLists.txt
+index 7ee3bc4..7b14456 100644
+--- a/third_party/zlib/CMakeLists.txt
++++ b/third_party/zlib/CMakeLists.txt
+@@ -166,7 +166,9 @@ endif()
+ if(UNIX)
+     # On unix-like platforms the library is almost always called libz
+    set_target_properties(zlib zlibstatic PROPERTIES OUTPUT_NAME z)
+-   set_target_properties(zlib PROPERTIES LINK_FLAGS "-Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/zlib.map")
++   if(NOT APPLE)
++     set_target_properties(zlib PROPERTIES LINK_FLAGS "-Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/zlib.map")
++   endif()
+ elseif(BUILD_SHARED_LIBS AND WIN32)
+     # Creates zlib1.dll when building shared library version
+     set_target_properties(zlib PROPERTIES SUFFIX "1.dll")
+-- 
+1.7.10.4
+
