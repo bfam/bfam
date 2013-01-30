@@ -1,6 +1,8 @@
 #ifndef BFAM_MPICOMM_H
 #define BFAM_MPICOMM_H
 
+#include<mpi.h>
+
 /**
  * base structure for all mpicomm types. Any new mpi comm should have this as
  * its first member with the name base, i.e.,
@@ -13,10 +15,10 @@
  */
 typedef struct bfam_mpicomm
 {
-  // comm type
-  // rank
-  // ismember
-  // name
+  MPI_Comm comm;
+  int rank;
+  int isMember;
+  char * name;
 } bfam_mpicomm_t;
 
 #endif
