@@ -55,6 +55,8 @@ main (int argc, char *argv[])
   p4est_balance(p4est, P4EST_CONNECT_FACE, NULL);
   p4est_partition(p4est, NULL);
 
+  p4est_vtk_write_file(p4est, NULL, "mesh");
+
   ghost_layer = p4est_ghost_new(p4est, P4EST_CONNECT_FULL);
   lnodes = p4est_lnodes_new(p4est, ghost_layer, degree);
 
@@ -96,11 +98,67 @@ main (int argc, char *argv[])
 
   sc_array_destroy(global_nodes);
 
-  BFAM_ROOT_INFO("MESH 8 ------------ Mesh End ------------");
+  p4est_topidx_t  flt = p4est->first_local_tree;
+  p4est_topidx_t  llt = p4est->last_local_tree;
+
+  p4est_locidx_t elid, elnid;
+  p4est_topidx_t t;
+  const double *v = conn->vertices;
+  const p4est_topidx_t *tree_to_vertex = conn->tree_to_vertex;
+  for(elid = 0, elnid = 0, t = flt; t <= llt; ++t)
+  {
+    p4est_tree_t *tree = p4est_tree_array_index(p4est->trees, t);
+    const size_t count = tree->quadrants.elem_count;
+    p4est_topidx_t vt[P4EST_CHILDREN];
+
+    for (int c = 0; c < P4EST_CHILDREN; ++c)
+    {
+      vt[c] = tree_to_vertex[t * P4EST_CHILDREN + c];
+    }
+
+    for (size_t zz = 0; zz < count; ++zz, ++elid)
+    {
+      p4est_quadrant_t *q = p4est_quadrant_array_index(&tree->quadrants, zz);
+
+      for(int jind = 0; jind < degree + 1; ++jind)
+      {
+        for(int iind = 0; iind < degree + 1; ++iind, ++elnid)
+        {
+          double xyz[3];
+          for (int j = 0; j < 3; ++j)
+          {
+
+            const p4est_qcoord_t len  = P4EST_QUADRANT_LEN(q->level);
+            const double         rlen = (double) P4EST_ROOT_LEN;
+            const double         deg  = (double) degree;
+            const double         qlen = ((double) len) / rlen;
+
+            const double eta_x =
+              ((double) q->x) / rlen + (((double) iind) / deg) * qlen;
+            const double eta_y =
+              ((double) q->y) / rlen + (((double) jind) / deg) * qlen;
+
+            xyz[j] = ((1. - eta_y) * ((1. - eta_x) * v[3 * vt[0] + j] +
+                                            eta_x  * v[3 * vt[1] + j]) +
+                            eta_y  * ((1. - eta_x) * v[3 * vt[2] + j] +
+                                            eta_x  * v[3 * vt[3] + j]));
+          }
+
+          const p4est_locidx_t nid = lnodes->element_nodes[elnid];
+
+          BFAM_INFO(
+              "MESH 8 local_node[%03jd] = %03jd ( %25.16e %25.16e %25.16e )",
+              (intmax_t)elnid, (intmax_t)nid, xyz[0], xyz[1], xyz[2]);
+        }
+      }
+    }
+  }
+
+
+  BFAM_ROOT_INFO("MESH 9 ------------ Mesh End ------------");
 
 
 
-  p4est_vtk_write_file(p4est, NULL, "mesh");
 
   p4est_lnodes_destroy(lnodes);
   p4est_ghost_destroy(ghost_layer);
