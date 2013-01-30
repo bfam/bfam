@@ -16,9 +16,7 @@
 typedef struct bfam_mpicomm
 {
   MPI_Comm comm;
-  int rank;
   int isMember;
-  char * name;
 } bfam_mpicomm_t;
 
 #endif
