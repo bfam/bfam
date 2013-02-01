@@ -18,7 +18,7 @@ typedef struct bfam_subdomain
 {
   char*           name;     /**< Name of the subdomain */
   bfam_mpicomm_t* comm;     /**< communicator for this subdomain */
-  int             hasWorkl; /**< boolean for whether or not I can do work on this processor */
+  int             hasWork;  /**< boolean for whether or not I can do work on this processor */
 
   /* Function pointers that domain will need to call */
   /**< start communication */
@@ -36,5 +36,24 @@ typedef struct bfam_subdomain
   /**< update solution */
   void (*update_fields)       (struct bfam_subdomain *thisSubdomain);
 } bfam_subdomain_t;
+
+
+/** initializes a subdomain
+ *
+ * There no new function for subdomains since these are really just a base class
+ * and a concrete grid and physics type should be defined
+ *
+ * \param [in,out] thisSubdomain pointer to the subdomain
+ * \param [in]     name Name of this subdomain
+ */
+void
+bfam_subdomain_init(bfam_subdomain_t *subdomain,const char* name);
+
+/** free up the memory allocated by the subdomain
+ * 
+ * \param [in,out] thisSubdomain subdomain to clean up
+ */
+void
+bfam_subdomain_free(bfam_subdomain_t *thisSubdomain);
 
 #endif
