@@ -20,6 +20,18 @@ typedef struct bfam_subdomain
   char*           name;     /**< Name of the subdomain */
   bfam_mpicomm_t* comm;     /**< communicator for this subdomain */
   int             hasWorkl; /**< boolean for whether or not I can do work on this processor */
+
+  /* Function pointers that domain will need to call */
+  /**< start communication */
+  void (*start_communication) (struct bfam_subdomain *thisSubdomain);
+  /**< end communication */
+  void (*end_communication)   (struct bfam_subdomain *thisSubdomain);
+  /**< start I/O */
+  void (*start_io)            (struct bfam_subdomain *thisSubdomain);
+  /**< end I/O */
+  void (*start_end)           (struct bfam_subdomain *thisSubdomain);
+  /**< do the work that can be done without communication */
+  void (*do_intra_work)       (struct bfam_subdomain *thisSubdomain);
 } bfam_subdomain_t;
 
 /**
