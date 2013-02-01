@@ -18,6 +18,7 @@ bfam_subdomain_init(bfam_subdomain_t *thisSubdomain,const char* name)
   thisSubdomain->do_internal_RHS     = NULL;
   thisSubdomain->do_external_RHS     = NULL;
   thisSubdomain->update_fields       = NULL;
+  thisSubdomain->free                = bfam_subdomain_free;
 }
 
 void

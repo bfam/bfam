@@ -35,6 +35,9 @@ typedef struct bfam_subdomain
   void (*do_external_RHS)     (struct bfam_subdomain *thisSubdomain);
   /**< update solution */
   void (*update_fields)       (struct bfam_subdomain *thisSubdomain);
+  /**< subdomain free command :: if user writes custom they should wrap the
+   * original function pointer */
+  void (*free)                (struct bfam_subdomain *thisSubdomain);
 } bfam_subdomain_t;
 
 
