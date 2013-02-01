@@ -12,5 +12,6 @@
 #include <bfam_version.h>
 #include <bfam_mpicomm.h>
 #include <bfam_subdomain.h>
+#include <bfam_domain.h>
 
 #endif
