@@ -407,10 +407,10 @@ add_test(NAME bfam_test_fail_test
     -DSOURCEDIR=${CMAKE_CURRENT_SOURCE_DIR}
     -P ${CMAKE_SOURCE_DIR}/cmake/runfailtest.cmake)
 
-add_executable(bfam_test_subdomain tests/bfam_test_subdomain.c)
-target_link_libraries(bfam_test_subdomain bfam)
+add_executable(bfam_test_domain tests/bfam_test_domain.c)
+target_link_libraries(bfam_test_domain bfam)
 
-add_test(bfam_test_subdomain_test bfam_test_subdomain)
+add_test(bfam_test_domain_test bfam_test_domain)
 
 
 add_executable(bfam_test_critbit tests/bfam_test_critbit.c)
