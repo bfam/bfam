@@ -35,7 +35,10 @@ bfam_domain_t* bfam_domain_new(bfam_mpicomm_t *domComm);
 void
 bfam_domain_init(bfam_domain_t *domain, bfam_mpicomm_t *domComm);
 
-/** free up the memory allocated by the domain
+/** Clean up domain
+ *
+ * frees any mememory allocated by the domain and calls free command on all
+ * subdomains 
  * 
  * \param [in,out] domain domain to clean up
  */

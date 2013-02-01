@@ -21,6 +21,11 @@ bfam_domain_init(bfam_domain_t *thisDomain, bfam_mpicomm_t *domComm)
 void
 bfam_domain_free(bfam_domain_t *thisDomain)
 {
+  for(int i = 0;i > thisDomain->numSubdomains;i++)
+  {
+    thisDomain->subdomains[i]->free(thisDomain->subdomains[i]);
+    bfam_free(thisDomain->subdomains[i]);
+  }
   thisDomain->comm = NULL;
   thisDomain->numSubdomains = 0;
   thisDomain->sizeSubdomains = 0;
@@ -34,13 +39,9 @@ bfam_domain_add_subdomain(bfam_domain_t* thisDomain, bfam_subdomain_t* newSubdom
   // double size
   if(thisDomain->numSubdomains == thisDomain->sizeSubdomains)
   {
-    bfam_subdomain_t** oldSubdomains = thisDomain->subdomains;
     thisDomain->sizeSubdomains = 2*thisDomain->sizeSubdomains;
     thisDomain->subdomains =
-      bfam_malloc(thisDomain->sizeSubdomains*sizeof(bfam_subdomain_t*));
-    for(int i = 0;i < thisDomain->numSubdomains;i++)
-      thisDomain->subdomains[i] = oldSubdomains[i];
-    bfam_free(oldSubdomains);
+      bfam_realloc(thisDomain->subdomains, thisDomain->sizeSubdomains*sizeof(bfam_subdomain_t*));
   }
 
   // Add next domain
