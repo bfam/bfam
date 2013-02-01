@@ -8,7 +8,8 @@ bfam_domain_t* bfam_domain_new(bfam_mpicomm_t *domComm)
   return newDomain;
 }
 
-void bfam_domain_init(bfam_domain_t *thisDomain, bfam_mpicomm_t *domComm)
+void
+bfam_domain_init(bfam_domain_t *thisDomain, bfam_mpicomm_t *domComm)
 {
   const int sizeSubdomains = 16;
   thisDomain->comm = domComm; // Perhaps we should duplicate it?
@@ -17,7 +18,8 @@ void bfam_domain_init(bfam_domain_t *thisDomain, bfam_mpicomm_t *domComm)
   thisDomain->subdomains = bfam_malloc(sizeSubdomains*sizeof(bfam_subdomain_t*));
 }
 
-void bfam_domain_free(bfam_domain_t *thisDomain)
+void
+bfam_domain_free(bfam_domain_t *thisDomain)
 {
   thisDomain->comm = NULL;
   thisDomain->numSubdomains = 0;
@@ -26,7 +28,8 @@ void bfam_domain_free(bfam_domain_t *thisDomain)
   thisDomain->subdomains = NULL;
 }
 
-void bfam_domain_add_subdomain(bfam_domain_t* thisDomain, bfam_subdomain_t* newSubdomain)
+void
+bfam_domain_add_subdomain(bfam_domain_t* thisDomain, bfam_subdomain_t* newSubdomain)
 {
   // double size
   if(thisDomain->numSubdomains == thisDomain->sizeSubdomains)

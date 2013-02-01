@@ -32,19 +32,22 @@ bfam_domain_t* bfam_domain_new(bfam_mpicomm_t *domComm);
  * \param [in,out] domain pointer to the domain
  * \param [in]     domComm pointer to the communicator for the domain
  */
-void bfam_domain_init(bfam_domain_t *domain, bfam_mpicomm_t *domComm);
+void
+bfam_domain_init(bfam_domain_t *domain, bfam_mpicomm_t *domComm);
 
 /** free up the memory allocated by the domain
  * 
  * \param [in,out] domain domain to clean up
  */
-void bfam_domain_free(bfam_domain_t *domain);
+void
+bfam_domain_free(bfam_domain_t *domain);
 
 /** Add subdomain
  * 
  * \param [in,out] thisDomain domain to add subdomain to
  * \param [in]     newSubdomain subdomain to add to the domain
  */
-void bfam_domain_add_subdomain(bfam_domain_t *thisDomain, bfam_subdomain_t *newSubdomain);
+void
+bfam_domain_add_subdomain(bfam_domain_t *thisDomain, bfam_subdomain_t *newSubdomain);
 
 #endif
