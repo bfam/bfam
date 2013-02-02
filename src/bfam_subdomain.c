@@ -5,8 +5,8 @@ void
 bfam_subdomain_init(bfam_subdomain_t *thisSubdomain,const char* name)
 {
   int len = strlen(name);
-  thisSubdomain->name = bfam_malloc(len*sizeof(char));
-  strncpy(thisSubdomain->name,name,len);
+  thisSubdomain->name = bfam_malloc((len+1)*sizeof(char));
+  strncpy(thisSubdomain->name,name,len+1);
   
   thisSubdomain->comm = NULL;
   thisSubdomain->hasWork = (0!=0);
