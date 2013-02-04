@@ -36,7 +36,6 @@ test_insert()
 
   for (unsigned i = 0; elems[i]; ++i)
   {
-    printf("Inserting %s\n",elems[i]);
     bfam_subdomain_t* newSub = bfam_malloc(sizeof(bfam_subdomain_t));
     bfam_subdomain_init(newSub,elems[i]);
     bfam_domain_add_subdomain(domain,newSub);

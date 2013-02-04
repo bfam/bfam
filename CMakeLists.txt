@@ -413,6 +413,12 @@ target_link_libraries(bfam_test_domain bfam)
 add_test(bfam_test_domain_test bfam_test_domain)
 
 
+add_executable(bfam_test_domain_fail_repeat tests/bfam_test_domain_fail_repeat.c)
+target_link_libraries(bfam_test_domain_fail_repeat bfam)
+
+add_test(bfam_test_domain_fail_repeat_test bfam_test_domain_fail_repeat)
+
+
 add_executable(bfam_test_critbit tests/bfam_test_critbit.c)
 target_link_libraries(bfam_test_critbit bfam)
 

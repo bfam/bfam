@@ -1,5 +1,6 @@
 #include <bfam_domain.h>
 #include <bfam_base.h>
+#include <bfam_log.h>
 
 const char keyValueSplitter = '\033';
 
@@ -44,6 +45,7 @@ bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
   // double size
   if(thisDomain->numSubdomains == thisDomain->sizeSubdomains)
   {
+    BFAM_ROOT_VERBOSE("Doubling domain size");
     thisDomain->sizeSubdomains = 2*thisDomain->sizeSubdomains;
     thisDomain->subdomains =
       bfam_realloc(thisDomain->subdomains,
@@ -51,6 +53,8 @@ bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
   }
 
   // create the key value pair
+  BFAM_ROOT_VERBOSE("adding subdomain %3d with name %s",
+      thisDomain->numSubdomains,newSubdomain->name);
   int len = strlen(newSubdomain->name);
   char* keyValue = bfam_malloc(sizeof(char)*(len+2)+sizeof(int));
   strncpy(keyValue,newSubdomain->name,len);
@@ -59,7 +63,10 @@ bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
 
   // check if it's already there
   if(bfam_critbit0_contains(&(thisDomain->name2num),keyValue))
-    bfam_abort("domain already contains subdomain named: ");
+  {
+    BFAM_ABORT("domain already contains subdomain \"%s\"",
+        newSubdomain->name);
+  }
 
   // Since not in the table add the rest of the key and add
   *((int *) keyValue+(len+1)) = thisDomain->numSubdomains;
