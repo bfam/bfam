@@ -5,12 +5,14 @@ void
 bfam_abort_verbose(const char *file, int line, ...)
 {
   va_list ap;
-  const char * fmt;
-  char tmpStr[256];
-  va_start(ap,line);
+  const char *fmt;
+  char note[BFAM_BUFSIZ];
+
+  va_start(ap, line);
   fmt = va_arg(ap, const char *);
-  sprintf(tmpStr,"Abort: [%s:%d] %s\n", file, line, fmt);
-  BFAM_LERROR(tmpStr,ap);
+  vsnprintf(note, BFAM_BUFSIZ, fmt, ap);
+  va_end(ap);
+  BFAM_LERROR("Abort: [%s:%d] %s", file, line, note);
   bfam_abort();
 }
 

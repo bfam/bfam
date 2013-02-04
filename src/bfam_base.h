@@ -63,13 +63,15 @@
 # endif
 #endif
 
+#define BFAM_BUFSIZ 8192
+
 #define BFAM_MIN(a,b) (((a)<(b))?(a):(b))
 #define BFAM_MAX(a,b) (((a)>(b))?(a):(b))
 
 #define BFAM_NOOP() do {} while(0)
-#define BFAM_ABORT(...) bfam_abort_verbose(__FILE__, __LINE__,__VA_ARGS__)
+#define BFAM_ABORT(...) bfam_abort_verbose(__FILE__, __LINE__, __VA_ARGS__)
 #define BFAM_ABORT_IF(q,...) ((q) ? BFAM_ABORT(__VA_ARGS__) : (void) 0)
-#define BFAM_ABORT_IF_NOT(q,...)  BFAM_ABORT_IF(!(q),(__VA_ARGS__))
+#define BFAM_ABORT_IF_NOT(q,...)  BFAM_ABORT_IF(!(q), __VA_ARGS__)
 
 #ifdef BFAM_DEBUG
 #define BFAM_ASSERT(expression)   \
