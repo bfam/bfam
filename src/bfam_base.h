@@ -67,9 +67,9 @@
 #define BFAM_MAX(a,b) (((a)>(b))?(a):(b))
 
 #define BFAM_NOOP() do {} while(0)
-#define BFAM_ABORT(s) bfam_abort_verbose(__FILE__, __LINE__, (s))
-#define BFAM_ABORT_IF(q,s) ((q) ? BFAM_ABORT(s) : (void) 0)
-#define BFAM_ABORT_IF_NOT(q,s)  BFAM_ABORT_IF(!(q),(s))
+#define BFAM_ABORT(...) bfam_abort_verbose(__FILE__, __LINE__,__VA_ARGS__)
+#define BFAM_ABORT_IF(q,...) ((q) ? BFAM_ABORT(__VA_ARGS__) : (void) 0)
+#define BFAM_ABORT_IF_NOT(q,...)  BFAM_ABORT_IF(!(q),(__VA_ARGS__))
 
 #ifdef BFAM_DEBUG
 #define BFAM_ASSERT(expression)   \
@@ -164,7 +164,7 @@ void bfam_abort();
  *
  * \return This function called \c bfam_abort() and will not return.
  */
-void bfam_abort_verbose(const char *file, int line, const char *note);
+void bfam_abort_verbose(const char *file, int line, ...);
 
 /** \c malloc wrapper.
  *

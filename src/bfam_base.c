@@ -2,9 +2,15 @@
 #include <bfam_log.h>
 
 void
-bfam_abort_verbose(const char *file, int line, const char *note)
+bfam_abort_verbose(const char *file, int line, ...)
 {
-  BFAM_LERROR("Abort: [%s:%d] %s\n", file, line, note);
+  va_list ap;
+  const char * fmt;
+  char tmpStr[256];
+  va_start(ap,line);
+  fmt = va_arg(ap, const char *);
+  sprintf(tmpStr,"Abort: [%s:%d] %s\n", file, line, fmt);
+  BFAM_LERROR(tmpStr,ap);
   bfam_abort();
 }
 
