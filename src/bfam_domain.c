@@ -17,7 +17,8 @@ bfam_domain_init(bfam_domain_t *thisDomain, bfam_mpicomm_t *domComm)
   thisDomain->comm = domComm; // Perhaps we should duplicate it?
   thisDomain->numSubdomains = 0;
   thisDomain->sizeSubdomains = sizeSubdomains;
-  thisDomain->subdomains = bfam_malloc(sizeSubdomains*sizeof(bfam_subdomain_t*));
+  thisDomain->subdomains =
+    bfam_malloc(sizeSubdomains*sizeof(bfam_subdomain_t*));
   thisDomain->name2num.root = NULL;
 }
 
@@ -37,14 +38,16 @@ bfam_domain_free(bfam_domain_t *thisDomain)
 }
 
 void
-bfam_domain_add_subdomain(bfam_domain_t* thisDomain, bfam_subdomain_t* newSubdomain)
+bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
+    bfam_subdomain_t* newSubdomain)
 {
   // double size
   if(thisDomain->numSubdomains == thisDomain->sizeSubdomains)
   {
     thisDomain->sizeSubdomains = 2*thisDomain->sizeSubdomains;
     thisDomain->subdomains =
-      bfam_realloc(thisDomain->subdomains, thisDomain->sizeSubdomains*sizeof(bfam_subdomain_t*));
+      bfam_realloc(thisDomain->subdomains,
+          thisDomain->sizeSubdomains*sizeof(bfam_subdomain_t*));
   }
 
   // create the key value pair
