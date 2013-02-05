@@ -391,6 +391,11 @@ target_link_libraries(bfam_test_malloc bfam)
 
 add_test(bfam_test_malloc_test bfam_test_malloc)
 
+add_executable(bfam_test_aligned tests/bfam_test_aligned.c)
+target_link_libraries(bfam_test_aligned bfam)
+
+add_test(bfam_test_aligned_test bfam_test_aligned)
+
 add_executable(bfam_test_mpi tests/bfam_test_mpi.c)
 target_link_libraries(bfam_test_mpi bfam)
 
