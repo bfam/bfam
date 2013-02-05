@@ -416,7 +416,11 @@ add_test(bfam_test_domain_test bfam_test_domain)
 add_executable(bfam_test_domain_fail_repeat tests/bfam_test_domain_fail_repeat.c)
 target_link_libraries(bfam_test_domain_fail_repeat bfam)
 
-add_test(bfam_test_domain_fail_repeat_test bfam_test_domain_fail_repeat)
+add_test(NAME bfam_test_domain_fail_repeat
+    COMMAND ${CMAKE_COMMAND}
+    "-DTEST_PROG=${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3 ${MPIEXEC_PREFLAGS} $<TARGET_FILE:bfam_test_fail> ${MPIEXEC_POSTFLAGS}"
+    -DSOURCEDIR=${CMAKE_CURRENT_SOURCE_DIR}
+    -P ${CMAKE_SOURCE_DIR}/cmake/runfailtest.cmake)
 
 
 add_executable(bfam_test_critbit tests/bfam_test_critbit.c)
