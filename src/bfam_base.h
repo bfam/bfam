@@ -65,6 +65,8 @@
 
 #define BFAM_BUFSIZ 8192
 
+#define BFAM_APPEND(x, y) x ## y
+
 #define BFAM_MIN(a,b) (((a)<(b))?(a):(b))
 #define BFAM_MAX(a,b) (((a)>(b))?(a):(b))
 
@@ -158,6 +160,28 @@
 #    define BFAM_ALIGN_END(n)
 
 #endif
+
+/* Type for setup computations */
+typedef long double bfam_long_real_t;
+#define BFAM_LONG_REAL(x) BFAM_APPEND(x, L)
+#define BFAM_LONG_REAL_PRIe "Le"
+#define BFAM_LONG_REAL_PRIf "Lf"
+#define BFAM_LONG_REAL_PRIg "Lg"
+
+/* Type for runtime computations */
+typedef double bfam_real_t;
+#define BFAM_REAL(x) BFAM_APPEND(x, )
+#define BFAM_REAL_PRIe "e"
+#define BFAM_REAL_PRIf "f"
+#define BFAM_REAL_PRIg "g"
+
+/* Type for processor-local indexing */
+typedef int32_t bfam_locidx_t;
+#define MANGLL_LOCIDX_MPI MPI_INT
+
+/* Type for globally unique indexing */
+typedef int64_t bfam_gloidx_t;
+#define MANGLL_GLOIDX_MPI MPI_LONG_LONG_INT
 
 /** Abort function.
  *
