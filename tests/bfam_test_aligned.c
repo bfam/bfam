@@ -20,7 +20,7 @@ main (int argc, char *argv[])
 #define X(n, type, size)                                            \
   {                                                                 \
     BFAM_INFO("Testing " #n " : " #type " : " #size);               \
-    BFAM_ALIGN_BEGIN(n) type tmp[size] BFAM_ALIGN_END(n);           \
+    BFAM_ALIGN(n) type tmp[size];                                   \
     BFAM_ABORT_IF_NOT(BFAM_IS_ALIGNED(tmp, n),                      \
       "Memory " #n " " #type " " #size " is not aligned: %p", tmp); \
   }

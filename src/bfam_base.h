@@ -105,14 +105,10 @@
 #if defined(__clang__)
 /* Clang/LLVM. ---------------------------------------------- */
 #    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
-#    define BFAM_ALIGN_BEGIN(n)
-#    define BFAM_ALIGN_END(n)
 #elif defined(__ICC) || defined(__INTEL_COMPILER)
 /* Intel ICC/ICPC. ------------------------------------------ */
 #    define BFAM_ASSUME_ALIGNED(lvalueptr, align) \
          __assume_aligned(lvalueptr, align)
-#    define BFAM_ALIGN_BEGIN(n) __declspec(align(n))
-#    define BFAM_ALIGN_END(n)
 
 #elif defined(__GNUC__) || defined(__GNUG__)
 /* GNU GCC/G++. --------------------------------------------- */
@@ -120,45 +116,39 @@
 //      If  gcc_version >= 4.7
 #    define BFAM_ASSUME_ALIGNED(lvalueptr, align) \
          lvalueptr = __builtin_assume_aligned (lvalueptr, align)
-#    define BFAM_ALIGN_BEGIN(n)
-#    define BFAM_ALIGN_END(n)   __attribute__ ((aligned(n)))
 #  else
 //       Else
 #    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
-#    define BFAM_ALIGN_BEGIN(n)
-#    define BFAM_ALIGN_END(n)   __attribute__ ((aligned(n)))
 #  endif
 
 #elif defined(__HP_cc) || defined(__HP_aCC)
 /* Hewlett-Packard C/aC++. ---------------------------------- */
 #    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
-#    define BFAM_ALIGN_BEGIN(n)
-#    define BFAM_ALIGN_END(n)
 
 #elif defined(__IBMC__) || defined(__IBMCPP__)
 /* IBM XL C/C++. -------------------------------------------- */
 #    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
-#    define BFAM_ALIGN_BEGIN(n)
-#    define BFAM_ALIGN_END(n)
 
 #elif defined(_MSC_VER)
 /* Microsoft Visual Studio. --------------------------------- */
 #    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
-#    define BFAM_ALIGN_BEGIN(n)
-#    define BFAM_ALIGN_END(n)
 
 #elif defined(__PGI)
 /* Portland Group PGCC/PGCPP. ------------------------------- */
 #    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
-#    define BFAM_ALIGN_BEGIN(n)
-#    define BFAM_ALIGN_END(n)
 
 #elif defined(__SUNPRO_C) || defined(__SUNPRO_CC)
 /* Oracle Solaris Studio. ----------------------------------- */
 #    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
-#    define BFAM_ALIGN_BEGIN(n)
-#    define BFAM_ALIGN_END(n)
 
+#endif
+
+#if (defined __GNUC__) || (defined __PGI) || (defined __IBMC__)
+  #define BFAM_ALIGN(n) __attribute__((aligned(n)))
+#elif (defined _MSC_VER)
+  #define BFAM_ALIGN(n) __declspec(align(n))
+#else
+  #error Need equilvent of __attribute__((aligned(n))) for this compiler
 #endif
 
 #if defined __GNUC__
