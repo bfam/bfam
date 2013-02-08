@@ -14,6 +14,7 @@ void test1(double *a, double *b)
 
 void test4(double * restrict a, double * restrict b)
 {
+  BFAM_ASM_COMMENT("Begin test4");
   int i;
 
   BFAM_ASSUME_ALIGNED(a, 32);
@@ -23,6 +24,7 @@ void test4(double * restrict a, double * restrict b)
   {
     a[i] += b[i];
   }
+  BFAM_ASM_COMMENT("End test4");
 }
 
 int main (int argc, char *argv[])

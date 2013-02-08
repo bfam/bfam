@@ -161,6 +161,12 @@
 
 #endif
 
+#if defined __GNUC__
+#define BFAM_ASM_COMMENT(X)  __asm__("# " X)
+#else
+#define BFAM_ASM_COMMENT(X)
+#endif
+
 /* Type for setup computations */
 typedef long double bfam_long_real_t;
 #define BFAM_LONG_REAL(x) BFAM_APPEND(x, L)
