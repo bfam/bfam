@@ -4,6 +4,7 @@ project(bfam C Fortran)
 
 include(InstallRequiredSystemLibraries)
 include(FortranCInterface)
+include(CMakePushCheckState)
 
 ##
 ## ispc stuff
@@ -277,6 +278,23 @@ endif(WITH_VECTOR_VERBOSE)
 ##
 check_include_files(sysexits.h BFAM_HAVE_SYSEXITS_H)
 check_include_files(sys/sysexits.h BFAM_HAVE_SYS_SYSEXITS_H)
+check_include_files(time.h BFAM_HAVE_TIME_H)
+check_include_files(sys/time.h BFAM_HAVE_SYS_TIME_H)
+check_include_files(mach/mach_time.h BFAM_HAVE_MACH_MACH_TIME_H)
+
+cmake_push_check_state()
+if(${APPLE})
+else(${APPLE})
+  set(CMAKE_REQUIRED_DEFINITIONS ${CMAKE_REQUIRED_DEFINITIONS} -D_XOPEN_SOURCE=600)
+endif(${APPLE})
+check_symbol_exists(CLOCK_MONOTONIC "time.h;sys/time.h" BFAM_HAVE_CLOCK_MONOTONIC)
+check_function_exists(gettimeofday BFAM_HAVE_GETTIMEOFDAY)
+cmake_pop_check_state()
+if(UNIX AND NOT APPLE)
+  set(TIME_LIBRARIES rt)
+endif()
+
+check_symbol_exists(mach_absolute_time "mach/mach_time.h" BFAM_HAVE_MACH_ABSOLUTE_TIME)
 
 ##
 ## Map Fortran SYMBOLS we need
@@ -321,6 +339,7 @@ set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${MPI_Fortran_COMPILE_FLAG}")
 ##
 add_library(bfam
                  src/bfam_base.c
+                 src/bfam_clock.c
                  src/bfam_critbit.c
                  src/bfam_gopt.c
                  src/bfam_log.c
@@ -341,7 +360,8 @@ target_link_libraries(bfam ${MPI_C_LIBRARIES}
                            ${LUAJIT_LIB}
                            ${ZLIB_LIBRARIES}
                            ${LAPACK_LIBRARIES}
-                           ${BLAS_LIBRARIES})
+                           ${BLAS_LIBRARIES}
+                           ${TIME_LIBRARIES})
 if(OPENCL_FOUND)
   target_link_libraries(bfam ${OPENCL_LIBRARIES})
 endif(OPENCL_FOUND)
@@ -366,6 +386,9 @@ target_link_libraries(bfam_exam_vectorize bfam)
 
 add_executable(bfam_exam_zpipe examples/zpipe/bfam_exam_zpipe.c)
 target_link_libraries(bfam_exam_zpipe bfam)
+
+add_executable(bfam_exam_clock examples/clock/bfam_exam_clock.c)
+target_link_libraries(bfam_exam_clock bfam)
 
 ##
 ## Tests

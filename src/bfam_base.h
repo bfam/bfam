@@ -23,6 +23,18 @@
 #include <errno.h>
 #include <err.h>
 
+#ifdef BFAM_HAVE_TIME_H
+#include <time.h>
+#endif
+
+#ifdef BFAM_HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
+#ifdef BFAM_HAVE_MACH_MACH_TIME_H
+#include <mach/mach_time.h>
+#endif
+
 #if defined (BFAM_HAVE_SYSEXITS_H)
 #include <sysexits.h>
 #elif defined (BFAM_HAVE_SYS_SYSEXITS_H)

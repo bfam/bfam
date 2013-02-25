@@ -6,6 +6,12 @@
 #cmakedefine BFAM_HAVE_OPENCL
 #cmakedefine BFAM_HAVE_SYSEXITS_H
 #cmakedefine BFAM_HAVE_SYS_SYSEXITS_H
+#cmakedefine BFAM_HAVE_TIME_H
+#cmakedefine BFAM_HAVE_SYS_TIME_H
+#cmakedefine BFAM_HAVE_MACH_MACH_TIME_H
+#cmakedefine BFAM_HAVE_GETTIMEOFDAY
+#cmakedefine BFAM_HAVE_CLOCK_MONOTONIC
+#cmakedefine BFAM_HAVE_MACH_ABSOLUTE_TIME
 #define BFAM_COMPILE_INFO "@BFAM_COMPILE_INFO@"
 
 #endif
