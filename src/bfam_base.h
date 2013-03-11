@@ -169,6 +169,18 @@
 #define BFAM_ASM_COMMENT(X)
 #endif
 
+#ifndef BFAM_NORETURN
+#if defined(__clang__)
+#if __has_feature(attribute_analyzer_noreturn)
+#define BFAM_NORETURN __attribute__((analyzer_noreturn))
+#else
+#define BFAM_NORETURN
+#endif
+#else
+#define BFAM_NORETURN
+#endif
+#endif
+
 /* Type for setup computations */
 typedef long double bfam_long_real_t;
 #define BFAM_LONG_REAL(x) BFAM_APPEND(x, L)
@@ -199,7 +211,7 @@ typedef int64_t bfam_gloidx_t;
  *
  * \return This function does not return.
  */
-void bfam_abort();
+void bfam_abort() BFAM_NORETURN;
 
 
 /** Verbose abort function.
@@ -215,7 +227,7 @@ void bfam_abort();
  *
  * \return This function called \c bfam_abort() and will not return.
  */
-void bfam_abort_verbose(const char *file, int line, ...);
+void bfam_abort_verbose(const char *file, int line, ...) BFAM_NORETURN;
 
 /** \c malloc wrapper.
  *
