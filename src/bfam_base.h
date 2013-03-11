@@ -188,12 +188,20 @@ typedef long double bfam_long_real_t;
 #define BFAM_LONG_REAL_PRIf "Lf"
 #define BFAM_LONG_REAL_PRIg "Lg"
 
+#define BFAM_LONG_REAL_ABS      fabsl
+#define BFAM_LONG_REAL_LGAMMA lgammal
+#define BFAM_LONG_REAL_LOG       logl
+#define BFAM_LONG_REAL_EXP       expl
+#define BFAM_LONG_REAL_SQRT     sqrtl
+
 /* Type for runtime computations */
 typedef double bfam_real_t;
 #define BFAM_REAL(x) BFAM_APPEND(x, )
 #define BFAM_REAL_PRIe "e"
 #define BFAM_REAL_PRIf "f"
 #define BFAM_REAL_PRIg "g"
+
+#define BFAM_REAL_EPS DBL_EPSILON
 
 /* Type for processor-local indexing */
 typedef int32_t bfam_locidx_t;
