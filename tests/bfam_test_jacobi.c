@@ -33,6 +33,19 @@ bfam_long_real_t P_0_0_0[] = {
   7.071067811865475e-01,
 };
 
+bfam_long_real_t dP_0_0_0[] = {
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+};
+
 bfam_long_real_t P_0_0_1[] = {
   -1.224744871391589e+00,
   -9.525793444156804e-01,
@@ -44,6 +57,19 @@ bfam_long_real_t P_0_0_1[] = {
    6.804138174397717e-01,
    9.525793444156803e-01,
    1.224744871391589e+00,
+};
+
+bfam_long_real_t dP_0_0_1[] = {
+  1.224744871391589e+00,
+  1.224744871391589e+00,
+  1.224744871391589e+00,
+  1.224744871391589e+00,
+  1.224744871391589e+00,
+  1.224744871391589e+00,
+  1.224744871391589e+00,
+  1.224744871391589e+00,
+  1.224744871391589e+00,
+  1.224744871391589e+00,
 };
 
 bfam_long_real_t P_0_0_2[] = {
@@ -59,6 +85,19 @@ bfam_long_real_t P_0_0_2[] = {
    1.581138830084190e+00,
 };
 
+bfam_long_real_t dP_0_0_2[] = {
+  -4.743416490252569e+00,
+  -3.689323936863109e+00,
+  -2.635231383473650e+00,
+  -1.581138830084190e+00,
+  -5.270462766947301e-01,
+   5.270462766947301e-01,
+   1.581138830084189e+00,
+   2.635231383473650e+00,
+   3.689323936863109e+00,
+   4.743416490252569e+00,
+};
+
 bfam_long_real_t P_0_0_3[] = {
   -1.870828693386972e+00,
   -1.796406152772192e-02,
@@ -70,6 +109,19 @@ bfam_long_real_t P_0_0_3[] = {
   -7.570568786682527e-01,
    1.796406152772115e-02,
    1.870828693386972e+00,
+};
+
+bfam_long_real_t dP_0_0_3[] = {
+   1.122497216032182e+01,
+   5.681776031767837e+00,
+   1.524378935352347e+00,
+  -1.247219128924647e+00,
+  -2.633018161063144e+00,
+  -2.633018161063144e+00,
+  -1.247219128924648e+00,
+   1.524378935352347e+00,
+   5.681776031767836e+00,
+   1.122497216032182e+01,
 };
 
 bfam_long_real_t P_2_1_3[] = {
@@ -85,6 +137,19 @@ bfam_long_real_t P_2_1_3[] = {
    9.682458365518544e+00,
 };
 
+bfam_long_real_t dP_2_1_3[] = {
+   2.033316256758894e+01,
+   9.790041236246527e+00,
+   2.259240285287661e+00,
+  -2.259240285287660e+00,
+  -3.765400475479434e+00,
+  -2.259240285287660e+00,
+   2.259240285287657e+00,
+   9.790041236246529e+00,
+   2.033316256758894e+01,
+   3.388860427931490e+01,
+};
+
 bfam_long_real_t P_m025_2_5[] = {
   -2.779196835777356e+01,
   -3.496214727847906e+00,
@@ -98,31 +163,47 @@ bfam_long_real_t P_m025_2_5[] = {
    7.090480208465177e-01,
 };
 
+bfam_long_real_t dP_m025_2_5[] = {
+   1.794897956439543e+02,
+   5.452374053955874e+01,
+   2.737631449573485e+00,
+  -8.395190275375201e+00,
+  -2.978501981517381e+00,
+   3.306800288060472e+00,
+   3.202701793415466e+00,
+  -2.125930902251689e+00,
+  -3.091349932596684e+00,
+   1.831707387186839e+01,
+};
+
 int
 main (int argc, char *argv[])
 {
   int failures = 0;
 
 #define LIST_OF_TESTS  \
-  X(BFAM_LONG_REAL( 0.0),  BFAM_LONG_REAL(0.0), 0, 10, P_0_0_0) \
-  X(BFAM_LONG_REAL( 0.0),  BFAM_LONG_REAL(0.0), 1, 10, P_0_0_1) \
-  X(BFAM_LONG_REAL( 0.0),  BFAM_LONG_REAL(0.0), 2, 10, P_0_0_2) \
-  X(BFAM_LONG_REAL( 0.0),  BFAM_LONG_REAL(0.0), 3, 10, P_0_0_3) \
-  X(BFAM_LONG_REAL( 2.0),  BFAM_LONG_REAL(1.0), 3, 10, P_2_1_3) \
-  X(BFAM_LONG_REAL(-0.25), BFAM_LONG_REAL(2.0), 5, 10, P_m025_2_5)
+  X(BFAM_LONG_REAL( 0.0),  BFAM_LONG_REAL(0.0), 0, 10, P_0_0_0,    dP_0_0_0)   \
+  X(BFAM_LONG_REAL( 0.0),  BFAM_LONG_REAL(0.0), 1, 10, P_0_0_1,    dP_0_0_1)   \
+  X(BFAM_LONG_REAL( 0.0),  BFAM_LONG_REAL(0.0), 2, 10, P_0_0_2,    dP_0_0_2)   \
+  X(BFAM_LONG_REAL( 0.0),  BFAM_LONG_REAL(0.0), 3, 10, P_0_0_3,    dP_0_0_3)   \
+  X(BFAM_LONG_REAL( 2.0),  BFAM_LONG_REAL(1.0), 3, 10, P_2_1_3,    dP_2_1_3)   \
+  X(BFAM_LONG_REAL(-0.25), BFAM_LONG_REAL(2.0), 5, 10, P_m025_2_5, dP_m025_2_5)
 
-#define X(alpha, beta, N, nx, Pexact)                              \
-  {                                                                \
-    BFAM_INFO("Testing " #alpha " : " #beta " : " #N " : " #nx     \
-              " : " #Pexact);                                      \
-    BFAM_ALIGN(32) bfam_long_real_t x[nx];                         \
-    BFAM_ALIGN(32) bfam_long_real_t P[nx];                         \
-    for (size_t i=0; i<(nx); ++i)                                  \
-    {                                                              \
-      x[i] = BFAM_LONG_REAL(-1.0) + i*BFAM_LONG_REAL(2.0)/(nx-1);  \
-    }                                                              \
-    bfam_jacobi_p(alpha, beta, N, nx, x, P);                       \
-    failures += check_approx_eq(BFAM_REAL_EPS*100, nx, P, Pexact); \
+#define X(alpha, beta, N, nx, Pexact, dPexact)                       \
+  {                                                                  \
+    BFAM_INFO("Testing " #alpha " : " #beta " : " #N " : " #nx       \
+              " : " #Pexact);                                        \
+    BFAM_ALIGN(32) bfam_long_real_t x[nx];                           \
+    BFAM_ALIGN(32) bfam_long_real_t P[nx];                           \
+    BFAM_ALIGN(32) bfam_long_real_t dP[nx];                          \
+    for (size_t i=0; i<(nx); ++i)                                    \
+    {                                                                \
+      x[i] = BFAM_LONG_REAL(-1.0) + i*BFAM_LONG_REAL(2.0)/(nx-1);    \
+    }                                                                \
+    bfam_jacobi_p(alpha, beta, N, nx, x, P);                         \
+    bfam_grad_jacobi_p(alpha, beta, N, nx, x, dP);                   \
+    failures += check_approx_eq(BFAM_REAL_EPS*100, nx,  P,  Pexact); \
+    failures += check_approx_eq(BFAM_REAL_EPS*100, nx, dP, dPexact); \
   }
   LIST_OF_TESTS
 #undef X

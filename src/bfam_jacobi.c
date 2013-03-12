@@ -126,3 +126,64 @@ bfam_jacobi_p(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
   return;
 }
 
+/*
+ * This function evaluates the derivative of the orthonormal polynomial
+ * $p_N(x)$ associated with the Jacobi polynomial where
+ * $p_N(x) = \left\{h_N^{(\alpha,\beta)}\right\}^{-\frac12}
+ * P_N^{(\alpha,\beta)} (x)$.
+ *
+ * For the evaluation of the derivative we use the identity
+ * $$
+ *   \frac{d}{dx} P_N^{(\alpha,\beta)} (x) =
+ *    \frac{N+\alpha+\beta+1}{2} P_{N-1}^{(\alpha+1,\beta+1)} (x)
+ * $$
+ * along with
+ * $$
+ *   h_N^{(\alpha,\beta)} =
+ *     \frac{N+\alpha+\beta+1}{4N} h_{N-1}^{(\alpha+1,\beta+1)}
+ * $$
+ * to get
+ * $$
+ * \begin{aligned}
+ *   \frac{d}{dx} p_N^{(\alpha,\beta)} (x)
+ *     &= \left\{h_N^{(\alpha,\beta)}\right\}^{-\frac12}
+ *        \frac{d}{dx} P_N^{(\alpha,\beta)} (x) \\
+ *     &= \left\{h_N^{(\alpha,\beta)}\right\}^{-\frac12}
+ *        \frac{N+\alpha+\beta+1}{2}
+ *        P_{N-1}^{(\alpha+1,\beta+1)} (x) \\
+ *     &= \left(\frac{4N}{N+\alpha+\beta+1}\right)^{\frac12}
+ *        \frac{N+\alpha+\beta+1}{2}
+ *        \left\{h_{N-1}^{(\alpha+1,\beta+1)}\right\}^{-\frac12}
+ *        P_{N-1}^{(\alpha+1,\beta+1)} (x) \\
+ *     &= \left(N(N+\alpha+\beta+1)\right)^{\frac12}
+ *        p_{N-1}^{(\alpha+1,\beta+1)} (x).
+ * \end{aligned}
+ * $$
+ */
+void
+bfam_grad_jacobi_p(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
+    size_t nx, bfam_long_real_t *x, bfam_long_real_t *dP)
+{
+  BFAM_ASSERT(N>=0);
+  BFAM_ASSERT(alpha>=BFAM_LONG_REAL(-1.0));
+  BFAM_ASSERT(beta >=BFAM_LONG_REAL(-1.0));
+
+  if(N==0)
+  {
+    for (size_t i=0; i < nx; ++i)
+    {
+      dP[i] = BFAM_LONG_REAL(0.0);
+    }
+  }
+  else
+  {
+    bfam_jacobi_p(alpha+1, beta+1, N-1, nx, x, dP);
+    bfam_long_real_t scale = BFAM_LONG_REAL_SQRT(N*(N+alpha+beta+1));
+    for (size_t i=0; i < nx; ++i)
+    {
+      dP[i] *= scale;
+    }
+  }
+
+  return;
+}
