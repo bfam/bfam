@@ -27,13 +27,13 @@ bfam_jacobi_h_inv_sqrt(bfam_long_real_t alpha, bfam_long_real_t beta, int N)
   BFAM_ASSERT(!(BFAM_LONG_REAL_APPROX_EQ(alpha, BFAM_LONG_REAL(-0.5), 10) &&
                 BFAM_LONG_REAL_APPROX_EQ(beta,  BFAM_LONG_REAL(-0.5), 10)));
 
-    bfam_long_real_t lgn = -(alpha + beta + 1)*BFAM_LONG_REAL_LOG(2)
-                           - BFAM_LONG_REAL_LGAMMA(N + alpha + 1)
-                           - BFAM_LONG_REAL_LGAMMA(N + beta + 1)
-                           + BFAM_LONG_REAL_LOG(2*N + alpha + beta + 1)
-                           + BFAM_LONG_REAL_LGAMMA(N + 1)
-                           + BFAM_LONG_REAL_LGAMMA(N + alpha + beta + 1);
-    return BFAM_LONG_REAL_SQRT(BFAM_LONG_REAL_EXP(lgn));
+  bfam_long_real_t lgn = -(alpha + beta + 1)*BFAM_LONG_REAL_LOG(2)
+                         - BFAM_LONG_REAL_LGAMMA(N + alpha + 1)
+                         - BFAM_LONG_REAL_LGAMMA(N + beta + 1)
+                         + BFAM_LONG_REAL_LOG(2*N + alpha + beta + 1)
+                         + BFAM_LONG_REAL_LGAMMA(N + 1)
+                         + BFAM_LONG_REAL_LGAMMA(N + alpha + beta + 1);
+  return BFAM_LONG_REAL_SQRT(BFAM_LONG_REAL_EXP(lgn));
 }
 
 /*
