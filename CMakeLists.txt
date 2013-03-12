@@ -342,6 +342,7 @@ add_library(bfam
                  src/bfam_clock.c
                  src/bfam_critbit.c
                  src/bfam_gopt.c
+                 src/bfam_jacobi.c
                  src/bfam_log.c
                  src/bfam_opencl.c
                  src/bfam_version.c
@@ -421,6 +422,11 @@ add_test(bfam_test_aligned_test bfam_test_aligned)
 
 add_executable(bfam_test_mpi tests/bfam_test_mpi.c)
 target_link_libraries(bfam_test_mpi bfam)
+
+add_executable(bfam_test_jacobi tests/bfam_test_jacobi.c)
+target_link_libraries(bfam_test_jacobi bfam)
+
+add_test(bfam_test_jacobi_test bfam_test_jacobi)
 
 add_test(bfam_test_mpi_test
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
