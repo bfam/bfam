@@ -18,7 +18,7 @@ struct gopt_struct {
 };
 
 #define bfam_gopt_start(...)      \
-  (const void*)(const struct gopt_struct[]){ __VA_ARGS__, {0}}
+  (const void*)(const struct gopt_struct[]){ __VA_ARGS__, {0,0,NULL,NULL}}
 #define bfam_gopt_option(k,f,s,l) { k, f, s, l }
 #define bfam_gopt_shorts( ... )   \
   (const char*)(const char[]){ __VA_ARGS__, 0 }
