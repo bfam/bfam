@@ -192,7 +192,7 @@ main (int argc, char *argv[])
 #define X(alpha, beta, N, nx, Pexact, dPexact)                       \
   {                                                                  \
     BFAM_INFO("Testing " #alpha " : " #beta " : " #N " : " #nx       \
-              " : " #Pexact);                                        \
+              " : " #Pexact " : " #dPexact);                         \
     BFAM_ALIGN(32) bfam_long_real_t x[nx];                           \
     BFAM_ALIGN(32) bfam_long_real_t P[nx];                           \
     BFAM_ALIGN(32) bfam_long_real_t dP[nx];                          \
@@ -207,6 +207,7 @@ main (int argc, char *argv[])
   }
   LIST_OF_TESTS
 #undef X
+#undef LIST_OF_TESTS
 
   if(failures)
     return EXIT_FAILURE;
