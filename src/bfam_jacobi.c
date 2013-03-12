@@ -53,14 +53,14 @@ bfam_jacobi_h_inv_sqrt(bfam_long_real_t alpha, bfam_long_real_t beta, int N)
  * $$
  * where
  * $$
- * \begin{align}
+ * \begin{aligned}
  *   a &= \frac{(2n + \alpha + \beta -1)(2n + \alpha + \beta)}
  *             {2n (n + \alpha + \beta)} \\
  *   b &= \frac{(\beta^2 - \alpha^2)(2n + \alpha + \beta - 1)}
  *             {2n(n + \alpha + \beta)(2n + \alpha + \beta - 2)} \\
  *   c &= \frac{(n + \alpha - 1)(n + \beta - 1)(2n + \alpha + \beta)}
  *             {n(n + \alpha + \beta)(2n + \alpha + \beta - 2)}
- * \end{align}
+ * \end{aligned}
  * $$
  * with $P_0^{(\alpha,\beta)}(x) = 1$ and
  * $P_1^{(\alpha,\beta)}(x) =  \frac12(\alpha + \beta + 2)x
