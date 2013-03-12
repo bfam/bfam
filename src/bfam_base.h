@@ -64,7 +64,10 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-align"
 #include <p4est.h>
+#pragma clang diagnostic pop
 
 #if defined __GNUC__ && !defined __GNUC_PREREQ
 # ifndef __GNUC_MINOR__
