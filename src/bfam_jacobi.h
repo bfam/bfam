@@ -10,8 +10,8 @@
  * \param[in]  nx    Number of locations to evaluate the Jacobi polynomial
  * \param[in]  x     Array of length \a nx containing the locations in [-1,1]
  *                   to evaluate the Jacobi polynomial
- * \param[out] P     An array of length \a nx the Jacobi polynomial
- *                   $P^{(\alpha,\beta)}_N$ evaluated at \a x.
+ * \param[out] P     An array of length \a nx containing the normalized Jacobi
+ *                   polynomial $p^{(\alpha,\beta)}_N$ evaluated at \a x.
  */
 void
 bfam_jacobi_p(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
