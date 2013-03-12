@@ -184,6 +184,9 @@
 #endif
 #endif
 
+#define BFAM_APPROX_EQ(x, y, K, abs, eps, min) \
+  ((abs)((x)-(y)) < (K) * (eps) * (abs)((x)+(y)) || (abs)((x)-(y)) < (min))
+
 /* Type for setup computations */
 typedef long double bfam_long_real_t;
 #define BFAM_LONG_REAL(x) BFAM_APPEND(x, L)
@@ -197,6 +200,13 @@ typedef long double bfam_long_real_t;
 #define BFAM_LONG_REAL_EXP       expl
 #define BFAM_LONG_REAL_SQRT     sqrtl
 
+#define BFAM_LONG_REAL_EPS LDBL_EPSILON
+#define BFAM_LONG_REAL_MIN LDBL_MIN
+
+#define BFAM_LONG_REAL_APPROX_EQ(x, y, K)                               \
+  BFAM_APPROX_EQ((x), (y), (K), BFAM_LONG_REAL_ABS, BFAM_LONG_REAL_EPS, \
+                 BFAM_LONG_REAL_MIN)
+
 /* Type for runtime computations */
 typedef double bfam_real_t;
 #define BFAM_REAL(x) BFAM_APPEND(x, )
@@ -205,6 +215,10 @@ typedef double bfam_real_t;
 #define BFAM_REAL_PRIg "g"
 
 #define BFAM_REAL_EPS DBL_EPSILON
+#define BFAM_REAL_MIN DBL_MIN
+
+#define BFAM_REAL_APPROX_EQ(x, y, K)                                         \
+  BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, BFAM_REAL_MIN)
 
 /* Type for processor-local indexing */
 typedef int32_t bfam_locidx_t;
