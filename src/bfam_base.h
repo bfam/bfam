@@ -195,13 +195,17 @@ typedef long double bfam_long_real_t;
 #define BFAM_LONG_REAL_PRIg "Lg"
 
 #define BFAM_LONG_REAL_ABS      fabsl
+#define BFAM_LONG_REAL_ATAN     atanl
+#define BFAM_LONG_REAL_COS       cosl
 #define BFAM_LONG_REAL_LGAMMA lgammal
 #define BFAM_LONG_REAL_LOG       logl
 #define BFAM_LONG_REAL_EXP       expl
 #define BFAM_LONG_REAL_SQRT     sqrtl
+#define BFAM_LONG_REAL_SIN       sinl
 
 #define BFAM_LONG_REAL_EPS LDBL_EPSILON
 #define BFAM_LONG_REAL_MIN LDBL_MIN
+#define BFAM_LONG_REAL_PI  (4*BFAM_LONG_REAL_ATAN(1))
 
 #define BFAM_LONG_REAL_APPROX_EQ(x, y, K)                               \
   BFAM_APPROX_EQ((x), (y), (K), BFAM_LONG_REAL_ABS, BFAM_LONG_REAL_EPS, \
