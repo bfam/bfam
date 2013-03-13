@@ -176,6 +176,114 @@ bfam_long_real_t dP_m025_2_5[] = {
    1.831707387186839e+01,
 };
 
+bfam_long_real_t x_0_0_0[] = {
+  0,
+};
+
+bfam_long_real_t w_0_0_0[] = {
+  2,
+};
+
+bfam_long_real_t x_0_0_1[] = {
+  -5.773502691896257e-01,
+   5.773502691896257e-01,
+};
+
+bfam_long_real_t w_0_0_1[] = {
+  1,
+  1,
+};
+
+bfam_long_real_t x_0_0_2[] = {
+  -7.745966692414833e-01,
+  -4.510281037539698e-17,
+   7.745966692414834e-01,
+};
+
+bfam_long_real_t w_0_0_2[] = {
+  5.555555555555558e-01,
+  8.888888888888888e-01,
+  5.555555555555558e-01,
+};
+
+bfam_long_real_t x_0_0_3[] = {
+  -8.611363115940526e-01,
+  -3.399810435848562e-01,
+   3.399810435848562e-01,
+   8.611363115940526e-01,
+};
+
+bfam_long_real_t w_0_0_3[] = {
+  3.478548451374542e-01,
+  6.521451548625463e-01,
+  6.521451548625460e-01,
+  3.478548451374541e-01,
+};
+
+bfam_long_real_t x_2_1_3[] = {
+  -7.972962734001832e-01,
+  -3.734893787362535e-01,
+   1.563704318081081e-01,
+   6.507788566919653e-01,
+};
+
+bfam_long_real_t w_2_1_3[] = {
+   2.152837051737072e-01,
+   5.901533609926285e-01,
+   4.412333545929730e-01,
+   8.666291257402459e-02,
+};
+
+bfam_long_real_t x_m025_2_5[] = {
+  -7.660861640239679e-01,
+  -4.138362888665464e-01,
+   8.651447739158399e-03,
+   4.262081219957594e-01,
+   7.642887387206505e-01,
+   9.625923262531283e-01,
+};
+
+bfam_long_real_t w_m025_2_5[] = {
+   1.399672365675630e-02,
+   1.257921701397209e-01,
+   4.414593129590954e-01,
+   9.102572180512539e-01,
+   1.234921457628804e+00,
+   1.001183200766983e+00,
+};
+
+bfam_long_real_t x_53_42_5[] = {
+  -7.507512819352168e-01,
+  -5.013308638210570e-01,
+  -2.133612113479640e-01,
+   9.274200753161091e-02,
+   3.944407269823559e-01,
+   6.712838784042245e-01,
+};
+
+bfam_long_real_t w_53_42_5[] = {
+   1.280567792431395e-02,
+   1.259542220360614e-01,
+   3.059197468129359e-01,
+   2.665632830269100e-01,
+   8.271746649287130e-02,
+   6.176833476425957e-03,
+};
+
+
+void print_quadrature(bfam_long_real_t alpha, bfam_long_real_t beta,
+    int N, bfam_long_real_t *restrict x, bfam_long_real_t *restrict w)
+{
+  BFAM_INFO("Quadrature for %"BFAM_LONG_REAL_PRIe
+      ":%"BFAM_LONG_REAL_PRIe ":%d", alpha, beta, N);
+
+  for (int n=0; n <=N; ++n)
+  {
+    BFAM_INFO("  %"BFAM_LONG_REAL_PRIe "  %"BFAM_LONG_REAL_PRIe, x[n], w[n]);
+  }
+}
+
+
 int
 main (int argc, char *argv[])
 {
@@ -204,6 +312,30 @@ main (int argc, char *argv[])
     bfam_grad_jacobi_p(alpha, beta, N, nx, x, dP);                   \
     failures += check_approx_eq(BFAM_REAL_EPS*100, nx,  P,  Pexact); \
     failures += check_approx_eq(BFAM_REAL_EPS*100, nx, dP, dPexact); \
+  }
+  LIST_OF_TESTS
+#undef X
+#undef LIST_OF_TESTS
+
+#define LIST_OF_TESTS  \
+  X(BFAM_LONG_REAL( 0.0),  BFAM_LONG_REAL(0.0), 0, x_0_0_0,    w_0_0_0)    \
+  X(BFAM_LONG_REAL( 0.0),  BFAM_LONG_REAL(0.0), 1, x_0_0_1,    w_0_0_1)    \
+  X(BFAM_LONG_REAL( 0.0),  BFAM_LONG_REAL(0.0), 2, x_0_0_2,    w_0_0_2)    \
+  X(BFAM_LONG_REAL( 0.0),  BFAM_LONG_REAL(0.0), 3, x_0_0_3,    w_0_0_3)    \
+  X(BFAM_LONG_REAL( 2.0),  BFAM_LONG_REAL(1.0), 3, x_2_1_3,    w_2_1_3)    \
+  X(BFAM_LONG_REAL(-0.25), BFAM_LONG_REAL(2.0), 5, x_m025_2_5, w_m025_2_5) \
+  X(BFAM_LONG_REAL( 5.3),  BFAM_LONG_REAL(4.2), 5, x_53_42_5,  w_53_42_5)
+
+#define X(alpha, beta, N, xexact, wexact)                            \
+  {                                                                  \
+    BFAM_INFO("Testing Gauss Quadrature " #alpha " : " #beta         \
+        " : " #N " : " #xexact " : " #wexact);                       \
+    BFAM_ALIGN(32) bfam_long_real_t x[N+1];                          \
+    BFAM_ALIGN(32) bfam_long_real_t w[N+1];                          \
+    bfam_jacobi_gauss_quadrature(alpha, beta, N, x, w);              \
+    print_quadrature(alpha, beta, N, x, w);                          \
+    failures += check_approx_eq(BFAM_REAL_EPS*100, N+1, x, xexact);  \
+    failures += check_approx_eq(BFAM_REAL_EPS*100, N+1, w, wexact);  \
   }
   LIST_OF_TESTS
 #undef X

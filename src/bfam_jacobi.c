@@ -187,3 +187,146 @@ bfam_grad_jacobi_p(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
 
   return;
 }
+
+static void
+bfam_jacobi_gauss_quadrature_half(bfam_long_real_t alpha,
+    bfam_long_real_t beta, int N, int half,
+    bfam_long_real_t *restrict x,
+    bfam_long_real_t *restrict w)
+{
+  BFAM_ASSERT(N>=0);
+  BFAM_ASSERT(alpha>=BFAM_LONG_REAL(-1.0));
+  BFAM_ASSERT(beta >=BFAM_LONG_REAL(-1.0));
+  BFAM_ASSERT(!(BFAM_LONG_REAL_APPROX_EQ(alpha, BFAM_LONG_REAL(-0.5), 10) &&
+                BFAM_LONG_REAL_APPROX_EQ(beta,  BFAM_LONG_REAL(-0.5), 10)));
+
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(w, 32);
+
+  const int MAX_ITERATIONS = 200;
+
+  int nk = (half) ?
+    (((N + 1)%2) ? (N + 1)/2 + 1 : (N + 1)/2) /* ceil((N + 1)/2) */
+    : (N + 1)/2; /* floor((N + 1)/2) */
+
+  if (nk == 0)
+    return;
+
+  bfam_long_real_t tworho = 2*(N+1)+alpha+beta+1;
+  bfam_long_real_t * tmp;
+
+  bfam_long_real_t *restrict theta0 =
+    bfam_malloc_aligned(nk*sizeof(bfam_long_real_t));
+  bfam_long_real_t *restrict theta1 =
+    bfam_malloc_aligned(nk*sizeof(bfam_long_real_t));
+  bfam_long_real_t *restrict p0 =
+    bfam_malloc_aligned(nk*sizeof(bfam_long_real_t));
+  bfam_long_real_t *restrict dp0 =
+    bfam_malloc_aligned(nk*sizeof(bfam_long_real_t));
+
+  BFAM_ASSUME_ALIGNED(theta0, 32);
+  BFAM_ASSUME_ALIGNED(theta1, 32);
+  BFAM_ASSUME_ALIGNED(p0, 32);
+  BFAM_ASSUME_ALIGNED(dp0, 32);
+
+
+  /*
+   * Use Gatteschi and Pittaluga's approximation for the roots of the Jacobi
+   * polynomials as an initial guess.  See equation (3.19) of
+   * Nicholas Hale and Alex Townsend ``Fast and Accurate Computation of
+   * Gauss–Legendre and Gauss–Jacobi Quadrature Nodes and Weights'' SIAM J.
+   * SCI. COMPUT. Vol. 35, No. 2, pp. A652–A674.
+   */
+  for (int k=nk; k > 0; --k)
+  {
+    int khat = (half) ? nk - k : k - 1;
+
+    bfam_long_real_t phik =
+      (2*k + alpha - BFAM_LONG_REAL(0.5))*BFAM_LONG_REAL_PI / tworho;
+
+    theta1[khat] = phik + 1/(tworho * tworho)
+        * ((BFAM_LONG_REAL(0.25) - alpha*alpha)
+           * 1/BFAM_LONG_REAL_TAN(BFAM_LONG_REAL(0.5)*phik) -
+           (BFAM_LONG_REAL(0.25) - beta*beta)
+           * BFAM_LONG_REAL_TAN(BFAM_LONG_REAL(0.5)*phik));
+  }
+
+  /*
+   * Use Newton's method for finding the roots of the Jacobi polynomial.
+   */
+  int converged = 0;
+  for (int i=0; i < MAX_ITERATIONS; ++i)
+  {
+    tmp    = theta0;
+    theta0 = theta1;
+    theta1 = tmp;
+
+    for (int k=0; k < nk; ++k)
+    {
+      x[k] = BFAM_LONG_REAL_COS(theta0[k]);
+    }
+
+         bfam_jacobi_p(alpha, beta, N+1, nk, x,  p0);
+    bfam_grad_jacobi_p(alpha, beta, N+1, nk, x, dp0);
+
+    for (int k=0; k < nk; ++k)
+    {
+      theta1[k] = theta0[k] - p0[k]/(-BFAM_LONG_REAL_SIN(theta0[k])*dp0[k]);
+    }
+
+    int diff = 0;
+    for (int k=0; k < nk; ++k)
+    {
+      diff += !BFAM_LONG_REAL_APPROX_EQ(theta0[k], theta1[k], 10);
+    }
+    if (!diff)
+    {
+      converged = 1;
+      break;
+    }
+  }
+
+  BFAM_ABORT_IF(!converged,
+      "Newton's method does not converge when computing Jacobi Gauss points");
+  /*
+   * Nodes
+   */
+  for (int k=0; k < nk; ++k)
+  {
+    x[k] = BFAM_LONG_REAL_COS(theta1[k]);
+  }
+
+  /*
+   * Weights
+   */
+  bfam_grad_jacobi_p(alpha, beta, N+1, nk, x, dp0);
+
+  for (int k=0; k < nk; ++k)
+  {
+    bfam_long_real_t sint = BFAM_LONG_REAL_SIN(theta1[k]);
+    w[k] = tworho/(sint*sint*dp0[k]*dp0[k]);
+  }
+
+  bfam_free_aligned(theta0);
+  bfam_free_aligned(theta1);
+  bfam_free_aligned(p0);
+  bfam_free_aligned(dp0);
+
+  return;
+}
+
+void
+bfam_jacobi_gauss_quadrature(bfam_long_real_t alpha, bfam_long_real_t beta,
+    int N, bfam_long_real_t *restrict x, bfam_long_real_t *restrict w)
+{
+  int nk_floor = (N+1)/2; /* floor((N + 1)/2) */
+
+  bfam_jacobi_gauss_quadrature_half(alpha, beta, N, 1, x+nk_floor, w+nk_floor);
+  bfam_jacobi_gauss_quadrature_half(beta, alpha, N, 0, x, w);
+
+  for (int k=0; k < nk_floor; ++k)
+    x[k] *= -1;
+
+
+  return;
+}

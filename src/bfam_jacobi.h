@@ -33,4 +33,16 @@ void
 bfam_grad_jacobi_p(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
     size_t nx, bfam_long_real_t *x, bfam_long_real_t *P);
 
+/** Compute the nodes and weights of the Jacobi Gauss quadrature
+ *
+ * \param[in]  alpha Jacobi polynomial parameter
+ * \param[in]  beta  Jacobi polynomial parameter
+ * \param[in]  N     Jacobi polynomial order
+ * \param[out] x     Nodes for the Jacobi Gauss quadrature
+ * \param[out] w     Weights for the Jacobi Gauss quadrature
+ */
+void
+bfam_jacobi_gauss_quadrature(bfam_long_real_t alpha, bfam_long_real_t beta,
+    int N, bfam_long_real_t *x, bfam_long_real_t *w);
+
 #endif
