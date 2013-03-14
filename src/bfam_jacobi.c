@@ -330,3 +330,34 @@ bfam_jacobi_gauss_quadrature(bfam_long_real_t alpha, bfam_long_real_t beta,
 
   return;
 }
+
+void
+bfam_jacobi_gauss_lobatto_quadrature(bfam_long_real_t alpha,
+    bfam_long_real_t beta, int N, bfam_long_real_t *restrict x,
+    bfam_long_real_t *restrict w)
+{
+  BFAM_ASSERT(N>=1);
+
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(w, 32);
+
+  x[0] = -1;
+  x[N] =  1;
+
+  if (N > 1)
+  {
+    bfam_jacobi_gauss_quadrature(alpha + 1, beta + 1, N-2, x+1, w+1);
+  }
+
+  bfam_jacobi_p(alpha, beta, N, N+1, x, w);
+  bfam_long_real_t fac = (2*N + alpha + beta + 1) / (N*(N + alpha + beta + 1));
+  for (int k=0; k < N+1; ++k)
+  {
+    w[k] = fac/(w[k]*w[k]);
+  }
+
+  w[0] *= (1 + beta);
+  w[N] *= (1 + alpha);
+
+  return;
+}

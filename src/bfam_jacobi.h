@@ -45,4 +45,16 @@ void
 bfam_jacobi_gauss_quadrature(bfam_long_real_t alpha, bfam_long_real_t beta,
     int N, bfam_long_real_t *x, bfam_long_real_t *w);
 
+/** Compute the nodes and weights of the Jacobi Gauss Lobatto quadrature
+ *
+ * \param[in]  alpha Jacobi polynomial parameter
+ * \param[in]  beta  Jacobi polynomial parameter
+ * \param[in]  N     Jacobi polynomial order
+ * \param[out] x     Nodes for the Jacobi Gauss Lobatto quadrature
+ * \param[out] w     Weights for the Jacobi Gauss Lobatto quadrature
+ */
+void
+bfam_jacobi_gauss_lobatto_quadrature(bfam_long_real_t alpha,
+    bfam_long_real_t beta, int N, bfam_long_real_t *x, bfam_long_real_t *w);
+
 #endif

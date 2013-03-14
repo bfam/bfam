@@ -270,6 +270,94 @@ bfam_long_real_t w_53_42_5[] = {
    6.176833476425957e-03,
 };
 
+bfam_long_real_t xl_0_0_1[] = {
+  -1,
+   1,
+};
+
+bfam_long_real_t wl_0_0_1[] = {
+  1,
+  1,
+};
+
+bfam_long_real_t xl_0_0_2[] = {
+  -1,
+   0,
+   1,
+};
+
+bfam_long_real_t wl_0_0_2[] = {
+  3.333333333333333e-01,
+  1.333333333333333e+00,
+  3.333333333333333e-01,
+};
+
+bfam_long_real_t xl_0_0_3[] = {
+  -1.000000000000000e+00,
+  -4.472135954999579e-01,
+   4.472135954999579e-01,
+   1.000000000000000e+00,
+};
+
+bfam_long_real_t wl_0_0_3[] = {
+   1.666666666666665e-01,
+   8.333333333333333e-01,
+   8.333333333333333e-01,
+   1.666666666666665e-01,
+};
+
+bfam_long_real_t xl_2_1_4[] = {
+  -1.000000000000000e+00,
+  -6.295006461249313e-01,
+  -1.043853303832391e-01,
+   4.611587037808977e-01,
+   1.000000000000000e+00,
+};
+
+bfam_long_real_t wl_2_1_4[] = {
+  2.857142857142852e-02,
+  4.494303739909380e-01,
+  6.227419917318147e-01,
+  2.278276342772477e-01,
+  4.761904761904756e-03,
+};
+
+bfam_long_real_t xl_m025_2_5[] = {
+  -1.000000000000000e+00,
+  -5.307980844806093e-01,
+  -2.306266853114286e-02,
+   4.744619081112718e-01,
+   8.453562917089907e-01,
+   1.000000000000000e+00,
+};
+
+bfam_long_real_t wl_m025_2_5[] = {
+   1.277971354690001e-03,
+   9.372630724544165e-02,
+   4.962293308306567e-01,
+   1.154571944617246e+00,
+   1.490954927280840e+00,
+   4.908496018737385e-01,
+};
+
+bfam_long_real_t xl_53_42_5[] = {
+  -1.000000000000000e+00,
+  -5.890484263175890e-01,
+  -2.454557217954551e-01,
+   1.217715902667813e-01,
+   4.870915322052373e-01,
+   1.000000000000000e+00,
+};
+
+bfam_long_real_t wl_53_42_5[] = {
+   4.780465708855393e-04,
+   9.031675630663250e-02,
+   3.526252636979745e-01,
+   3.014454480230028e-01,
+   5.513887100666661e-02,
+   1.328441643536374e-04,
+};
+
 
 void print_quadrature(bfam_long_real_t alpha, bfam_long_real_t beta,
     int N, bfam_long_real_t *restrict x, bfam_long_real_t *restrict w)
@@ -333,6 +421,29 @@ main (int argc, char *argv[])
     BFAM_ALIGN(32) bfam_long_real_t x[N+1];                          \
     BFAM_ALIGN(32) bfam_long_real_t w[N+1];                          \
     bfam_jacobi_gauss_quadrature(alpha, beta, N, x, w);              \
+    print_quadrature(alpha, beta, N, x, w);                          \
+    failures += check_approx_eq(BFAM_REAL_EPS*100, N+1, x, xexact);  \
+    failures += check_approx_eq(BFAM_REAL_EPS*100, N+1, w, wexact);  \
+  }
+  LIST_OF_TESTS
+#undef X
+#undef LIST_OF_TESTS
+
+#define LIST_OF_TESTS  \
+  X(BFAM_LONG_REAL( 0.0),  BFAM_LONG_REAL(0.0), 1, xl_0_0_1,    wl_0_0_1)    \
+  X(BFAM_LONG_REAL( 0.0),  BFAM_LONG_REAL(0.0), 2, xl_0_0_2,    wl_0_0_2)    \
+  X(BFAM_LONG_REAL( 0.0),  BFAM_LONG_REAL(0.0), 3, xl_0_0_3,    wl_0_0_3)    \
+  X(BFAM_LONG_REAL( 2.0),  BFAM_LONG_REAL(1.0), 4, xl_2_1_4,    wl_2_1_4)    \
+  X(BFAM_LONG_REAL(-0.25), BFAM_LONG_REAL(2.0), 5, xl_m025_2_5, wl_m025_2_5) \
+  X(BFAM_LONG_REAL( 5.3),  BFAM_LONG_REAL(4.2), 5, xl_53_42_5,  wl_53_42_5)
+
+#define X(alpha, beta, N, xexact, wexact)                            \
+  {                                                                  \
+    BFAM_INFO("Testing Gauss Quadrature " #alpha " : " #beta         \
+        " : " #N " : " #xexact " : " #wexact);                       \
+    BFAM_ALIGN(32) bfam_long_real_t x[N+1];                          \
+    BFAM_ALIGN(32) bfam_long_real_t w[N+1];                          \
+    bfam_jacobi_gauss_lobatto_quadrature(alpha, beta, N, x, w);              \
     print_quadrature(alpha, beta, N, x, w);                          \
     failures += check_approx_eq(BFAM_REAL_EPS*100, N+1, x, xexact);  \
     failures += check_approx_eq(BFAM_REAL_EPS*100, N+1, w, wexact);  \
