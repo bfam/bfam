@@ -202,6 +202,7 @@ typedef long double bfam_long_real_t;
 #define BFAM_LONG_REAL_EXP       expl
 #define BFAM_LONG_REAL_SQRT     sqrtl
 #define BFAM_LONG_REAL_SIN       sinl
+#define BFAM_LONG_REAL_TAN       tanl
 
 #define BFAM_LONG_REAL_EPS LDBL_EPSILON
 #define BFAM_LONG_REAL_MIN LDBL_MIN
