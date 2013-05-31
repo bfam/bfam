@@ -381,6 +381,9 @@ target_link_libraries(bfam_exam_logging bfam)
 add_executable(bfam_exam_p4est examples/p4est/bfam_exam_p4est.c)
 target_link_libraries(bfam_exam_p4est bfam)
 
+add_executable(bfam_exam_mesh_dgquad examples/mesh/bfam_exam_mesh_dgquad.c)
+target_link_libraries(bfam_exam_mesh_dgquad bfam)
+
 add_executable(bfam_exam_signal examples/signal/bfam_exam_signal.c)
 target_link_libraries(bfam_exam_signal bfam)
 
