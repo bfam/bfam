@@ -24,8 +24,9 @@ typedef struct bfam_domain
 /* Domain based functions */
 /** create a domain
  *
- * \param [out] newDomain the newly created domain
  * \param [in]  domComm   pointer to the communicator for the domain
+ *
+ * \return the newly created domain
  */
 bfam_domain_t* bfam_domain_new(bfam_mpicomm_t *domComm);
 

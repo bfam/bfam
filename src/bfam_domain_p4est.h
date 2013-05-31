@@ -21,9 +21,10 @@ typedef struct bfam_domain_p4est
  * \warning It is the callers responsibility to ensure that
  *          \a domComm and \a conn are freed after this domain is.
  *
- * \param [out] newDomain the newly created p4est managed domain
  * \param [in]  domComm   pointer to the communicator for the domain
  * \param [in]  conn      pointer to the p4est connectivity for the domain
+ *
+ * \return the newly created p4est managed domain
  */
 bfam_domain_p4est_t*
 bfam_domain_p4est_new(bfam_mpicomm_t *domComm,
