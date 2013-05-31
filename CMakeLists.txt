@@ -348,6 +348,7 @@ add_library(bfam
                  src/bfam_version.c
                  src/bfam_subdomain.c
                  src/bfam_domain.c
+                 src/bfam_domain_p4est.c
            )
 add_dependencies(bfam build_bundled_libs version)
 

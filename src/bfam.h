@@ -13,5 +13,6 @@
 #include <bfam_mpicomm.h>
 #include <bfam_subdomain.h>
 #include <bfam_domain.h>
+#include <bfam_domain_p4est.h>
 
 #endif
