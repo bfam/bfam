@@ -232,11 +232,11 @@ typedef double bfam_real_t;
 
 /* Type for processor-local indexing */
 typedef int32_t bfam_locidx_t;
-#define MANGLL_LOCIDX_MPI MPI_INT
+#define BFAM_LOCIDX_MPI MPI_INT
 
 /* Type for globally unique indexing */
 typedef int64_t bfam_gloidx_t;
-#define MANGLL_GLOIDX_MPI MPI_LONG_LONG_INT
+#define BFAM_GLOIDX_MPI MPI_LONG_LONG_INT
 
 /** Abort function.
  *
