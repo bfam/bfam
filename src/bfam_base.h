@@ -233,10 +233,14 @@ typedef double bfam_real_t;
 /* Type for processor-local indexing */
 typedef int32_t bfam_locidx_t;
 #define BFAM_LOCIDX_MPI MPI_INT
+#define BFAM_LOCIDX_MIN INT32_MIN
+#define BFAM_LOCIDX_MAX INT32_MAX
 
 /* Type for globally unique indexing */
 typedef int64_t bfam_gloidx_t;
 #define BFAM_GLOIDX_MPI MPI_LONG_LONG_INT
+#define BFAM_GLOIDX_MIN INT64_MIN
+#define BFAM_GLOIDX_MAX INT64_MAX
 
 /** Abort function.
  *
