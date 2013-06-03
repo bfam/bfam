@@ -50,4 +50,18 @@ bfam_domain_p4est_init(bfam_domain_p4est_t *domain, bfam_mpicomm_t *domComm,
 void
 bfam_domain_p4est_free(bfam_domain_p4est_t *domain);
 
+/** Takes an initialized domain and generates a DG quad mesh
+ *
+ * \param [in,out] domain        pointer to the initialized p4est managed
+ *                               domain
+ * \param [in]     numSubdomains number of volume subdomains to generate
+ * \param [in]     subdomainID   array of length \c p4est->local_num_quadrants
+ *                               which indicates the subdomain id for each
+ *                               element
+ * \param [in]     N             array of orders for the volume subdomains
+ */
+void
+bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
+    bfam_locidx_t numSubdomains, bfam_locidx_t *subdomainID, int *N);
+
 #endif
