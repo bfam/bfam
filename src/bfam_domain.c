@@ -26,7 +26,7 @@ bfam_domain_init(bfam_domain_t *thisDomain, bfam_mpicomm_t *domComm)
 void
 bfam_domain_free(bfam_domain_t *thisDomain)
 {
-  for(int i = 0;i > thisDomain->numSubdomains;i++)
+  for(int i = 0;i < thisDomain->numSubdomains;i++)
   {
     thisDomain->subdomains[i]->free(thisDomain->subdomains[i]);
     bfam_free(thisDomain->subdomains[i]);
