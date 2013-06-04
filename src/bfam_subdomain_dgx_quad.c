@@ -38,10 +38,9 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   bfam_subdomain_init(&subdomain->base, name);
   subdomain->base.free = bfam_subdomain_dgx_quad_free;
 
-  subdomain->Np  = (N+1)*(N+1);
-  subdomain->Nfp =  N+1;
-
-  subdomain->Nfaces =  4;
+  const int Np = (N+1)*(N+1);
+  const int Nfp = N+1;
+  const int Nfaces = 4;
 
   const int Nrp = N+1;
   bfam_long_real_t *lr, *lw;
@@ -49,6 +48,13 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   lw = bfam_malloc_aligned(Nrp*sizeof(bfam_long_real_t));
 
   bfam_jacobi_gauss_lobatto_quadrature(0, 0, N, lr, lw);
+
+  /*
+   * Set subdomain values
+   */
+  subdomain->Np = Np;
+  subdomain->Nfp = Nfp;
+  subdomain->Nfaces = Nfaces;
 
   subdomain->r = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
   subdomain->w = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
