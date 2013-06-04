@@ -41,6 +41,8 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   subdomain->Np  = (N+1)*(N+1);
   subdomain->Nfp =  N+1;
 
+  subdomain->Nfaces =  4;
+
   const int Nrp = N+1;
   bfam_long_real_t *lr, *lw;
   lr = bfam_malloc(Nrp*sizeof(bfam_long_real_t));
