@@ -77,4 +77,6 @@ bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
   // add block
   thisDomain->subdomains[thisDomain->numSubdomains] = newSubdomain;
   thisDomain->numSubdomains++;
+
+  bfam_free(keyValue);
 }
