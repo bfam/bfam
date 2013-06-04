@@ -277,7 +277,7 @@ bfam_jacobi_gauss_quadrature_half(bfam_long_real_t alpha,
     int diff = 0;
     for (int k=0; k < nk; ++k)
     {
-      diff += !BFAM_LONG_REAL_APPROX_EQ(theta0[k], theta1[k], 10);
+      diff += !BFAM_LONG_REAL_APPROX_EQ(theta0[k], theta1[k], 1e3);
     }
     if (!diff)
     {
