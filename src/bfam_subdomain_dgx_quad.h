@@ -44,6 +44,10 @@ typedef struct bfam_subdomain_dgx_quad
   int              Nfaces; /* Number of faces in each element */
   bfam_real_t     *r;   /* 1D LGL Nodal Point in [-1,1] */
   bfam_real_t     *w;   /* 1D LGL Weights */
+
+  bfam_real_t     *x;   /* x-coordinates of the nodes */
+  bfam_real_t     *y;   /* y-coordinates of the nodes */
+  bfam_real_t     *z;   /* z-coordinates of the nodes */
 } bfam_subdomain_dgx_quad_t;
 
 /** create a dg quad subdomain.
