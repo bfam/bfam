@@ -36,6 +36,7 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
                              const int8_t                    *EToF)
 {
   bfam_subdomain_init(&subdomain->base, name);
+  subdomain->base.free = bfam_subdomain_dgx_quad_free;
 
   subdomain->Np  = (N+1)*(N+1);
   subdomain->Nfp =  N+1;
@@ -52,7 +53,7 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
 }
 
 void
-bfam_subdomain_dgx_quad_free(bfam_subdomain_dgx_quad_t *thisSubdomain)
+bfam_subdomain_dgx_quad_free(bfam_subdomain_t *thisSubdomain)
 {
-  bfam_subdomain_free(&thisSubdomain->base);
+  bfam_subdomain_free(thisSubdomain);
 }

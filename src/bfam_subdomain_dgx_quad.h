@@ -108,6 +108,6 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t *subdomain,
  * \param [in,out] subdomain subdomain to clean up
  */
 void
-bfam_subdomain_dgx_quad_free(bfam_subdomain_dgx_quad_t *subdomain);
+bfam_subdomain_dgx_quad_free(bfam_subdomain_t *subdomain);
 
 #endif
