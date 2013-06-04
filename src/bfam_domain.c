@@ -70,7 +70,7 @@ bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
   }
 
   // Since not in the table add the rest of the key and add
-  *((int *) keyValue+(len+1)) = thisDomain->numSubdomains;
+  *((int *) (keyValue+len+1)) = thisDomain->numSubdomains;
   keyValue[len+1+sizeof(int)] = '\0';
   bfam_critbit0_insert(&(thisDomain->name2num),keyValue);
 
