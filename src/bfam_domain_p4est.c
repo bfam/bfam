@@ -137,12 +137,10 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
       const p4est_locidx_t ck = mesh->quad_to_quad[P4EST_FACES * k + f];
       const int            cf = mesh->quad_to_face[P4EST_FACES * k + f];
 
-      const bfam_locidx_t  idck = subdomainID[ck];
-
       int nk = k;
       int nf = f;
 
-      if(cf >= 0 && cf < HF && ck < K && idk == idck)
+      if(cf >= 0 && cf < HF && ck < K && idk == subdomainID[ck])
       {
         /*
          * Neighbor is local to the subdomain and is the same size.
