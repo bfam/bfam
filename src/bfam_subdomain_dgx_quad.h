@@ -52,6 +52,7 @@ typedef struct bfam_subdomain_dgx_quad
  * \param [in] Nv   number of vertices in the subdomain
  * \param [in] VX   array of x-coordinates for the vertices
  * \param [in] VY   array of y-coordinates for the vertices
+ * \param [in] VZ   array of z-coordinates for the vertices
  * \param [in] K    number of elements in the subdomain
  * \param [in] EToV Mapping such that \c EToV[k*4+c] gives the vertex number
  *                  for corner \c c of element \c k.
@@ -67,6 +68,7 @@ bfam_subdomain_dgx_quad_new(const char             *name,
                             const bfam_locidx_t     Nv,
                             const bfam_long_real_t *VX,
                             const bfam_long_real_t *VY,
+                            const bfam_long_real_t *VZ,
                             const bfam_locidx_t     K,
                             const bfam_locidx_t    *EToV,
                             const bfam_locidx_t    *EToE,
@@ -80,6 +82,7 @@ bfam_subdomain_dgx_quad_new(const char             *name,
  * \param [in]     Nv        number of vertices in the subdomain
  * \param [in]     VX        array of x-coordinates for the vertices
  * \param [in]     VY        array of y-coordinates for the vertices
+ * \param [in]     VZ        array of z-coordinates for the vertices
  * \param [in]     K         number of elements in the subdomain
  * \param [in]     EToV      Mapping such that \c EToV[k*4+c] gives the vertex
  *                           number for corner \c c of element \c k.
@@ -94,6 +97,7 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t *subdomain,
                              const bfam_locidx_t        Nv,
                              const bfam_long_real_t    *VX,
                              const bfam_long_real_t    *VY,
+                             const bfam_long_real_t    *VZ,
                              const bfam_locidx_t        K,
                              const bfam_locidx_t       *EToV,
                              const bfam_locidx_t       *EToE,

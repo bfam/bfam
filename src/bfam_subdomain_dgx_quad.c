@@ -7,6 +7,7 @@ bfam_subdomain_dgx_quad_new(const char             *name,
                             const bfam_locidx_t     Nv,
                             const bfam_long_real_t *VX,
                             const bfam_long_real_t *VY,
+                            const bfam_long_real_t *VZ,
                             const bfam_locidx_t     K,
                             const bfam_locidx_t    *EToV,
                             const bfam_locidx_t    *EToE,
@@ -15,7 +16,7 @@ bfam_subdomain_dgx_quad_new(const char             *name,
   bfam_subdomain_dgx_quad_t* newSubdomain =
     bfam_malloc(sizeof(bfam_subdomain_dgx_quad_t));
 
-  bfam_subdomain_dgx_quad_init(newSubdomain, name, N, Nv, VX, VY, K, EToV,
+  bfam_subdomain_dgx_quad_init(newSubdomain, name, N, Nv, VX, VY, VZ, K, EToV,
                                EToE, EToF);
 
   return newSubdomain;
@@ -28,6 +29,7 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
                              const bfam_locidx_t              Nv,
                              const bfam_long_real_t          *VX,
                              const bfam_long_real_t          *VY,
+                             const bfam_long_real_t          *VZ,
                              const bfam_locidx_t              K,
                              const bfam_locidx_t             *EToV,
                              const bfam_locidx_t             *EToE,
