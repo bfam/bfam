@@ -50,6 +50,14 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
 
   bfam_jacobi_gauss_lobatto_quadrature(0, 0, N, lr, lw);
 
+  subdomain->r = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
+  subdomain->w = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
+  for(int n = 0; n<Nrp; ++n)
+  {
+    subdomain->r[n] = (bfam_real_t) lr[n];
+    subdomain->w[n] = (bfam_real_t) lw[n];
+  }
+
   bfam_free(lr);
   bfam_free(lw);
 }
@@ -57,5 +65,10 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
 void
 bfam_subdomain_dgx_quad_free(bfam_subdomain_t *thisSubdomain)
 {
+  bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*) thisSubdomain;
+
   bfam_subdomain_free(thisSubdomain);
+
+  bfam_free_aligned(sub->r);
+  bfam_free_aligned(sub->w);
 }
