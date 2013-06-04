@@ -36,6 +36,7 @@ bfam_domain_free(bfam_domain_t *thisDomain)
   thisDomain->sizeSubdomains = 0;
   bfam_free(thisDomain->subdomains);
   thisDomain->subdomains = NULL;
+  bfam_critbit0_clear(&thisDomain->name2num);
 }
 
 void
