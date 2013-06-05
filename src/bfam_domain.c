@@ -80,3 +80,52 @@ bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
 
   bfam_free(keyValue);
 }
+
+void
+bfam_domain_get_subdomains(bfam_domain_t *thisDomain,
+    bfam_domain_match_t matchType, size_t numTags, const char **tags,
+    bfam_locidx_t numEntries, bfam_subdomain_t **subdomains,
+    bfam_locidx_t *numSubdomains)
+{
+  BFAM_ASSERT(subdomains != NULL);
+  BFAM_ASSERT(numSubdomains != NULL);
+
+  if(numEntries<=0)
+    return;
+
+  *numSubdomains = 0;
+  for(bfam_locidx_t d = 0; d < thisDomain->numSubdomains; ++d)
+  {
+    bfam_subdomain_t *subdomain = thisDomain->subdomains[d];
+    int matched = 0;
+    switch(matchType)
+    {
+      case BFAM_DOMAIN_OR:
+        matched = 0;
+        for(size_t t = 0; !matched && t < numTags; ++t)
+        {
+          int hasTag = bfam_subdomain_has_tag(subdomain, tags[t]);
+          matched = hasTag || matched;
+        }
+        break;
+      case BFAM_DOMAIN_AND:
+        matched = 1;
+        for(size_t t = 0; matched && t < numTags; ++t)
+          matched = matched && bfam_subdomain_has_tag(subdomain, tags[t]);
+        break;
+      default:
+        BFAM_ABORT("Unsupported Match Type");
+    }
+
+    if(matched)
+    {
+      subdomains[*numSubdomains] = subdomain;
+      ++(*numSubdomains);
+    }
+
+    if(*numSubdomains == numEntries)
+      return;
+  }
+
+  return;
+}

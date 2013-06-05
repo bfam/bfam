@@ -21,6 +21,11 @@ typedef struct bfam_domain
                                       subdomain names to numbers */
 } bfam_domain_t;
 
+typedef enum bfam_domain_match
+{
+  BFAM_DOMAIN_AND,
+  BFAM_DOMAIN_OR,
+} bfam_domain_match_t;
 
 /* Domain based functions */
 /** create a domain
@@ -57,5 +62,26 @@ bfam_domain_free(bfam_domain_t *domain);
 void
 bfam_domain_add_subdomain(bfam_domain_t *thisDomain,
     bfam_subdomain_t *newSubdomain);
+
+/** Get subdomains with tags passed in
+ *
+ * \param [in]  thisDomain    domain to search for subdomains in
+ * \param [in]  matchType     type of match, \c BFAM_DOMAIN_OR will
+ *                            match subdomains with any of the tags
+ *                            and \c BFAM_DOMAIN_AND will match subdomains
+ *                            with all of the tags.
+ * \param [in]  numTags       number of tags to try to match
+ * \param [in]  tags          array of the tags to match
+ * \param [in]  numEntries    number of entries in the \a subdomains array
+ * \param [out] subdomains    array of pointers to be filled with matching
+ *                            subdomains
+ * \param [out] numSubdomains number of matching subdomains
+ *
+ */
+void
+bfam_domain_get_subdomains(bfam_domain_t *thisDomain,
+    bfam_domain_match_t match, size_t numTags, const char **tags,
+    bfam_locidx_t numEntries, bfam_subdomain_t **subdomains,
+    bfam_locidx_t *numSubdomains);
 
 #endif
