@@ -351,6 +351,7 @@ add_library(bfam
                  src/bfam_domain_p4est.c
                  src/bfam_subdomain_dgx_quad.c
                  src/bfam_vtk.c
+                 src/bfam_timestep_lsrk.c
            )
 add_dependencies(bfam build_bundled_libs version)
 
