@@ -87,7 +87,7 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
   for(p4est_locidx_t id = 0; id < numSubdomains; ++id)
   {
     name[id] = bfam_malloc(BFAM_BUFSIZ*sizeof(char));
-    snprintf(name[id], BFAM_BUFSIZ, "DG QUAD %05jd", (intmax_t) id);
+    snprintf(name[id], BFAM_BUFSIZ, "dg_quad_%05jd", (intmax_t) id);
 
     EToV[id] = bfam_malloc(subK[id]*P4EST_CHILDREN*sizeof(bfam_locidx_t));
     EToE[id] = bfam_malloc(subK[id]*P4EST_FACES*sizeof(bfam_locidx_t));
