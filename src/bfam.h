@@ -14,5 +14,6 @@
 #include <bfam_subdomain.h>
 #include <bfam_domain.h>
 #include <bfam_domain_p4est.h>
+#include <bfam_vtk.h>
 
 #endif
