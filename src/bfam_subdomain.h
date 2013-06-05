@@ -20,6 +20,8 @@ typedef struct bfam_subdomain
   bfam_mpicomm_t* comm;     /**< communicator for this subdomain */
   int             hasWork;  /**< boolean for whether or not I can do work on this processor */
 
+  bfam_critbit0_tree_t tags; /**< critbit for tags for the subdomain */
+
   /* Function pointers that domain will need to call */
   /**< start communication */
   void (*start_communication) (struct bfam_subdomain *thisSubdomain);
@@ -58,5 +60,34 @@ bfam_subdomain_init(bfam_subdomain_t *subdomain,const char* name);
  */
 void
 bfam_subdomain_free(bfam_subdomain_t *thisSubdomain);
+
+/** Add a tag to the subdomain
+ *
+ * \param [in,out] thisSubdomain subdomain to andd the tag to
+ * \param [in]     tag           tag of the domain (\0 terminated string)
+ *
+ */
+void
+bfam_subdomain_add_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+
+/** Remove a tag from the subdomain
+ *
+ * \param [in,out] thisSubdomain subdomain to remove the tag from
+ * \param [in]     tag           tag of the domain (\0 terminated string)
+ *
+ * \returns It returns 1 if the tag was removed, 0 otherwise.
+ */
+int
+bfam_subdomain_delete_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+
+/** Check to see if a subdomain has a tag
+ *
+ * \param [in,out] thisSubdomain subdomain to search for the tag
+ * \param [in]     tag           tag of the domain (\0 terminated string)
+ *
+ * \return nonzero iff \a thisSubdomain has the tag \a tag
+ */
+int
+bfam_subdomain_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
 
 #endif

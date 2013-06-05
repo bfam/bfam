@@ -39,6 +39,22 @@ test_insert()
     bfam_subdomain_t* newSub = bfam_malloc(sizeof(bfam_subdomain_t));
     bfam_subdomain_init(newSub,elems[i]);
     bfam_domain_add_subdomain(domain,newSub);
+
+    bfam_subdomain_add_tag(newSub, "testing 1 2 3");
+    bfam_subdomain_add_tag(newSub, elems[i]);
+    bfam_subdomain_add_tag(newSub, "try");
+
+    BFAM_ABORT_IF(bfam_subdomain_has_tag(newSub, "bad tag"),
+        "Error finding tag: bad tag");
+    BFAM_ABORT_IF_NOT(bfam_subdomain_has_tag(newSub, "try"),
+        "Error finding tag: try");
+    BFAM_ABORT_IF_NOT(bfam_subdomain_has_tag(newSub, elems[i]),
+        "Error finding tag: %s", elems[i]);
+
+    BFAM_ABORT_IF_NOT(bfam_subdomain_delete_tag(newSub, "try"),
+        "Error removing tag: try");
+    BFAM_ABORT_IF(bfam_subdomain_has_tag(newSub, "try"),
+        "Error finding tag: try");
   }
 
   // free a domain
