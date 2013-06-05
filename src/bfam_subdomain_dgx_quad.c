@@ -97,6 +97,8 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
     subdomain->w[n] = (bfam_real_t) lw[n];
   }
 
+  subdomain->K = K;
+
   subdomain->x = bfam_malloc_aligned(K*Np*sizeof(bfam_real_t));
   subdomain->y = bfam_malloc_aligned(K*Np*sizeof(bfam_real_t));
   subdomain->z = bfam_malloc_aligned(K*Np*sizeof(bfam_real_t));
