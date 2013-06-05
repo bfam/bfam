@@ -40,6 +40,13 @@ typedef struct bfam_subdomain
   /**< subdomain free command :: if user writes custom they should wrap the
    * original function pointer */
   void (*free)                (struct bfam_subdomain *thisSubdomain);
+
+  /**< Write a vtk file */
+  void (*vtk_write_file)      (struct bfam_subdomain *thisSubdomain,
+                               const char *prefix,
+                               const char **scalars,
+                               const char **vectors,
+                               const char **components);
 } bfam_subdomain_t;
 
 

@@ -21,6 +21,8 @@ bfam_subdomain_init(bfam_subdomain_t *thisSubdomain,const char* name)
   thisSubdomain->do_external_RHS     = NULL;
   thisSubdomain->update_fields       = NULL;
   thisSubdomain->free                = bfam_subdomain_free;
+
+  thisSubdomain->vtk_write_file      = NULL;
 }
 
 void
@@ -38,6 +40,8 @@ bfam_subdomain_free(bfam_subdomain_t *thisSubdomain)
   thisSubdomain->do_internal_RHS     = NULL;
   thisSubdomain->do_external_RHS     = NULL;
   thisSubdomain->update_fields       = NULL;
+
+  thisSubdomain->vtk_write_file      = NULL;
 }
 
 void
