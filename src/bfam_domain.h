@@ -1,6 +1,7 @@
 #ifndef BFAM_DOMAIN_H
 #define BFAM_DOMAIN_H
 
+#include <bfam_base.h>
 #include <bfam_mpicomm.h>
 #include <bfam_critbit.h>
 #include <bfam_subdomain.h>
@@ -11,9 +12,9 @@
 typedef struct bfam_domain 
 {
   bfam_subdomain_t** subdomains;  /**< array of pointers to subdomains */
-  int numSubdomains;             /**< number of subdomains that are
+  bfam_locidx_t numSubdomains;   /**< number of subdomains that are
                                       currently in the domain */
-  int sizeSubdomains;            /**< total number of subdomains the domain
+  bfam_locidx_t sizeSubdomains;  /**< total number of subdomains the domain
                                       can hold, i.e.  size of the array*/
   bfam_mpicomm_t * comm;         /**< communicator for the whole domain */
   bfam_critbit0_tree_t name2num; /**< critbit map for convertings

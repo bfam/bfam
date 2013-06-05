@@ -14,7 +14,7 @@ bfam_domain_t* bfam_domain_new(bfam_mpicomm_t *domComm)
 void
 bfam_domain_init(bfam_domain_t *thisDomain, bfam_mpicomm_t *domComm)
 {
-  const int sizeSubdomains = 16;
+  const bfam_locidx_t sizeSubdomains = 16;
   thisDomain->comm = domComm; // Perhaps we should duplicate it?
   thisDomain->numSubdomains = 0;
   thisDomain->sizeSubdomains = sizeSubdomains;
@@ -26,7 +26,7 @@ bfam_domain_init(bfam_domain_t *thisDomain, bfam_mpicomm_t *domComm)
 void
 bfam_domain_free(bfam_domain_t *thisDomain)
 {
-  for(int i = 0;i < thisDomain->numSubdomains;i++)
+  for(bfam_locidx_t i = 0;i < thisDomain->numSubdomains;i++)
   {
     thisDomain->subdomains[i]->free(thisDomain->subdomains[i]);
     bfam_free(thisDomain->subdomains[i]);
@@ -56,8 +56,8 @@ bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
   // create the key value pair
   BFAM_ROOT_VERBOSE("adding subdomain %3d with name %s",
       thisDomain->numSubdomains,newSubdomain->name);
-  int len = strlen(newSubdomain->name);
-  char* keyValue = bfam_malloc(sizeof(char)*(len+2)+sizeof(int));
+  size_t len = strlen(newSubdomain->name);
+  char* keyValue = bfam_malloc(sizeof(char)*(len+2)+sizeof(bfam_locidx_t));
   strncpy(keyValue,newSubdomain->name,len);
   keyValue[len] = keyValueSplitter;
   keyValue[len+1] = '\0';
@@ -70,8 +70,8 @@ bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
   }
 
   // Since not in the table add the rest of the key and add
-  *((int *) (keyValue+len+1)) = thisDomain->numSubdomains;
-  keyValue[len+1+sizeof(int)] = '\0';
+  *((bfam_locidx_t *) (keyValue+len+1)) = thisDomain->numSubdomains;
+  keyValue[len+1+sizeof(bfam_locidx_t)] = '\0';
   bfam_critbit0_insert(&(thisDomain->name2num),keyValue);
 
   // add block
