@@ -371,3 +371,20 @@ void bfam_signal_handler_set()
     if(sigaction(SIGABRT, &sig_action, NULL) != 0) { err(1, "sigaction"); }
   }
 }
+
+/*
+ *  The follow code snippet is from:
+ *
+ *    http://www.ibm.com/developerworks/aix/library/au-endianc/
+ */
+int
+bfam_endian()
+{
+  int i = 1;
+  char *p = (char *)&i;
+
+  if (p[0] == 1)
+    return BFAM_LITTLE_ENDIAN;
+  else
+    return BFAM_BIG_ENDIAN;
+}

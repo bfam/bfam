@@ -86,6 +86,9 @@
 
 #define BFAM_BUFSIZ 8192
 
+#define BFAM_LITTLE_ENDIAN 0
+#define BFAM_BIG_ENDIAN    1
+
 #define BFAM_APPEND(x, y) x ## y
 
 #define BFAM_MIN(a,b) (((a)<(b))?(a):(b))
@@ -334,5 +337,12 @@ void bfam_free_aligned(void *ptr);
 /** Set a signal handler which prints stack traces on terminating signals.
  */
 void bfam_signal_handler_set();
+
+/** determine endian type.
+ *
+ * \return \c BFAM_LITTLE_ENDIAN or \c BFAM_BIG_ENDIAN depnding on endian type
+ *         detected.
+ */
+int bfam_endian();
 
 #endif
