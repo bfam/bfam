@@ -36,6 +36,7 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
                              const int8_t                    *EToF)
 {
   bfam_subdomain_init(&subdomain->base, name);
+  bfam_subdomain_add_tag(&subdomain->base, "_subdomain_dgx_quad");
   subdomain->base.free = bfam_subdomain_dgx_quad_free;
 
   const int Np = (N+1)*(N+1);

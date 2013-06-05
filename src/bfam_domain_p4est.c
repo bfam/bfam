@@ -171,6 +171,7 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
                                   EToE[id],
                                   EToF[id]);
 
+    bfam_subdomain_add_tag((bfam_subdomain_t *) subdomain, "_volume");
     bfam_domain_add_subdomain((bfam_domain_t    *) domain,
                               (bfam_subdomain_t *) subdomain);
   }
