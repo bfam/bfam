@@ -83,7 +83,7 @@ bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
 
 void
 bfam_domain_get_subdomains(bfam_domain_t *thisDomain,
-    bfam_domain_match_t matchType, size_t numTags, const char **tags,
+    bfam_domain_match_t matchType, const char **tags,
     bfam_locidx_t numEntries, bfam_subdomain_t **subdomains,
     bfam_locidx_t *numSubdomains)
 {
@@ -102,7 +102,7 @@ bfam_domain_get_subdomains(bfam_domain_t *thisDomain,
     {
       case BFAM_DOMAIN_OR:
         matched = 0;
-        for(size_t t = 0; !matched && t < numTags; ++t)
+        for(size_t t = 0; !matched && tags[t]; ++t)
         {
           int hasTag = bfam_subdomain_has_tag(subdomain, tags[t]);
           matched = hasTag || matched;
@@ -110,7 +110,7 @@ bfam_domain_get_subdomains(bfam_domain_t *thisDomain,
         break;
       case BFAM_DOMAIN_AND:
         matched = 1;
-        for(size_t t = 0; matched && t < numTags; ++t)
+        for(size_t t = 0; matched && tags[t]; ++t)
           matched = matched && bfam_subdomain_has_tag(subdomain, tags[t]);
         break;
       default:

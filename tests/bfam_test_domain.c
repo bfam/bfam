@@ -61,14 +61,14 @@ test_insert()
     bfam_malloc(domain->numSubdomains*sizeof(bfam_subdomain_t*));
   bfam_locidx_t numMatchedSubdomains;
 
-  const char *tags1[] = {"a11", "a10", "b"};
-  bfam_domain_get_subdomains(domain, BFAM_DOMAIN_OR, 3, tags1,
+  const char *tags1[] = {"a11", "a10", "b", NULL};
+  bfam_domain_get_subdomains(domain, BFAM_DOMAIN_OR, tags1,
     domain->numSubdomains, matchedSubdomains, &numMatchedSubdomains);
   BFAM_ABORT_IF(numMatchedSubdomains != 3, "Error matching tags1: %jd",
       (intmax_t) numMatchedSubdomains);
 
-  const char *tags2[] = {"a11", "testing 1 2 3"};
-  bfam_domain_get_subdomains(domain, BFAM_DOMAIN_AND, 2, tags2,
+  const char *tags2[] = {"a11", "testing 1 2 3", NULL};
+  bfam_domain_get_subdomains(domain, BFAM_DOMAIN_AND, tags2,
     domain->numSubdomains, matchedSubdomains, &numMatchedSubdomains);
   BFAM_ABORT_IF(numMatchedSubdomains != 1, "Error matching tags2: %jd",
       (intmax_t) numMatchedSubdomains);

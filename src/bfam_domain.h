@@ -70,8 +70,7 @@ bfam_domain_add_subdomain(bfam_domain_t *thisDomain,
  *                            match subdomains with any of the tags
  *                            and \c BFAM_DOMAIN_AND will match subdomains
  *                            with all of the tags.
- * \param [in]  numTags       number of tags to try to match
- * \param [in]  tags          array of the tags to match
+ * \param [in]  tags          \c NULL terminated array of the tags to match
  * \param [in]  numEntries    number of entries in the \a subdomains array
  * \param [out] subdomains    array of pointers to be filled with matching
  *                            subdomains
@@ -80,7 +79,7 @@ bfam_domain_add_subdomain(bfam_domain_t *thisDomain,
  */
 void
 bfam_domain_get_subdomains(bfam_domain_t *thisDomain,
-    bfam_domain_match_t match, size_t numTags, const char **tags,
+    bfam_domain_match_t match, const char **tags,
     bfam_locidx_t numEntries, bfam_subdomain_t **subdomains,
     bfam_locidx_t *numSubdomains);
 
