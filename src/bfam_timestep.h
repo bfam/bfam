@@ -12,7 +12,7 @@ typedef struct bfam_ts
   bfam_domain_t* domain;         /**< my domain */
 } bfam_ts_t;
 
-/** initialize a low storage time step routine
+/** initialize a time step routine
  *
  * \warning It is the callers responsibility to ensure that
  *          \a dom is freed after the time stepper is
@@ -22,5 +22,12 @@ typedef struct bfam_ts
  */
 void
 bfam_ts_init(bfam_ts_t* ts, bfam_domain_t* dom);
+
+/** free a time step routine
+ *
+ * \param [in,out]  ts       pointer to time stepper to free
+ */
+void
+bfam_ts_free(bfam_ts_t* ts);
 
 #endif

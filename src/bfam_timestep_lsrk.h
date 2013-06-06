@@ -15,7 +15,7 @@
  */
 typedef struct bfam_ts_lsrk
 {
-  bfam_ts_t* p_ts;                     /**< parent timestepper */
+  bfam_ts_t p_ts;                     /**< parent timestepper */
   bfam_real_t* A;                      /**< low memory RK A: rate scale */
   bfam_real_t* B;                      /**< low memory RK B: update scale */
   bfam_real_t* C;                      /**< low memory RK C: time scale*/
@@ -57,5 +57,12 @@ bfam_ts_lsrk_new(bfam_domain_t* dom, bfam_ts_lsrk_method_t method);
 void
 bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts, bfam_domain_t* dom,
     bfam_ts_lsrk_method_t method);
+
+/** free a low storage RK scheme
+ *
+ * \param [in,out]  ts       pointer to time stepper to free
+ */
+void
+bfam_ts_lsrk_free(bfam_ts_lsrk_t* ts);
 
 #endif
