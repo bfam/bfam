@@ -115,6 +115,10 @@ main (int argc, char *argv[])
   bfam_domain_p4est_split_dgx_quad_subdomains(domain, numSubdomains,
       subdomainID, N);
 
+  const char *volume[] = {"_volume", NULL};
+  bfam_vtk_write_file((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume,
+                       "bfam_mesh", NULL, NULL, NULL);
+
   bfam_free(subdomainID);
   bfam_free(N);
 
