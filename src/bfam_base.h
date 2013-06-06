@@ -232,6 +232,7 @@ typedef double bfam_real_t;
 #define BFAM_REAL_MIN DBL_MIN
 
 #define BFAM_REAL_VTK "Float64"
+#define BFAM_REAL_FMTe "24.16e"
 
 #define BFAM_REAL_APPROX_EQ(x, y, K)                                         \
   BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, BFAM_REAL_MIN)
