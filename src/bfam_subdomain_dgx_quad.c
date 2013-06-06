@@ -85,6 +85,7 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   /*
    * Set subdomain values
    */
+  subdomain->N = N;
   subdomain->Np = Np;
   subdomain->Nfp = Nfp;
   subdomain->Nfaces = Nfaces;
