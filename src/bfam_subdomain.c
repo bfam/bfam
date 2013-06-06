@@ -7,19 +7,11 @@ bfam_subdomain_init(bfam_subdomain_t *thisSubdomain,const char* name)
   int len = strlen(name);
   thisSubdomain->name = bfam_malloc((len+1)*sizeof(char));
   strncpy(thisSubdomain->name,name,len+1);
-  
+
   thisSubdomain->comm = NULL;
-  thisSubdomain->hasWork = (0!=0);
 
   thisSubdomain->tags.root = NULL;
 
-  thisSubdomain->start_communication = NULL;
-  thisSubdomain->end_communication   = NULL;
-  thisSubdomain->start_io            = NULL;
-  thisSubdomain->start_end           = NULL;
-  thisSubdomain->do_internal_RHS     = NULL;
-  thisSubdomain->do_external_RHS     = NULL;
-  thisSubdomain->update_fields       = NULL;
   thisSubdomain->free                = bfam_subdomain_free;
 
   thisSubdomain->vtk_write_file      = NULL;
@@ -31,15 +23,7 @@ bfam_subdomain_free(bfam_subdomain_t *thisSubdomain)
   bfam_free(thisSubdomain->name);
   bfam_critbit0_clear(&thisSubdomain->tags);
   thisSubdomain->comm = NULL;
-  thisSubdomain->hasWork = (0!=0);
   thisSubdomain->tags.root = NULL;
-  thisSubdomain->start_communication = NULL;
-  thisSubdomain->end_communication   = NULL;
-  thisSubdomain->start_io            = NULL;
-  thisSubdomain->start_end           = NULL;
-  thisSubdomain->do_internal_RHS     = NULL;
-  thisSubdomain->do_external_RHS     = NULL;
-  thisSubdomain->update_fields       = NULL;
 
   thisSubdomain->vtk_write_file      = NULL;
 }

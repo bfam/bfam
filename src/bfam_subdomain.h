@@ -18,27 +18,9 @@ typedef struct bfam_subdomain
 {
   char*           name;     /**< Name of the subdomain */
   bfam_mpicomm_t* comm;     /**< communicator for this subdomain */
-  int             hasWork;  /**< boolean for whether or not I can do work on this processor */
-
   bfam_critbit0_tree_t tags; /**< critbit for tags for the subdomain */
 
   /* Function pointers that domain will need to call */
-  /**< start communication */
-  void (*start_communication) (struct bfam_subdomain *thisSubdomain);
-  /**< end communication */
-  void (*end_communication)   (struct bfam_subdomain *thisSubdomain);
-  /**< start I/O */
-  void (*start_io)            (struct bfam_subdomain *thisSubdomain);
-  /**< end I/O */
-  void (*start_end)           (struct bfam_subdomain *thisSubdomain);
-  /**< do the work that can be done without communication */
-  void (*do_internal_RHS)     (struct bfam_subdomain *thisSubdomain);
-  /**< do the work that requires communication */
-  void (*do_external_RHS)     (struct bfam_subdomain *thisSubdomain);
-  /**< update solution */
-  void (*update_fields)       (struct bfam_subdomain *thisSubdomain);
-  /**< subdomain free command :: if user writes custom they should wrap the
-   * original function pointer */
   void (*free)                (struct bfam_subdomain *thisSubdomain);
 
   /**< Write a vtk file */
