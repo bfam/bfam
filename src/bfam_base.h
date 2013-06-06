@@ -231,18 +231,22 @@ typedef double bfam_real_t;
 #define BFAM_REAL_EPS DBL_EPSILON
 #define BFAM_REAL_MIN DBL_MIN
 
+#define BFAM_REAL_VTK "Float64"
+
 #define BFAM_REAL_APPROX_EQ(x, y, K)                                         \
   BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, BFAM_REAL_MIN)
 
 /* Type for processor-local indexing */
 typedef int32_t bfam_locidx_t;
 #define BFAM_LOCIDX_MPI MPI_INT
+#define BFAM_LOCIDX_VTK "Int32"
 #define BFAM_LOCIDX_MIN INT32_MIN
 #define BFAM_LOCIDX_MAX INT32_MAX
 
 /* Type for globally unique indexing */
 typedef int64_t bfam_gloidx_t;
 #define BFAM_GLOIDX_MPI MPI_LONG_LONG_INT
+#define BFAM_GLOIDX_VTK "Int64"
 #define BFAM_GLOIDX_MIN INT64_MIN
 #define BFAM_GLOIDX_MAX INT64_MAX
 
