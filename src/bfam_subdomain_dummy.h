@@ -43,4 +43,13 @@ bfam_subdomain_dummy_init(bfam_subdomain_dummy_t *subdomain,
 void
 bfam_subdomain_dummy_free(bfam_subdomain_t *subdomain);
 
+/** compute exact solution for dummy domain at time t
+ *
+ * \param [in] subdom   pointer to domain to calculate solution for
+ * \param [in] t        time to compute exact solution at
+ *
+ */
+bfam_long_real_t
+bfam_subdomain_dummy_exact(bfam_subdomain_dummy_t *subdom, bfam_long_real_t t);
+
 #endif
