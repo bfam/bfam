@@ -89,6 +89,7 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   subdomain->Np = Np;
   subdomain->Nfp = Nfp;
   subdomain->Nfaces = Nfaces;
+  subdomain->Ncorners = Ncorners;
 
   subdomain->r = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
   subdomain->w = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));

@@ -42,6 +42,7 @@ typedef struct bfam_subdomain_dgx_quad
   int              Np;  /* Number of points in the element */
   int              Nfp; /* Number of points on a face of the element */
   int              Nfaces; /* Number of faces in each element */
+  int              Ncorners; /* Number of corners in each element */
   bfam_real_t     *r;   /* 1D LGL Nodal Point in [-1,1] */
   bfam_real_t     *w;   /* 1D LGL Weights */
 
