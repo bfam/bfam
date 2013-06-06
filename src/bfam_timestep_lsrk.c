@@ -20,9 +20,9 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts, bfam_domain_t* dom,
   {
     case BFAM_TS_LSRK_KC54:
       ts->nStages = 5;
-      ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_real_t));
-      ts->B = bfam_malloc_aligned(ts->nStages*sizeof(bfam_real_t));
-      ts->C = bfam_malloc_aligned((ts->nStages+1)*sizeof(bfam_real_t));
+      ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
+      ts->B = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
+      ts->C = bfam_malloc_aligned((ts->nStages+1)*sizeof(bfam_long_real_t));
 
       ts->A[0] = 0;
       ts->A[1] = -567301805773.0/1357537059087.0;
@@ -45,9 +45,9 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts, bfam_domain_t* dom,
       break;
     case BFAM_TS_LSRK_W33:
       ts->nStages = 3;
-      ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_real_t));
-      ts->B = bfam_malloc_aligned(ts->nStages*sizeof(bfam_real_t));
-      ts->C = bfam_malloc_aligned((ts->nStages+1)*sizeof(bfam_real_t));
+      ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
+      ts->B = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
+      ts->C = bfam_malloc_aligned((ts->nStages+1)*sizeof(bfam_long_real_t));
 
       ts->A[0] = 0.0;
       ts->A[1] = -5.0/9.0;
@@ -64,9 +64,9 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts, bfam_domain_t* dom,
       break;
     case BFAM_TS_LSRK_HEUN:
       ts->nStages = 2;
-      ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_real_t));
-      ts->B = bfam_malloc_aligned(ts->nStages*sizeof(bfam_real_t));
-      ts->C = bfam_malloc_aligned((ts->nStages+1)*sizeof(bfam_real_t));
+      ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
+      ts->B = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
+      ts->C = bfam_malloc_aligned((ts->nStages+1)*sizeof(bfam_long_real_t));
 
       ts->A[0] = 0.0;
       ts->A[1] = -1.0;
@@ -80,9 +80,9 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts, bfam_domain_t* dom,
       break;
     case BFAM_TS_LSRK_FE:
       ts->nStages = 1;
-      ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_real_t));
-      ts->B = bfam_malloc_aligned(ts->nStages*sizeof(bfam_real_t));
-      ts->C = bfam_malloc_aligned((ts->nStages+1)*sizeof(bfam_real_t));
+      ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
+      ts->B = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
+      ts->C = bfam_malloc_aligned((ts->nStages+1)*sizeof(bfam_long_real_t));
 
       ts->A[0] = 0.0;
 
