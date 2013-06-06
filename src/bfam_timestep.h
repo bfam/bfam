@@ -7,9 +7,20 @@
 /**
  * structure comtaining the necessary features of a time step routine
  */
-typedef struct bfam_timestep
+typedef struct bfam_ts
 {
   bfam_domain_t* domain;         /**< my domain */
-} bfam_timestep_t;
+} bfam_ts_t;
+
+/** initialize a low storage time step routine
+ *
+ * \warning It is the callers responsibility to ensure that
+ *          \a dom is freed after the time stepper is
+ *
+ * \param [in,out]  ts       pointer to time stepper to initialize
+ * \param [in]      dom      pointer to the domain
+ */
+void
+bfam_ts_init(bfam_ts_t* ts, bfam_domain_t* dom);
 
 #endif
