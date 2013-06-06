@@ -65,4 +65,34 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts, bfam_domain_t* dom,
 void
 bfam_ts_lsrk_free(bfam_ts_lsrk_t* ts);
 
+/** set the time of the scheme
+ *
+ * \param [in,out]  ts       pointer to time stepper to set
+ * \param [in]      time     time to set
+ */
+void
+bfam_ts_lsrk_set_time(bfam_ts_lsrk_t* ts,bfam_long_real_t time);
+
+/** set dt of the scheme
+ *
+ * \param [in,out]  ts       pointer to time stepper to set
+ * \param [in]      dt       dt to set
+ */
+void
+bfam_ts_lsrk_set_dt(bfam_ts_lsrk_t* ts,bfam_long_real_t dt);
+
+/** get the time of the scheme
+ *
+ * \param [in]  ts       pointer to lsrk to get time
+ */
+bfam_long_real_t
+bfam_ts_lsrk_get_time(bfam_ts_lsrk_t* ts);
+
+/** get dt of the scheme
+ *
+ * \param [in]  ts       pointer to lsrk to get dt
+ */
+bfam_long_real_t
+bfam_ts_lsrk_get_dt(bfam_ts_lsrk_t* ts);
+
 #endif

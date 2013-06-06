@@ -105,3 +105,27 @@ bfam_ts_lsrk_free(bfam_ts_lsrk_t* ts)
   ts->dt = NAN;
   bfam_ts_free(&ts->p_ts);
 }
+
+void
+bfam_ts_lsrk_set_time(bfam_ts_lsrk_t* ts,bfam_long_real_t time)
+{
+  ts->t = time;
+}
+
+void
+bfam_ts_lsrk_set_dt(bfam_ts_lsrk_t* ts,bfam_long_real_t dt)
+{
+  ts->dt = dt;
+}
+
+bfam_long_real_t
+bfam_ts_lsrk_get_time(bfam_ts_lsrk_t* ts)
+{
+  return ts->t;
+}
+
+bfam_long_real_t
+bfam_ts_lsrk_get_dt(bfam_ts_lsrk_t* ts)
+{
+  return ts->dt;
+}
