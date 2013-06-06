@@ -406,6 +406,11 @@ target_link_libraries(bfam_exam_clock bfam)
 ##
 enable_testing()
 
+add_executable(bfam_test_timestep_lsrk tests/bfam_test_timestep_lsrk.c)
+target_link_libraries(bfam_test_timestep_lsrk bfam)
+
+add_test(bfam_test_timestep_lsrk_test bfam_test_timestep_lsrk)
+
 add_executable(bfam_test_fail tests/bfam_test_fail.c)
 target_link_libraries(bfam_test_fail bfam)
 
