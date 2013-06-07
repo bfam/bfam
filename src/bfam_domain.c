@@ -18,7 +18,7 @@ bfam_domain_init(bfam_domain_t *thisDomain, bfam_mpicomm_t *domComm)
   thisDomain->sizeSubdomains = sizeSubdomains;
   thisDomain->subdomains =
     bfam_malloc(sizeSubdomains*sizeof(bfam_subdomain_t*));
-  thisDomain->name2num.root = NULL;
+  bfam_dictionary_init(&(thisDomain->name2num));
 }
 
 void
@@ -34,49 +34,7 @@ bfam_domain_free(bfam_domain_t *thisDomain)
   thisDomain->sizeSubdomains = 0;
   bfam_free(thisDomain->subdomains);
   thisDomain->subdomains = NULL;
-  bfam_critbit0_clear(&thisDomain->name2num);
-}
-
-void
-bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
-    bfam_subdomain_t* newSubdomain)
-{
-  // double size
-  if(thisDomain->numSubdomains == thisDomain->sizeSubdomains)
-  {
-    BFAM_ROOT_VERBOSE("Doubling domain size");
-    thisDomain->sizeSubdomains = 2*thisDomain->sizeSubdomains;
-    thisDomain->subdomains =
-      bfam_realloc(thisDomain->subdomains,
-          thisDomain->sizeSubdomains*sizeof(bfam_subdomain_t*));
-  }
-
-  // create the key value pair
-  BFAM_ROOT_VERBOSE("adding subdomain %3d with name %s",
-      thisDomain->numSubdomains,newSubdomain->name);
-  size_t len = strlen(newSubdomain->name);
-  char* keyValue = bfam_malloc(sizeof(char)*(len+2)+sizeof(bfam_locidx_t));
-  strncpy(keyValue,newSubdomain->name,len);
-  keyValue[len] = BFAM_KEYVALUE_SPLIT;
-  keyValue[len+1] = '\0';
-
-  // check if it's already there
-  if(bfam_critbit0_contains(&(thisDomain->name2num),keyValue))
-  {
-    BFAM_ABORT("domain already contains subdomain \"%s\"",
-        newSubdomain->name);
-  }
-
-  // Since not in the table add the rest of the key and add
-  *((bfam_locidx_t *) (keyValue+len+1)) = thisDomain->numSubdomains;
-  keyValue[len+1+sizeof(bfam_locidx_t)] = '\0';
-  bfam_critbit0_insert(&(thisDomain->name2num),keyValue);
-
-  // add block
-  thisDomain->subdomains[thisDomain->numSubdomains] = newSubdomain;
-  thisDomain->numSubdomains++;
-
-  bfam_free(keyValue);
+  bfam_dictionary_clear(&thisDomain->name2num);
 }
 
 void
@@ -198,4 +156,46 @@ bfam_domain_get_subdomains_critbit(bfam_domain_t *thisDomain,
   }
 
   return;
+}
+
+void
+bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
+    bfam_subdomain_t* newSubdomain)
+{
+  // double size
+  if(thisDomain->numSubdomains == thisDomain->sizeSubdomains)
+  {
+    BFAM_ROOT_VERBOSE("Doubling domain size");
+    thisDomain->sizeSubdomains = 2*thisDomain->sizeSubdomains;
+    thisDomain->subdomains =
+      bfam_realloc(thisDomain->subdomains,
+          thisDomain->sizeSubdomains*sizeof(bfam_subdomain_t*));
+  }
+
+  // create the key value pair
+  BFAM_ROOT_VERBOSE("adding subdomain %3d with name %s",
+      thisDomain->numSubdomains,newSubdomain->name);
+  size_t len = strlen(newSubdomain->name);
+
+  char* key = bfam_malloc(sizeof(char)*(len+1));
+  strncpy(key,newSubdomain->name,len);
+  key[len] = '\0';
+
+  char* val = bfam_malloc(sizeof(char)+sizeof(bfam_locidx_t));
+  *((bfam_locidx_t *) (val)) = thisDomain->numSubdomains;
+  val[sizeof(bfam_locidx_t)] = '\0';
+
+  // check if it's already there
+  if(1 == bfam_dictionary_insert(&(thisDomain->name2num),key,val))
+  {
+    BFAM_ABORT("domain already contains subdomain \"%s\"",
+        newSubdomain->name);
+  }
+
+  // add block
+  thisDomain->subdomains[thisDomain->numSubdomains] = newSubdomain;
+  thisDomain->numSubdomains++;
+
+  bfam_free(key);
+  bfam_free(val);
 }
