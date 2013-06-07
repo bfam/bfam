@@ -31,7 +31,9 @@ typedef struct bfam_subdomain
                                const char **vectors,
                                const char **components,
                                int writeBinary,
-                               int writeCompressed);
+                               int writeCompressed,
+                               int rank,
+                               bfam_locidx_t id);
 } bfam_subdomain_t;
 
 

@@ -54,7 +54,7 @@ bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match,
     if(subdomain->vtk_write_vtu_piece)
     {
       subdomain->vtk_write_vtu_piece(subdomains[s], file, scalars, vectors,
-          components, binary, compress);
+          components, binary, compress, rank, s);
     }
     else
     {

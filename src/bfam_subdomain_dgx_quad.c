@@ -14,7 +14,8 @@ bfam_vtk_write_binary_data(int compressed, FILE *file, char *data, size_t size)
 static void
 bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
     FILE *file, const char **scalars, const char **vectors,
-    const char **components, int writeBinary, int writeCompressed)
+    const char **components, int writeBinary, int writeCompressed,
+    int rank, bfam_locidx_t id)
 {
   bfam_subdomain_dgx_quad_t *s = (bfam_subdomain_dgx_quad_t*) subdomain;
 
@@ -203,6 +204,74 @@ bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
   fprintf(file, "\n");
   fprintf(file, "        </DataArray>\n");
   fprintf(file, "      </Cells>\n");
+
+  /*
+   * Cell Data
+   */
+  fprintf(file, "      <CellData Scalars=\"mpirank,subdomain_id\">\n");
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"mpirank\""
+           " format=\"%s\">\n", BFAM_LOCIDX_VTK, format);
+  fprintf(file, "          ");
+  if(writeBinary)
+  {
+    size_t ranksSize = Ncells*sizeof(bfam_locidx_t);
+    bfam_locidx_t *ranks = bfam_malloc_aligned(ranksSize);
+
+    for(bfam_locidx_t i = 0; i < Ncells; ++i)
+      ranks[i] = rank;
+
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)ranks,
+          ranksSize);
+    if(rval)
+      BFAM_WARNING("Error encoding ranks");
+
+    bfam_free_aligned(ranks);
+  }
+  else
+  {
+    for(bfam_locidx_t i = 0, sk = 1; i < Ncells; ++i, ++sk)
+    {
+      fprintf(file, " %6jd", (intmax_t)rank);
+      if (!(sk % 8) && i != (Ncells - 1))
+        fprintf(file, "\n         ");
+    }
+  }
+  fprintf(file, "\n");
+  fprintf(file, "        </DataArray>\n");
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"subdomain_id\""
+           " format=\"%s\">\n", BFAM_LOCIDX_VTK, format);
+  fprintf(file, "          ");
+  if(writeBinary)
+  {
+    size_t idsSize = Ncells*sizeof(bfam_locidx_t);
+    bfam_locidx_t *ids = bfam_malloc_aligned(idsSize);
+
+    for(bfam_locidx_t i = 0; i < Ncells; ++i)
+      ids[i] = id;
+
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)ids,
+          idsSize);
+    if(rval)
+      BFAM_WARNING("Error encoding ids");
+
+    bfam_free_aligned(ids);
+  }
+  else
+  {
+    for(bfam_locidx_t i = 0, sk = 1; i < Ncells; ++i, ++sk)
+    {
+      fprintf(file, " %6jd", (intmax_t)id);
+      if (!(sk % 8) && i != (Ncells - 1))
+        fprintf(file, "\n         ");
+    }
+  }
+  fprintf(file, "\n");
+  fprintf(file, "        </DataArray>\n");
+
+  fprintf(file, "      </CellData>\n");
+
   fprintf(file, "    </Piece>\n");
 }
 
