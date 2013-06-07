@@ -132,7 +132,7 @@ int
 bfam_domain_get_subdomains_critbit_or(const char *elem,void *arg)
 {
   int* matched = (int *)((void**)arg)[0];
-  bfam_subdomain_t *subdomain = (bfam_domain_t*)((void**)arg)[1];
+  bfam_subdomain_t *subdomain = (bfam_subdomain_t *)((void**)arg)[1];
 
   (*matched) = (*matched) || bfam_subdomain_has_tag(subdomain, elem);
   return !(*matched);
@@ -143,7 +143,7 @@ int
 bfam_domain_get_subdomains_critbit_and(const char *elem,void *arg)
 {
   int* matched = (int *)((void**)arg)[0];
-  bfam_subdomain_t *subdomain = (bfam_domain_t*)((void**)arg)[1];
+  bfam_subdomain_t *subdomain = (bfam_subdomain_t *)((void**)arg)[1];
 
   (*matched) = (*matched) && bfam_subdomain_has_tag(subdomain, elem);
   return 1;
