@@ -1,5 +1,19 @@
 #include <bfam.h>
 
+int
+prefix(const char * key, const char *val, void *arg)
+{
+  //printf("key: %s \nval: %s \n",key,val);
+  const char **check = (const char **)arg;
+
+  for (unsigned i = 0; check[i]; ++i)
+    if(strcmp(val,check[i])) return 1;
+
+  BFAM_ABORT("all prefix fail");
+
+  return 0;
+}
+
 static void
 test_contains()
 {
@@ -43,6 +57,11 @@ test_contains()
     if (NULL != bfam_dictionary_get_value(&dict, notkeys[i]))
       BFAM_ABORT("Return not key fail");
   }
+
+  static const char *vals[] =
+      {"666666", "88888888", NULL};
+  bfam_dictionary_allprefixed(&dict,"ba",&prefix,&vals);
+
 
   bfam_dictionary_clear(&dict);
 }

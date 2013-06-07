@@ -68,4 +68,21 @@ char* bfam_dictionary_get_value(bfam_dictionary_t *d, const char *key);
  */
 void bfam_dictionary_clear(bfam_dictionary_t *d);
 
+
+/** Fetching values with a given prefix.
+ *
+ * The following function takes a dictionary, \a d, and a \c NULL terminated
+ * string, \a prefix. Let $S \subseteq d$ where $x \in S$ iff \a prefix is a
+ * prefix of \c x, then $\forall x : S.$ \a handle is called with arguments \c x
+ * and \c arg.
+ * \returns:
+ *   $\cases{ 0 &if {\it handle} {\rm returned 0} \cr
+ *            1 &if {\rm successful} \cr
+ *            2 &if {\it handle} {\rm returned a value} $\notin [0,1]$}$
+ * \note (Note that, if |handle| returns 0, the iteration is aborted)
+ */
+int bfam_dictionary_allprefixed(bfam_dictionary_t *t, const char *prefix,
+                              int (*handle) (const char *, const char*, void *),
+                              void *arg);
+
 #endif
