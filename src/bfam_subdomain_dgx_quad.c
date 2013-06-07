@@ -12,14 +12,12 @@ bfam_vtk_write_binary_data(int compressed, FILE *file, char *data, size_t size)
 }
 
 static void
-bfam_subdomain_dgx_quad_vtk_write_file(bfam_subdomain_t *subdomain,
-    const char *prefix, const char **scalars, const char **vectors,
-    const char **components)
+bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
+    FILE *file, const char **scalars, const char **vectors,
+    const char **components, int writeBinary, int writeCompressed)
 {
   bfam_subdomain_dgx_quad_t *s = (bfam_subdomain_dgx_quad_t*) subdomain;
-  const int writeBinary = 1;
-  const int writeCompressed = 1;
-  const int endian = bfam_endian();
+
   const char *format;
 
   if(writeBinary)
@@ -36,31 +34,6 @@ bfam_subdomain_dgx_quad_vtk_write_file(bfam_subdomain_t *subdomain,
   const bfam_locidx_t Ncells = K * N * N;
   const bfam_locidx_t Ntotal = K * Np;
 
-  char filename[BFAM_BUFSIZ];
-
-  snprintf(filename, BFAM_BUFSIZ, "%s.vtu", prefix);
-
-  BFAM_VERBOSE("Writing file: '%s'", filename);
-  FILE *file = fopen(filename, "w");
-
-  if(file == NULL)
-  {
-    BFAM_LERROR("Could not open %s for output!\n", filename);
-    return;
-  }
-
-  fprintf(file, "<?xml version=\"1.0\"?>\n");
-  fprintf(file, "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\"");
-
-  if(writeBinary && writeCompressed)
-    fprintf(file, " compressor=\"vtkZLibDataCompressor\"");
-
-  if(endian == BFAM_BIG_ENDIAN)
-    fprintf(file, " byte_order=\"BigEndian\">\n");
-  else
-    fprintf(file, " byte_order=\"LittleEndian\">\n");
-
-  fprintf(file, "  <UnstructuredGrid>\n");
   fprintf(file,
            "    <Piece NumberOfPoints=\"%jd\" NumberOfCells=\"%jd\">\n",
            (intmax_t) Ntotal, (intmax_t) Ncells);
@@ -231,11 +204,6 @@ bfam_subdomain_dgx_quad_vtk_write_file(bfam_subdomain_t *subdomain,
   fprintf(file, "        </DataArray>\n");
   fprintf(file, "      </Cells>\n");
   fprintf(file, "    </Piece>\n");
-  fprintf(file, "  </UnstructuredGrid>\n");
-  fprintf(file, "</VTKFile>\n");
-
-
-  fclose(file);
 }
 
 
@@ -276,7 +244,8 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   bfam_subdomain_init(&subdomain->base, name);
   bfam_subdomain_add_tag(&subdomain->base, "_subdomain_dgx_quad");
   subdomain->base.free = bfam_subdomain_dgx_quad_free;
-  subdomain->base.vtk_write_file = bfam_subdomain_dgx_quad_vtk_write_file;
+  subdomain->base.vtk_write_vtu_piece =
+    bfam_subdomain_dgx_quad_vtk_write_vtu_piece;
 
   const int Np = (N+1)*(N+1);
   const int Nfp = N+1;

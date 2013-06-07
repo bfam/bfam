@@ -14,7 +14,7 @@ bfam_subdomain_init(bfam_subdomain_t *thisSubdomain,const char* name)
 
   thisSubdomain->free                = bfam_subdomain_free;
 
-  thisSubdomain->vtk_write_file      = NULL;
+  thisSubdomain->vtk_write_vtu_piece = NULL;
 }
 
 void
@@ -25,7 +25,7 @@ bfam_subdomain_free(bfam_subdomain_t *thisSubdomain)
   thisSubdomain->comm = NULL;
   thisSubdomain->tags.root = NULL;
 
-  thisSubdomain->vtk_write_file      = NULL;
+  thisSubdomain->vtk_write_vtu_piece = NULL;
 }
 
 void

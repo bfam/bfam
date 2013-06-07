@@ -1,6 +1,7 @@
 #ifndef BFAM_SUBDOMAIN_H
 #define BFAM_SUBDOMAIN_H
 
+#include <bfam_base.h>
 #include <bfam_mpicomm.h>
 #include <bfam_critbit.h>
 
@@ -24,11 +25,13 @@ typedef struct bfam_subdomain
   void (*free)                (struct bfam_subdomain *thisSubdomain);
 
   /**< Write a vtk file */
-  void (*vtk_write_file)      (struct bfam_subdomain *thisSubdomain,
-                               const char *prefix,
+  void (*vtk_write_vtu_piece) (struct bfam_subdomain *thisSubdomain,
+                               FILE *file,
                                const char **scalars,
                                const char **vectors,
-                               const char **components);
+                               const char **components,
+                               int writeBinary,
+                               int writeCompressed);
 } bfam_subdomain_t;
 
 
