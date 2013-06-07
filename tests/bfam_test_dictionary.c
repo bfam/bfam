@@ -3,7 +3,7 @@
 static void
 test_contains()
 {
-  bfam_dictionary_t dict = {0};
+  bfam_dictionary_t dict = {{0}};
 
   static const char *keys[] =
       {"a", "aa", "b", "bb", "ab", "ba", "aba", "bab", NULL};

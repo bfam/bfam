@@ -27,7 +27,7 @@ int bfam_dictionary_contains(bfam_dictionary_t *d, const char *key)
   u[keylen] = BFAM_KEYVALUE_SPLIT;
   u[keylen+1] = '\0';
   int found = 0;
-  int rval = bfam_critbit0_allprefixed(&(d->t),u,
+  bfam_critbit0_allprefixed(&(d->t),u,
       &bfam_dictionary_contains_check,&found);
   bfam_free(u);
   return found;
@@ -65,7 +65,7 @@ int bfam_dictionary_get_value_handle(const char * keyval, void * arg)
   char** val = (char **)((void **)arg)[1];
   int keylen = strlen(key);
 
-  *val = &keyval[keylen];
+  *val = (char*)&keyval[keylen];
 
   return 1;
 }
@@ -89,7 +89,7 @@ char* bfam_dictionary_get_value(bfam_dictionary_t *d, const char *key)
   arg[0] = u;
   arg[1] = &value;
 
-  int rval = bfam_critbit0_allprefixed(&(d->t),u,
+  bfam_critbit0_allprefixed(&(d->t),u,
       &bfam_dictionary_get_value_handle,arg);
 
   bfam_free(u);
