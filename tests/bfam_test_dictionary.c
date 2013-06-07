@@ -18,6 +18,13 @@ test_contains()
   for (unsigned i = 0; keys[i]; ++i)
     bfam_dictionary_insert(&dict, keys[i], values[i]);
 
+
+  for (unsigned i = 0; keys[i]; ++i)
+  {
+    if(1 != bfam_dictionary_insert(&dict, keys[i], values[i]))
+      BFAM_ABORT("double insert fail");
+  }
+
   for (unsigned i = 0; keys[i]; ++i)
   {
     if (!bfam_dictionary_contains(&dict, keys[i]))
