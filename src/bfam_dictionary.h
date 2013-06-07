@@ -43,6 +43,19 @@ int bfam_dictionary_contains(bfam_dictionary_t *d, const char *u);
 int bfam_dictionary_insert(bfam_dictionary_t *d, const char *key,
                                   const char *val);
 
+/** Return a value given a key
+ *
+ * It takes a dictionary, \a d, returns a pointer to the value associated with
+ * a \c NULL terminated \a key.
+ *
+ * \param [in] d dictionary
+ * \param [in] key possible key
+ * \returns:
+ *   $\cases{ \c NULL & if {\it key} {\rm is not a member} \cr
+ *          {\rm pointer to value} & if {\it key} {\rm is a member}$
+ */
+char* bfam_dictionary_get_value(bfam_dictionary_t *d, const char *key);
+
 /** Clearing a dictionarty.
  *
  * Clearing a dictionarty (freeing all members) brings us our first code for

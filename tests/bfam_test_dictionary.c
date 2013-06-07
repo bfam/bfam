@@ -31,10 +31,17 @@ test_contains()
       BFAM_ABORT("Contains fail");
   }
 
+  for (unsigned i = 0; keys[i]; ++i)
+  {
+    char *val = bfam_dictionary_get_value(&dict, keys[i]);
+    if(strcmp(values[i],val))
+      BFAM_ABORT("Return is key fail");
+  }
+
   for (unsigned i = 0; notkeys[i]; ++i)
   {
-    if (bfam_dictionary_contains(&dict, notkeys[i]))
-      BFAM_ABORT("Contains fail");
+    if (NULL != bfam_dictionary_get_value(&dict, notkeys[i]))
+      BFAM_ABORT("Return not key fail");
   }
 
   bfam_dictionary_clear(&dict);

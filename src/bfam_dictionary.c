@@ -58,3 +58,41 @@ int bfam_dictionary_insert(bfam_dictionary_t *d, const char *key,
   bfam_free(keyval);
   return rval;
 }
+
+int bfam_dictionary_get_value_handle(const char * keyval, void * arg)
+{
+  char * key = (char  *)((void **)arg)[0];
+  char** val = (char **)((void **)arg)[1];
+  int keylen = strlen(key);
+
+  *val = &keyval[keylen];
+
+  return 1;
+}
+
+
+char* bfam_dictionary_get_value(bfam_dictionary_t *d, const char *key)
+{
+  if(!bfam_dictionary_contains(d,key))
+    return NULL;
+
+  const size_t keylen = strlen(key);
+
+  char *u = bfam_malloc(sizeof(char)*(keylen+2));
+
+  memcpy(u, key, keylen);
+  u[keylen] = BFAM_KEYVALUE_SPLIT;
+  u[keylen+1] = '\0';
+
+  char *value = NULL;
+  void *arg[2];
+  arg[0] = u;
+  arg[1] = &value;
+
+  int rval = bfam_critbit0_allprefixed(&(d->t),u,
+      &bfam_dictionary_get_value_handle,arg);
+
+  bfam_free(u);
+
+  return value;
+}
