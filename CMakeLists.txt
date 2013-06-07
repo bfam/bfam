@@ -341,6 +341,7 @@ add_library(bfam
                  src/bfam_base.c
                  src/bfam_clock.c
                  src/bfam_critbit.c
+                 src/bfam_dictionary.c
                  src/bfam_gopt.c
                  src/bfam_jacobi.c
                  src/bfam_log.c
@@ -436,6 +437,11 @@ add_test(NAME bfam_test_domain_fail_repeat
     -DSOURCEDIR=${CMAKE_CURRENT_SOURCE_DIR}
     -P ${CMAKE_SOURCE_DIR}/cmake/runfailtest.cmake)
 
+
+add_executable(bfam_test_dictionary tests/bfam_test_dictionary.c)
+target_link_libraries(bfam_test_dictionary bfam)
+
+add_test(bfam_test_dictionary_test bfam_test_dictionary)
 
 add_executable(bfam_test_critbit tests/bfam_test_critbit.c)
 target_link_libraries(bfam_test_critbit bfam)
