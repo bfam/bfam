@@ -5,10 +5,9 @@
 void
 bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match,
     const char **tags, const char *prefix, const char **scalars,
-    const char **vectors, const char **components)
+    const char **vectors, const char **components, int binary,
+    int compress)
 {
-  const int writeBinary = 1;
-  const int writeCompressed = 1;
   const int endian = bfam_endian();
 
   bfam_locidx_t numElements = domain->numSubdomains;
@@ -38,7 +37,7 @@ bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match,
   fprintf(file, "<?xml version=\"1.0\"?>\n");
   fprintf(file, "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\"");
 
-  if(writeBinary && writeCompressed)
+  if(binary && compress)
     fprintf(file, " compressor=\"vtkZLibDataCompressor\"");
 
   if(endian == BFAM_BIG_ENDIAN)
@@ -55,7 +54,7 @@ bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match,
     if(subdomain->vtk_write_vtu_piece)
     {
       subdomain->vtk_write_vtu_piece(subdomains[s], file, scalars, vectors,
-          components, writeBinary, writeCompressed);
+          components, binary, compress);
     }
     else
     {

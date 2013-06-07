@@ -117,7 +117,7 @@ main (int argc, char *argv[])
 
   const char *volume[] = {"_volume", NULL};
   bfam_vtk_write_file((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume,
-                       "bfam_mesh", NULL, NULL, NULL);
+                       "bfam_mesh", NULL, NULL, NULL, 1, 1);
 
   bfam_free(subdomainID);
   bfam_free(N);

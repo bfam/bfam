@@ -18,6 +18,11 @@
  * \param [in] vectors    \c NULL terminated array of vector that will
  *                        be outputted
  * \param [in] components \c NULL terminated array of vector components
+ * \param [in] binary     boolean to indicate if the data should be
+ *                        written in binary
+ * \param [in] compress   boolean to indicate if the data should be compressed
+ *                        when writing a binary data
+ *
  *
  * \note That a domain will only output scalars and vectors that it contains.
  *
@@ -26,6 +31,7 @@
 void
 bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match, const
     char **tags, const char *prefix, const char **scalars,
-    const char **vectors, const char **components);
+    const char **vectors, const char **components, int binary,
+    int compress);
 
 #endif
