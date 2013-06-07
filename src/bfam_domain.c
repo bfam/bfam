@@ -2,8 +2,6 @@
 #include <bfam_base.h>
 #include <bfam_log.h>
 
-const char keyValueSplitter = '\033';
-
 bfam_domain_t* bfam_domain_new(bfam_mpicomm_t *domComm)
 {
   bfam_domain_t* newDomain = bfam_malloc(sizeof(bfam_domain_t));
@@ -59,7 +57,7 @@ bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
   size_t len = strlen(newSubdomain->name);
   char* keyValue = bfam_malloc(sizeof(char)*(len+2)+sizeof(bfam_locidx_t));
   strncpy(keyValue,newSubdomain->name,len);
-  keyValue[len] = keyValueSplitter;
+  keyValue[len] = BFAM_KEYVALUE_SPLIT;
   keyValue[len+1] = '\0';
 
   // check if it's already there

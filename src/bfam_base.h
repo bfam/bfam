@@ -213,6 +213,8 @@ typedef long double bfam_long_real_t;
 #define BFAM_LONG_REAL_SIN       sinl
 #define BFAM_LONG_REAL_TAN       tanl
 
+#define BFAM_KEYVALUE_SPLIT '\033'
+
 #define BFAM_LONG_REAL_EPS LDBL_EPSILON
 #define BFAM_LONG_REAL_MIN LDBL_MIN
 #define BFAM_LONG_REAL_PI  (4*BFAM_LONG_REAL_ATAN(1))
