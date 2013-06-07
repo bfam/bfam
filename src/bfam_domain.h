@@ -83,4 +83,24 @@ bfam_domain_get_subdomains(bfam_domain_t *thisDomain,
     bfam_locidx_t numEntries, bfam_subdomain_t **subdomains,
     bfam_locidx_t *numSubdomains);
 
+/** Get subdomains with tags passed in
+ *
+ * \param [in]  thisDomain    domain to search for subdomains in
+ * \param [in]  matchType     type of match, \c BFAM_DOMAIN_OR will
+ *                            match subdomains with any of the tags
+ *                            and \c BFAM_DOMAIN_AND will match subdomains
+ *                            with all of the tags.
+ * \param [in]  tags          critbit tree of tags
+ * \param [in]  numEntries    number of entries in the \a subdomains array
+ * \param [out] subdomains    array of pointers to be filled with matching
+ *                            subdomains
+ * \param [out] numSubdomains number of matching subdomains
+ *
+ */
+void
+bfam_domain_get_subdomains_critbit(bfam_domain_t *thisDomain,
+    bfam_domain_match_t match, bfam_critbit0_tree_t *tags,
+    bfam_locidx_t numEntries, bfam_subdomain_t **subdomains,
+    bfam_locidx_t *numSubdomains);
+
 #endif

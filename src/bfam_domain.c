@@ -129,3 +129,75 @@ bfam_domain_get_subdomains(bfam_domain_t *thisDomain,
 
   return;
 }
+
+int
+bfam_domain_get_subdomains_critbit_or(const char *elem,void *arg)
+{
+  int* matched = (int *)((void**)arg)[0];
+  bfam_subdomain_t *subdomain = (bfam_domain_t*)((void**)arg)[1];
+
+  (*matched) = (*matched) || bfam_subdomain_has_tag(subdomain, elem);
+  return !(*matched);
+}
+
+
+int
+bfam_domain_get_subdomains_critbit_and(const char *elem,void *arg)
+{
+  int* matched = (int *)((void**)arg)[0];
+  bfam_subdomain_t *subdomain = (bfam_domain_t*)((void**)arg)[1];
+
+  (*matched) = (*matched) && bfam_subdomain_has_tag(subdomain, elem);
+  return 1;
+}
+
+
+void
+bfam_domain_get_subdomains_critbit(bfam_domain_t *thisDomain,
+    bfam_domain_match_t matchType, bfam_critbit0_tree_t *tags,
+    bfam_locidx_t numEntries, bfam_subdomain_t **subdomains,
+    bfam_locidx_t *numSubdomains)
+{
+  BFAM_ASSERT(subdomains != NULL);
+  BFAM_ASSERT(numSubdomains != NULL);
+
+
+  if(numEntries<=0)
+    return;
+
+  *numSubdomains = 0;
+  for(bfam_locidx_t d = 0; d < thisDomain->numSubdomains; ++d)
+  {
+    bfam_subdomain_t *subdomain = thisDomain->subdomains[d];
+    int matched = 0;
+    void *arg[2];
+    arg[0] = &matched;
+    arg[1] = subdomain;
+    switch(matchType)
+    {
+      case BFAM_DOMAIN_OR:
+        matched = 0;
+        bfam_critbit0_allprefixed(tags, "",
+            &bfam_domain_get_subdomains_critbit_or, arg);
+        break;
+      case BFAM_DOMAIN_AND:
+        matched = 1;
+        bfam_critbit0_allprefixed(tags, "",
+            &bfam_domain_get_subdomains_critbit_and, arg);
+        break;
+      default:
+        BFAM_ABORT("Unsupported Match Type");
+    }
+
+    if(matched)
+    {
+      subdomains[*numSubdomains] = subdomain;
+      ++(*numSubdomains);
+    }
+
+    if(*numSubdomains == numEntries)
+      return;
+  }
+
+  return;
+}
