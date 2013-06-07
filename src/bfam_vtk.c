@@ -2,6 +2,8 @@
 #include <bfam_vtk.h>
 #include <bfam_log.h>
 
+#define BFAM_VTK_VTU_FORMAT "%s_%05d.vtu"
+
 void
 bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match,
     const char **tags, const char *prefix, const char **scalars,
@@ -23,7 +25,7 @@ bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match,
     numElements, subdomains, &numSubdomains);
 
   char filename[BFAM_BUFSIZ];
-  snprintf(filename, BFAM_BUFSIZ, "%s_%05d.vtu", prefix, rank);
+  snprintf(filename, BFAM_BUFSIZ, BFAM_VTK_VTU_FORMAT, prefix, rank);
 
   BFAM_VERBOSE("Writing file: '%s'", filename);
   FILE *file = fopen(filename, "w");
