@@ -110,7 +110,7 @@ bfam_dictionary_allprefixed_usercall(const char * keyval, void * arg)
   char* split = strchr(key,BFAM_KEYVALUE_SPLIT);
   *split = '\0';
   bfam_dict_allprex *s_arg = (bfam_dict_allprex *)arg;
-  int rval = s_arg->handle(key,split+1,s_arg->arg);
+  s_arg->handle(key,split+1,s_arg->arg);
   *split = BFAM_KEYVALUE_SPLIT;
   return 1;
 }
@@ -119,9 +119,9 @@ int bfam_dictionary_allprefixed(bfam_dictionary_t *d, const char *prefix,
                               int (*handle) (const char *, const char*, void *),
                               void *arg)
 {
-  bfam_dict_allprex args = {0};
+  bfam_dict_allprex args = {0,0};
   args.handle = handle;
   args.arg = arg;
-  bfam_critbit0_allprefixed(&(d->t),prefix,
+  return bfam_critbit0_allprefixed(&(d->t),prefix,
       &bfam_dictionary_allprefixed_usercall,&args);
 }
