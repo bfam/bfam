@@ -14,6 +14,20 @@ prefix(const char * key, const char *val, void *arg)
   return 0;
 }
 
+int
+prefix_ptr(const char * key, const void *val, void *arg)
+{
+  const void **check = (const void **)arg;
+
+  // printf("%s: %p\n",key,val);
+  for (unsigned i = 0; check[i]; ++i)
+    if(val == check[i]) return 1;
+
+  BFAM_ABORT("ptr all prefix fail");
+
+  return 0;
+}
+
 static void
 test_contains()
 {
@@ -31,7 +45,6 @@ test_contains()
 
   for (unsigned i = 0; keys[i]; ++i)
     bfam_dictionary_insert(&dict, keys[i], values[i]);
-
 
   for (unsigned i = 0; keys[i]; ++i)
   {
@@ -66,10 +79,48 @@ test_contains()
   bfam_dictionary_clear(&dict);
 }
 
+static void
+test_contains_ptr()
+{
+  bfam_dictionary_t dict = {{0}};
+
+  static const char *keys[] = {"@^1", "@2","^3","@^44",NULL};
+
+  static const char *values[] = {"1_","2_","3_","44_",NULL};
+
+  for (unsigned i = 0; keys[i]; ++i)
+    bfam_dictionary_insert_ptr(&dict, keys[i], &values[i]);
+
+  for (unsigned i = 0; keys[i]; ++i)
+  {
+    if(1 != bfam_dictionary_insert_ptr(&dict, keys[i], &values[i]))
+      BFAM_ABORT("double insert fail");
+  }
+
+  for (unsigned i = 0; keys[i]; ++i)
+  {
+    if (!bfam_dictionary_contains(&dict, keys[i]))
+      BFAM_ABORT("Contains fail");
+  }
+
+  for (unsigned i = 0; keys[i]; ++i)
+  {
+    void *val = bfam_dictionary_get_value_ptr(&dict, keys[i]);
+    if(val != &values[i])
+      BFAM_ABORT("Return is key fail");
+  }
+
+  static const void *vals[] = {&values[0],&values[3]};
+  bfam_dictionary_allprefixed_ptr(&dict,"@^",&prefix_ptr,&vals);
+
+  bfam_dictionary_clear(&dict);
+}
+
 int
 main (int argc, char *argv[])
 {
   test_contains();
+  test_contains_ptr();
 
   return EXIT_SUCCESS;
 }

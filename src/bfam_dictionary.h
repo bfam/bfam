@@ -1,6 +1,8 @@
 #ifndef BFAM_DICTIONARY_H
 #define BFAM_DICTIONARY_H
 
+#define BFAM_PTR_STR_LEN 20
+
 #include <bfam_critbit.h>
 
 typedef struct {
@@ -43,6 +45,22 @@ int bfam_dictionary_contains(bfam_dictionary_t *d, const char *u);
 int bfam_dictionary_insert(bfam_dictionary_t *d, const char *key,
                                   const char *val);
 
+/** Inserting key and value pair where value is a pointer into a dictionary
+ *
+ * It takes a dictionary, \a d, and possibly mutates it such that a \c NULL
+ * terminated strings, \a key and \a value, is a member on exit.
+ *
+ * \param [in,out] d dictionary
+ * \param [in] key possible key
+ * \param [in] val possible pointer value
+ * \returns:
+ *   $\cases{ 0 &if {\rm out of memory} \cr
+ *            1 &if {\it key} {\rm was already a member} \cr
+ *            2 &if {\it d} {\rm was mutated successfully}}$.
+ */
+int bfam_dictionary_insert_ptr(bfam_dictionary_t *d, const char *key,
+                                  const void *val);
+
 /** Return a value given a key
  *
  * It takes a dictionary, \a d, returns a pointer to the value associated with
@@ -55,6 +73,19 @@ int bfam_dictionary_insert(bfam_dictionary_t *d, const char *key,
  *          {\rm pointer to value} & if {\it key} {\rm is a member}$
  */
 char* bfam_dictionary_get_value(bfam_dictionary_t *d, const char *key);
+
+/** Return a value given a key
+ *
+ * It takes a dictionary, \a d, returns a pointer to the value associated with
+ * a \c NULL terminated \a key.
+ *
+ * \param [in] d dictionary
+ * \param [in] key possible key
+ * \returns:
+ *   $\cases{ \c NULL & if {\it key} {\rm is not a member} \cr
+ *          {\rm pointer to value} & if {\it key} {\rm is a member}$
+ */
+void* bfam_dictionary_get_value_ptr(bfam_dictionary_t *d, const char *key);
 
 /** Clearing a dictionarty.
  *
@@ -83,6 +114,22 @@ void bfam_dictionary_clear(bfam_dictionary_t *d);
  */
 int bfam_dictionary_allprefixed(bfam_dictionary_t *t, const char *prefix,
                               int (*handle) (const char *, const char*, void *),
+                              void *arg);
+
+/** Fetching values with a given prefix.
+ *
+ * The following function takes a dictionary, \a d, and a \c NULL terminated
+ * string, \a prefix. Let $S \subseteq d$ where $x \in S$ iff \a prefix is a
+ * prefix of \c x, then $\forall x : S.$ \a handle is called with arguments \c x
+ * and \c arg.
+ * \returns:
+ *   $\cases{ 0 &if {\it handle} {\rm returned 0} \cr
+ *            1 &if {\rm successful} \cr
+ *            2 &if {\it handle} {\rm returned a value} $\notin [0,1]$}$
+ * \note (Note that, if |handle| returns 0, the iteration is aborted)
+ */
+int bfam_dictionary_allprefixed_ptr(bfam_dictionary_t *t, const char *prefix,
+                              int (*handle) (const char *, const void*, void *),
                               void *arg);
 
 #endif

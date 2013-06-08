@@ -59,6 +59,17 @@ int bfam_dictionary_insert(bfam_dictionary_t *d, const char *key,
   return rval;
 }
 
+int bfam_dictionary_insert_ptr(bfam_dictionary_t *d, const char *key,
+                                  const void *val_ptr)
+{
+  const size_t vlen = BFAM_PTR_STR_LEN + 1;
+  char *val_str = bfam_malloc(sizeof(char)*vlen);
+  snprintf(val_str,vlen,"%p%c",val_ptr,'\0');
+  int rval = bfam_dictionary_insert(d,key,val_str);
+  bfam_free(val_str);
+  return rval;
+}
+
 int bfam_dictionary_get_value_handle(const char * keyval, void * arg)
 {
   char * key = (char  *)((void **)arg)[0];
@@ -97,6 +108,15 @@ char* bfam_dictionary_get_value(bfam_dictionary_t *d, const char *key)
   return value;
 }
 
+void* bfam_dictionary_get_value_ptr(bfam_dictionary_t *d, const char *key)
+{
+  char* val_str = bfam_dictionary_get_value(d,key);
+  if(val_str == NULL) return NULL;
+  void *val_ptr = NULL;
+  sscanf(val_str,"%p",&val_ptr);
+  return val_ptr;
+}
+
 
 typedef struct {
   int (*handle) (const char *, const char *, void *);
@@ -124,4 +144,38 @@ int bfam_dictionary_allprefixed(bfam_dictionary_t *d, const char *prefix,
   args.arg = arg;
   return bfam_critbit0_allprefixed(&(d->t),prefix,
       &bfam_dictionary_allprefixed_usercall,&args);
+}
+
+typedef struct {
+  int (*handle) (const char *, const void *, void *);
+  void *arg;
+} bfam_dict_allprex_ptr;
+
+int
+bfam_dictionary_allprefixed_usercall_ptr(const char * keyval, void * arg)
+{
+  char * key = (char *) keyval;
+  char* split = strchr(key,BFAM_KEYVALUE_SPLIT);
+  *split = '\0';
+
+  void *val_ptr = NULL;
+  sscanf(split+1,"%p",&val_ptr);
+
+  bfam_dict_allprex_ptr *s_arg = (bfam_dict_allprex_ptr *)arg;
+  s_arg->handle(key,val_ptr,s_arg->arg);
+
+  *split = BFAM_KEYVALUE_SPLIT;
+  return 1;
+}
+
+
+int bfam_dictionary_allprefixed_ptr(bfam_dictionary_t *d, const char *prefix,
+                              int (*handle) (const char *, const void*, void *),
+                              void *arg)
+{
+  bfam_dict_allprex_ptr args = {0,0};
+  args.handle = handle;
+  args.arg = arg;
+  return bfam_critbit0_allprefixed(&(d->t),prefix,
+      &bfam_dictionary_allprefixed_usercall_ptr,&args);
 }
