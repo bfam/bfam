@@ -74,10 +74,10 @@ int bfam_dictionary_insert_ptr(bfam_dictionary_t *d, const char *key,
  */
 char* bfam_dictionary_get_value(bfam_dictionary_t *d, const char *key);
 
-/** Return a value given a key
+/** Return a value given a key assuming value is a pointer
  *
- * It takes a dictionary, \a d, returns a pointer to the value associated with
- * a \c NULL terminated \a key.
+ * It takes a dictionary, \a d, returns a pointer that points to where the value
+ * pointed associated with a \c NULL terminated \a key.
  *
  * \param [in] d dictionary
  * \param [in] key possible key
@@ -116,7 +116,7 @@ int bfam_dictionary_allprefixed(bfam_dictionary_t *t, const char *prefix,
                               int (*handle) (const char *, const char*, void *),
                               void *arg);
 
-/** Fetching values with a given prefix.
+/** Fetching pointer values with a given prefix.
  *
  * The following function takes a dictionary, \a d, and a \c NULL terminated
  * string, \a prefix. Let $S \subseteq d$ where $x \in S$ iff \a prefix is a
@@ -127,6 +127,9 @@ int bfam_dictionary_allprefixed(bfam_dictionary_t *t, const char *prefix,
  *            1 &if {\rm successful} \cr
  *            2 &if {\it handle} {\rm returned a value} $\notin [0,1]$}$
  * \note (Note that, if |handle| returns 0, the iteration is aborted)
+ *
+ * \note The void * input to the handle is the pointer stored in the value, not
+ * the pointer to the pointer
  */
 int bfam_dictionary_allprefixed_ptr(bfam_dictionary_t *t, const char *prefix,
                               int (*handle) (const char *, const void*, void *),
