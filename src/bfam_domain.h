@@ -106,13 +106,13 @@ bfam_domain_get_subdomains_critbit(bfam_domain_t *thisDomain,
 
 /** Add fields to subdomains matching the tags passed in.
  *
- * \param [in]  thisDomain    domain to search for subdomains in
- * \param [in]  matchType     type of match, \c BFAM_DOMAIN_OR will
- *                            match subdomains with any of the tags
- *                            and \c BFAM_DOMAIN_AND will match subdomains
- *                            with all of the tags.
- * \param [in]  tags          \c NULL terminated array of the tags to match
- * \param [in]  field         field to add to the subdomains
+ * \param [in,out]  thisDomain    domain to search for subdomains in
+ * \param [in]      matchType     type of match, \c BFAM_DOMAIN_OR will
+ *                                match subdomains with any of the tags
+ *                                and \c BFAM_DOMAIN_AND will match subdomains
+ *                                with all of the tags.
+ * \param [in]      tags          \c NULL terminated array of the tags to match
+ * \param [in]      field         field to add to the subdomains
  *
  */
 void
@@ -121,13 +121,13 @@ bfam_domain_add_field(bfam_domain_t *thisDomain, bfam_domain_match_t match,
 
 /** Add fields to subdomains matching the tags passed in.
  *
- * \param [in]  thisDomain    domain to search for subdomains in
- * \param [in]  matchType     type of match, \c BFAM_DOMAIN_OR will
- *                            match subdomains with any of the tags
- *                            and \c BFAM_DOMAIN_AND will match subdomains
- *                            with all of the tags.
- * \param [in]  tags          \c NULL terminated array of the tags to match
- * \param [in]  fields        fields to add to the subdomains
+ * \param [in,out]  thisDomain    domain to search for subdomains in
+ * \param [in]      matchType     type of match, \c BFAM_DOMAIN_OR will
+ *                                match subdomains with any of the tags
+ *                                and \c BFAM_DOMAIN_AND will match subdomains
+ *                                with all of the tags.
+ * \param [in]      tags          \c NULL terminated array of the tags to match
+ * \param [in]      fields        fields to add to the subdomains
  *
  */
 void
@@ -138,13 +138,13 @@ bfam_domain_add_fields(bfam_domain_t *thisDomain, bfam_domain_match_t match,
  *
  * Here the tags are stored in a critbit.
  *
- * \param [in]  thisDomain    domain to search for subdomains in
- * \param [in]  matchType     type of match, \c BFAM_DOMAIN_OR will
- *                            match subdomains with any of the tags
- *                            and \c BFAM_DOMAIN_AND will match subdomains
- *                            with all of the tags.
- * \param [in]  tags          critbit of the tags to match
- * \param [in]  field         field to add to the subdomains
+ * \param [in,out]  thisDomain    domain to search for subdomains in
+ * \param [in]      matchType     type of match, \c BFAM_DOMAIN_OR will
+ *                                match subdomains with any of the tags
+ *                                and \c BFAM_DOMAIN_AND will match subdomains
+ *                                with all of the tags.
+ * \param [in]      tags          critbit of the tags to match
+ * \param [in]      field         field to add to the subdomains
  *
  */
 void
@@ -153,13 +153,13 @@ bfam_domain_add_field_critbit(bfam_domain_t *thisDomain,
 
 /** Add fields to subdomains matching the tags passed in
  *
- * \param [in]  thisDomain    domain to search for subdomains in
- * \param [in]  matchType     type of match, \c BFAM_DOMAIN_OR will
- *                            match subdomains with any of the tags
- *                            and \c BFAM_DOMAIN_AND will match subdomains
- *                            with all of the tags.
- * \param [in]  tags          critbit of the tags to match
- * \param [in]  fields        fields to add to the subdomains
+ * \param [in,out]  thisDomain    domain to search for subdomains in
+ * \param [in]      matchType     type of match, \c BFAM_DOMAIN_OR will
+ *                                match subdomains with any of the tags
+ *                                and \c BFAM_DOMAIN_AND will match subdomains
+ *                                with all of the tags.
+ * \param [in]      tags          critbit of the tags to match
+ * \param [in]      fields        fields to add to the subdomains
  *
  */
 void
