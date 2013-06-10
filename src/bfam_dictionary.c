@@ -62,12 +62,9 @@ int bfam_dictionary_insert(bfam_dictionary_t *d, const char *key,
 int bfam_dictionary_insert_ptr(bfam_dictionary_t *d, const char *key,
                                   const void *val_ptr)
 {
-  const size_t vlen = BFAM_PTR_STR_LEN + 1;
-  char *val_str = bfam_malloc(sizeof(char)*vlen);
-  snprintf(val_str,vlen,"%p%c",val_ptr,'\0');
-  int rval = bfam_dictionary_insert(d,key,val_str);
-  bfam_free(val_str);
-  return rval;
+  char val_str[BFAM_PTR_STR_LEN+1];
+  snprintf(val_str,BFAM_PTR_STR_LEN+1,"%p",val_ptr);
+  return bfam_dictionary_insert(d,key,val_str);
 }
 
 int bfam_dictionary_get_value_handle(const char * keyval, void * arg)
