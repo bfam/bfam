@@ -419,7 +419,7 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
 }
 
 static int
-bfam_subdomain_dgx_quad_free_fields(const char * key, const void *val,
+bfam_subdomain_dgx_quad_free_fields(const char * key, void *val,
     void *arg)
 {
   bfam_free_aligned(val);
