@@ -144,7 +144,7 @@ int bfam_dictionary_allprefixed(bfam_dictionary_t *d, const char *prefix,
 }
 
 typedef struct {
-  int (*handle) (const char *, const void *, void *);
+  int (*handle) (const char *, void *, void *);
   void *arg;
 } bfam_dict_allprex_ptr;
 
@@ -167,7 +167,7 @@ bfam_dictionary_allprefixed_usercall_ptr(const char * keyval, void * arg)
 
 
 int bfam_dictionary_allprefixed_ptr(bfam_dictionary_t *d, const char *prefix,
-                              int (*handle) (const char *, const void*, void *),
+                              int (*handle) (const char *, void*, void *),
                               void *arg)
 {
   bfam_dict_allprex_ptr args = {0,0};

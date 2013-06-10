@@ -132,7 +132,7 @@ int bfam_dictionary_allprefixed(bfam_dictionary_t *t, const char *prefix,
  * the pointer to the pointer
  */
 int bfam_dictionary_allprefixed_ptr(bfam_dictionary_t *t, const char *prefix,
-                              int (*handle) (const char *, const void*, void *),
+                              int (*handle) (const char *, void*, void *),
                               void *arg);
 
 #endif
