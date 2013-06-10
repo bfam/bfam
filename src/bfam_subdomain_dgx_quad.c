@@ -297,6 +297,27 @@ bfam_subdomain_dgx_quad_new(const char             *name,
   return newSubdomain;
 }
 
+static int
+bfam_subdomain_dgx_quad_field_add(bfam_subdomain_t *subdomain, const char *name)
+{
+  bfam_subdomain_dgx_quad_t *s = (bfam_subdomain_dgx_quad_t*) subdomain;
+
+  if(bfam_dictionary_get_value_ptr(&s->base.fields,name))
+    return 1;
+
+  size_t fieldSize = s->Np*s->K*sizeof(bfam_real_t);
+  bfam_real_t *field = bfam_malloc_aligned(fieldSize);
+
+  int rval = bfam_dictionary_insert_ptr(&s->base.fields, name, field);
+
+  BFAM_ASSERT(rval != 1);
+
+  if(rval == 0)
+    bfam_free_aligned(field);
+
+  return rval;
+}
+
 void
 bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
                              const char                      *name,
@@ -315,6 +336,7 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   subdomain->base.free = bfam_subdomain_dgx_quad_free;
   subdomain->base.vtk_write_vtu_piece =
     bfam_subdomain_dgx_quad_vtk_write_vtu_piece;
+  subdomain->base.field_add = bfam_subdomain_dgx_quad_field_add;
 
   const int Np = (N+1)*(N+1);
   const int Nfp = N+1;
@@ -396,10 +418,22 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   bfam_free_aligned(lz);
 }
 
+static int
+bfam_subdomain_dgx_quad_free_fields(const char * key, const void *val,
+    void *arg)
+{
+  bfam_free_aligned(val);
+
+  return 1;
+}
+
 void
 bfam_subdomain_dgx_quad_free(bfam_subdomain_t *thisSubdomain)
 {
   bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*) thisSubdomain;
+
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields,"",
+      &bfam_subdomain_dgx_quad_free_fields,NULL);
 
   bfam_subdomain_free(thisSubdomain);
 

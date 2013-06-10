@@ -4,6 +4,7 @@
 #include <bfam_base.h>
 #include <bfam_mpicomm.h>
 #include <bfam_critbit.h>
+#include <bfam_dictionary.h>
 
 /**
  * base structure for all subdomains types. Any new subdomain should have this
@@ -20,6 +21,7 @@ typedef struct bfam_subdomain
   char*           name;     /**< Name of the subdomain */
   bfam_mpicomm_t* comm;     /**< communicator for this subdomain */
   bfam_critbit0_tree_t tags; /**< critbit for tags for the subdomain */
+  bfam_dictionary_t fields; /**< a dictionary storing pointers to files */
 
   /* Function pointers that domain will need to call */
   void (*free)                (struct bfam_subdomain *thisSubdomain);
@@ -34,6 +36,9 @@ typedef struct bfam_subdomain
                                int writeCompressed,
                                int rank,
                                bfam_locidx_t id);
+
+  /**< Add a field to the subdomain */
+  int (*field_add) (struct bfam_subdomain *thisSubdomain, const char* name);
 } bfam_subdomain_t;
 
 
@@ -83,5 +88,18 @@ bfam_subdomain_delete_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
  */
 int
 bfam_subdomain_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+
+/** Add a field to the subdomain
+ *
+ * \param [in,out] thisSubdomain subdomain to search for the tag
+ * \param [in]     name          name of the field to add to the subdomain
+ *
+ * \returns:
+ *   $\cases{ 0 &if {\rm out of memory} \cr
+ *            1 &if {\it name} {\rm was already a field} \cr
+ *            2 &if {\it name} {\rm was added successfully}}$.
+ */
+int
+bfam_subdomain_field_add(bfam_subdomain_t *thisSubdomain, const char* name);
 
 #endif

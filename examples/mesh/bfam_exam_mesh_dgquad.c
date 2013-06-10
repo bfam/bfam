@@ -119,6 +119,14 @@ main (int argc, char *argv[])
   bfam_vtk_write_file((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume,
                        "bfam_mesh", NULL, NULL, NULL, 1, 1);
 
+  bfam_domain_add_field((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume, "v1");
+  bfam_domain_add_field((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume, "v2");
+  bfam_domain_add_field((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume, "v3");
+
+  const char *strain[] = {"E11", "E22", "E33", "E12", "E23", "E13", NULL};
+  bfam_domain_add_fields((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume,
+      strain);
+
   bfam_free(subdomainID);
   bfam_free(N);
 

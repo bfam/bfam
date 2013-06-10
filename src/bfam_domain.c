@@ -199,3 +199,59 @@ bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
   bfam_free(key);
   bfam_free(val);
 }
+
+void
+bfam_domain_add_field(bfam_domain_t *thisDomain, bfam_domain_match_t match,
+    const char **tags, const char *field)
+{
+  const char *fields[] = {field, NULL};
+  bfam_domain_add_fields(thisDomain, match, tags, fields);
+}
+
+void
+bfam_domain_add_field_critbit(bfam_domain_t *thisDomain,
+    bfam_domain_match_t match, bfam_critbit0_tree_t *tags,
+    const char *field)
+{
+  const char *fields[] = {field, NULL};
+  bfam_domain_add_fields_critbit(thisDomain, match, tags, fields);
+}
+
+void
+bfam_domain_add_fields(bfam_domain_t *thisDomain, bfam_domain_match_t match,
+    const char **tags, const char **fields)
+{
+  bfam_subdomain_t **subdomains =
+    bfam_malloc(thisDomain->numSubdomains*sizeof(bfam_subdomain_t**));
+
+  bfam_locidx_t numSubdomains = 0;
+
+  bfam_domain_get_subdomains(thisDomain, match, tags,
+      thisDomain->numSubdomains, subdomains, &numSubdomains);
+
+  for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
+    for(size_t f = 0; fields[f]; ++f)
+      bfam_subdomain_field_add(subdomains[s], fields[f]);
+
+  bfam_free(subdomains);
+}
+
+void
+bfam_domain_add_fields_critbit(bfam_domain_t *thisDomain,
+    bfam_domain_match_t match, bfam_critbit0_tree_t *tags,
+    const char **fields)
+{
+  bfam_subdomain_t **subdomains =
+    bfam_malloc(thisDomain->numSubdomains*sizeof(bfam_subdomain_t**));
+
+  bfam_locidx_t numSubdomains = 0;
+
+  bfam_domain_get_subdomains_critbit(thisDomain, match, tags,
+      thisDomain->numSubdomains, subdomains, &numSubdomains);
+
+  for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
+    for(size_t f = 0; fields[f]; ++f)
+      bfam_subdomain_field_add(subdomains[s], fields[f]);
+
+  bfam_free(subdomains);
+}
