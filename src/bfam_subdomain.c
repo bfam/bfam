@@ -1,5 +1,6 @@
 #include <bfam_subdomain.h>
 #include <bfam_base.h>
+#include <bfam_log.h>
 
 /*
  * Compare function which sorts a bfam_subdomain_face_map_entry_t array
@@ -168,9 +169,17 @@ int
 bfam_subdomain_field_add(bfam_subdomain_t *thisSubdomain, const char* name)
 {
   if(thisSubdomain->field_add)
+  {
+    BFAM_ROOT_VERBOSE("subdomain %s: adding field %s",
+        thisSubdomain->name,name);
     return thisSubdomain->field_add(thisSubdomain, name);
+  }
   else
+  {
+    BFAM_ROOT_VERBOSE("subdomain %s cannot add field %s (no field_add)",
+        thisSubdomain->name,name);
     return 0;
+  }
 }
 
 int
