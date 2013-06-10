@@ -15,7 +15,7 @@ prefix(const char * key, const char *val, void *arg)
 }
 
 int
-prefix_ptr(const char * key, const void *val, void *arg)
+prefix_ptr(const char * key, void *val, void *arg)
 {
   const void **check = (const void **)arg;
 
