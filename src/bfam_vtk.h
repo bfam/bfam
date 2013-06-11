@@ -51,6 +51,23 @@ bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match, const
 int
 bfam_vtk_write_binary_data(int compressed, FILE *file, char *data, size_t size);
 
+
+/** Utility function for writing a scalar data array.
+ *
+ * \param [out] file            stream to write the scalar to.
+ * \param [in]  name            name of the scalar.
+ * \param [in]  writeBinary     boolean indicating if the data should be written
+ *                              in binary.
+ * \param [in]  writeCompressed boolean indicating if the data should be
+ *                              compressed.
+ * \param [in]  Ntotal          length of the scalar.
+ * \param [in]  s               scalar data.
+ */
+void
+bfam_vtk_write_real_scalar_data_array(FILE* file, const char *name,
+    int writeBinary, int writeCompressed, bfam_locidx_t Ntotal,
+    const bfam_real_t *s);
+
 /** Utility function for writing a vector data array.
  *
  * \param [out] file            stream to write the vector to.

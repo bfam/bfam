@@ -165,6 +165,40 @@ bfam_vtk_write_binary_data(int compressed, FILE *file, char *data, size_t size)
 }
 
 void
+bfam_vtk_write_real_scalar_data_array(FILE* file, const char *name,
+    int writeBinary, int writeCompressed, bfam_locidx_t Ntotal,
+    const bfam_real_t *s)
+{
+  const char *format;
+
+  if(writeBinary)
+    format = "binary";
+  else
+    format = "ascii";
+
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"%s\" format=\"%s\">\n",
+           BFAM_REAL_VTK, name, format);
+  if(writeBinary)
+  {
+    fprintf(file, "          ");
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)s,
+          Ntotal*sizeof(bfam_real_t));
+    fprintf(file, "\n");
+    if(rval)
+      BFAM_WARNING("Error encoding %s", name);
+  }
+  else
+  {
+    for(bfam_locidx_t n = 0; n < Ntotal; ++n)
+      fprintf(file, "         %"BFAM_REAL_FMTe "\n", s[n]);
+  }
+
+  fprintf(file, "        </DataArray>\n");
+
+}
+
+void
 bfam_vtk_write_real_vector_data_array(FILE* file, const char *name,
     int writeBinary, int writeCompressed, bfam_locidx_t Ntotal,
     const bfam_real_t *v1, const bfam_real_t *v2, const bfam_real_t *v3)
