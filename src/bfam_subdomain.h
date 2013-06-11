@@ -6,6 +6,27 @@
 #include <bfam_critbit.h>
 #include <bfam_dictionary.h>
 
+struct bfam_subdomain;
+
+/*
+ * This is the field initialization function which will be called for each
+ * subdomain.  This function fills the \a npoints values of \a field.
+ *
+ * \param [in]  npoints   this is the length of x, y, z, and field
+ * \param [in]  x         x-coordinates of the points
+ * \param [in]  y         y-coordinates of the points
+ * \param [in]  z         z-coordinates of the points
+ * \param [in]  s         pointer to the subdomain that the field is in
+ * \param [in]  arg       user pointer
+ * \param [out] field     the field values that need to be set
+ *
+ */
+typedef void (*bfam_subdomain_init_field_t) (bfam_locidx_t npoints,
+    bfam_real_t time, bfam_real_t *restrict x, bfam_real_t *restrict y,
+    bfam_real_t *restrict z, struct bfam_subdomain *s, void *arg,
+    bfam_real_t *restrict field);
+
+
 /**
  * base structure for all subdomains types. Any new subdomain should have this
  * as its first member with the name base, i.e.,
@@ -39,6 +60,10 @@ typedef struct bfam_subdomain
 
   /**< Add a field to the subdomain */
   int (*field_add) (struct bfam_subdomain *thisSubdomain, const char* name);
+
+  /**< Initialize a field in the subdomain */
+  void (*field_init) (struct bfam_subdomain *thisSubdomain, const char* name,
+      bfam_real_t time, bfam_subdomain_init_field_t init_field, void *arg);
 } bfam_subdomain_t;
 
 
@@ -101,5 +126,17 @@ bfam_subdomain_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
  */
 int
 bfam_subdomain_field_add(bfam_subdomain_t *thisSubdomain, const char* name);
+
+/** Initialize a field in the subdomain
+ *
+ * \param [in,out] thisSubdomain subdomain to search for the tag
+ * \param [in]     name          name of the field to initialize
+ * \param [in]     time          time to pass to initilization function
+ * \param [in]     init_field     initilization function
+ * \param [in]     arg           user pointer
+ */
+void
+bfam_subdomain_field_init(bfam_subdomain_t *thisSubdomain, const char* name,
+      bfam_real_t time, bfam_subdomain_init_field_t init_field, void *arg);
 
 #endif

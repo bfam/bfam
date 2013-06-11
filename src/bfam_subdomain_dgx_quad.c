@@ -318,6 +318,23 @@ bfam_subdomain_dgx_quad_field_add(bfam_subdomain_t *subdomain, const char *name)
   return rval;
 }
 
+static void
+bfam_subdomain_dgx_quad_field_init(bfam_subdomain_t *subdomain,
+    const char *name, bfam_real_t time, bfam_subdomain_init_field_t init_field,
+    void *arg)
+{
+  bfam_subdomain_dgx_quad_t *s = (bfam_subdomain_dgx_quad_t*) subdomain;
+
+  bfam_real_t *field = bfam_dictionary_get_value_ptr(&s->base.fields,name);
+
+  BFAM_ABORT_IF(field==NULL, "Init: Field %s not found in subdomain %s",
+      name, subdomain->name);
+
+  size_t fieldLength = s->Np*s->K;
+
+  init_field(fieldLength, time, s->x, s->y, s->z, subdomain, arg, field);
+}
+
 void
 bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
                              const char                      *name,
@@ -337,6 +354,7 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   subdomain->base.vtk_write_vtu_piece =
     bfam_subdomain_dgx_quad_vtk_write_vtu_piece;
   subdomain->base.field_add = bfam_subdomain_dgx_quad_field_add;
+  subdomain->base.field_init = bfam_subdomain_dgx_quad_field_init;
 
   const int Np = (N+1)*(N+1);
   const int Nfp = N+1;

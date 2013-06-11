@@ -18,6 +18,7 @@ bfam_subdomain_init(bfam_subdomain_t *thisSubdomain,const char* name)
 
   thisSubdomain->vtk_write_vtu_piece = NULL;
   thisSubdomain->field_add           = NULL;
+  thisSubdomain->field_init          = NULL;
 }
 
 void
@@ -31,6 +32,7 @@ bfam_subdomain_free(bfam_subdomain_t *thisSubdomain)
 
   thisSubdomain->vtk_write_vtu_piece = NULL;
   thisSubdomain->field_add           = NULL;
+  thisSubdomain->field_init          = NULL;
 }
 
 void
@@ -61,4 +63,14 @@ bfam_subdomain_field_add(bfam_subdomain_t *thisSubdomain, const char* name)
     return thisSubdomain->field_add(thisSubdomain, name);
   else
     return 0;
+}
+
+void
+bfam_subdomain_field_init(bfam_subdomain_t *thisSubdomain, const char* name,
+      bfam_real_t time, bfam_subdomain_init_field_t init_field, void *arg)
+{
+  if(thisSubdomain->field_init)
+    thisSubdomain->field_init(thisSubdomain, name, time, init_field, arg);
+  else
+    BFAM_ABORT("Field Init Not Implemented for %s!!", thisSubdomain->name);
 }
