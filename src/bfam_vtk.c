@@ -163,3 +163,55 @@ bfam_vtk_write_binary_data(int compressed, FILE *file, char *data, size_t size)
   else
     return sc_vtk_write_binary(file, data, size);
 }
+
+void
+bfam_vtk_write_real_vector_data_array(FILE* file, const char *name,
+    int writeBinary, int writeCompressed, bfam_locidx_t Ntotal,
+    const bfam_real_t *v1, const bfam_real_t *v2, const bfam_real_t *v3)
+{
+  const char *format;
+
+  if(writeBinary)
+    format = "binary";
+  else
+    format = "ascii";
+
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"%s\""
+          " NumberOfComponents=\"3\" format=\"%s\">\n",
+           BFAM_REAL_VTK, name, format);
+  if(writeBinary)
+  {
+    size_t vSize = 3*Ntotal*sizeof(bfam_real_t);
+    bfam_real_t *v = bfam_malloc_aligned(vSize);
+
+    for(bfam_locidx_t n = 0; n < Ntotal; ++n)
+    {
+      v[3*n + 0] = v1[n];
+      v[3*n + 1] = v2[n];
+      v[3*n + 2] = v3[n];
+    }
+
+    fprintf(file, "          ");
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)v, vSize);
+    fprintf(file, "\n");
+    if(rval)
+      BFAM_WARNING("Error encoding %s", name);
+
+    bfam_free_aligned(v);
+  }
+  else
+  {
+    for(bfam_locidx_t n = 0; n < Ntotal; ++n)
+    {
+      fprintf(file, "         %"BFAM_REAL_FMTe
+                            " %"BFAM_REAL_FMTe
+                            " %"BFAM_REAL_FMTe
+                            "\n",
+                            v1[n], v2[n], v3[n]);
+    }
+  }
+
+  fprintf(file, "        </DataArray>\n");
+
+}

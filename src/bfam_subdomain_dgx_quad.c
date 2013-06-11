@@ -36,43 +36,9 @@ bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
    */
   fprintf (file, "      <Points>\n");
 
-  fprintf (file, "        <DataArray type=\"%s\" Name=\"Position\""
-           " NumberOfComponents=\"3\" format=\"%s\">\n",
-           BFAM_REAL_VTK, format);
-  if(writeBinary)
-  {
-    size_t xyzSize = 3*Ntotal*sizeof(bfam_real_t);
-    bfam_real_t *xyz = bfam_malloc_aligned(xyzSize);
+  bfam_vtk_write_real_vector_data_array(file, "Position", writeBinary,
+      writeCompressed, Ntotal, s->x, s->y, s->z);
 
-    for(bfam_locidx_t n = 0; n < Ntotal; ++n)
-    {
-      xyz[3*n + 0] = s->x[n];
-      xyz[3*n + 1] = s->y[n];
-      xyz[3*n + 2] = s->z[n];
-    }
-
-    fprintf(file, "          ");
-    int rval =
-      bfam_vtk_write_binary_data(writeCompressed, file, (char*)xyz, xyzSize);
-    fprintf(file, "\n");
-    if(rval)
-      BFAM_WARNING("Error encoding xyz");
-
-    bfam_free_aligned(xyz);
-  }
-  else
-  {
-    for(bfam_locidx_t n = 0; n < Ntotal; ++n)
-    {
-      fprintf(file, "         %"BFAM_REAL_FMTe
-                            " %"BFAM_REAL_FMTe
-                            " %"BFAM_REAL_FMTe
-                            "\n",
-                            s->x[n], s->y[n], s->z[n]);
-    }
-  }
-
-  fprintf(file, "        </DataArray>\n");
   fprintf(file, "      </Points>\n");
 
   /*
