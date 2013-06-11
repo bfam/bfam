@@ -340,6 +340,7 @@ set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${MPI_Fortran_COMPILE_FLAG}")
 add_library(bfam
                  src/bfam_base.c
                  src/bfam_clock.c
+                 src/bfam_communicator.c
                  src/bfam_critbit.c
                  src/bfam_dictionary.c
                  src/bfam_gopt.c
