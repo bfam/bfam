@@ -1,15 +1,7 @@
 #include <bfam_subdomain_dgx_quad.h>
 #include <bfam_jacobi.h>
 #include <bfam_log.h>
-
-static int
-bfam_vtk_write_binary_data(int compressed, FILE *file, char *data, size_t size)
-{
-  if(compressed)
-    return sc_vtk_write_compressed(file, data, size);
-  else
-    return sc_vtk_write_binary(file, data, size);
-}
+#include <bfam_vtk.h>
 
 static void
 bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,

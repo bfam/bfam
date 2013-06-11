@@ -154,3 +154,12 @@ bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match,
 
   bfam_free(subdomains);
 }
+
+int
+bfam_vtk_write_binary_data(int compressed, FILE *file, char *data, size_t size)
+{
+  if(compressed)
+    return sc_vtk_write_compressed(file, data, size);
+  else
+    return sc_vtk_write_binary(file, data, size);
+}

@@ -1,6 +1,7 @@
 #ifndef BFAM_VTK_H
 #define BFAM_VTK_H
 
+#include <bfam_base.h>
 #include <bfam_domain.h>
 
 /** Write out vtk files for each domain.
@@ -33,5 +34,21 @@ bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match, const
     char **tags, const char *prefix, const char **scalars,
     const char **vectors, const char **components, int binary,
     int compress);
+
+
+/** Utility function to write binary data in VTK format.
+ *
+ * Currently this is just a wrapper to call a similar function in libsc.
+ *
+ * \param [in]  compressed boolean specifying if the binary data should be
+ *                         compressed.
+ * \param [out] file       stream to write the data to.
+ * \param [in]  data       data to write out.
+ * \param [in]  size       size of the data in bytes.
+ *
+ * \returns 0 on success and -1 on file error.
+ */
+int
+bfam_vtk_write_binary_data(int compressed, FILE *file, char *data, size_t size);
 
 #endif
