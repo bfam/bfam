@@ -1,6 +1,7 @@
 #include <bfam_base.h>
 #include <bfam_vtk.h>
 #include <bfam_log.h>
+#include <bfam_util.h>
 
 #define BFAM_VTK_VTU_FORMAT "%s_%05d.vtu"
 
@@ -54,6 +55,29 @@ bfam_vtk_write_pfile(int size, const char *prefix, const char **scalars,
   fprintf(file, "      <PDataArray type=\"%s\" Name=\"subdomain_id\""
            " format=\"%s\"/>\n", BFAM_LOCIDX_VTK, format);
   fprintf(file, "    </PCellData>\n");
+
+  char pointscalars[BFAM_BUFSIZ];
+  bfam_util_strcsl(pointscalars, scalars);
+
+  char pointvectors[BFAM_BUFSIZ];
+  bfam_util_strcsl(pointvectors, vectors);
+
+  fprintf(file, "      <PPointData Scalars=\"%s\" Vectors=\"%s\">\n",
+      pointscalars, pointvectors);
+
+  if(scalars)
+    for(size_t s = 0; scalars[s]; ++s)
+      fprintf(file, "      <PDataArray type=\"%s\" Name=\"%s\""
+          " format=\"%s\"/>\n", BFAM_REAL_VTK, scalars[s], format);
+
+  if(vectors)
+    for(size_t v = 0; vectors[v]; ++v)
+      fprintf(file, "      <PDataArray type=\"%s\" Name=\"%s\""
+          " NumberOfComponents=\"3\" format=\"%s\"/>\n",
+          BFAM_REAL_VTK, vectors[v], format);
+
+  fprintf(file, "    </PPointData>\n");
+
   for(int s = 0; s < size; ++s)
   {
     fprintf(file, "    <Piece Source=\""BFAM_VTK_VTU_FORMAT"\"/>\n", prefix, s);

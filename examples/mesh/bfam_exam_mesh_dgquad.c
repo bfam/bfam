@@ -203,6 +203,11 @@ main (int argc, char *argv[])
   bfam_domain_init_field((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume,
       "E13", 0, z2_field, NULL);
 
+  const char *velocity[] = {"v", NULL};
+  const char *velocityComp[] = {"v1", "v2", "v3", NULL};
+  bfam_vtk_write_file((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume,
+                       "bfam_fields", strain, velocity, velocityComp, 1, 1);
+
   bfam_free(subdomainID);
   bfam_free(N);
 

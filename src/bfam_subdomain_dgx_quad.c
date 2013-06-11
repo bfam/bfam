@@ -1,6 +1,7 @@
 #include <bfam_subdomain_dgx_quad.h>
 #include <bfam_jacobi.h>
 #include <bfam_log.h>
+#include <bfam_util.h>
 #include <bfam_vtk.h>
 
 static void
@@ -230,6 +231,53 @@ bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
 
   fprintf(file, "      </CellData>\n");
 
+  char pointscalars[BFAM_BUFSIZ];
+  bfam_util_strcsl(pointscalars, scalars);
+
+  char pointvectors[BFAM_BUFSIZ];
+  bfam_util_strcsl(pointvectors, vectors);
+
+  fprintf(file, "      <PointData Scalars=\"%s\" Vectors=\"%s\">\n",
+      pointscalars, pointvectors);
+
+  if(scalars)
+  {
+    for(size_t s = 0; scalars[s]; ++s)
+    {
+      bfam_real_t *sdata = bfam_dictionary_get_value_ptr(&subdomain->fields,
+          scalars[s]);
+      BFAM_ABORT_IF(sdata == NULL, "VTK: Field %s not in subdomain %s",
+          scalars[s], subdomain->name);
+      bfam_vtk_write_real_scalar_data_array(file, scalars[s],
+          writeBinary, writeCompressed, Ntotal, sdata);
+    }
+  }
+
+  if(vectors)
+  {
+    for(size_t v = 0; vectors[v]; ++v)
+    {
+
+      bfam_real_t *v1 =
+        bfam_dictionary_get_value_ptr(&subdomain->fields, components[3*v+0]);
+      bfam_real_t *v2 =
+        bfam_dictionary_get_value_ptr(&subdomain->fields, components[3*v+1]);
+      bfam_real_t *v3 =
+        bfam_dictionary_get_value_ptr(&subdomain->fields, components[3*v+2]);
+
+      BFAM_ABORT_IF(v1 == NULL, "VTK: Field %s not in subdomain %s",
+          components[3*v+0], subdomain->name);
+      BFAM_ABORT_IF(v2 == NULL, "VTK: Field %s not in subdomain %s",
+          components[3*v+1], subdomain->name);
+      BFAM_ABORT_IF(v3 == NULL, "VTK: Field %s not in subdomain %s",
+          components[3*v+2], subdomain->name);
+
+      bfam_vtk_write_real_vector_data_array(file, vectors[v],
+          writeBinary, writeCompressed, Ntotal, v1, v2, v3);
+    }
+  }
+
+  fprintf(file, "      </PointData>\n");
   fprintf(file, "    </Piece>\n");
 }
 
