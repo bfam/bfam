@@ -42,7 +42,7 @@ typedef struct bfam_subdomain
   char*           name;     /**< Name of the subdomain */
   bfam_mpicomm_t* comm;     /**< communicator for this subdomain */
   bfam_critbit0_tree_t tags; /**< critbit for tags for the subdomain */
-  bfam_dictionary_t fields; /**< a dictionary storing pointers to files */
+  bfam_dictionary_t fields; /**< a dictionary storing pointers to fields */
 
   /* Function pointers that domain will need to call */
   void (*free)                (struct bfam_subdomain *thisSubdomain);
