@@ -39,6 +39,7 @@ typedef void (*bfam_subdomain_init_field_t) (bfam_locidx_t npoints,
  */
 typedef struct bfam_subdomain
 {
+  bfam_locidx_t   id;
   char*           name;     /**< Name of the subdomain */
   bfam_mpicomm_t* comm;     /**< communicator for this subdomain */
   bfam_critbit0_tree_t tags; /**< critbit for tags for the subdomain */
@@ -73,10 +74,12 @@ typedef struct bfam_subdomain
  * and a concrete grid and physics type should be defined
  *
  * \param [in,out] thisSubdomain pointer to the subdomain
+ * \param [in]     id   Unique id number for this subdomain
  * \param [in]     name Name of this subdomain
  */
 void
-bfam_subdomain_init(bfam_subdomain_t *subdomain,const char* name);
+bfam_subdomain_init(bfam_subdomain_t *subdomain, bfam_locidx_t id,
+    const char* name);
 
 /** free up the memory allocated by the subdomain
  * 

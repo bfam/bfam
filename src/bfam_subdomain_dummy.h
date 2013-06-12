@@ -13,6 +13,7 @@ typedef struct bfam_subdomain_dummy
 
 /** create a dummy subdomain.
  *
+ * \param [in] id   unique id number for this subdomain
  * \param [in] name name of this subdomain
  * \param [in] N    polynomial order of elements in each dimension
  *
@@ -20,18 +21,21 @@ typedef struct bfam_subdomain_dummy
  *
  */
 bfam_subdomain_dummy_t*
-bfam_subdomain_dummy_new(const char             *name,
+bfam_subdomain_dummy_new(const bfam_locidx_t id,
+                         const char             *name,
                             const int               N);
 
 /** initializes a dg quad subdomain
  *
  * \param [in,out] subdomain pointer to the subdomain to initialize
+ * \param [in]     id        unique id number for this subdomain
  * \param [in]     name      name of this subdomain
  * \param [in]     N         polynomial order of elements in each dimension
  *
  */
 void
 bfam_subdomain_dummy_init(bfam_subdomain_dummy_t *subdomain,
+                          const bfam_locidx_t id,
                              const char                *name,
                              const int                  N);
 

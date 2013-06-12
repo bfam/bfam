@@ -6,7 +6,7 @@ main (int argc, char *argv[])
 {
   bfam_ts_lsrk_t* ts;
   bfam_domain_t* dom = bfam_domain_new(NULL);
-  bfam_subdomain_dummy_t* subDom = bfam_subdomain_dummy_new("a",4);
+  bfam_subdomain_dummy_t* subDom = bfam_subdomain_dummy_new(0,"a",4);
   bfam_domain_add_subdomain(dom, (bfam_subdomain_t*) subDom);
 
   printf("%e\n",(double) bfam_subdomain_dummy_exact(subDom, 1.0));

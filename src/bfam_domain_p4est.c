@@ -160,7 +160,8 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
   for(bfam_locidx_t id = 0; id < numSubdomains; ++id)
   {
     bfam_subdomain_dgx_quad_t *subdomain =
-      bfam_subdomain_dgx_quad_new(name[id],
+      bfam_subdomain_dgx_quad_new(id,
+                                  name[id],
                                   N[id],
                                   Nv,
                                   VX,

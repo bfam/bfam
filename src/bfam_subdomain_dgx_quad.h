@@ -55,6 +55,7 @@ typedef struct bfam_subdomain_dgx_quad
 
 /** create a dg quad subdomain.
  *
+ * \param [in] id   unique id number for this subdomain
  * \param [in] name name of this subdomain
  * \param [in] N    polynomial order of elements in each dimension
  * \param [in] Nv   number of vertices in the subdomain
@@ -71,7 +72,8 @@ typedef struct bfam_subdomain_dgx_quad
  *
  */
 bfam_subdomain_dgx_quad_t*
-bfam_subdomain_dgx_quad_new(const char             *name,
+bfam_subdomain_dgx_quad_new(const bfam_locidx_t     id,
+                            const char             *name,
                             const int               N,
                             const bfam_locidx_t     Nv,
                             const bfam_long_real_t *VX,
@@ -85,6 +87,7 @@ bfam_subdomain_dgx_quad_new(const char             *name,
 /** initializes a dg quad subdomain
  *
  * \param [in,out] subdomain pointer to the subdomain to initialize
+ * \param [in]     id        unique id number for this subdomain
  * \param [in]     name      name of this subdomain
  * \param [in]     N         polynomial order of elements in each dimension
  * \param [in]     Nv        number of vertices in the subdomain
@@ -100,6 +103,7 @@ bfam_subdomain_dgx_quad_new(const char             *name,
  */
 void
 bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t *subdomain,
+                             const bfam_locidx_t        id,
                              const char                *name,
                              const int                  N,
                              const bfam_locidx_t        Nv,

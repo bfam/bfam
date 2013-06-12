@@ -1,9 +1,12 @@
 #include <bfam_subdomain.h>
 #include <bfam_base.h>
 
+
 void
-bfam_subdomain_init(bfam_subdomain_t *thisSubdomain,const char* name)
+bfam_subdomain_init(bfam_subdomain_t *thisSubdomain, bfam_locidx_t id,
+    const char* name)
 {
+  thisSubdomain->id = id;
   int len = strlen(name);
   thisSubdomain->name = bfam_malloc((len+1)*sizeof(char));
   strncpy(thisSubdomain->name,name,len+1);
@@ -24,6 +27,7 @@ bfam_subdomain_init(bfam_subdomain_t *thisSubdomain,const char* name)
 void
 bfam_subdomain_free(bfam_subdomain_t *thisSubdomain)
 {
+  thisSubdomain->id = -1;
   bfam_free(thisSubdomain->name);
   bfam_critbit0_clear(&thisSubdomain->tags);
   bfam_dictionary_clear(&thisSubdomain->fields);

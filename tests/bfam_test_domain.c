@@ -37,8 +37,11 @@ test_insert()
   for (unsigned i = 0; elems[i]; ++i)
   {
     bfam_subdomain_t* newSub = bfam_malloc(sizeof(bfam_subdomain_t));
-    bfam_subdomain_init(newSub,elems[i]);
+    bfam_subdomain_init(newSub,i,elems[i]);
     bfam_domain_add_subdomain(domain,newSub);
+
+    BFAM_ABORT_IF_NOT(newSub->id == (bfam_locidx_t)i,
+        "Id number not set correctly");
 
     bfam_subdomain_add_tag(newSub, "testing 1 2 3");
     bfam_subdomain_add_tag(newSub, elems[i]);

@@ -283,7 +283,8 @@ bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
 
 
 bfam_subdomain_dgx_quad_t*
-bfam_subdomain_dgx_quad_new(const char             *name,
+bfam_subdomain_dgx_quad_new(const bfam_locidx_t     id,
+                            const char             *name,
                             const int               N,
                             const bfam_locidx_t     Nv,
                             const bfam_long_real_t *VX,
@@ -297,8 +298,8 @@ bfam_subdomain_dgx_quad_new(const char             *name,
   bfam_subdomain_dgx_quad_t* newSubdomain =
     bfam_malloc(sizeof(bfam_subdomain_dgx_quad_t));
 
-  bfam_subdomain_dgx_quad_init(newSubdomain, name, N, Nv, VX, VY, VZ, K, EToV,
-                               EToE, EToF);
+  bfam_subdomain_dgx_quad_init(newSubdomain, id, name, N, Nv, VX, VY, VZ, K,
+                               EToV, EToE, EToF);
 
   return newSubdomain;
 }
@@ -343,6 +344,7 @@ bfam_subdomain_dgx_quad_field_init(bfam_subdomain_t *subdomain,
 
 void
 bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
+                             const bfam_locidx_t              id,
                              const char                      *name,
                              const int                        N,
                              const bfam_locidx_t              Nv,
@@ -354,7 +356,7 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
                              const bfam_locidx_t             *EToE,
                              const int8_t                    *EToF)
 {
-  bfam_subdomain_init(&subdomain->base, name);
+  bfam_subdomain_init(&subdomain->base, id, name);
   bfam_subdomain_add_tag(&subdomain->base, "_subdomain_dgx_quad");
   subdomain->base.free = bfam_subdomain_dgx_quad_free;
   subdomain->base.vtk_write_vtu_piece =
