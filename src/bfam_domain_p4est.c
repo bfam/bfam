@@ -59,7 +59,7 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
   int8_t        **EToF = bfam_malloc(numSubdomains*sizeof(int8_t*));
 
   bfam_locidx_t *ktosubk =
-    bfam_malloc(mesh->local_num_quadrants * sizeof(p4est_locidx_t));
+    bfam_malloc(mesh->local_num_quadrants * sizeof(bfam_locidx_t));
 
   /*
    * Get vertex coordinates
@@ -76,7 +76,7 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
    */
   for(p4est_locidx_t k = 0; k < p4est->local_num_quadrants; ++k)
   {
-    p4est_locidx_t id = (p4est_locidx_t) subdomainID[k];
+    bfam_locidx_t id = (bfam_locidx_t) subdomainID[k];
 
     BFAM_ABORT_IF(id < 0 || id >= numSubdomains, "Bad Subdomain id: %jd",
         (intmax_t) id);
@@ -84,7 +84,7 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
     ++subK[id];
   }
 
-  for(p4est_locidx_t id = 0; id < numSubdomains; ++id)
+  for(bfam_locidx_t id = 0; id < numSubdomains; ++id)
   {
     name[id] = bfam_malloc(BFAM_BUFSIZ*sizeof(char));
     snprintf(name[id], BFAM_BUFSIZ, "dg_quad_%05jd", (intmax_t) id);
@@ -98,7 +98,7 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
 
   BFAM_ASSERT(K == p4est->local_num_quadrants);
 
-  for(p4est_locidx_t id = 0; id < numSubdomains; ++id)
+  for(bfam_locidx_t id = 0; id < numSubdomains; ++id)
   {
     subk[id] = 0;
   }
@@ -118,7 +118,7 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
   /*
    * First build up the volume grids
    */
-  for(p4est_locidx_t id = 0; id < numSubdomains; ++id)
+  for(bfam_locidx_t id = 0; id < numSubdomains; ++id)
   {
     subk[id] = 0;
   }
@@ -157,7 +157,7 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
   }
 
 
-  for(p4est_locidx_t id = 0; id < numSubdomains; ++id)
+  for(bfam_locidx_t id = 0; id < numSubdomains; ++id)
   {
     bfam_subdomain_dgx_quad_t *subdomain =
       bfam_subdomain_dgx_quad_new(name[id],
@@ -192,7 +192,7 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
   //                                 EToF);
   //                                 */
 
-  for(p4est_locidx_t id = 0; id < numSubdomains; ++id)
+  for(bfam_locidx_t id = 0; id < numSubdomains; ++id)
   {
     bfam_free(name[id]);
     bfam_free(EToV[id]);
