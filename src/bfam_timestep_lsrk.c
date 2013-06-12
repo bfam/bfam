@@ -41,7 +41,6 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts, bfam_domain_t* dom,
   bfam_ts_init(&ts->p_ts, dom);
   ts->t  = 0.0;
   ts->comm = comm;
-  ts->dt = NAN;
   switch(method)
   {
     case BFAM_TS_LSRK_KC54:
@@ -128,7 +127,6 @@ bfam_ts_lsrk_free(bfam_ts_lsrk_t* ts)
   bfam_free_aligned(ts->C);
   ts->nStages = 0;
   ts->t  = NAN;
-  ts->dt = NAN;
   bfam_ts_free(&ts->p_ts);
 }
 
@@ -138,22 +136,10 @@ bfam_ts_lsrk_set_time(bfam_ts_lsrk_t* ts,bfam_long_real_t time)
   ts->t = time;
 }
 
-void
-bfam_ts_lsrk_set_dt(bfam_ts_lsrk_t* ts,bfam_long_real_t dt)
-{
-  ts->dt = dt;
-}
-
 bfam_long_real_t
 bfam_ts_lsrk_get_time(bfam_ts_lsrk_t* ts)
 {
   return ts->t;
-}
-
-bfam_long_real_t
-bfam_ts_lsrk_get_dt(bfam_ts_lsrk_t* ts)
-{
-  return ts->dt;
 }
 
 void

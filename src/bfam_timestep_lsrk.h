@@ -22,7 +22,6 @@ typedef struct bfam_ts_lsrk
   bfam_long_real_t* C;  /**< low memory RK C: time scale*/
   int nStages;          /**< number of stages */
   bfam_long_real_t  t;  /**< domain time */
-  bfam_long_real_t  dt; /**< domain dt   */
   bfam_communicator_t *comm; /**< communicator I handle */
 } bfam_ts_lsrk_t;
 
@@ -78,13 +77,6 @@ bfam_ts_lsrk_free(bfam_ts_lsrk_t* ts);
 void
 bfam_ts_lsrk_set_time(bfam_ts_lsrk_t* ts,bfam_long_real_t time);
 
-/** set dt of the scheme
- *
- * \param [in,out]  ts       pointer to time stepper to set
- * \param [in]      dt       dt to set
- */
-void
-bfam_ts_lsrk_set_dt(bfam_ts_lsrk_t* ts,bfam_long_real_t dt);
 
 /** get the time of the scheme
  *
@@ -93,12 +85,6 @@ bfam_ts_lsrk_set_dt(bfam_ts_lsrk_t* ts,bfam_long_real_t dt);
 bfam_long_real_t
 bfam_ts_lsrk_get_time(bfam_ts_lsrk_t* ts);
 
-/** get dt of the scheme
- *
- * \param [in]  ts       pointer to lsrk to get dt
- */
-bfam_long_real_t
-bfam_ts_lsrk_get_dt(bfam_ts_lsrk_t* ts);
 
 /** add subdomains to this time stepper
  *
