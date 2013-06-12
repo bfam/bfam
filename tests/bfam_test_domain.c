@@ -69,6 +69,10 @@ test_insert()
     domain->numSubdomains, matchedSubdomains, &numMatchedSubdomains);
   BFAM_ABORT_IF(numMatchedSubdomains != 3, "Error matching tags1: %jd",
       (intmax_t) numMatchedSubdomains);
+  BFAM_ABORT_IF(matchedSubdomains[0] > matchedSubdomains[1],
+      "Error matching tags1 order");
+  BFAM_ABORT_IF(matchedSubdomains[1] > matchedSubdomains[2],
+      "Error matching tags1 order");
 
   const char *tags2[] = {"a11", "testing 1 2 3", NULL};
   bfam_domain_get_subdomains(domain, BFAM_DOMAIN_AND, tags2,
@@ -84,6 +88,10 @@ test_insert()
     domain->numSubdomains, matchedSubdomains, &numMatchedSubdomains);
   BFAM_ABORT_IF(numMatchedSubdomains != 3, "Error matching ctags1: %jd",
       (intmax_t) numMatchedSubdomains);
+  BFAM_ABORT_IF(matchedSubdomains[0] > matchedSubdomains[1],
+      "Error matching ctags1 order");
+  BFAM_ABORT_IF(matchedSubdomains[1] > matchedSubdomains[2],
+      "Error matching ctags1 order");
   bfam_critbit0_clear(&ctags1);
 
   bfam_critbit0_tree_t ctags2 = {0};

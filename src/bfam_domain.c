@@ -37,6 +37,24 @@ bfam_domain_free(bfam_domain_t *thisDomain)
   bfam_dictionary_clear(&thisDomain->name2num);
 }
 
+static int
+bfam_domain_compare_subdomain_by_id(const void *a, const void *b)
+{
+  const bfam_subdomain_t *subA = *(bfam_subdomain_t * const *)a;
+  const bfam_subdomain_t *subB = *(bfam_subdomain_t * const *)b;
+
+  int rval;
+
+  if(subA->id < subB->id)
+    rval = -1;
+  else if(subA->id > subB->id)
+    rval =  1;
+  else
+    rval =  0;
+
+  return rval;
+}
+
 void
 bfam_domain_get_subdomains(bfam_domain_t *thisDomain,
     bfam_domain_match_t matchType, const char **tags,
@@ -80,8 +98,14 @@ bfam_domain_get_subdomains(bfam_domain_t *thisDomain,
     }
 
     if(*numSubdomains == numEntries)
-      return;
+      break;
   }
+
+  /*
+   * Sort subdomains by id number
+   */
+  qsort(subdomains, *numSubdomains, sizeof(bfam_subdomain_t*),
+      bfam_domain_compare_subdomain_by_id);
 
   return;
 }
@@ -152,8 +176,14 @@ bfam_domain_get_subdomains_critbit(bfam_domain_t *thisDomain,
     }
 
     if(*numSubdomains == numEntries)
-      return;
+      break;
   }
+
+  /*
+   * Sort subdomains by id number
+   */
+  qsort(subdomains, *numSubdomains, sizeof(bfam_subdomain_t*),
+      bfam_domain_compare_subdomain_by_id);
 
   return;
 }
