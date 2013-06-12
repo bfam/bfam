@@ -9,6 +9,9 @@ test_lsrk(bfam_ts_lsrk_method_t type,int N)
   bfam_domain_t* dom = bfam_domain_new(NULL);
   bfam_subdomain_dummy_t* subDom = NULL;
 
+  bfam_communicator_t *comm =
+    bfam_communicator_new(dom,BFAM_DOMAIN_AND,NULL,NULL);
+
   subDom = bfam_subdomain_dummy_new("a",N);
   bfam_subdomain_add_tag((bfam_subdomain_t*)subDom,"yes");
   bfam_subdomain_add_tag((bfam_subdomain_t*)subDom,"other");
@@ -32,11 +35,14 @@ test_lsrk(bfam_ts_lsrk_method_t type,int N)
   bfam_subdomain_add_tag((bfam_subdomain_t*)subDom,"random");
   bfam_domain_add_subdomain(dom, (bfam_subdomain_t*) subDom);
 
-  ts = bfam_ts_lsrk_new(dom,type);
+  ts = bfam_ts_lsrk_new(dom,comm,type);
 
   // free
   bfam_ts_lsrk_free(ts);
   bfam_free(ts);
+
+  bfam_communicator_free(comm);
+  bfam_free(comm);
 
   bfam_domain_free(dom);
   bfam_free(dom);
@@ -45,10 +51,12 @@ test_lsrk(bfam_ts_lsrk_method_t type,int N)
 int
 main (int argc, char *argv[])
 {
+  BFAM_MPI_CHECK(MPI_Init(&argc,&argv));
   test_lsrk(BFAM_TS_LSRK_KC54,4);
   test_lsrk(BFAM_TS_LSRK_W33 ,3);
   test_lsrk(BFAM_TS_LSRK_HEUN,2);
   test_lsrk(BFAM_TS_LSRK_FE  ,1);
+  BFAM_MPI_CHECK(MPI_Finalize());
 
   return EXIT_SUCCESS;
 }

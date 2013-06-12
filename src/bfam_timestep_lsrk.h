@@ -4,6 +4,7 @@
 #include <bfam_base.h>
 #include <bfam_domain.h>
 #include <bfam_timestep.h>
+#include <bfam_communicator.h>
 
 /**
  * structure comtaining the necessary features of a low memory RK scheme
@@ -22,6 +23,7 @@ typedef struct bfam_ts_lsrk
   int nStages;          /**< number of stages */
   bfam_long_real_t  t;  /**< domain time */
   bfam_long_real_t  dt; /**< domain dt   */
+  bfam_communicator_t *comm; /**< communicator I handle */
 } bfam_ts_lsrk_t;
 
 typedef enum bfam_ts_lsrk_method
@@ -38,12 +40,14 @@ typedef enum bfam_ts_lsrk_method
  *          \a dom is freed after this LSRK is
  *
  * \param [in]  dom      pointer to the domain
+ * \param [in]  comm     pointer to the communicator I use
  * \param [in]  method   Low storage RK tyoe we are using
  *
  * \return the newly created low storage RK time stepper
  */
 bfam_ts_lsrk_t*
-bfam_ts_lsrk_new(bfam_domain_t* dom, bfam_ts_lsrk_method_t method);
+bfam_ts_lsrk_new(bfam_domain_t* dom,
+    bfam_communicator_t *comm, bfam_ts_lsrk_method_t method);
 
 /** initialize a low storage RK scheme
  *
@@ -52,11 +56,12 @@ bfam_ts_lsrk_new(bfam_domain_t* dom, bfam_ts_lsrk_method_t method);
  *
  * \param [in,out]  ts       pointer to time stepper to initialize
  * \param [in]      dom      pointer to the domain
+ * \param [in]  comm     pointer to the communicator I use
  * \param [in]      method   Low storage RK tyoe we are using
  */
 void
 bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts, bfam_domain_t* dom,
-    bfam_ts_lsrk_method_t method);
+    bfam_communicator_t *comm, bfam_ts_lsrk_method_t method);
 
 /** free a low storage RK scheme
  *
