@@ -1,5 +1,29 @@
 #include <bfam_timestep_lsrk.h>
 
+typedef struct bfam_ts_lsrk_sd
+{
+  bfam_subdomain_t *subdomain; /**< subdomain this guy updates */
+  void *fields; /**< pointer to the fields I update */
+  void *rates;  /**< pointer to the rates I use */
+
+  /**< scale the rates */
+  void (*scale_rates) (bfam_subdomain_t *thisSubdomain, void *rates,
+      const bfam_real_t a);
+
+  /**< Do the intra work for this subdomain: dq += RHS(q,t) */
+  void (*intra_rhs) (bfam_subdomain_t *thisSubdomain, void *rates,
+      const void *fields, const bfam_real_t t);
+
+  /**< Do the inter work for this subdomain: dq += RHS(q,t) */
+  void (*inter_rhs) (bfam_subdomain_t *thisSubdomain, void *rates,
+      const void *fields, const bfam_real_t t);
+
+  /**< add rates to fields: q += b*dq */
+  void (*add_rates) (bfam_subdomain_t *thisSubdomain, void *fields,
+      const void *rates, const bfam_real_t a);
+
+} bfam_ts_lsrk_sd_t;
+
 bfam_ts_lsrk_t*
 bfam_ts_lsrk_new(bfam_domain_t* dom, bfam_communicator_t *comm,
     bfam_ts_lsrk_method_t method)
@@ -130,4 +154,18 @@ bfam_long_real_t
 bfam_ts_lsrk_get_dt(bfam_ts_lsrk_t* ts)
 {
   return ts->dt;
+}
+
+void
+bfam_ts_lsrk_add_subdomains(bfam_ts_lsrk_t *ts, bfam_domain_match_t match,
+                            const char *tags[], const char *fields[],
+  void (*scale_rates) (bfam_subdomain_t *thisSubdomain, void *rates,
+      const bfam_real_t a),
+  void (*intra_rhs) (bfam_subdomain_t *thisSubdomain, void *rates,
+      const void *fields, const bfam_real_t t),
+  void (*inter_rhs) (bfam_subdomain_t *thisSubdomain, void *rates,
+      const void *fields, const bfam_real_t t),
+  void (*add_rates) (bfam_subdomain_t *thisSubdomain, void *fields,
+      const void *rates, const bfam_real_t a))
+{
 }

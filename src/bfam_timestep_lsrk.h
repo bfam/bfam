@@ -100,4 +100,33 @@ bfam_ts_lsrk_get_time(bfam_ts_lsrk_t* ts);
 bfam_long_real_t
 bfam_ts_lsrk_get_dt(bfam_ts_lsrk_t* ts);
 
+/** add subdomains to this time stepper
+ *
+ * \param [in,out] ts            pointer to time stepper
+ * \param [in]     matchType     type of match, \c BFAM_DOMAIN_OR will
+ *                               match subdomains with any of the tags
+ *                               and \c BFAM_DOMAIN_AND will match subdomains
+ *                               with all of the tags.
+ * \param [in]     tags          \c NULL terminated array of the tags to match
+ * \param [in]     fields        \c NULL terminated array of fields names
+ * \param [in]     scale_rates   function handle to use to scale rates
+ * \param [in]     intra_rhs     function handle to use to function to use to
+ *                               updae rhs function for non-communication work
+ * \param [in]     inter_rhs     function handle to use to function to use to
+ *                               updae rhs function for communication work
+ * \param [in]     add_rates     function pointer to add rates back into
+ *                               solution
+ */
+void
+bfam_ts_lsrk_add_subdomains(bfam_ts_lsrk_t *ts, bfam_domain_match_t match,
+                            const char *tags[], const char *fields[],
+  void (*scale_rates) (bfam_subdomain_t *thisSubdomain, void *rates,
+      const bfam_real_t a),
+  void (*intra_rhs) (bfam_subdomain_t *thisSubdomain, void *rates,
+      const void *fields, const bfam_real_t t),
+  void (*inter_rhs) (bfam_subdomain_t *thisSubdomain, void *rates,
+      const void *fields, const bfam_real_t t),
+  void (*add_rates) (bfam_subdomain_t *thisSubdomain, void *fields,
+      const void *rates, const bfam_real_t a));
+
 #endif
