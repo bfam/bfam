@@ -16,13 +16,14 @@
  */
 typedef struct bfam_ts_lsrk
 {
-  bfam_ts_t base;       /**< parent timestepper */
-  bfam_long_real_t* A;  /**< low memory RK A: rate scale */
-  bfam_long_real_t* B;  /**< low memory RK B: update scale */
-  bfam_long_real_t* C;  /**< low memory RK C: time scale*/
-  int nStages;          /**< number of stages */
-  bfam_long_real_t  t;  /**< domain time */
+  bfam_ts_t base;            /**< parent timestepper */
+  bfam_long_real_t* A;       /**< low memory RK A: rate scale */
+  bfam_long_real_t* B;       /**< low memory RK B: update scale */
+  bfam_long_real_t* C;       /**< low memory RK C: time scale*/
+  int nStages;               /**< number of stages */
+  bfam_long_real_t  t;       /**< domain time */
   bfam_communicator_t *comm; /**< communicator I handle */
+  bfam_dictionary_t elems;   /**< dictionary of subdomains I step */
 } bfam_ts_lsrk_t;
 
 typedef enum bfam_ts_lsrk_method

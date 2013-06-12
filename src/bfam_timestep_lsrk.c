@@ -39,6 +39,7 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts, bfam_domain_t* dom,
     bfam_communicator_t *comm, bfam_ts_lsrk_method_t method)
 {
   bfam_ts_init(&ts->base, dom);
+  bfam_dictionary_init(&ts->elems);
   ts->t  = 0.0;
   ts->comm = comm;
   switch(method)
@@ -122,6 +123,7 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts, bfam_domain_t* dom,
 void
 bfam_ts_lsrk_free(bfam_ts_lsrk_t* ts)
 {
+  bfam_dictionary_clear(&ts->elems);
   bfam_free_aligned(ts->A);
   bfam_free_aligned(ts->B);
   bfam_free_aligned(ts->C);
