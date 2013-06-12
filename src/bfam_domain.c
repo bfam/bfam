@@ -86,7 +86,7 @@ bfam_domain_get_subdomains(bfam_domain_t *thisDomain,
   return;
 }
 
-int
+static int
 bfam_domain_get_subdomains_critbit_or(const char *elem,void *arg)
 {
   int* matched = (int *)((void**)arg)[0];
@@ -97,7 +97,7 @@ bfam_domain_get_subdomains_critbit_or(const char *elem,void *arg)
 }
 
 
-int
+static int
 bfam_domain_get_subdomains_critbit_and(const char *elem,void *arg)
 {
   int* matched = (int *)((void**)arg)[0];
