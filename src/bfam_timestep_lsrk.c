@@ -38,7 +38,7 @@ void
 bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts, bfam_domain_t* dom,
     bfam_communicator_t *comm, bfam_ts_lsrk_method_t method)
 {
-  bfam_ts_init(&ts->p_ts, dom);
+  bfam_ts_init(&ts->base, dom);
   ts->t  = 0.0;
   ts->comm = comm;
   switch(method)
@@ -127,7 +127,7 @@ bfam_ts_lsrk_free(bfam_ts_lsrk_t* ts)
   bfam_free_aligned(ts->C);
   ts->nStages = 0;
   ts->t  = NAN;
-  bfam_ts_free(&ts->p_ts);
+  bfam_ts_free(&ts->base);
 }
 
 void

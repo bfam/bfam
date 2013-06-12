@@ -16,7 +16,7 @@
  */
 typedef struct bfam_ts_lsrk
 {
-  bfam_ts_t p_ts;       /**< parent timestepper */
+  bfam_ts_t base;       /**< parent timestepper */
   bfam_long_real_t* A;  /**< low memory RK A: rate scale */
   bfam_long_real_t* B;  /**< low memory RK B: update scale */
   bfam_long_real_t* C;  /**< low memory RK C: time scale*/
