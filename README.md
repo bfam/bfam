@@ -162,7 +162,7 @@ Basic information about the library from its `README` file is:
     The official web page for source code and documentation is www.p4est.org.
     Please send bug reports and ideas for contribution to info@p4est.org.
 
-See the `INSTALL` file in `third_party/p4est-0.3.4.102-9441.tar.gz` for
+See the `INSTALL` file in `third_party/p4est-0.3.4.1.143-e573.tar.gz` for
 more information.
 
 ### Timing
