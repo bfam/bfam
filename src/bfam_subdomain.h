@@ -44,6 +44,8 @@ typedef struct bfam_subdomain
   bfam_mpicomm_t* comm;     /**< communicator for this subdomain */
   bfam_critbit0_tree_t tags; /**< critbit for tags for the subdomain */
   bfam_dictionary_t fields; /**< a dictionary storing pointers to fields */
+  bfam_dictionary_t fields_m; /**< a dictionary storing minus fields */
+  bfam_dictionary_t fields_p; /**< a dictionary storing plus fields */
 
   /* Function pointers that domain will need to call */
   void (*free)                (struct bfam_subdomain *thisSubdomain);
@@ -62,9 +64,32 @@ typedef struct bfam_subdomain
   /**< Add a field to the subdomain */
   int (*field_add) (struct bfam_subdomain *thisSubdomain, const char* name);
 
+  /**< Add a field to the plus side of the subdomain */
+  int (*field_plus_add) (struct bfam_subdomain *thisSubdomain,
+                         const char* name);
+  /**< Add a field to the minus side of the  subdomain */
+  int (*field_minus_add) (struct bfam_subdomain *thisSubdomain,
+                          const char* name);
+
   /**< Initialize a field in the subdomain */
   void (*field_init) (struct bfam_subdomain *thisSubdomain, const char* name,
       bfam_real_t time, bfam_subdomain_init_field_t init_field, void *arg);
+
+  /**< Send info for glue grid */
+  void (*glue_comm_send_info) (struct bfam_subdomain *thisSubdomain, int *rank,
+      bfam_locidx_t *subdomain_id, bfam_locidx_t *bytes);
+
+  /**< Recv info for glue grid */
+  void (*glue_comm_recv_info) (struct bfam_subdomain *thisSubdomain, int *rank,
+      bfam_locidx_t *subdomain_id, bfam_locidx_t *bytes);
+
+  /**< Put data into the send buffer */
+  void (*glue_put_send_buffer) (struct bfam_subdomain *thisSubdomain,
+      void *buffer);
+
+  /**< Get data from the recv buffer */
+  void (*glue_get_recv_buffer) (struct bfam_subdomain *thisSubdomain,
+      void *buffer);
 } bfam_subdomain_t;
 
 

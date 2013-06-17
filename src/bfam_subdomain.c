@@ -21,7 +21,12 @@ bfam_subdomain_init(bfam_subdomain_t *thisSubdomain, bfam_locidx_t id,
 
   thisSubdomain->vtk_write_vtu_piece = NULL;
   thisSubdomain->field_add           = NULL;
+  thisSubdomain->field_plus_add      = NULL;
+  thisSubdomain->field_minus_add     = NULL;
   thisSubdomain->field_init          = NULL;
+
+  thisSubdomain->glue_comm_send_info = NULL;
+  thisSubdomain->glue_comm_recv_info = NULL;
 }
 
 void
@@ -36,7 +41,12 @@ bfam_subdomain_free(bfam_subdomain_t *thisSubdomain)
 
   thisSubdomain->vtk_write_vtu_piece = NULL;
   thisSubdomain->field_add           = NULL;
+  thisSubdomain->field_plus_add      = NULL;
+  thisSubdomain->field_minus_add     = NULL;
   thisSubdomain->field_init          = NULL;
+
+  thisSubdomain->glue_comm_send_info = NULL;
+  thisSubdomain->glue_comm_recv_info = NULL;
 }
 
 void
@@ -65,6 +75,26 @@ bfam_subdomain_field_add(bfam_subdomain_t *thisSubdomain, const char* name)
 {
   if(thisSubdomain->field_add)
     return thisSubdomain->field_add(thisSubdomain, name);
+  else
+    return 0;
+}
+
+int
+bfam_subdomain_field_plus_add(bfam_subdomain_t *thisSubdomain,
+    const char* name)
+{
+  if(thisSubdomain->field_plus_add)
+    return thisSubdomain->field_plus_add(thisSubdomain, name);
+  else
+    return 0;
+}
+
+int
+bfam_subdomain_field_minus_add(bfam_subdomain_t *thisSubdomain,
+    const char* name)
+{
+  if(thisSubdomain->field_minus_add)
+    return thisSubdomain->field_minus_add(thisSubdomain, name);
   else
     return 0;
 }
