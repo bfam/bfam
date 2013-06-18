@@ -10,11 +10,13 @@ typedef struct bfam_subdomain_comm_test
 
 void
 bfam_subdomain_comm_test_info(bfam_subdomain_t *thisSubdomain,
-    int *rank, bfam_locidx_t *subdomain_id, size_t *send_sz, size_t *recv_sz)
+    int *rank, bfam_locidx_t *my_id, bfam_locidx_t *neigh_id,
+    size_t *send_sz, size_t *recv_sz)
 {
   bfam_subdomain_comm_test_t *sub = (bfam_subdomain_comm_test_t*) thisSubdomain;
   *rank = sub->np;
-  *subdomain_id = sub->ns;
+  *neigh_id = sub->ns;
+  *my_id = sub->base.id;
 
   *send_sz = (1+sub->base.id)*sizeof(bfam_real_t);
   *recv_sz = (1+sub->ns)*sizeof(bfam_real_t);
@@ -104,6 +106,8 @@ main (int argc, char *argv[])
   bfam_communicator_t* communicator = bfam_communicator_new(&domain,
       BFAM_DOMAIN_AND,tags,MPI_COMM_WORLD);
 
+  bfam_communicator_free(communicator);
+  bfam_free(communicator);
   bfam_domain_free(&domain);
   BFAM_MPI_CHECK(MPI_Finalize());
 }

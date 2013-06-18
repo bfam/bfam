@@ -7,6 +7,9 @@ typedef struct bfam_communicator
 {
   MPI_Comm comm;
   bfam_locidx_t numSubdomains;
+
+  void* send_buf;
+  void* recv_buf;
 } bfam_communicator_t;
 
 /** create a communicator
