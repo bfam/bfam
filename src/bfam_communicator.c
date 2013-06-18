@@ -19,12 +19,20 @@ bfam_communicator_init(bfam_communicator_t* communicator,
     MPI_Comm comm)
 {
   BFAM_VERBOSE("Communicator Init");
+  communicator-> comm = comm;
+
+  bfam_subdomain_t *subdomains[domain->numSubdomains];
+  bfam_domain_get_subdomains(domain, match, tags,
+      domain->numSubdomains,subdomains,&communicator->numSubdomains);
+  communicator->subdomains =
+    bfam_malloc(communicator->numSubdomains*sizeof(bfam_subdomain_t*));
 }
 
 void
 bfam_communicator_free(bfam_communicator_t *communicator)
 {
   BFAM_VERBOSE("Communicator Free");
+  bfam_free(communicator->subdomains);
 }
 
 void

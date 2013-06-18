@@ -5,6 +5,12 @@
 
 typedef struct bfam_communicator
 {
+  MPI_Comm comm;
+  MPI_Request *sendRequest;
+  MPI_Request *recvRequest;
+  MPI_Status *status;
+  bfam_locidx_t numSubdomains;
+  bfam_subdomain_t *subdomains;
 } bfam_communicator_t;
 
 /** create a communicator
