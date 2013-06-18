@@ -195,7 +195,7 @@ bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
   // double size
   if(thisDomain->numSubdomains == thisDomain->sizeSubdomains)
   {
-    BFAM_ROOT_VERBOSE("Doubling domain size");
+    BFAM_VERBOSE("Doubling domain size");
     thisDomain->sizeSubdomains = 2*thisDomain->sizeSubdomains;
     thisDomain->subdomains =
       bfam_realloc(thisDomain->subdomains,
@@ -203,7 +203,7 @@ bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
   }
 
   // create the key value pair
-  BFAM_ROOT_VERBOSE("adding subdomain %3d with name %s",
+  BFAM_VERBOSE("adding subdomain %3d with name %s",
       thisDomain->numSubdomains,newSubdomain->name);
   size_t len = strlen(newSubdomain->name);
 
