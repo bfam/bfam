@@ -460,6 +460,9 @@ target_link_libraries(bfam_test_aligned bfam)
 
 add_test(bfam_test_aligned_test bfam_test_aligned)
 
+add_executable(bfam_test_communicator tests/bfam_test_communicator.c)
+target_link_libraries(bfam_test_communicator bfam)
+
 add_executable(bfam_test_mpi tests/bfam_test_mpi.c)
 target_link_libraries(bfam_test_mpi bfam)
 
@@ -467,6 +470,11 @@ add_executable(bfam_test_jacobi tests/bfam_test_jacobi.c)
 target_link_libraries(bfam_test_jacobi bfam)
 
 add_test(bfam_test_jacobi_test bfam_test_jacobi)
+
+add_test(bfam_test_communicator_test
+  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
+  ${MPIEXEC_PREFLAGS} bfam_test_communicator ${MPIEXEC_POSTFLAGS})
+
 
 add_test(bfam_test_mpi_test
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
