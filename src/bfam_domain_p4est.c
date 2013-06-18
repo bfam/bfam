@@ -679,9 +679,11 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
   }
 
 
+  bfam_subdomain_dgx_quad_t **subdomains =
+    bfam_malloc(numSubdomains*sizeof(bfam_subdomain_t**));
   for(bfam_locidx_t id = 0; id < numSubdomains; ++id)
   {
-    bfam_subdomain_dgx_quad_t *subdomain =
+    subdomains[id] =
       bfam_subdomain_dgx_quad_new(id,
                                   name[id],
                                   N[id],
@@ -694,11 +696,12 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
                                   EToE[id],
                                   EToF[id]);
 
-    bfam_subdomain_add_tag((bfam_subdomain_t *) subdomain, "_volume");
+    bfam_subdomain_add_tag((bfam_subdomain_t *) subdomains[id], "_volume");
     bfam_domain_add_subdomain((bfam_domain_t    *) domain,
-                              (bfam_subdomain_t *) subdomain);
+                              (bfam_subdomain_t *) subdomains[id]);
   }
 
+  bfam_free(subdomains);
 
   for(bfam_locidx_t id = 0; id < numSubdomains; ++id)
   {
