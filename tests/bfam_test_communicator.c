@@ -3,9 +3,22 @@
 typedef struct bfam_subdomain_comm_test
 {
   bfam_subdomain_t base;
-  bfam_locidx_t    ns;
-  bfam_locidx_t    np;
+  bfam_locidx_t    ns; /*neighbor sub ID*/
+  bfam_locidx_t    np; /*neighbor ID*/
+  bfam_locidx_t  rank; /*my rank*/
 } bfam_subdomain_comm_test_t;
+
+void
+bfam_subdomain_comm_test_info(bfam_subdomain_t *thisSubdomain,
+    int *rank, bfam_locidx_t *subdomain_id, size_t *send_sz, size_t *recv_sz)
+{
+  bfam_subdomain_comm_test_t *sub = (bfam_subdomain_comm_test_t*) thisSubdomain;
+  *rank = sub->np;
+  *subdomain_id = sub->ns;
+
+  *send_sz = (1+sub->base.id)*sizeof(bfam_real_t);
+  *recv_sz = (1+sub->ns)*sizeof(bfam_real_t);
+}
 
 int
 main (int argc, char *argv[])
@@ -31,36 +44,42 @@ main (int argc, char *argv[])
     for(int i = 0; i < size; i++)
     {
       char tmp[BFAM_BUFSIZ];
-      sprintf(tmp,"%d_%d",rank,i);
+      sprintf(tmp,"%d_%d_%d_%d",rank,i,i,10*i);
       bfam_subdomain_comm_test_t* newSub =
         bfam_malloc(sizeof(bfam_subdomain_comm_test_t));
       bfam_subdomain_init((bfam_subdomain_t*) newSub,i,tmp);
       newSub->ns = 10*i;
       newSub->np =    i;
+      newSub->rank =  rank;
+      newSub->base.glue_comm_info = &bfam_subdomain_comm_test_info;
       bfam_subdomain_add_tag((bfam_subdomain_t*) newSub,"_glue");
       bfam_domain_add_subdomain(&domain,(bfam_subdomain_t*) newSub);
     }
 
     {
       char tmp[BFAM_BUFSIZ];
-      sprintf(tmp,"%d_%d_%d",rank,rank,size);
+      sprintf(tmp,"%d_%d_%d_%d",rank,rank,size,size+1);
       bfam_subdomain_comm_test_t* newSub =
         bfam_malloc(sizeof(bfam_subdomain_comm_test_t));
       bfam_subdomain_init((bfam_subdomain_t*) newSub,size,tmp);
       newSub->ns = size+1;
       newSub->np = 0;
+      newSub->rank =  rank;
+      newSub->base.glue_comm_info = &bfam_subdomain_comm_test_info;
       bfam_subdomain_add_tag((bfam_subdomain_t*) newSub,"_glue");
       bfam_domain_add_subdomain(&domain,(bfam_subdomain_t*) newSub);
     }
 
     {
       char tmp[BFAM_BUFSIZ];
-      sprintf(tmp,"%d_%d_%d",rank,rank,size+1);
+      sprintf(tmp,"%d_%d_%d_%d",rank,rank,size+1,size);
       bfam_subdomain_comm_test_t* newSub =
         bfam_malloc(sizeof(bfam_subdomain_comm_test_t));
       bfam_subdomain_init((bfam_subdomain_t*) newSub,size+1,tmp);
       newSub->ns = size;
       newSub->np = 0;
+      newSub->rank =  rank;
+      newSub->base.glue_comm_info = &bfam_subdomain_comm_test_info;
       bfam_subdomain_add_tag((bfam_subdomain_t*) newSub,"_glue");
       bfam_domain_add_subdomain(&domain,(bfam_subdomain_t*) newSub);
     }
@@ -68,12 +87,14 @@ main (int argc, char *argv[])
   else
   {
     char tmp[BFAM_BUFSIZ];
-    sprintf(tmp,"%d_%d",rank,0);
+    sprintf(tmp,"%d_%d_%d_%d",rank,0,10*rank,rank);
     bfam_subdomain_comm_test_t* newSub =
       bfam_malloc(sizeof(bfam_subdomain_comm_test_t));
     bfam_subdomain_init((bfam_subdomain_t*) newSub,10*rank,tmp);
     newSub->ns = rank;
     newSub->np =    0;
+    newSub->rank =  rank;
+    newSub->base.glue_comm_info = &bfam_subdomain_comm_test_info;
     bfam_subdomain_add_tag((bfam_subdomain_t*) newSub,"_glue");
     bfam_domain_add_subdomain(&domain,(bfam_subdomain_t*) newSub);
   }
