@@ -6,6 +6,38 @@
 #include <bfam_critbit.h>
 #include <bfam_dictionary.h>
 
+typedef struct bfam_subdomain_face_map_entry
+{
+  bfam_locidx_t np; /* Neighbor's processor number */
+  bfam_locidx_t ns; /* Neighbor's subdomain id */
+  bfam_locidx_t nk; /* Neighbor's element number */
+  int8_t        nf; /* Neighbor's face number */
+  int8_t        nh; /* Neighbor's hanging number */
+
+  bfam_locidx_t  s; /* Local subdomain id */
+  bfam_locidx_t  k; /* Local element number */
+  int8_t         f; /* Local face number */
+  int8_t         h; /* Local hanging number */
+  int8_t         o; /* Local orientation */
+
+  bfam_locidx_t gi; /* Index variable */
+  bfam_locidx_t  i; /* Index variable */
+} bfam_subdomain_face_map_entry_t;
+
+/*
+ * Compare function which sorts a bfam_subdomain_face_map_entry_t array
+ * in sending order.
+ */
+int
+bfam_subdomain_face_send_cmp(const void *a, const void *b);
+
+/*
+ * Compare function which sorts a bfam_subdomain_face_map_entry_t array
+ * in receiving order.
+ */
+int
+bfam_subdomain_face_recv_cmp(const void *a, const void *b);
+
 struct bfam_subdomain;
 
 /*

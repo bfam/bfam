@@ -1,6 +1,105 @@
 #include <bfam_subdomain.h>
 #include <bfam_base.h>
 
+/*
+ * Compare function which sorts a bfam_subdomain_face_map_entry_t array
+ * in sending order.
+ */
+int
+bfam_subdomain_face_send_cmp(const void* a, const void*b)
+{
+  const bfam_subdomain_face_map_entry_t *la = a;
+  const bfam_subdomain_face_map_entry_t *lb = b;
+
+  if(la->np < lb->np)
+    return -1;
+  else if(la->np > lb->np)
+    return  1;
+  else
+  {
+    if(la->ns < lb->ns)
+      return -1;
+    else if(la->ns > lb->ns)
+      return  1;
+    else
+    {
+      if(la->nk < lb->nk)
+        return -1;
+      else if(la->nk > lb->nk)
+        return  1;
+      else
+      {
+        if(la->nf < lb->nf)
+          return -1;
+        else if(la->nf > lb->nf)
+          return  1;
+        else
+        {
+          if(la->nh < lb->nh)
+            return -1;
+          else if(la->nh > lb->nh)
+            return  1;
+          else
+          {
+            return 0;
+          }
+        }
+      }
+    }
+  }
+
+  BFAM_ABORT("We should never reach here.");
+}
+
+/*
+ * Compare function which sorts a bfam_subdomain_face_map_entry_t array
+ * in receiving order.
+ */
+int
+bfam_subdomain_face_recv_cmp(const void* a, const void*b)
+{
+  const bfam_subdomain_face_map_entry_t *la = a;
+  const bfam_subdomain_face_map_entry_t *lb = b;
+
+  if(la->np < lb->np)
+    return -1;
+  else if(la->np > lb->np)
+    return  1;
+  else
+  {
+    if(la->s < lb->s)
+      return -1;
+    else if(la->s > lb->s)
+      return  1;
+    else
+    {
+      if(la->k < lb->k)
+        return -1;
+      else if(la->k > lb->k)
+        return  1;
+      else
+      {
+        if(la->f < lb->f)
+          return -1;
+        else if(la->f > lb->f)
+          return  1;
+        else
+        {
+          if(la->h < lb->h)
+            return -1;
+          else if(la->h > lb->h)
+            return  1;
+          else
+          {
+            return 0;
+          }
+        }
+      }
+    }
+  }
+
+  BFAM_ABORT("We should never reach here.");
+}
 
 void
 bfam_subdomain_init(bfam_subdomain_t *thisSubdomain, bfam_locidx_t id,

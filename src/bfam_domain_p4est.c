@@ -77,130 +77,12 @@ bfam_domain_p4est_num_parallel_faces(p4est_mesh_t *mesh)
   return numParallelFaces;
 }
 
-typedef struct bfam_domain_p4est_map_entry
-{
-  bfam_locidx_t np; /* Neighbor's processor number */
-  bfam_locidx_t ns; /* Neighbor's subdomain id */
-  bfam_locidx_t nk; /* Neighbor's element number */
-  int8_t        nf; /* Neighbor's face number */
-  int8_t        nh; /* Neighbor's hanging number */
-
-  bfam_locidx_t gi; /* Index into ghost elements */
-
-  bfam_locidx_t i; /* Index into local parallel faces */
-  bfam_locidx_t s; /* Local subdomain id */
-  bfam_locidx_t k; /* Local element number */
-  int8_t        f; /* Local face number */
-  int8_t        h; /* Local hanging number */
-  int8_t        o; /* Local orientation */
-} bfam_domain_p4est_map_entry_t;
-
-/*
- * Compare function which sorts a bfam_domain_p4est_map_entry_t array
- * in sending order.
- */
-static int
-bfam_domain_p4est_parallel_face_mapping_send_cmp(const void* a, const void*b)
-{
-  const bfam_domain_p4est_map_entry_t *la = a;
-  const bfam_domain_p4est_map_entry_t *lb = b;
-
-  if(la->np < lb->np)
-    return -1;
-  else if(la->np > lb->np)
-    return  1;
-  else
-  {
-    if(la->ns < lb->ns)
-      return -1;
-    else if(la->ns > lb->ns)
-      return  1;
-    else
-    {
-      if(la->nk < lb->nk)
-        return -1;
-      else if(la->nk > lb->nk)
-        return  1;
-      else
-      {
-        if(la->nf < lb->nf)
-          return -1;
-        else if(la->nf > lb->nf)
-          return  1;
-        else
-        {
-          if(la->nh < lb->nh)
-            return -1;
-          else if(la->nh > lb->nh)
-            return  1;
-          else
-          {
-            return 0;
-          }
-        }
-      }
-    }
-  }
-
-  BFAM_ABORT("We should never reach here.");
-}
-
-/*
- * Compare function which sorts a bfam_domain_p4est_map_entry_t array
- * in receiving order.
- */
-static int
-bfam_domain_p4est_parallel_face_mapping_recv_cmp(const void* a, const void*b)
-{
-  const bfam_domain_p4est_map_entry_t *la = a;
-  const bfam_domain_p4est_map_entry_t *lb = b;
-
-  if(la->np < lb->np)
-    return -1;
-  else if(la->np > lb->np)
-    return  1;
-  else
-  {
-    if(la->s < lb->s)
-      return -1;
-    else if(la->s > lb->s)
-      return  1;
-    else
-    {
-      if(la->k < lb->k)
-        return -1;
-      else if(la->k > lb->k)
-        return  1;
-      else
-      {
-        if(la->f < lb->f)
-          return -1;
-        else if(la->f > lb->f)
-          return  1;
-        else
-        {
-          if(la->h < lb->h)
-            return -1;
-          else if(la->h > lb->h)
-            return  1;
-          else
-          {
-            return 0;
-          }
-        }
-      }
-    }
-  }
-
-  BFAM_ABORT("We should never reach here.");
-}
-
 /** Build the parallel face mapping array.
  *
  * This array is used to determine the order in which data is sent
  * and received around the forest.  The order can be obtained by sorting
- * the mapping using \c bfam_domain_p4est_parallel_face_mapping_send_cmp
- * and \c bfam_domain_p4est_parallel_face_mapping_recv_cmp comparison
+ * the mapping using \c bfam_subdomain_face_send_cmp
+ * and \c bfam_domain_p4est_face_recv_cmp comparison
  * functions.
  *
  * \param [in]  mesh             p4est mesh to build the mapping for.
@@ -211,7 +93,7 @@ bfam_domain_p4est_parallel_face_mapping_recv_cmp(const void* a, const void*b)
  */
 static void
 bfam_domain_p4est_parallel_face_mapping(p4est_mesh_t *mesh,
-    bfam_locidx_t numParallelFaces, bfam_domain_p4est_map_entry_t *mapping)
+    bfam_locidx_t numParallelFaces, bfam_subdomain_face_map_entry_t *mapping)
 {
   const p4est_locidx_t K = mesh->local_num_quadrants;
 
@@ -303,8 +185,8 @@ bfam_domain_p4est_parallel_face_mapping(p4est_mesh_t *mesh,
     }
   }
 
-  qsort(mapping, numParallelFaces, sizeof(bfam_domain_p4est_map_entry_t),
-      bfam_domain_p4est_parallel_face_mapping_send_cmp);
+  qsort(mapping, numParallelFaces, sizeof(bfam_subdomain_face_map_entry_t),
+      bfam_subdomain_face_send_cmp);
 
 #ifdef BFAM_DEBUG
   {
@@ -337,10 +219,10 @@ bfam_domain_p4est_parallel_face_mapping(p4est_mesh_t *mesh,
  */
 static bfam_locidx_t
 bfam_domain_p4est_parallel_face_num_neighbors(bfam_locidx_t numParallelFaces,
-    bfam_domain_p4est_map_entry_t *mapping)
+    bfam_subdomain_face_map_entry_t *mapping)
 {
-  qsort(mapping, numParallelFaces, sizeof(bfam_domain_p4est_map_entry_t),
-      bfam_domain_p4est_parallel_face_mapping_send_cmp);
+  qsort(mapping, numParallelFaces, sizeof(bfam_subdomain_face_map_entry_t),
+      bfam_subdomain_face_send_cmp);
 
   bfam_locidx_t numNeighbors = 0;
 
@@ -365,11 +247,11 @@ bfam_domain_p4est_parallel_face_num_neighbors(bfam_locidx_t numParallelFaces,
  */
 static void
 bfam_domain_p4est_num_neighbor_faces(bfam_locidx_t numParallelFaces,
-    bfam_domain_p4est_map_entry_t *mapping, bfam_locidx_t numNeighbors,
+    bfam_subdomain_face_map_entry_t *mapping, bfam_locidx_t numNeighbors,
     bfam_locidx_t *numNeighborFaces, bfam_locidx_t *neighborRank)
 {
-  qsort(mapping, numParallelFaces, sizeof(bfam_domain_p4est_map_entry_t),
-      bfam_domain_p4est_parallel_face_mapping_send_cmp);
+  qsort(mapping, numParallelFaces, sizeof(bfam_subdomain_face_map_entry_t),
+      bfam_subdomain_face_send_cmp);
 
 
   if(numParallelFaces != 0)
@@ -435,7 +317,7 @@ bfam_domain_p4est_num_neighbor_faces(bfam_locidx_t numParallelFaces,
  */
 static void
 bfam_domain_p4est_parallel_face_send_recv(MPI_Comm comm,
-    bfam_locidx_t numParallelFaces, bfam_domain_p4est_map_entry_t *mapping,
+    bfam_locidx_t numParallelFaces, bfam_subdomain_face_map_entry_t *mapping,
     bfam_locidx_t numNeighbors, bfam_locidx_t *numNeighborFaces,
     bfam_locidx_t *neighborRank, bfam_locidx_t entries,
     bfam_locidx_t *sendBuffer, bfam_locidx_t *recvBuffer)
@@ -498,7 +380,7 @@ bfam_domain_p4est_parallel_face_send_recv(MPI_Comm comm,
  */
 static void
 bfam_domain_p4est_parallel_face_mapping_check(MPI_Comm comm,
-    bfam_locidx_t numParallelFaces, bfam_domain_p4est_map_entry_t *mapping,
+    bfam_locidx_t numParallelFaces, bfam_subdomain_face_map_entry_t *mapping,
     bfam_locidx_t numNeighbors, bfam_locidx_t *numNeighborFaces,
     bfam_locidx_t *neighborRank)
 {
@@ -512,8 +394,8 @@ bfam_domain_p4est_parallel_face_mapping_check(MPI_Comm comm,
   /*
    * Sort the mapping in send order
    */
-  qsort(mapping, numParallelFaces, sizeof(bfam_domain_p4est_map_entry_t),
-      bfam_domain_p4est_parallel_face_mapping_send_cmp);
+  qsort(mapping, numParallelFaces, sizeof(bfam_subdomain_face_map_entry_t),
+      bfam_subdomain_face_send_cmp);
 
   /*
    * Fill Send buffers
@@ -538,8 +420,8 @@ bfam_domain_p4est_parallel_face_mapping_check(MPI_Comm comm,
   /*
    * Sort the mapping in recv order
    */
-  qsort(mapping, numParallelFaces, sizeof(bfam_domain_p4est_map_entry_t),
-      bfam_domain_p4est_parallel_face_mapping_recv_cmp);
+  qsort(mapping, numParallelFaces, sizeof(bfam_subdomain_face_map_entry_t),
+      bfam_subdomain_face_recv_cmp);
 
   /*
    * Check the receive buffers
@@ -581,7 +463,7 @@ bfam_domain_p4est_parallel_face_mapping_check(MPI_Comm comm,
  */
 static void
 bfam_domain_p4est_fill_ghost_subdomain_ids(MPI_Comm comm,
-    bfam_locidx_t numParallelFaces, bfam_domain_p4est_map_entry_t *mapping,
+    bfam_locidx_t numParallelFaces, bfam_subdomain_face_map_entry_t *mapping,
     bfam_locidx_t numNeighbors, bfam_locidx_t *numNeighborFaces,
     bfam_locidx_t *neighborRank, bfam_locidx_t *subdomainID,
     int *N, bfam_locidx_t *ghostSubdomainID, bfam_locidx_t *ghostN)
@@ -596,8 +478,8 @@ bfam_domain_p4est_fill_ghost_subdomain_ids(MPI_Comm comm,
   /*
    * Sort the mapping in send order
    */
-  qsort(mapping, numParallelFaces, sizeof(bfam_domain_p4est_map_entry_t),
-      bfam_domain_p4est_parallel_face_mapping_send_cmp);
+  qsort(mapping, numParallelFaces, sizeof(bfam_subdomain_face_map_entry_t),
+      bfam_subdomain_face_send_cmp);
 
   /*
    * Fill Send buffers
@@ -616,8 +498,8 @@ bfam_domain_p4est_fill_ghost_subdomain_ids(MPI_Comm comm,
   /*
    * Sort the mapping in recv order
    */
-  qsort(mapping, numParallelFaces, sizeof(bfam_domain_p4est_map_entry_t),
-      bfam_domain_p4est_parallel_face_mapping_recv_cmp);
+  qsort(mapping, numParallelFaces, sizeof(bfam_subdomain_face_map_entry_t),
+      bfam_subdomain_face_recv_cmp);
 
   /*
    * Fill mapping with subdomain id
@@ -673,9 +555,9 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
 
   bfam_locidx_t numParallelFaces = bfam_domain_p4est_num_parallel_faces(mesh);
 
-  bfam_domain_p4est_map_entry_t *mapping
+  bfam_subdomain_face_map_entry_t *mapping
     = bfam_malloc_aligned(numParallelFaces*
-        sizeof(bfam_domain_p4est_map_entry_t));
+        sizeof(bfam_subdomain_face_map_entry_t));
 
   bfam_domain_p4est_parallel_face_mapping(mesh, numParallelFaces, mapping);
 
