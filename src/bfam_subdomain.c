@@ -23,25 +23,32 @@ bfam_subdomain_face_send_cmp(const void* a, const void*b)
       return  1;
     else
     {
-      if(la->nk < lb->nk)
+      if(la->s < lb->s)
         return -1;
-      else if(la->nk > lb->nk)
+      else if(la->s > lb->s)
         return  1;
       else
       {
-        if(la->nf < lb->nf)
+        if(la->nk < lb->nk)
           return -1;
-        else if(la->nf > lb->nf)
+        else if(la->nk > lb->nk)
           return  1;
         else
         {
-          if(la->nh < lb->nh)
+          if(la->nf < lb->nf)
             return -1;
-          else if(la->nh > lb->nh)
+          else if(la->nf > lb->nf)
             return  1;
           else
           {
-            return 0;
+            if(la->nh < lb->nh)
+              return -1;
+            else if(la->nh > lb->nh)
+              return  1;
+            else
+            {
+              return 0;
+            }
           }
         }
       }
@@ -73,25 +80,32 @@ bfam_subdomain_face_recv_cmp(const void* a, const void*b)
       return  1;
     else
     {
-      if(la->k < lb->k)
+      if(la->ns < lb->ns)
         return -1;
-      else if(la->k > lb->k)
+      else if(la->ns > lb->ns)
         return  1;
       else
       {
-        if(la->f < lb->f)
+        if(la->k < lb->k)
           return -1;
-        else if(la->f > lb->f)
+        else if(la->k > lb->k)
           return  1;
         else
         {
-          if(la->h < lb->h)
+          if(la->f < lb->f)
             return -1;
-          else if(la->h > lb->h)
+          else if(la->f > lb->f)
             return  1;
           else
           {
-            return 0;
+            if(la->h < lb->h)
+              return -1;
+            else if(la->h > lb->h)
+              return  1;
+            else
+            {
+              return 0;
+            }
           }
         }
       }
