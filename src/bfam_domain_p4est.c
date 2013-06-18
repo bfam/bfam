@@ -555,14 +555,14 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
 
   bfam_locidx_t numParallelFaces = bfam_domain_p4est_num_parallel_faces(mesh);
 
-  bfam_subdomain_face_map_entry_t *mapping
+  bfam_subdomain_face_map_entry_t *pfmapping
     = bfam_malloc_aligned(numParallelFaces*
         sizeof(bfam_subdomain_face_map_entry_t));
 
-  bfam_domain_p4est_parallel_face_mapping(mesh, numParallelFaces, mapping);
+  bfam_domain_p4est_parallel_face_mapping(mesh, numParallelFaces, pfmapping);
 
   bfam_locidx_t numNeighbors =
-    bfam_domain_p4est_parallel_face_num_neighbors(numParallelFaces, mapping);
+    bfam_domain_p4est_parallel_face_num_neighbors(numParallelFaces, pfmapping);
 
   bfam_locidx_t *numNeighborFaces =
     bfam_malloc_aligned(numNeighbors*sizeof(bfam_locidx_t));
@@ -570,16 +570,17 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
   bfam_locidx_t *neighborRank =
     bfam_malloc_aligned(numNeighbors*sizeof(bfam_locidx_t));
 
-  bfam_domain_p4est_num_neighbor_faces(numParallelFaces, mapping, numNeighbors,
-      numNeighborFaces, neighborRank);
+  bfam_domain_p4est_num_neighbor_faces(numParallelFaces, pfmapping,
+      numNeighbors, numNeighborFaces, neighborRank);
 
 #ifdef BFAM_DEBUG
   bfam_domain_p4est_parallel_face_mapping_check(p4est->mpicomm,
-      numParallelFaces, mapping, numNeighbors, numNeighborFaces, neighborRank);
+      numParallelFaces, pfmapping, numNeighbors, numNeighborFaces,
+      neighborRank);
 #endif
 
   bfam_domain_p4est_fill_ghost_subdomain_ids(p4est->mpicomm, numParallelFaces,
-      mapping, numNeighbors, numNeighborFaces, neighborRank, subdomainID, N,
+      pfmapping, numNeighbors, numNeighborFaces, neighborRank, subdomainID, N,
       ghostSubdomainID, ghostN);
 
   /*
@@ -719,7 +720,7 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
 
   bfam_free_aligned(neighborRank);
   bfam_free_aligned(numNeighborFaces);
-  bfam_free_aligned(mapping);
+  bfam_free_aligned(pfmapping);
   bfam_free(ghostN);
   bfam_free(ghostSubdomainID);
 
