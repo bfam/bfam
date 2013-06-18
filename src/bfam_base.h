@@ -225,6 +225,7 @@ typedef long double bfam_long_real_t;
 
 /* Type for runtime computations */
 typedef double bfam_real_t;
+#define BFAM_MP_REAL MPI_DOUBLE
 #define BFAM_REAL(x) BFAM_APPEND(x, )
 #define BFAM_REAL_PRIe "e"
 #define BFAM_REAL_PRIf "f"
