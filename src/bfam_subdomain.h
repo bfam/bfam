@@ -75,13 +75,9 @@ typedef struct bfam_subdomain
   void (*field_init) (struct bfam_subdomain *thisSubdomain, const char* name,
       bfam_real_t time, bfam_subdomain_init_field_t init_field, void *arg);
 
-  /**< Send info for glue grid */
-  void (*glue_comm_send_info) (struct bfam_subdomain *thisSubdomain, int *rank,
-      bfam_locidx_t *subdomain_id, bfam_locidx_t *bytes);
-
-  /**< Recv info for glue grid */
-  void (*glue_comm_recv_info) (struct bfam_subdomain *thisSubdomain, int *rank,
-      bfam_locidx_t *subdomain_id, bfam_locidx_t *bytes);
+  /**< Glue grid communication info */
+  void (*glue_comm_info) (struct bfam_subdomain *thisSubdomain, int *rank,
+      bfam_locidx_t *subdomain_id, size_t *send_sz, size_t *recv_sz);
 
   /**< Put data into the send buffer */
   void (*glue_put_send_buffer) (struct bfam_subdomain *thisSubdomain,

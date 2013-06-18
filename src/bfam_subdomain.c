@@ -25,8 +25,7 @@ bfam_subdomain_init(bfam_subdomain_t *thisSubdomain, bfam_locidx_t id,
   thisSubdomain->field_minus_add     = NULL;
   thisSubdomain->field_init          = NULL;
 
-  thisSubdomain->glue_comm_send_info = NULL;
-  thisSubdomain->glue_comm_recv_info = NULL;
+  thisSubdomain->glue_comm_info      = NULL;
 }
 
 void
@@ -45,8 +44,7 @@ bfam_subdomain_free(bfam_subdomain_t *thisSubdomain)
   thisSubdomain->field_minus_add     = NULL;
   thisSubdomain->field_init          = NULL;
 
-  thisSubdomain->glue_comm_send_info = NULL;
-  thisSubdomain->glue_comm_recv_info = NULL;
+  thisSubdomain->glue_comm_info      = NULL;
 }
 
 void
