@@ -601,6 +601,7 @@ bfam_domain_p4est_num_inter_subdomain_faces(p4est_mesh_t *mesh,
  * and \c bfam_subdomain_face_recv_cmp comparison
  * functions.
  *
+ * \param [in]  rank                   local MPI rank.
  * \param [in]  mesh                   p4est mesh to build the mapping for.
  * \param [in]  subdomainID            subdomain id of each element in the mesh.
  * \param [in]  numInterSubdomainFaces the number of inter subdomain faces in
