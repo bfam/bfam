@@ -285,17 +285,17 @@ bfam_domain_p4est_num_neighbor_faces(bfam_locidx_t numParallelFaces,
     for(bfam_locidx_t n = 0; n < numNeighbors; ++n)
       faces += numNeighborFaces[n];
 
-    BFAM_INFO(" XXX  NumNeighbors %zd", (intmax_t) numNeighbors);
+    BFAM_LDEBUG(" XXX  NumNeighbors %zd", (intmax_t) numNeighbors);
     for(bfam_locidx_t n = 0; n < numNeighbors; ++n)
-      BFAM_INFO(" XXX     neighborFaces[%zd] = %zd", (intmax_t) n,
+      BFAM_LDEBUG(" XXX     neighborFaces[%zd] = %zd", (intmax_t) n,
           (intmax_t) numNeighborFaces[n]);
 
     for(bfam_locidx_t n = 0; n < numNeighbors; ++n)
-      BFAM_INFO(" XXX     neighborRanks[%zd] = %zd", (intmax_t) n,
+      BFAM_LDEBUG(" XXX     neighborRanks[%zd] = %zd", (intmax_t) n,
           (intmax_t) neighborRank[n]);
 
 
-    BFAM_INFO(" XXX  faces: %zd =?= %zd", (intmax_t) faces,
+    BFAM_LDEBUG(" XXX  faces: %zd =?= %zd", (intmax_t) faces,
         (intmax_t) numParallelFaces);
 
     BFAM_ASSERT(faces == numParallelFaces);
