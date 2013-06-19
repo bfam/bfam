@@ -1069,6 +1069,7 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
                                          id_m,
                                          id_p,
                                          subdomains[id_m],
+                                         ktosubk,
                                          Kglue,
                                          ifmapping + ifk);
 
@@ -1128,6 +1129,7 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
                                        id_m,
                                        id_p,
                                        subdomains[id_m],
+                                       ktosubk,
                                        Kglue,
                                        bfmapping + bfk);
 
@@ -1187,6 +1189,7 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
                                        id_m,
                                        id_p,
                                        subdomains[id_m],
+                                       ktosubk,
                                        Kglue,
                                        pfmapping + pfk);
 

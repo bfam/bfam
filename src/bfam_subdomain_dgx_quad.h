@@ -164,6 +164,7 @@ typedef struct bfam_subdomain_dgx_quad_glue
  * \param [in]     id_m        minus side subdomain id
  * \param [in]     id_p        plus  side subdomain id
  * \param [in]     subdomain_m minus side subdomain pointer
+ * \param [in]     ktok_m      map: element number -> minus side element number
  * \param [in]     K           number of elements in the glue grid
  * \param [in,out] mapping     face mapping (might get sorted)
  *
@@ -180,6 +181,7 @@ bfam_subdomain_dgx_quad_glue_new(const bfam_locidx_t              id,
                                  const bfam_locidx_t              id_m,
                                  const bfam_locidx_t              id_p,
                                  bfam_subdomain_dgx_quad_t       *sub_m,
+                                 bfam_locidx_t                   *ktok_m,
                                  const bfam_locidx_t              K,
                                  bfam_subdomain_face_map_entry_t *mapping);
 
@@ -197,6 +199,7 @@ bfam_subdomain_dgx_quad_glue_new(const bfam_locidx_t              id,
  * \param [in]     id_m         minus side subdomain id
  * \param [in]     id_p         plus  side subdomain id
  * \param [in]     subdomain_m  minus side subdomain pointer
+ * \param [in]     ktok_m       map: element number -> minus side element number
  * \param [in]     K            number of elements in the glue grid
  * \param [in,out] mapping      face mapping (might get sorted)
  *
@@ -212,6 +215,7 @@ bfam_subdomain_dgx_quad_glue_init(bfam_subdomain_dgx_quad_glue_t  *subdomain,
                                   const bfam_locidx_t              id_m,
                                   const bfam_locidx_t              id_p,
                                   bfam_subdomain_dgx_quad_t       *sub_m,
+                                  bfam_locidx_t                   *ktok_m,
                                   const bfam_locidx_t              K,
                                   bfam_subdomain_face_map_entry_t *mapping);
 

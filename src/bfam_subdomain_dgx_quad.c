@@ -481,6 +481,7 @@ bfam_subdomain_dgx_quad_glue_new(const bfam_locidx_t              id,
                                  const bfam_locidx_t              id_m,
                                  const bfam_locidx_t              id_p,
                                  bfam_subdomain_dgx_quad_t       *sub_m,
+                                 bfam_locidx_t                   *ktok_m,
                                  const bfam_locidx_t              K,
                                  bfam_subdomain_face_map_entry_t *mapping)
 {
@@ -488,7 +489,7 @@ bfam_subdomain_dgx_quad_glue_new(const bfam_locidx_t              id,
     bfam_malloc(sizeof(bfam_subdomain_dgx_quad_glue_t));
 
   bfam_subdomain_dgx_quad_glue_init(newSubdomain, id, name, N_m, N_p, rank_m,
-      rank_p, id_m, id_p, sub_m, K, mapping);
+      rank_p, id_m, id_p, sub_m, ktok_m, K, mapping);
 
   return newSubdomain;
 }
@@ -504,6 +505,7 @@ bfam_subdomain_dgx_quad_glue_init(bfam_subdomain_dgx_quad_glue_t  *subdomain,
                                   const bfam_locidx_t              id_m,
                                   const bfam_locidx_t              id_p,
                                   bfam_subdomain_dgx_quad_t       *sub_m,
+                                  bfam_locidx_t                   *ktok_m,
                                   const bfam_locidx_t              K,
                                   bfam_subdomain_face_map_entry_t *mapping)
 {
