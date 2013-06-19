@@ -47,18 +47,6 @@ bfam_communicator_send_compare(const void *a, const void *b)
     rval = -1;
   else if(mapA->ms < mapB->ms)
     rval =  1;
-  else if(mapA->subdomain->id > mapB->subdomain->id)
-  {
-    BFAM_ABORT_IF_NOT(mapA->np == mapA->rank,
-        "if comparing sub id must be local comm");
-    rval = -1;
-  }
-  else if(mapA->subdomain->id < mapB->subdomain->id)
-  {
-    BFAM_ABORT_IF_NOT(mapA->np == mapA->rank,
-        "if comparing sub id must be local comm");
-    rval =  1;
-  }
   BFAM_ABORT_IF_NOT(rval,"Should not be same map!");
 
   return rval;
@@ -86,18 +74,6 @@ bfam_communicator_recv_compare(const void *a, const void *b)
     rval = -1;
   else if(mapA->ns < mapB->ns)
     rval =  1;
-  else if(mapA->subdomain->id > mapB->subdomain->id)
-  {
-    BFAM_ABORT_IF_NOT(mapA->np == mapA->rank,
-        "if comparing sub id must be local comm");
-    rval = -1;
-  }
-  else if(mapA->subdomain->id < mapB->subdomain->id)
-  {
-    BFAM_ABORT_IF_NOT(mapA->np == mapA->rank,
-        "if comparing sub id must be local comm");
-    rval =  1;
-  }
   BFAM_ABORT_IF_NOT(rval,"Should not be same map!");
 
   return rval;
