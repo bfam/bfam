@@ -3,48 +3,58 @@
 
 #include <bfam_domain.h>
 
+/**
+ * structure for storing subdomain specific data for the communicator
+ */
 typedef struct bfam_comm_subdata
 {
-  bfam_subdomain_t* subdomain;
+  bfam_subdomain_t* subdomain; /**< pointer to my local subdomain */
 
-  size_t send_sz;
-  void*  send_buf;
+  size_t send_sz;  /**< amount of data this subdomain can send */
+  void*  send_buf; /**< pointer for local send buffer */
 
-  size_t recv_sz;
-  void*  recv_buf;
+  size_t recv_sz;  /**< amount of data this subdomain should receive */
+  void*  recv_buf; /**< pointer for local recv buffer */
 } bfam_comm_subdata_t;
 
+/**
+ * structure for storing processor specific data for the communicator
+ */
 typedef struct bfam_comm_procdata
 {
-  bfam_locidx_t rank;
+  bfam_locidx_t rank; /**< neighboring processors rank */
 
-  size_t send_sz;
-  void*  send_buf;
+  size_t send_sz;  /**< amount to send */
+  void*  send_buf; /**< pointer to send buffer */
 
-  size_t recv_sz;
-  void*  recv_buf;
+  size_t recv_sz;  /**< amount to recv */
+  void*  recv_buf; /**< pointer to recv buffer */
 } bfam_comm_procdata_t;
 
+/**
+ * structure for doing communication
+ */
 typedef struct bfam_communicator
 {
-  MPI_Comm comm;
-  bfam_locidx_t num_subs;
+  MPI_Comm comm;          /**< communicator used for communication */
+  int tag;                /**< user specified tag for this communicator */
+  bfam_locidx_t num_subs; /**< number of subdomains in the communicator */
 
-  bfam_locidx_t  num_procs;
+  bfam_locidx_t  num_procs; /**< number of processors in the communicator */
 
-  MPI_Request *send_request;
-  MPI_Request *recv_request;
+  MPI_Request *send_request; /**< send request */
+  MPI_Request *recv_request; /**< recv request */
 
-  MPI_Status  *send_status;
-  MPI_Status  *recv_status;
+  MPI_Status  *send_status; /**< send status */
+  MPI_Status  *recv_status; /**< recv status */
 
-  void*   send_buf;
-  void*   recv_buf;
+  void*   send_buf; /**< full send buffer */
+  void*   recv_buf; /**< full recv buffer */
 
-  bfam_comm_procdata_t* proc_data;
-  bfam_comm_subdata_t*  sub_data;
-
-  int tag;
+  bfam_comm_procdata_t* proc_data; /**< array of structure with neighboring
+                                        processor data */
+  bfam_comm_subdata_t*  sub_data;  /**< array of structure with subdomains
+                                        specific information */
 } bfam_communicator_t;
 
 /** create a communicator
