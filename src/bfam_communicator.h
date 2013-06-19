@@ -3,13 +3,46 @@
 
 #include <bfam_domain.h>
 
+typedef struct bfam_comm_subdata
+{
+  bfam_subdomain_t* subdomain;
+
+  size_t send_sz;
+  void*  send_buf;
+
+  size_t recv_sz;
+  void*  recv_buf;
+} bfam_comm_subdata_t;
+
+typedef struct bfam_comm_procdata
+{
+  bfam_locidx_t rank;
+
+  size_t send_sz;
+  void*  send_buf;
+
+  size_t recv_sz;
+  void*  recv_buf;
+} bfam_comm_procdata_t;
+
 typedef struct bfam_communicator
 {
   MPI_Comm comm;
   bfam_locidx_t numSubdomains;
 
-  void* send_buf;
-  void* recv_buf;
+  bfam_locidx_t  numProc;
+  bfam_locidx_t* procID;
+
+  void*   send_buf;
+  void**  proc_send_buf;
+  size_t* proc_send_sz;
+
+  void*   recv_buf;
+  void**  proc_recv_buf;
+  size_t* proc_recv_sz;
+
+  bfam_comm_procdata_t* proc_data;
+  bfam_comm_subdata_t* sub_data;
 } bfam_communicator_t;
 
 /** create a communicator
