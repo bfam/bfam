@@ -529,22 +529,15 @@ bfam_domain_p4est_fill_ghost_subdomain_ids(MPI_Comm comm,
  *
  * \param [in]  mesh          p4est mesh of the elements
  * \param [in]  subdomainID   subdomain id of each element in the mesh
- * \param [in]  numSubdomains number of subdomains
- * \param [out] ifK           ifK[id1 * numSubdomains + id2] is the number of
- *                            faces in the glue grid connecting sudbomains
  *
  * \return number of total local inter-subdomain faces.
  *
  */
 static bfam_locidx_t
 bfam_domain_p4est_num_inter_subdomain_faces(p4est_mesh_t *mesh,
-    bfam_locidx_t *subdomainID, bfam_locidx_t numSubdomains,
-    bfam_locidx_t *ifK)
+    bfam_locidx_t *subdomainID)
 {
   const p4est_locidx_t K = mesh->local_num_quadrants;
-
-  for(bfam_locidx_t i = 0; i < numSubdomains*numSubdomains; ++i)
-    ifK[i] = 0;
 
   bfam_locidx_t numInterSubdomainFaces = 0;
 
@@ -583,10 +576,7 @@ bfam_domain_p4est_num_inter_subdomain_faces(p4est_mesh_t *mesh,
            * face.
            */
           if((idnk == idk && hanging) || idnk != idk)
-          {
-            ++ifK[numSubdomains * idk + idnk];
             ++numInterSubdomainFaces;
-          }
         }
       }
       else
@@ -594,14 +584,8 @@ bfam_domain_p4est_num_inter_subdomain_faces(p4est_mesh_t *mesh,
         p4est_locidx_t *cks;
         cks = sc_array_index(mesh->quad_to_half, ck);
         for(int8_t h = 0; h < P4EST_HALF; ++h)
-        {
           if(cks[h] < mesh->local_num_quadrants)
-          {
-            const bfam_locidx_t  idnk = subdomainID[cks[h]];
-            ++ifK[numSubdomains * idk + idnk];
             ++numInterSubdomainFaces;
-          }
-        }
       }
     }
   }
@@ -809,12 +793,8 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
       pfmapping, numNeighbors, numNeighborFaces, neighborRank, subdomainID, N,
       ghostSubdomainID, ghostN);
 
-  bfam_locidx_t *ifK =
-    bfam_malloc_aligned(numSubdomains*numSubdomains*sizeof(bfam_locidx_t));
-
   bfam_locidx_t numInterSubdomainFaces =
-    bfam_domain_p4est_num_inter_subdomain_faces(mesh, subdomainID,
-        numSubdomains, ifK);
+    bfam_domain_p4est_num_inter_subdomain_faces(mesh, subdomainID);
 
   BFAM_LDEBUG("numInterSubdomainFaces = %zd", (intmax_t) numInterSubdomainFaces);
 
@@ -957,53 +937,57 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
    * Setup the local glue grids
    */
   bfam_locidx_t numGlue = 0;
-  for(bfam_locidx_t id1 = 0, sk = 0; id1 < numSubdomains; ++id1)
+
+  for(bfam_locidx_t ifk = 0; ifk < numInterSubdomainFaces; )
   {
-    for(bfam_locidx_t id2 = 0; id2 < numSubdomains; ++id2)
+    /*
+     * Count the number of element in the glue grid
+     */
+    bfam_locidx_t Kglue = 1;
+    while(ifk + Kglue < numInterSubdomainFaces &&
+        ifmapping[ifk+Kglue].np == ifmapping[ifk+Kglue-1].np &&
+        ifmapping[ifk+Kglue].ns == ifmapping[ifk+Kglue-1].ns &&
+        ifmapping[ifk+Kglue].s  == ifmapping[ifk+Kglue-1].s)
+      ++Kglue;
+
+    const bfam_locidx_t id_m = ifmapping[ifk].s;
+    const bfam_locidx_t id_p = ifmapping[ifk].ns;
+
+    int repeat = (id_m == id_p);
+
+    for(int r = 0; r <= repeat; ++r)
     {
-      const bfam_locidx_t K12 = ifK[numSubdomains * id1 + id2];
-      if(K12)
-      {
-        BFAM_ASSERT(ifmapping[sk].s == id1 && ifmapping[sk].ns == id2);
+      const bfam_locidx_t id = numSubdomains + numGlue;
 
-        int repeat = (id1 == id2);
-        for(int r = 0; r <= repeat; ++r)
-        {
-          const bfam_locidx_t id12 = numSubdomains + numGlue;
+      const bfam_locidx_t rank_m = rank;
+      const bfam_locidx_t rank_p = rank;
 
-          const bfam_locidx_t rank1 = rank;
-          const bfam_locidx_t rank2 = rank;
+      char glueName[BFAM_BUFSIZ];
+      snprintf(glueName, BFAM_BUFSIZ, "dg_quad_glue_%d_%05jd_%05jd_%05jd",
+          r, (intmax_t) id, (intmax_t) id_m, (intmax_t) id_p);
 
-          char glueName12[BFAM_BUFSIZ];
-          snprintf(glueName12, BFAM_BUFSIZ, "dg_quad_glue_%d_%05jd_%05jd_%05jd",
-              r, (intmax_t) id12, (intmax_t) id1, (intmax_t) id2);
+      bfam_subdomain_dgx_quad_glue_t *glue =
+        bfam_subdomain_dgx_quad_glue_new(id,
+                                         glueName,
+                                         N[id_m],
+                                         N[id_p],
+                                         rank_m,
+                                         rank_p,
+                                         id_m,
+                                         id_p,
+                                         subdomains[id_m],
+                                         Kglue,
+                                         ifmapping + ifk);
 
+      bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue");
+      bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue_local");
 
-          bfam_subdomain_dgx_quad_glue_t *glue12 =
-            bfam_subdomain_dgx_quad_glue_new(id12,
-                                             glueName12,
-                                             N[id1],
-                                             N[id2],
-                                             rank1,
-                                             rank2,
-                                             id1,
-                                             id2,
-                                             subdomains[id1],
-                                             K12,
-                                             ifmapping + sk);
+      bfam_domain_add_subdomain((bfam_domain_t    *) domain,
+                                (bfam_subdomain_t *) glue);
 
-          bfam_subdomain_add_tag((bfam_subdomain_t *) glue12, "_glue");
-          bfam_subdomain_add_tag((bfam_subdomain_t *) glue12, "_glue_local");
-
-          bfam_domain_add_subdomain((bfam_domain_t    *) domain,
-                                    (bfam_subdomain_t *) glue12);
-
-          numGlue += 1;
-        }
-
-        sk += K12;
-      }
+      numGlue += 1;
     }
+    ifk += Kglue;
   }
 
   /*
@@ -1085,7 +1069,6 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
 
   bfam_free(ktosubk);
 
-  bfam_free_aligned(ifK);
   bfam_free_aligned(ifmapping);
 
   bfam_free_aligned(neighborRank);
