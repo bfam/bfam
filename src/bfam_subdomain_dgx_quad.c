@@ -470,3 +470,55 @@ bfam_subdomain_dgx_quad_free(bfam_subdomain_t *thisSubdomain)
   bfam_free_aligned(sub->y);
   bfam_free_aligned(sub->z);
 }
+
+bfam_subdomain_dgx_quad_glue_t*
+bfam_subdomain_dgx_quad_glue_new(const bfam_locidx_t              id,
+                                 const char                      *name,
+                                 const int                        N_m,
+                                 const int                        N_p,
+                                 const bfam_locidx_t              rank_m,
+                                 const bfam_locidx_t              rank_p,
+                                 const bfam_locidx_t              id_m,
+                                 const bfam_locidx_t              id_p,
+                                 bfam_subdomain_dgx_quad_t       *sub_m,
+                                 const bfam_locidx_t              K,
+                                 bfam_subdomain_face_map_entry_t *mapping)
+{
+  bfam_subdomain_dgx_quad_glue_t* newSubdomain =
+    bfam_malloc(sizeof(bfam_subdomain_dgx_quad_glue_t));
+
+  bfam_subdomain_dgx_quad_glue_init(newSubdomain, id, name, N_m, N_p, rank_m,
+      rank_p, id_m, id_p, sub_m, K, mapping);
+
+  return newSubdomain;
+}
+
+void
+bfam_subdomain_dgx_quad_glue_init(bfam_subdomain_dgx_quad_glue_t  *subdomain,
+                                  const bfam_locidx_t              id,
+                                  const char                      *name,
+                                  const int                        N_m,
+                                  const int                        N_p,
+                                  const bfam_locidx_t              rank_m,
+                                  const bfam_locidx_t              rank_p,
+                                  const bfam_locidx_t              id_m,
+                                  const bfam_locidx_t              id_p,
+                                  bfam_subdomain_dgx_quad_t       *sub_m,
+                                  const bfam_locidx_t              K,
+                                  bfam_subdomain_face_map_entry_t *mapping)
+{
+  bfam_subdomain_init(&subdomain->base, id, name);
+  bfam_subdomain_add_tag(&subdomain->base, "_subdomain_dgx_quad");
+  subdomain->base.free = bfam_subdomain_dgx_quad_glue_free;
+
+#ifdef BFAM_DEBUG
+  for(bfam_locidx_t k = 0; k < K; ++k)
+    BFAM_ASSERT(mapping[k].s == id_m && mapping[k].ns == id_p);
+#endif
+}
+
+void
+bfam_subdomain_dgx_quad_glue_free(bfam_subdomain_t *subdomain)
+{
+  bfam_subdomain_free(subdomain);
+}
