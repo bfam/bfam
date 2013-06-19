@@ -109,7 +109,7 @@ bfam_communicator_init(bfam_communicator_t* communicator,
     bfam_domain_t *domain, bfam_domain_match_t match, const char **tags,
     MPI_Comm comm, int tag)
 {
-  BFAM_VERBOSE("Communicator Init");
+  BFAM_LDEBUG("Communicator Init");
   communicator-> comm = comm;
   communicator-> tag = tag;
 
@@ -244,7 +244,7 @@ bfam_communicator_init(bfam_communicator_t* communicator,
 void
 bfam_communicator_free(bfam_communicator_t *communicator)
 {
-  BFAM_VERBOSE("Communicator Free");
+  BFAM_LDEBUG("Communicator Free");
 
   /* Just make sure there are no pending requests */
   BFAM_MPI_CHECK(MPI_Waitall(2*communicator->num_procs,
@@ -261,7 +261,7 @@ bfam_communicator_free(bfam_communicator_t *communicator)
 void
 bfam_communicator_start(bfam_communicator_t *comm)
 {
-  BFAM_VERBOSE("Communicator Start");
+  BFAM_LDEBUG("Communicator Start");
   BFAM_MPI_CHECK(MPI_Waitall(2*comm->num_procs,
         comm->send_request,comm->send_status));
 
@@ -297,7 +297,7 @@ bfam_communicator_start(bfam_communicator_t *comm)
 void
 bfam_communicator_finish(bfam_communicator_t *comm)
 {
-  BFAM_VERBOSE("Communicator Finish");
+  BFAM_LDEBUG("Communicator Finish");
   BFAM_MPI_CHECK(MPI_Waitall(comm->num_procs,
         comm->recv_request,comm->recv_status));
 
