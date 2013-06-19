@@ -732,6 +732,85 @@ bfam_domain_p4est_inter_subdomain_face_mapping(bfam_locidx_t rank,
   }
 }
 
+/** Count the number of boundary faces.
+ *
+ * \param [in]  mesh p4est mesh of the elements
+ *
+ * \return number of boundary faces.
+ *
+ */
+static bfam_locidx_t
+bfam_domain_p4est_num_boundary_faces(p4est_mesh_t *mesh)
+{
+  const p4est_locidx_t K = mesh->local_num_quadrants;
+
+  bfam_locidx_t numBoundaryFaces = 0;
+
+  for(p4est_locidx_t k = 0; k < K; ++k)
+  {
+    for (int f = 0; f < P4EST_FACES; ++f)
+    {
+      const p4est_locidx_t ck = mesh->quad_to_quad[P4EST_FACES * k + f];
+      const int            cf = mesh->quad_to_face[P4EST_FACES * k + f];
+
+      if(k == ck && f == cf)
+        ++numBoundaryFaces;
+    }
+  }
+
+  return numBoundaryFaces;
+}
+
+/** Build the boundary subdomain face mapping array.
+ *
+ * \param [in]  mesh             p4est mesh to build the mapping for.
+ * \param [in]  subdomainID      subdomain id of each element in the mesh.
+ * \param [in]  numBoundaryFaces the number of boundary subdomain faces in
+ *                               the p4est mesh.
+ * \param [out] mapping          the mapping array that will be filled.
+ *
+ */
+static void
+bfam_domain_p4est_boundary_subdomain_face_mapping(p4est_mesh_t *mesh,
+    bfam_locidx_t *subdomainID, bfam_locidx_t numBoundaryFaces,
+    bfam_subdomain_face_map_entry_t *mapping)
+{
+  const p4est_locidx_t K = mesh->local_num_quadrants;
+
+  for(p4est_locidx_t k = 0, sk = 0; k < K; ++k)
+  {
+    const bfam_locidx_t  idk   = subdomainID[k];
+
+    for (int f = 0; f < P4EST_FACES; ++f)
+    {
+      const p4est_locidx_t ck = mesh->quad_to_quad[P4EST_FACES * k + f];
+      const int            cf = mesh->quad_to_face[P4EST_FACES * k + f];
+
+      if(k == ck && f == cf)
+      {
+        BFAM_ASSERT(sk < numBoundaryFaces);
+
+        mapping[sk].np = -1;
+
+        mapping[sk].ns = idk;
+        mapping[sk].nk = k;
+        mapping[sk].nf = f;
+        mapping[sk].nh = 0;
+
+        mapping[sk].s  = idk;
+        mapping[sk].k  = k;
+        mapping[sk].f  = f;
+        mapping[sk].h  = 0;
+        mapping[sk].o  = 0;
+
+        mapping[sk].i  = -1;
+        mapping[sk].gi = -1;
+        ++sk;
+      }
+    }
+  }
+}
+
 void
 bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
     bfam_locidx_t numSubdomains, bfam_locidx_t *subdomainID, int *N)
@@ -808,6 +887,19 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
 
   bfam_domain_p4est_inter_subdomain_face_mapping(rank, mesh, subdomainID,
       numInterSubdomainFaces, ifmapping);
+
+
+  bfam_locidx_t numBoundaryFaces =
+    bfam_domain_p4est_num_boundary_faces(mesh);
+
+  BFAM_LDEBUG("numBoundaryFaces = %zd", (intmax_t) numBoundaryFaces);
+
+  bfam_subdomain_face_map_entry_t *bfmapping
+    = bfam_malloc_aligned(numBoundaryFaces*
+        sizeof(bfam_subdomain_face_map_entry_t));
+
+  bfam_domain_p4est_boundary_subdomain_face_mapping(mesh, subdomainID,
+      numBoundaryFaces, bfmapping);
 
   /*
    * Get vertex coordinates
@@ -992,6 +1084,64 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
   }
 
   /*
+   * Sort the boundary mapping
+   */
+  qsort(bfmapping, numBoundaryFaces,
+      sizeof(bfam_subdomain_face_map_entry_t),
+      bfam_subdomain_face_recv_cmp);
+
+  /*
+   * Setup the boundary glue grids
+   */
+  for(bfam_locidx_t bfk = 0; bfk < numBoundaryFaces; )
+  {
+    /*
+     * Count the number of elements in the glue grid
+     */
+    bfam_locidx_t Kglue = 1;
+    while(bfk + Kglue < numBoundaryFaces &&
+        bfmapping[bfk+Kglue].np == bfmapping[bfk+Kglue-1].np &&
+        bfmapping[bfk+Kglue].ns == bfmapping[bfk+Kglue-1].ns &&
+        bfmapping[bfk+Kglue].s  == bfmapping[bfk+Kglue-1].s)
+      ++Kglue;
+
+    const bfam_locidx_t id = numSubdomains + numGlue;
+
+    const bfam_locidx_t id_m = bfmapping[bfk].s;
+    const bfam_locidx_t id_p = bfmapping[bfk].ns;
+
+    const bfam_locidx_t rank_m = rank;
+    const bfam_locidx_t rank_p = bfmapping[bfk].np;
+
+    char glueName[BFAM_BUFSIZ];
+    snprintf(glueName, BFAM_BUFSIZ, "dg_quad_glue_b_%05jd_%05jd_%05jd",
+        (intmax_t) id, (intmax_t) id_m, (intmax_t) id_p);
+
+
+    bfam_subdomain_dgx_quad_glue_t *glue =
+      bfam_subdomain_dgx_quad_glue_new(id,
+                                       glueName,
+                                       N[id_m],
+                                       N[id_p],
+                                       rank_m,
+                                       rank_p,
+                                       id_m,
+                                       id_p,
+                                       subdomains[id_m],
+                                       Kglue,
+                                       bfmapping + bfk);
+
+    bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue");
+    bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue_boundary");
+
+    bfam_domain_add_subdomain((bfam_domain_t    *) domain,
+                              (bfam_subdomain_t *) glue);
+
+    numGlue += 1;
+    bfk += Kglue;
+  }
+
+  /*
    * Sort the parallel mapping
    */
   qsort(pfmapping, numParallelFaces,
@@ -1070,6 +1220,7 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
 
   bfam_free(ktosubk);
 
+  bfam_free_aligned(bfmapping);
   bfam_free_aligned(ifmapping);
 
   bfam_free_aligned(neighborRank);
