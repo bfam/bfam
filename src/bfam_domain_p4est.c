@@ -1006,6 +1006,65 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
     }
   }
 
+  /*
+   * Sort the parallel mapping
+   */
+  qsort(pfmapping, numParallelFaces,
+      sizeof(bfam_subdomain_face_map_entry_t),
+      bfam_subdomain_face_recv_cmp);
+
+  /*
+   * Setup the parallel glue grids
+   */
+  for(bfam_locidx_t pfk = 0; pfk < numParallelFaces; )
+  {
+    /*
+     * Count the number of elements in the glue grid
+     */
+    bfam_locidx_t Kglue = 1;
+    while(pfk + Kglue < numParallelFaces &&
+        pfmapping[pfk+Kglue].np == pfmapping[pfk+Kglue-1].np &&
+        pfmapping[pfk+Kglue].ns == pfmapping[pfk+Kglue-1].ns &&
+        pfmapping[pfk+Kglue].s  == pfmapping[pfk+Kglue-1].s)
+      ++Kglue;
+
+    const bfam_locidx_t id = numSubdomains + numGlue;
+
+    const bfam_locidx_t id_m = pfmapping[pfk].s;
+    const bfam_locidx_t id_p = pfmapping[pfk].ns;
+    const bfam_locidx_t gid_p = pfmapping[pfk].gi;
+
+    const bfam_locidx_t rank_m = rank;
+    const bfam_locidx_t rank_p = pfmapping[pfk].np;
+
+    char glueName[BFAM_BUFSIZ];
+    snprintf(glueName, BFAM_BUFSIZ, "dg_quad_glue_p_%05jd_%05jd_%05jd",
+        (intmax_t) id, (intmax_t) id_m, (intmax_t) id_p);
+
+
+    bfam_subdomain_dgx_quad_glue_t *glue =
+      bfam_subdomain_dgx_quad_glue_new(id,
+                                       glueName,
+                                       N[id_m],
+                                       ghostN[gid_p],
+                                       rank_m,
+                                       rank_p,
+                                       id_m,
+                                       id_p,
+                                       subdomains[id_m],
+                                       Kglue,
+                                       pfmapping + pfk);
+
+    bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue");
+    bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue_parallel");
+
+    bfam_domain_add_subdomain((bfam_domain_t    *) domain,
+                              (bfam_subdomain_t *) glue);
+
+    numGlue += 1;
+    pfk += Kglue;
+  }
+
   bfam_free(subdomains);
 
   for(bfam_locidx_t id = 0; id < numSubdomains; ++id)
