@@ -31,18 +31,12 @@ typedef struct bfam_communicator
   bfam_locidx_t numSubdomains;
 
   bfam_locidx_t  numProc;
-  bfam_locidx_t* procID;
 
   void*   send_buf;
-  void**  proc_send_buf;
-  size_t* proc_send_sz;
-
   void*   recv_buf;
-  void**  proc_recv_buf;
-  size_t* proc_recv_sz;
 
   bfam_comm_procdata_t* proc_data;
-  bfam_comm_subdata_t* sub_data;
+  bfam_comm_subdata_t*  sub_data;
 } bfam_communicator_t;
 
 /** create a communicator

@@ -126,7 +126,7 @@ bfam_communicator_init(bfam_communicator_t* communicator,
 
   /* figure out the info for everyone */
   bfam_communicator_map_entry_t map[communicator->numSubdomains];
-  bfam_critbit0_tree_t procs;
+  bfam_critbit0_tree_t procs = {0};
   char procStr[BFAM_BUFSIZ];
   for(int s = 0; s < communicator->numSubdomains;s++)
   {
@@ -169,10 +169,10 @@ bfam_communicator_init(bfam_communicator_t* communicator,
     bfam_malloc(communicator->numProc*sizeof(bfam_comm_procdata_t));
   for(int i = 0;communicator->numProc > i; i++)
   {
-    communicator->proc_data[i].send_sz = 0;
+    communicator->proc_data[i].send_sz  = 0;
     communicator->proc_data[i].send_buf = NULL;
 
-    communicator->proc_data[i].recv_sz = 0;
+    communicator->proc_data[i].recv_sz  = 0;
     communicator->proc_data[i].recv_buf = NULL;
   }
 
@@ -180,10 +180,24 @@ bfam_communicator_init(bfam_communicator_t* communicator,
   qsort((void*) map, communicator->numSubdomains,
       sizeof(bfam_communicator_map_entry_t), bfam_communicator_send_compare);
   void* send_buf_ptr = communicator->send_buf;
+  bfam_locidx_t np = -1;   /* global proc ID */
+  bfam_locidx_t proc = -1; /* local storage proc ID */
   for(int s = 0; s < communicator->numSubdomains;s++)
   {
     bfam_locidx_t t = map[s].orig_order;
     communicator->sub_data[t].send_buf = send_buf_ptr;
+
+    if(map[s].np != np)
+    {
+      np = map[s].np;
+      proc++;
+      communicator->proc_data[proc].send_buf = send_buf_ptr;
+      communicator->proc_data[proc].rank     = np;
+    }
+    BFAM_ABORT_IF_NOT(communicator->proc_data[proc].rank == np,
+        "problem with local proc ID");
+    communicator->proc_data[proc].send_sz += communicator->sub_data[t].send_sz;
+
     send_buf_ptr =
       (void*)((char*)send_buf_ptr+communicator->sub_data[t].send_sz);
   }
@@ -192,11 +206,22 @@ bfam_communicator_init(bfam_communicator_t* communicator,
   qsort((void*) map, communicator->numSubdomains,
       sizeof(bfam_communicator_map_entry_t), bfam_communicator_recv_compare);
   void* recv_buf_ptr = communicator->recv_buf;
-  bfam_locidx_t np = -1;
+  np = -1;   /* global proc ID */
+  proc = -1; /* local storage proc ID */
   for(int s = 0; s < communicator->numSubdomains;s++)
   {
     bfam_locidx_t t = map[s].orig_order;
     communicator->sub_data[t].recv_buf = recv_buf_ptr;
+    if(map[s].np != np)
+    {
+      np = map[s].np;
+      proc++;
+      communicator->proc_data[proc].recv_buf = recv_buf_ptr;
+    }
+    BFAM_ABORT_IF_NOT(communicator->proc_data[proc].rank == np,
+        "problem with local proc ID");
+    communicator->proc_data[proc].recv_sz += communicator->sub_data[t].recv_sz;
+
     recv_buf_ptr =
       (void*)((char*)recv_buf_ptr+communicator->sub_data[t].recv_sz);
   }
