@@ -521,6 +521,232 @@ bfam_domain_p4est_fill_ghost_subdomain_ids(MPI_Comm comm,
   bfam_free_aligned(recvBuffer);
 }
 
+/** Count the number of local inter-subdomain faces.
+ *
+ * Note that faces on nonconforming interfaces are always counted even if
+ * they connect to the same subdomain.  This is because we will use a
+ * glue grid to handle the nonconforming interfaces.
+ *
+ * \param [in]  mesh          p4est mesh of the elements
+ * \param [in]  subdomainID   subdomain id of each element in the mesh
+ * \param [in]  numSubdomains number of subdomains
+ * \param [out] ifK           ifK[id1 * numSubdomains + id2] is the number of
+ *                            faces in the glue grid connecting sudbomains
+ *
+ * \return number of total local inter-subdomain faces.
+ *
+ */
+static bfam_locidx_t
+bfam_domain_p4est_num_inter_subdomain_faces(p4est_mesh_t *mesh,
+    bfam_locidx_t *subdomainID, bfam_locidx_t numSubdomains,
+    bfam_locidx_t *ifK)
+{
+  const p4est_locidx_t K = mesh->local_num_quadrants;
+
+  for(bfam_locidx_t i = 0; i < numSubdomains*numSubdomains; ++i)
+    ifK[i] = 0;
+
+  bfam_locidx_t numInterSubdomainFaces = 0;
+
+  for(p4est_locidx_t k = 0; k < K; ++k)
+  {
+    const bfam_locidx_t  idk   = subdomainID[k];
+
+    for (int f = 0; f < P4EST_FACES; ++f)
+    {
+      const p4est_locidx_t ck = mesh->quad_to_quad[P4EST_FACES * k + f];
+      const int            cf = mesh->quad_to_face[P4EST_FACES * k + f];
+
+      if(cf >= 0)
+      {
+        /*
+         * Neighbor is same or double size
+         */
+        if(ck < mesh->local_num_quadrants)
+        {
+          /*
+           * Neighbor is on the same processor
+           */
+          const bfam_locidx_t  idnk   = subdomainID[ck];
+
+          int hanging;
+
+          if(cf >= 8)
+            hanging = 1;
+          else
+            hanging = 0;
+
+          /*
+           * Count intra and inter subdomain faces.
+           *
+           * Only count same subdomain to same subdomain if it is a hanging
+           * face.
+           */
+          if((idnk == idk && hanging) || idnk != idk)
+          {
+            ++ifK[numSubdomains * idk + idnk];
+            ++numInterSubdomainFaces;
+          }
+        }
+      }
+      else
+      {
+        p4est_locidx_t *cks;
+        cks = sc_array_index(mesh->quad_to_half, ck);
+        for(int8_t h = 0; h < P4EST_HALF; ++h)
+        {
+          if(cks[h] < mesh->local_num_quadrants)
+          {
+            const bfam_locidx_t  idnk = subdomainID[cks[h]];
+            ++ifK[numSubdomains * idk + idnk];
+            ++numInterSubdomainFaces;
+          }
+        }
+      }
+    }
+  }
+
+  return numInterSubdomainFaces;
+}
+
+/** Build the inter subdomain face mapping array.
+ *
+ * This array is used to determine the order in which data is sent
+ * and received around the subdomains.  The order can be obtained by sorting
+ * the mapping using \c bfam_subdomain_face_send_cmp
+ * and \c bfam_subdomain_face_recv_cmp comparison
+ * functions.
+ *
+ * \param [in]  mesh                   p4est mesh to build the mapping for.
+ * \param [in]  subdomainID            subdomain id of each element in the mesh.
+ * \param [in]  numInterSubdomainFaces the number of inter subdomain faces in
+ *                                     the p4est mesh.
+ * \param [out] mapping                the mapping array that will be filled.
+ *
+ */
+static void
+bfam_domain_p4est_inter_subdomain_face_mapping(bfam_locidx_t rank,
+    p4est_mesh_t *mesh, bfam_locidx_t *subdomainID,
+    bfam_locidx_t numInterSubdomainFaces,
+    bfam_subdomain_face_map_entry_t *mapping)
+{
+  const p4est_locidx_t K = mesh->local_num_quadrants;
+
+  for(p4est_locidx_t k = 0, sk = 0; k < K; ++k)
+  {
+    const bfam_locidx_t  idk   = subdomainID[k];
+
+    for (int f = 0; f < P4EST_FACES; ++f)
+    {
+      const p4est_locidx_t ck = mesh->quad_to_quad[P4EST_FACES * k + f];
+      const int            cf = mesh->quad_to_face[P4EST_FACES * k + f];
+
+      if(cf >= 0)
+      {
+        /*
+         * Neighbor is same or double size
+         */
+        if(ck < mesh->local_num_quadrants)
+        {
+          /*
+           * Neighbor is on the same processor
+           */
+          const bfam_locidx_t  idnk   = subdomainID[ck];
+
+          int hanging;
+
+          if(cf >= 8)
+            hanging = 1;
+          else
+            hanging = 0;
+
+          int8_t         nf = cf;
+          int8_t         nh = 0;
+
+          if(nf >= 8)
+          {
+            nf -= 8;
+
+            if(nf >= 8)
+            {
+              nf -= 8;
+              nh  = 1;
+            }
+          }
+
+          int8_t o = nf/4;
+
+          nf = nf%4;
+
+          /*
+           * Count intra and inter subdomain faces.
+           *
+           * Only count same subdomain to same subdomain if it is a hanging
+           * face.
+           */
+          if((idnk == idk && hanging) || idnk != idk)
+          {
+            BFAM_ASSERT(sk < numInterSubdomainFaces);
+
+            mapping[sk].np = rank;
+
+            mapping[sk].ns = idnk;
+            mapping[sk].nk = ck;
+            mapping[sk].nf = nf;
+            mapping[sk].nh = nh;
+
+            mapping[sk].s  = idk;
+            mapping[sk].k  = k;
+            mapping[sk].f  = f;
+            mapping[sk].h  = 0;
+            mapping[sk].o  = o;
+
+            mapping[sk].i  = -1;
+            mapping[sk].gi = -1;
+            ++sk;
+          }
+        }
+      }
+      else
+      {
+        p4est_locidx_t *cks;
+        cks = sc_array_index(mesh->quad_to_half, ck);
+        for(int8_t h = 0; h < P4EST_HALF; ++h)
+        {
+          if(cks[h] < mesh->local_num_quadrants)
+          {
+            BFAM_ASSERT(sk < numInterSubdomainFaces);
+
+            const bfam_locidx_t  idnk   = subdomainID[cks[h]];
+
+            int8_t         nf = (8 + cf)%4;
+            int8_t         nh = 0;
+            int8_t         o  = (8 + cf)/4;
+
+            mapping[sk].np = rank;
+
+            mapping[sk].ns = idnk;
+            mapping[sk].nk = cks[h];
+            mapping[sk].nf = nf;
+            mapping[sk].nh = nh;
+
+            mapping[sk].s  = idk;
+            mapping[sk].k  = k;
+            mapping[sk].f  = f;
+            mapping[sk].h  = h;
+            mapping[sk].o  = o;
+
+            mapping[sk].i  = -1;
+            mapping[sk].gi = -1;
+
+            ++sk;
+          }
+        }
+      }
+    }
+  }
+}
+
 void
 bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
     bfam_locidx_t numSubdomains, bfam_locidx_t *subdomainID, int *N)
@@ -582,6 +808,25 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
   bfam_domain_p4est_fill_ghost_subdomain_ids(p4est->mpicomm, numParallelFaces,
       pfmapping, numNeighbors, numNeighborFaces, neighborRank, subdomainID, N,
       ghostSubdomainID, ghostN);
+
+  bfam_locidx_t *ifK =
+    bfam_malloc_aligned(numSubdomains*numSubdomains*sizeof(bfam_locidx_t));
+
+  bfam_locidx_t numInterSubdomainFaces =
+    bfam_domain_p4est_num_inter_subdomain_faces(mesh, subdomainID,
+        numSubdomains, ifK);
+
+  BFAM_LDEBUG("numInterSubdomainFaces = %zd", (intmax_t) numInterSubdomainFaces);
+
+  bfam_subdomain_face_map_entry_t *ifmapping
+    = bfam_malloc_aligned(numInterSubdomainFaces*
+        sizeof(bfam_subdomain_face_map_entry_t));
+
+  int rank;
+  BFAM_MPI_CHECK(MPI_Comm_rank(p4est->mpicomm, &rank));
+
+  bfam_domain_p4est_inter_subdomain_face_mapping(rank, mesh, subdomainID,
+      numInterSubdomainFaces, ifmapping);
 
   /*
    * Get vertex coordinates
@@ -701,6 +946,66 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
                               (bfam_subdomain_t *) subdomains[id]);
   }
 
+  /*
+   * Sort the local mapping
+   */
+  qsort(ifmapping, numInterSubdomainFaces,
+      sizeof(bfam_subdomain_face_map_entry_t),
+      bfam_subdomain_face_recv_cmp);
+
+  /*
+   * Setup the local glue grids
+   */
+  bfam_locidx_t numGlue = 0;
+  for(bfam_locidx_t id1 = 0, sk = 0; id1 < numSubdomains; ++id1)
+  {
+    for(bfam_locidx_t id2 = 0; id2 < numSubdomains; ++id2)
+    {
+      const bfam_locidx_t K12 = ifK[numSubdomains * id1 + id2];
+      if(K12)
+      {
+        BFAM_ASSERT(ifmapping[sk].s == id1 && ifmapping[sk].ns == id2);
+
+        int repeat = (id1 == id2);
+        for(int r = 0; r <= repeat; ++r)
+        {
+          const bfam_locidx_t id12 = numSubdomains + numGlue;
+
+          const bfam_locidx_t rank1 = rank;
+          const bfam_locidx_t rank2 = rank;
+
+          char glueName12[BFAM_BUFSIZ];
+          snprintf(glueName12, BFAM_BUFSIZ, "dg_quad_glue_%d_%05jd_%05jd_%05jd",
+              r, (intmax_t) id12, (intmax_t) id1, (intmax_t) id2);
+
+
+          bfam_subdomain_dgx_quad_glue_t *glue12 =
+            bfam_subdomain_dgx_quad_glue_new(id12,
+                                             glueName12,
+                                             N[id1],
+                                             N[id2],
+                                             rank1,
+                                             rank2,
+                                             id1,
+                                             id2,
+                                             subdomains[id1],
+                                             K12,
+                                             ifmapping + sk);
+
+          bfam_subdomain_add_tag((bfam_subdomain_t *) glue12, "_glue");
+          bfam_subdomain_add_tag((bfam_subdomain_t *) glue12, "_glue_local");
+
+          bfam_domain_add_subdomain((bfam_domain_t    *) domain,
+                                    (bfam_subdomain_t *) glue12);
+
+          numGlue += 1;
+        }
+
+        sk += K12;
+      }
+    }
+  }
+
   bfam_free(subdomains);
 
   for(bfam_locidx_t id = 0; id < numSubdomains; ++id)
@@ -720,6 +1025,9 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
   bfam_free(subk);
 
   bfam_free(ktosubk);
+
+  bfam_free_aligned(ifK);
+  bfam_free_aligned(ifmapping);
 
   bfam_free_aligned(neighborRank);
   bfam_free_aligned(numNeighborFaces);
