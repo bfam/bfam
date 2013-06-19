@@ -176,10 +176,10 @@ bfam_communicator_init(bfam_communicator_t* communicator,
     communicator->proc_data[i].recv_buf = NULL;
   }
 
-  /* sort for send */
+  /* sort for send  and fill struct */
   qsort((void*) map, communicator->numSubdomains,
       sizeof(bfam_communicator_map_entry_t), bfam_communicator_send_compare);
-  void* send_buf_ptr = communicator->send_buf;
+  char* send_buf_ptr = communicator->send_buf;
   bfam_locidx_t np = -1;   /* global proc ID */
   bfam_locidx_t proc = -1; /* local storage proc ID */
   for(int s = 0; s < communicator->numSubdomains;s++)
@@ -198,14 +198,13 @@ bfam_communicator_init(bfam_communicator_t* communicator,
         "problem with local proc ID");
     communicator->proc_data[proc].send_sz += communicator->sub_data[t].send_sz;
 
-    send_buf_ptr =
-      (void*)((char*)send_buf_ptr+communicator->sub_data[t].send_sz);
+    send_buf_ptr += communicator->sub_data[t].send_sz;
   }
 
-  /* sort for recv */
+  /* sort for recv and fill struct*/
   qsort((void*) map, communicator->numSubdomains,
       sizeof(bfam_communicator_map_entry_t), bfam_communicator_recv_compare);
-  void* recv_buf_ptr = communicator->recv_buf;
+  char* recv_buf_ptr = communicator->recv_buf;
   np = -1;   /* global proc ID */
   proc = -1; /* local storage proc ID */
   for(int s = 0; s < communicator->numSubdomains;s++)
@@ -222,8 +221,7 @@ bfam_communicator_init(bfam_communicator_t* communicator,
         "problem with local proc ID");
     communicator->proc_data[proc].recv_sz += communicator->sub_data[t].recv_sz;
 
-    recv_buf_ptr =
-      (void*)((char*)recv_buf_ptr+communicator->sub_data[t].recv_sz);
+    recv_buf_ptr += communicator->sub_data[t].recv_sz;
   }
 }
 
