@@ -16,12 +16,12 @@ typedef struct bfam_communicator_map_entry
 
 bfam_communicator_t*
 bfam_communicator_new(bfam_domain_t *domain, bfam_domain_match_t match,
-    const char **tags, MPI_Comm comm)
+    const char **tags, MPI_Comm comm, int tag)
 {
   bfam_communicator_t* newCommunicator =
     bfam_malloc(sizeof(bfam_communicator_t));
 
-  bfam_communicator_init(newCommunicator, domain, match, tags, comm);
+  bfam_communicator_init(newCommunicator, domain, match, tags, comm, tag);
   return newCommunicator;
 }
 
@@ -107,28 +107,29 @@ bfam_communicator_recv_compare(const void *a, const void *b)
 void
 bfam_communicator_init(bfam_communicator_t* communicator,
     bfam_domain_t *domain, bfam_domain_match_t match, const char **tags,
-    MPI_Comm comm)
+    MPI_Comm comm, int tag)
 {
   BFAM_VERBOSE("Communicator Init");
   communicator-> comm = comm;
+  communicator-> tag = tag;
 
   /* get the subdomains */
   bfam_subdomain_t *subdomains[domain->numSubdomains];
   bfam_domain_get_subdomains(domain, match, tags,
-      domain->numSubdomains,subdomains,&communicator->numSubdomains);
+      domain->numSubdomains,subdomains,&communicator->num_subs);
 
   communicator->sub_data =
-    bfam_malloc(communicator->numSubdomains*sizeof(bfam_comm_subdata_t));
+    bfam_malloc(communicator->num_subs*sizeof(bfam_comm_subdata_t));
 
   size_t send_sz = 0;
   size_t recv_sz = 0;
-  communicator->numProc = 0;
+  communicator->num_procs = 0;
 
   /* figure out the info for everyone */
-  bfam_communicator_map_entry_t map[communicator->numSubdomains];
+  bfam_communicator_map_entry_t map[communicator->num_subs];
   bfam_critbit0_tree_t procs = {0};
   char procStr[BFAM_BUFSIZ];
-  for(int s = 0; s < communicator->numSubdomains;s++)
+  for(int s = 0; s < communicator->num_subs;s++)
   {
     map[s].subdomain = subdomains[s];
 
@@ -156,7 +157,7 @@ bfam_communicator_init(bfam_communicator_t* communicator,
     sprintf(procStr,"%d",map[s].np);
     if(!bfam_critbit0_contains(&procs,procStr))
     {
-      communicator->numProc++;
+      communicator->num_procs++;
       bfam_critbit0_insert(&procs,procStr);
     }
   }
@@ -165,24 +166,39 @@ bfam_communicator_init(bfam_communicator_t* communicator,
   /* allocate everything now */
   communicator->send_buf = bfam_malloc(send_sz);
   communicator->recv_buf = bfam_malloc(recv_sz);
+
   communicator->proc_data =
-    bfam_malloc(communicator->numProc*sizeof(bfam_comm_procdata_t));
-  for(int i = 0;communicator->numProc > i; i++)
+    bfam_malloc(communicator->num_procs*sizeof(bfam_comm_procdata_t));
+
+  communicator->send_request =
+    bfam_malloc(2*communicator->num_procs*sizeof(MPI_Request));
+  communicator->recv_request =
+    communicator->send_request + communicator->num_procs;
+
+  communicator->send_status =
+    bfam_malloc(2*communicator->num_procs*sizeof(MPI_Status));
+  communicator->recv_status =
+    communicator->send_status + communicator->num_procs;
+
+  for(int i = 0;communicator->num_procs > i; i++)
   {
     communicator->proc_data[i].send_sz  = 0;
     communicator->proc_data[i].send_buf = NULL;
 
     communicator->proc_data[i].recv_sz  = 0;
     communicator->proc_data[i].recv_buf = NULL;
+
+    communicator->send_request[i] = MPI_REQUEST_NULL;
+    communicator->recv_request[i] = MPI_REQUEST_NULL;
   }
 
   /* sort for send  and fill struct */
-  qsort((void*) map, communicator->numSubdomains,
+  qsort((void*) map, communicator->num_subs,
       sizeof(bfam_communicator_map_entry_t), bfam_communicator_send_compare);
   char* send_buf_ptr = communicator->send_buf;
   bfam_locidx_t np = -1;   /* global proc ID */
   bfam_locidx_t proc = -1; /* local storage proc ID */
-  for(int s = 0; s < communicator->numSubdomains;s++)
+  for(int s = 0; s < communicator->num_subs;s++)
   {
     bfam_locidx_t t = map[s].orig_order;
     communicator->sub_data[t].send_buf = send_buf_ptr;
@@ -202,12 +218,12 @@ bfam_communicator_init(bfam_communicator_t* communicator,
   }
 
   /* sort for recv and fill struct*/
-  qsort((void*) map, communicator->numSubdomains,
+  qsort((void*) map, communicator->num_subs,
       sizeof(bfam_communicator_map_entry_t), bfam_communicator_recv_compare);
   char* recv_buf_ptr = communicator->recv_buf;
   np = -1;   /* global proc ID */
   proc = -1; /* local storage proc ID */
-  for(int s = 0; s < communicator->numSubdomains;s++)
+  for(int s = 0; s < communicator->num_subs;s++)
   {
     bfam_locidx_t t = map[s].orig_order;
     communicator->sub_data[t].recv_buf = recv_buf_ptr;
@@ -229,20 +245,69 @@ void
 bfam_communicator_free(bfam_communicator_t *communicator)
 {
   BFAM_VERBOSE("Communicator Free");
+
+  /* Just make sure there are no pending requests */
+  BFAM_MPI_CHECK(MPI_Waitall(2*communicator->num_procs,
+        communicator->send_request,communicator->send_status));
+
   bfam_free(communicator->send_buf);
   bfam_free(communicator->recv_buf);
   bfam_free(communicator->sub_data);
   bfam_free(communicator->proc_data);
+  bfam_free(communicator->send_request);
+  bfam_free(communicator->send_status);
 }
 
 void
-bfam_communicator_start(bfam_communicator_t *communicator)
+bfam_communicator_start(bfam_communicator_t *comm)
 {
   BFAM_VERBOSE("Communicator Start");
+  BFAM_MPI_CHECK(MPI_Waitall(2*comm->num_procs,
+        comm->send_request,comm->send_status));
+
+  /* post recvs */
+  for(int p = 0; p < comm->num_procs;p++)
+  {
+    BFAM_MPI_CHECK(MPI_Irecv(comm->proc_data[p].recv_buf,
+          comm->proc_data[p].recv_sz, MPI_BYTE,
+          comm->proc_data[p].rank, comm->tag, comm->comm,
+          &comm->recv_request[p]));
+  }
+
+  /* fill the data */
+  for(int s = 0; s < comm->num_subs;s++)
+  {
+    bfam_subdomain_t* sub = comm->sub_data[s].subdomain;
+    BFAM_ABORT_IF(sub->glue_put_send_buffer == NULL,
+        "glue_put_send_buffer is NULL for %s", sub->name);
+    sub->glue_put_send_buffer(sub,comm->sub_data[s].send_buf,
+        comm->sub_data[s].send_sz);
+  }
+
+  /* post sends */
+  for(int p = 0; p < comm->num_procs;p++)
+  {
+    BFAM_MPI_CHECK(MPI_Isend(comm->proc_data[p].send_buf,
+          comm->proc_data[p].send_sz, MPI_BYTE,
+          comm->proc_data[p].rank, comm->tag, comm->comm,
+          &comm->send_request[p]));
+  }
 }
 
 void
-bfam_communicator_finish(bfam_communicator_t *communicator)
+bfam_communicator_finish(bfam_communicator_t *comm)
 {
   BFAM_VERBOSE("Communicator Finish");
+  BFAM_MPI_CHECK(MPI_Waitall(comm->num_procs,
+        comm->recv_request,comm->recv_status));
+
+  /* get the data */
+  for(int s = 0; s < comm->num_subs;s++)
+  {
+    bfam_subdomain_t* sub = comm->sub_data[s].subdomain;
+    BFAM_ABORT_IF(sub->glue_get_recv_buffer == NULL,
+        "glue_get_recv_buffer is NULL for %s", sub->name);
+    sub->glue_get_recv_buffer(sub,comm->sub_data[s].recv_buf,
+        comm->sub_data[s].recv_sz);
+  }
 }

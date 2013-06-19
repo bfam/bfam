@@ -104,8 +104,15 @@ main (int argc, char *argv[])
   /* set up communicator */
   const char* tags[] = {"_glue",NULL};
   bfam_communicator_t* communicator = bfam_communicator_new(&domain,
-      BFAM_DOMAIN_AND,tags,MPI_COMM_WORLD);
+      BFAM_DOMAIN_AND,tags,MPI_COMM_WORLD,10);
 
+  /* start recv_send */
+  bfam_communicator_start(communicator);
+
+  /* finish recv */
+  bfam_communicator_finish(communicator);
+
+  /* clean up */
   bfam_communicator_free(communicator);
   bfam_free(communicator);
   bfam_domain_free(&domain);

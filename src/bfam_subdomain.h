@@ -82,11 +82,11 @@ typedef struct bfam_subdomain
 
   /**< Put data into the send buffer */
   void (*glue_put_send_buffer) (struct bfam_subdomain *thisSubdomain,
-      void *buffer);
+      void *buffer, size_t send_sz);
 
   /**< Get data from the recv buffer */
   void (*glue_get_recv_buffer) (struct bfam_subdomain *thisSubdomain,
-      void *buffer);
+      void *buffer, size_t recv_sz);
 } bfam_subdomain_t;
 
 

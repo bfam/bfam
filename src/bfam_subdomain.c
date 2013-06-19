@@ -38,13 +38,15 @@ bfam_subdomain_free(bfam_subdomain_t *thisSubdomain)
   thisSubdomain->comm = NULL;
   thisSubdomain->tags.root = NULL;
 
-  thisSubdomain->vtk_write_vtu_piece = NULL;
-  thisSubdomain->field_add           = NULL;
-  thisSubdomain->field_plus_add      = NULL;
-  thisSubdomain->field_minus_add     = NULL;
-  thisSubdomain->field_init          = NULL;
+  thisSubdomain->vtk_write_vtu_piece  = NULL;
+  thisSubdomain->field_add            = NULL;
+  thisSubdomain->field_plus_add       = NULL;
+  thisSubdomain->field_minus_add      = NULL;
+  thisSubdomain->field_init           = NULL;
 
-  thisSubdomain->glue_comm_info      = NULL;
+  thisSubdomain->glue_comm_info       = NULL;
+  thisSubdomain->glue_put_send_buffer = NULL;
+  thisSubdomain->glue_get_recv_buffer = NULL;
 }
 
 void
