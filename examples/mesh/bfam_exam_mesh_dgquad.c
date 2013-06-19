@@ -94,7 +94,7 @@ build_mesh(MPI_Comm mpicomm)
 
   bfam_domain_p4est_t* domain = bfam_domain_p4est_new(&comm, conn);
 
-  refine_level = 1;
+  refine_level = 2;
   p4est_refine(domain->p4est, 1, refine_fn, NULL);
   p4est_balance(domain->p4est, P4EST_CONNECT_FACE, NULL);
   p4est_partition(domain->p4est, NULL);
