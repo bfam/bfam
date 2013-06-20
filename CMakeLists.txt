@@ -471,6 +471,11 @@ target_link_libraries(bfam_test_jacobi bfam)
 
 add_test(bfam_test_jacobi_test bfam_test_jacobi)
 
+add_executable(bfam_test_util tests/bfam_test_util.c)
+target_link_libraries(bfam_test_util bfam)
+
+add_test(bfam_test_util_test bfam_test_util)
+
 add_test(bfam_test_communicator_test
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
   ${MPIEXEC_PREFLAGS} bfam_test_communicator ${MPIEXEC_POSTFLAGS})
