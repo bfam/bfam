@@ -6,6 +6,7 @@
 #include <bfam_critbit.h>
 
 typedef struct {
+  size_t num_entries;
   bfam_critbit0_tree_t t;
 } bfam_dictionary_t;
 

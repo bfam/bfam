@@ -3,12 +3,14 @@
 
 void bfam_dictionary_init(bfam_dictionary_t *d)
 {
+  d->num_entries = 0;
   d->t.root = NULL;
 }
 
 void bfam_dictionary_clear(bfam_dictionary_t *d)
 {
   bfam_critbit0_clear(&(d->t));
+  d->num_entries = 0;
 }
 
 int bfam_dictionary_contains_check(const char * value, void * arg)
@@ -54,6 +56,9 @@ int bfam_dictionary_insert(bfam_dictionary_t *d, const char *key,
   keyval[keylen+vallen+1] = '\0';
 
   int rval = bfam_critbit0_insert(&(d->t), keyval);
+
+  if(rval == 2)
+   ++d->num_entries;
 
   bfam_free(keyval);
   return rval;

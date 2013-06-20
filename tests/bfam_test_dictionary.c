@@ -31,7 +31,8 @@ prefix_ptr(const char * key, void *val, void *arg)
 static void
 test_contains()
 {
-  bfam_dictionary_t dict = {{0}};
+  bfam_dictionary_t dict;
+  bfam_dictionary_init(&dict);
 
   static const char *keys[] =
       {"a", "aa", "b", "bb", "ab", "ba", "aba", "bab", NULL};
@@ -45,6 +46,8 @@ test_contains()
 
   for (unsigned i = 0; keys[i]; ++i)
     bfam_dictionary_insert(&dict, keys[i], values[i]);
+
+  BFAM_ABORT_IF(dict.num_entries != 8, "Not all key,value pairs added");
 
   for (unsigned i = 0; keys[i]; ++i)
   {
@@ -82,7 +85,8 @@ test_contains()
 static void
 test_contains_ptr()
 {
-  bfam_dictionary_t dict = {{0}};
+  bfam_dictionary_t dict;
+  bfam_dictionary_init(&dict);
 
   static const char *keys[] = {"@^1", "@2","^3","@^44",NULL};
 
