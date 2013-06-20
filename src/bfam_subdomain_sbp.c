@@ -50,3 +50,16 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
                   "%s: problem with a dimension %d", d, subdomain->base.name);
   }
 }
+
+void
+bfam_subdomain_sbp_free(bfam_subdomain_t *subdomain)
+{
+  bfam_subdomain_sbp_t *sub = (bfam_subdomain_sbp_t*) subdomain;
+
+  bfam_subdomain_free(subdomain);
+
+  bfam_free(sub->N );
+  bfam_free(sub->Nl);
+  bfam_free(sub->Nb);
+  bfam_free(sub->gx);
+}
