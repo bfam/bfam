@@ -102,4 +102,38 @@ void bfam_util_lu_solve(size_t n, bfam_long_real_t *restrict LU,
                         bfam_long_real_t *restrict x, size_t *restrict p,
                         size_t *restrict q, bfam_long_real_t *restrict work);
 
+/** Forward slash.
+ *
+ * $C = A * B^{-1}$
+ *
+ * \param [in]  m   The number of rows of \a A and \a C.
+ * \param [in]  n   The number of rows and columns of the matrix \a B and
+ *                  the number of columns of \a A.
+ * \param [in]  A   The matrix $A$ in column first storage.
+ * \param [in]  B   The matrix $B$ in column first storage.
+ * \param [out] C   The matrix $C$ in column first storage.
+ *
+ * \note This code is not designed for speed.
+ */
+void bfam_util_forwardslash(size_t m, size_t n, bfam_long_real_t *restrict A,
+                            bfam_long_real_t *restrict B,
+                            bfam_long_real_t *restrict C);
+
+/** Backslash.
+ *
+ * $C = A^{-1} * B$
+ *
+ * \param [in]  m   The number of rows and columns of the matrix \a A and
+ *                  the number of rows of \a C and \a B.
+ * \param [in]  n   The number of columns of the matrix \a B and \a C.
+ * \param [in]  A   The matrix $A$ in column first storage.
+ * \param [in]  B   The matrix $B$ in column first storage.
+ * \param [out] C   The matrix $C$ in column first storage.
+ *
+ * \note This code is not designed for speed.
+ */
+void bfam_util_backslash(size_t m, size_t n, bfam_long_real_t *restrict A,
+                         bfam_long_real_t *restrict B,
+                         bfam_long_real_t *restrict C);
+
 #endif

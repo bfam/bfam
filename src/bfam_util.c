@@ -189,3 +189,49 @@ bfam_util_lu_solve(size_t n, bfam_long_real_t *restrict LU,
     x[q[k]] = work[k];
   }
 }
+
+void
+bfam_util_forwardslash(size_t m, size_t n, bfam_long_real_t *restrict A,
+                       bfam_long_real_t *restrict B,
+                       bfam_long_real_t *restrict C)
+{
+  bfam_long_real_t *AT = bfam_malloc_aligned(m*m*sizeof(bfam_long_real_t));
+  bfam_long_real_t *BT = bfam_malloc_aligned(n*m*sizeof(bfam_long_real_t));
+  bfam_long_real_t *CT = bfam_malloc_aligned(n*m*sizeof(bfam_long_real_t));
+
+  bfam_util_mtranspose(m, n, A, m, AT, n);
+  bfam_util_mtranspose(n, n, B, n, BT, n);
+
+  bfam_util_backslash(n, m, BT, AT, CT);
+
+  bfam_util_mtranspose(n, m, CT, n, C, m);
+
+  bfam_free_aligned(CT);
+  bfam_free_aligned(BT);
+  bfam_free_aligned(AT);
+}
+
+void
+bfam_util_backslash(size_t m, size_t n, bfam_long_real_t *restrict A,
+                    bfam_long_real_t *restrict B,
+                    bfam_long_real_t *restrict C)
+{
+  bfam_long_real_t *LU   = bfam_malloc_aligned(m*m*sizeof(bfam_long_real_t));
+  bfam_long_real_t *work = bfam_malloc_aligned(  m*sizeof(bfam_long_real_t));
+
+  size_t *p = bfam_malloc_aligned(m*sizeof(size_t));
+  size_t *q = bfam_malloc_aligned(m*sizeof(size_t));
+
+  memcpy(LU, A, m*m*sizeof(bfam_long_real_t));
+  memcpy( C, B, m*n*sizeof(bfam_long_real_t));
+
+  bfam_util_lu_factor(m, LU, p, q);
+
+  for(size_t j = 0; j < n; ++j)
+    bfam_util_lu_solve(m, LU, C+j*m, p, q, work);
+
+  bfam_free_aligned(q);
+  bfam_free_aligned(p);
+  bfam_free_aligned(work);
+  bfam_free_aligned(LU);
+}

@@ -132,6 +132,36 @@ bfam_long_real_t D[] = {
   0
 };
 
+bfam_long_real_t AbBT_ex[] = {
+  BFAM_LONG_REAL( 0.9375),
+  BFAM_LONG_REAL( 0.4375),
+  BFAM_LONG_REAL( 0.5625),
+  BFAM_LONG_REAL(-2.1875),
+  BFAM_LONG_REAL( 3.3125),
+  BFAM_LONG_REAL(-0.3125),
+  BFAM_LONG_REAL(-0.3125),
+  BFAM_LONG_REAL( 1.1875),
+  BFAM_LONG_REAL(-0.1875),
+  BFAM_LONG_REAL(-1.125),
+  BFAM_LONG_REAL( 0.875),
+  BFAM_LONG_REAL( 0.125)
+};
+
+bfam_long_real_t BfA_ex[] = {
+       3/BFAM_LONG_REAL(2.0),
+     -17/BFAM_LONG_REAL(16.0),
+       0,
+      -5/BFAM_LONG_REAL(8.0),
+      -1,
+      -1/BFAM_LONG_REAL(8.0),
+       0,
+      -1/BFAM_LONG_REAL(4.0),
+      -3/BFAM_LONG_REAL(2.0),
+     -17/BFAM_LONG_REAL(16.0),
+       1,
+     -21/BFAM_LONG_REAL(8.0)
+};
+
 int
 main (int argc, char *argv[])
 {
@@ -164,6 +194,17 @@ main (int argc, char *argv[])
   bfam_util_mtranspose(M, N, B, M, BTT, N);
 
   failures += check_approx_eq(BFAM_LONG_REAL_EPS*100, M*N, BTT, BT);
+
+  bfam_long_real_t AbBT[M*N];
+
+  bfam_util_backslash(N, M, A2, BT, AbBT);
+  failures += check_approx_eq(BFAM_LONG_REAL_EPS*100, M*N, AbBT, AbBT_ex);
+
+  bfam_long_real_t BfA[M*N];
+
+  bfam_util_forwardslash(M, N, B, A2, BfA);
+
+  failures += check_approx_eq(BFAM_LONG_REAL_EPS*100, M*N, BfA, BfA_ex);
 
   if(failures)
     return EXIT_FAILURE;
