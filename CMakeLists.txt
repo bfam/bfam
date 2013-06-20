@@ -352,6 +352,7 @@ add_library(bfam
                  src/bfam_domain.c
                  src/bfam_domain_p4est.c
                  src/bfam_subdomain_dgx_quad.c
+                 src/bfam_subdomain_sbp.c
                  src/bfam_subdomain_dummy.c
                  src/bfam_vtk.c
                  src/bfam_timestep.c
