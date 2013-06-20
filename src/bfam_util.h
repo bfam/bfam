@@ -10,6 +10,23 @@
  */
 void bfam_util_strcsl(char *str, const char **list);
 
+/** In place matrix transposition.
+ *
+ * $A = A^T$
+ *
+ * \param [in]  m   The number of rows    of the matrix \a A.
+ * \param [in]  n   The number of columns of the matrix \a A.
+ * \param [in]  A   The matrix $A$ in column first storage.
+ * \param [in]  lda The first dimension of \a A.
+ * \param [out] B   The matrix $A^T$ in column first storage.
+ * \param [in]  ldb The first dimension of \a B.
+ *
+ * \note This code is not designed for speed.
+ */
+void bfam_util_mtranspose(size_t m, size_t n,
+                          bfam_long_real_t *restrict A, size_t lda,
+                          bfam_long_real_t *restrict B, size_t ldb);
+
 /** Matrix matrix multiplication.
  *
  * $C = A * B + C$

@@ -61,6 +61,20 @@ bfam_long_real_t B[] = {
  -1
 };
 
+bfam_long_real_t BT[] = {
+  4,
+  3,
+ -1,
+ -2,
+  0,
+ -3,
+  0,
+ -1,
+ -1,
+ -1,
+  2,
+ -1
+};
 
 bfam_long_real_t b[] = {
   1,
@@ -145,6 +159,11 @@ main (int argc, char *argv[])
   bfam_util_mmmult(M, N, N, B, M, A2, N, D, M);
 
   failures += check_approx_eq(BFAM_LONG_REAL_EPS*100, M*N, C, D);
+
+  bfam_long_real_t BTT[M*N];
+  bfam_util_mtranspose(M, N, B, M, BTT, N);
+
+  failures += check_approx_eq(BFAM_LONG_REAL_EPS*100, M*N, BTT, BT);
 
   if(failures)
     return EXIT_FAILURE;

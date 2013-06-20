@@ -17,6 +17,16 @@ bfam_util_strcsl(char *str, const char **list)
   }
 }
 
+
+void
+bfam_util_mtranspose(size_t m, size_t n, bfam_long_real_t *restrict A,
+                     size_t lda, bfam_long_real_t *restrict B, size_t ldb)
+{
+  for(size_t i = 0; i < m; ++i)
+    for(size_t j = 0; j < n; ++j)
+      B[i * ldb + j] = A[j * lda + i];
+}
+
 void
 bfam_util_mmmult(size_t m, size_t n, size_t k,
                  bfam_long_real_t *restrict A, size_t lda,
