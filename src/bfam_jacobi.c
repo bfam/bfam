@@ -361,3 +361,13 @@ bfam_jacobi_gauss_lobatto_quadrature(bfam_long_real_t alpha,
 
   return;
 }
+
+void
+bfam_jacobi_p_vandermonde(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
+    size_t nx, bfam_long_real_t *x, bfam_long_real_t *V)
+{
+  for (int j=0; j <= N; ++j)
+    bfam_jacobi_p(alpha, beta, j, nx, x, V + j*nx);
+
+  return;
+}

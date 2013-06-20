@@ -57,4 +57,20 @@ void
 bfam_jacobi_gauss_lobatto_quadrature(bfam_long_real_t alpha,
     bfam_long_real_t beta, int N, bfam_long_real_t *x, bfam_long_real_t *w);
 
+/** Compute the Jacobi Vandermonde matrix.
+ *
+ * \param[in]  alpha Jacobi polynomial parameter
+ * \param[in]  beta  Jacobi polynomial parameter
+ * \param[in]  N     Jacobi polynomial order
+ * \param[in]  nx    Number of locations to evaluate the Jacobi polynomial
+ * \param[in]  x     Array of length \a nx containing the locations in [-1,1]
+ *                   to evaluate the Jacobi polynomial
+ * \param[out] V     A \a nx by \a N matrix in column first order where
+ *                   the $i,j$ entry contains the normalized Jacobi polynomials
+ *                   $p^{(\alpha,\beta)}_j$ evaluated at \a x[i].
+ */
+void
+bfam_jacobi_p_vandermonde(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
+    size_t nx, bfam_long_real_t *x, bfam_long_real_t *V);
+
 #endif

@@ -358,6 +358,27 @@ bfam_long_real_t wl_53_42_5[] = {
    1.328441643536374e-04,
 };
 
+bfam_long_real_t vx_3[] = {
+  -1.000000000000000e+00L,
+  -7.500000000000000e-01L,
+   2.500000000000000e-01L,
+};
+
+bfam_long_real_t V_3_3[] = {
+   7.071067811865475e-01,
+   7.071067811865475e-01,
+   7.071067811865475e-01,
+  -1.224744871391589e+00,
+  -9.185586535436918e-01,
+   3.061862178478972e-01,
+   1.581138830084190e+00,
+   5.435164728414403e-01,
+  -6.423376497217022e-01,
+  -1.870828693386972e+00,
+   1.315426425037712e-01,
+  -6.284815141846856e-01,
+};
+
 
 void print_quadrature(bfam_long_real_t alpha, bfam_long_real_t beta,
     int N, bfam_long_real_t *restrict x, bfam_long_real_t *restrict w)
@@ -451,6 +472,16 @@ main (int argc, char *argv[])
   LIST_OF_TESTS
 #undef X
 #undef LIST_OF_TESTS
+
+  {
+    bfam_long_real_t V[4*3];
+    bfam_jacobi_p_vandermonde(0, 0, 3, 3, vx_3, V);
+
+    for(int n = 0; n < 4*3; ++n)
+      BFAM_INFO("V[%2d] = %"BFAM_LONG_REAL_PRIe,n , V[n]);
+
+    failures += check_approx_eq(BFAM_REAL_EPS*100, 4*3, V, V_3_3);
+  }
 
   if(failures)
     return EXIT_FAILURE;
