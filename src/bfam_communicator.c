@@ -130,7 +130,7 @@ bfam_communicator_init(bfam_communicator_t* communicator,
 
     map[s].orig_order = s;
 
-    sprintf(procStr,"%d",map[s].np);
+    snprintf(procStr,BFAM_BUFSIZ,"%jd",(intmax_t)map[s].np);
     if(!bfam_critbit0_contains(&procs,procStr))
     {
       communicator->num_procs++;
