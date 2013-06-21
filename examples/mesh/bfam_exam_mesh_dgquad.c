@@ -170,6 +170,22 @@ build_mesh(MPI_Comm mpicomm)
   bfam_domain_add_field((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume, "v2");
   bfam_domain_add_field((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume, "v3");
 
+  const char *glue[] = {"_glue", NULL};
+
+  bfam_domain_add_minus_field((bfam_domain_t*)domain, BFAM_DOMAIN_AND, glue,
+      "v1");
+  bfam_domain_add_minus_field((bfam_domain_t*)domain, BFAM_DOMAIN_AND, glue,
+      "v2");
+  bfam_domain_add_minus_field((bfam_domain_t*)domain, BFAM_DOMAIN_AND, glue,
+      "v3");
+
+  bfam_domain_add_plus_field((bfam_domain_t*)domain, BFAM_DOMAIN_AND, glue,
+      "v1");
+  bfam_domain_add_plus_field((bfam_domain_t*)domain, BFAM_DOMAIN_AND, glue,
+      "v2");
+  bfam_domain_add_plus_field((bfam_domain_t*)domain, BFAM_DOMAIN_AND, glue,
+      "v3");
+
   bfam_domain_init_field((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume, "v1",
       0, x2_field, NULL);
   bfam_domain_init_field((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume, "v2",
@@ -179,6 +195,11 @@ build_mesh(MPI_Comm mpicomm)
 
   const char *strain[] = {"E11", "E22", "E33", "E12", "E23", "E13", NULL};
   bfam_domain_add_fields((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume,
+      strain);
+
+  bfam_domain_add_minus_fields((bfam_domain_t*)domain, BFAM_DOMAIN_AND, glue,
+      strain);
+  bfam_domain_add_plus_fields( (bfam_domain_t*)domain, BFAM_DOMAIN_AND, glue,
       strain);
 
   bfam_domain_init_field((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume,

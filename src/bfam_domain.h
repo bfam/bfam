@@ -167,6 +167,133 @@ bfam_domain_add_fields_critbit(bfam_domain_t *thisDomain,
     bfam_domain_match_t match, bfam_critbit0_tree_t *tags,
     const char **fields);
 
+/** Add minus fields to subdomains matching the tags passed in.
+ *
+ * \param [in,out]  thisDomain    domain to search for subdomains in
+ * \param [in]      matchType     type of match, \c BFAM_DOMAIN_OR will
+ *                                match subdomains with any of the tags
+ *                                and \c BFAM_DOMAIN_AND will match subdomains
+ *                                with all of the tags.
+ * \param [in]      tags          \c NULL terminated array of the tags to match
+ * \param [in]      field         field to add to the subdomains
+ *
+ */
+void
+bfam_domain_add_minus_field(bfam_domain_t *thisDomain, bfam_domain_match_t match,
+    const char **tags, const char *field);
+
+/** Add minus fields to subdomains matching the tags passed in.
+ *
+ * \param [in,out]  thisDomain    domain to search for subdomains in
+ * \param [in]      matchType     type of match, \c BFAM_DOMAIN_OR will
+ *                                match subdomains with any of the tags
+ *                                and \c BFAM_DOMAIN_AND will match subdomains
+ *                                with all of the tags.
+ * \param [in]      tags          \c NULL terminated array of the tags to match
+ * \param [in]      fields        fields to add to the subdomains
+ *
+ */
+void
+bfam_domain_add_minus_fields(bfam_domain_t *thisDomain,
+    bfam_domain_match_t match, const char **tags, const char **fields);
+
+/** Add minus fields to subdomains matching the tags passed in.
+ *
+ * Here the tags are stored in a critbit.
+ *
+ * \param [in,out]  thisDomain    domain to search for subdomains in
+ * \param [in]      matchType     type of match, \c BFAM_DOMAIN_OR will
+ *                                match subdomains with any of the tags
+ *                                and \c BFAM_DOMAIN_AND will match subdomains
+ *                                with all of the tags.
+ * \param [in]      tags          critbit of the tags to match
+ * \param [in]      field         field to add to the subdomains
+ *
+ */
+void
+bfam_domain_add_minus_field_critbit(bfam_domain_t *thisDomain,
+    bfam_domain_match_t match, bfam_critbit0_tree_t *tags, const char *field);
+
+/** Add minus fields to subdomains matching the tags passed in
+ *
+ * \param [in,out]  thisDomain    domain to search for subdomains in
+ * \param [in]      matchType     type of match, \c BFAM_DOMAIN_OR will
+ *                                match subdomains with any of the tags
+ *                                and \c BFAM_DOMAIN_AND will match subdomains
+ *                                with all of the tags.
+ * \param [in]      tags          critbit of the tags to match
+ * \param [in]      fields        fields to add to the subdomains
+ *
+ */
+void
+bfam_domain_add_minus_fields_critbit(bfam_domain_t *thisDomain,
+    bfam_domain_match_t match, bfam_critbit0_tree_t *tags,
+    const char **fields);
+
+
+/** Add plus fields to subdomains matching the tags passed in.
+ *
+ * \param [in,out]  thisDomain    domain to search for subdomains in
+ * \param [in]      matchType     type of match, \c BFAM_DOMAIN_OR will
+ *                                match subdomains with any of the tags
+ *                                and \c BFAM_DOMAIN_AND will match subdomains
+ *                                with all of the tags.
+ * \param [in]      tags          \c NULL terminated array of the tags to match
+ * \param [in]      field         field to add to the subdomains
+ *
+ */
+void
+bfam_domain_add_plus_field(bfam_domain_t *thisDomain, bfam_domain_match_t match,
+    const char **tags, const char *field);
+
+/** Add plus fields to subdomains matching the tags passed in.
+ *
+ * \param [in,out]  thisDomain    domain to search for subdomains in
+ * \param [in]      matchType     type of match, \c BFAM_DOMAIN_OR will
+ *                                match subdomains with any of the tags
+ *                                and \c BFAM_DOMAIN_AND will match subdomains
+ *                                with all of the tags.
+ * \param [in]      tags          \c NULL terminated array of the tags to match
+ * \param [in]      fields        fields to add to the subdomains
+ *
+ */
+void
+bfam_domain_add_plus_fields(bfam_domain_t *thisDomain, bfam_domain_match_t match,
+    const char **tags, const char **fields);
+
+/** Add plus fields to subdomains matching the tags passed in.
+ *
+ * Here the tags are stored in a critbit.
+ *
+ * \param [in,out]  thisDomain    domain to search for subdomains in
+ * \param [in]      matchType     type of match, \c BFAM_DOMAIN_OR will
+ *                                match subdomains with any of the tags
+ *                                and \c BFAM_DOMAIN_AND will match subdomains
+ *                                with all of the tags.
+ * \param [in]      tags          critbit of the tags to match
+ * \param [in]      field         field to add to the subdomains
+ *
+ */
+void
+bfam_domain_add_plus_field_critbit(bfam_domain_t *thisDomain,
+    bfam_domain_match_t match, bfam_critbit0_tree_t *tags, const char *field);
+
+/** Add fields to subdomains matching the tags passed in
+ *
+ * \param [in,out]  thisDomain    domain to search for subdomains in
+ * \param [in]      matchType     type of match, \c BFAM_DOMAIN_OR will
+ *                                match subdomains with any of the tags
+ *                                and \c BFAM_DOMAIN_AND will match subdomains
+ *                                with all of the tags.
+ * \param [in]      tags          critbit of the tags to match
+ * \param [in]      fields        fields to add to the subdomains
+ *
+ */
+void
+bfam_domain_add_plus_fields_critbit(bfam_domain_t *thisDomain,
+    bfam_domain_match_t match, bfam_critbit0_tree_t *tags,
+    const char **fields);
+
 /** Initialize a field.
  *
  * \param [in,out]  thisDomain    domain to search for subdomains in
