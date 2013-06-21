@@ -105,6 +105,8 @@ bfam_subdomain_init(bfam_subdomain_t *thisSubdomain, bfam_locidx_t id,
   thisSubdomain->field_init          = NULL;
 
   thisSubdomain->glue_comm_info      = NULL;
+  thisSubdomain->glue_put_send_buffer = NULL;
+  thisSubdomain->glue_get_recv_buffer = NULL;
 }
 
 void
