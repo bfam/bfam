@@ -136,4 +136,41 @@ void bfam_util_backslash(size_t m, size_t n, bfam_long_real_t *restrict A,
                          bfam_long_real_t *restrict B,
                          bfam_long_real_t *restrict C);
 
+/** Transfinite Interpolation
+ *
+ * \param [out] x   pointer to x dimension to initialize
+ * \param [out] y   pointer to y dimension to initialize
+ * \param [out] z   pointer to z dimension to initialize
+ * \param [in]  N   global top index
+ * \param [in]  Nl  local  top index
+ * \param [in]  gx  my global starting index
+ * \param [in]  xc  pointer to x values on corners
+ * \param [in]  yc  pointer to y values on corners
+ * \param [in]  zc  pointer to z values on corners
+ * \param [in]  x0  pointer to x values on side 0
+ * \param [in]  y0  pointer to y values on side 0
+ * \param [in]  z0  pointer to z values on side 0
+ * \param [in]  x1  pointer to x values on side 0
+ * \param [in]  y1  pointer to y values on side 0
+ * \param [in]  z1  pointer to z values on side 0
+ * \param [in]  x2  pointer to x values on side 0
+ * \param [in]  y2  pointer to y values on side 0
+ * \param [in]  z2  pointer to z values on side 0
+ * \param [in]  x3  pointer to x values on side 0
+ * \param [in]  y3  pointer to y values on side 0
+ * \param [in]  z3  pointer to z values on side 0
+ *
+ * \note If an out pointer is null, then this dimension is skipped
+ *       If a side pointer is null, then linear interpolation between corners is
+ *       used
+ */
+void bfam_util_transfinite(
+          bfam_real_t   *x ,       bfam_real_t   *y ,       bfam_real_t   *z ,
+    const bfam_gloidx_t *N , const bfam_locidx_t *Nl, const bfam_locidx_t *gx,
+    const bfam_real_t   *xc, const bfam_real_t   *yc, const bfam_real_t   *zc,
+    const bfam_real_t   *x0, const bfam_real_t   *y0, const bfam_real_t   *z0,
+    const bfam_real_t   *x1, const bfam_real_t   *y1, const bfam_real_t   *z1,
+    const bfam_real_t   *x2, const bfam_real_t   *y2, const bfam_real_t   *z2,
+    const bfam_real_t   *x3, const bfam_real_t   *y3, const bfam_real_t   *z3);
+
 #endif

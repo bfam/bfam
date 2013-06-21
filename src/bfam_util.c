@@ -235,3 +235,14 @@ bfam_util_backslash(size_t m, size_t n, bfam_long_real_t *restrict A,
   bfam_free_aligned(work);
   bfam_free_aligned(LU);
 }
+
+void bfam_util_transfinite(
+          bfam_real_t   *x ,       bfam_real_t   *y ,       bfam_real_t   *z ,
+    const bfam_gloidx_t *N , const bfam_locidx_t *Nl, const bfam_locidx_t *gx,
+    const bfam_real_t   *xc, const bfam_real_t   *yc, const bfam_real_t   *zc,
+    const bfam_real_t   *x0, const bfam_real_t   *y0, const bfam_real_t   *z0,
+    const bfam_real_t   *x1, const bfam_real_t   *y1, const bfam_real_t   *z1,
+    const bfam_real_t   *x2, const bfam_real_t   *y2, const bfam_real_t   *z2,
+    const bfam_real_t   *x3, const bfam_real_t   *y3, const bfam_real_t   *z3)
+{
+}
