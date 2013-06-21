@@ -65,7 +65,7 @@ bfam_jacobi_gauss_lobatto_quadrature(bfam_long_real_t alpha,
  * \param[in]  nx    Number of locations to evaluate the Jacobi polynomial
  * \param[in]  x     Array of length \a nx containing the locations in [-1,1]
  *                   to evaluate the Jacobi polynomial
- * \param[out] V     A \a nx by \a N matrix in column first order where
+ * \param[out] V     A \a nx by \a N+1 matrix in column first order where
  *                   the $i,j$ entry contains the normalized Jacobi polynomials
  *                   $p^{(\alpha,\beta)}_j$ evaluated at \a x[i].
  */
