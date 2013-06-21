@@ -1064,8 +1064,13 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
        * between them based on id.  So we have decided to use a minus sign
        * to distinguish between the two different glue grids.
        */
-      const bfam_locidx_t sign_m = (id_m == id_p && r) ?  1 : -1;
-      const bfam_locidx_t sign_p = (id_m == id_p && r) ? -1 :  1;
+      bfam_locidx_t sign_m = 1;
+      bfam_locidx_t sign_p = 1;
+      if(id_m == id_p)
+      {
+       sign_m = (r) ? -1 :  1;
+       sign_p = (r) ?  1 : -1;
+      }
 
       bfam_subdomain_dgx_quad_glue_t *glue =
         bfam_subdomain_dgx_quad_glue_new(id,
@@ -1074,8 +1079,8 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
                                          N[id_p],
                                          rank_m,
                                          rank_p,
-                                         sign_m * id_m,
-                                         sign_p * id_p,
+                                         sign_m * (id_m+1),
+                                         sign_p * (id_p+1),
                                          subdomains[id_m],
                                          ktosubk,
                                          Kglue,
@@ -1134,8 +1139,8 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
                                        N[id_p],
                                        rank_m,
                                        rank_p,
-                                       id_m,
-                                       id_p,
+                                       id_m+1,
+                                       id_p+1,
                                        subdomains[id_m],
                                        ktosubk,
                                        Kglue,
@@ -1194,8 +1199,8 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
                                        ghostN[gid_p],
                                        rank_m,
                                        rank_p,
-                                       id_m,
-                                       id_p,
+                                       id_m+1,
+                                       id_p+1,
                                        subdomains[id_m],
                                        ktosubk,
                                        Kglue,

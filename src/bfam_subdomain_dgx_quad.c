@@ -515,8 +515,8 @@ bfam_subdomain_dgx_quad_glue_init(bfam_subdomain_dgx_quad_glue_t  *subdomain,
 
 #ifdef BFAM_DEBUG
   for(bfam_locidx_t k = 0; k < K; ++k)
-    BFAM_ASSERT(mapping[k].s  == imaxabs(id_m) &&
-                mapping[k].ns == imaxabs(id_p));
+    BFAM_ASSERT(mapping[k].s  == imaxabs(id_m)-1 &&
+                mapping[k].ns == imaxabs(id_p)-1);
 #endif
 }
 
