@@ -140,12 +140,21 @@ void bfam_util_backslash(size_t m, size_t n, bfam_long_real_t *restrict A,
  */
 void bfam_util_transfinite(
     bfam_long_real_t *x, bfam_long_real_t *y, bfam_long_real_t *z,
-    const bfam_gloidx_t *N, const bfam_locidx_t *Nl, const bfam_locidx_t *gx,
+    const bfam_gloidx_t *N, const bfam_locidx_t *Nl, const bfam_gloidx_t *gx,
     const bfam_long_real_t *xc, const bfam_long_real_t *xe,
     const bfam_long_real_t *r,
     const bfam_long_real_t *yc, const bfam_long_real_t *ye,
     const bfam_long_real_t *s,
     const bfam_long_real_t *zc, const bfam_long_real_t *ze,
     const bfam_long_real_t *t);
+
+/** Linear blending
+ */
+void bfam_util_linear_blend(
+    bfam_long_real_t *restrict x, bfam_long_real_t *restrict y,
+    bfam_long_real_t *restrict z,
+    const bfam_gloidx_t *N, const bfam_locidx_t *Nltmp,
+    const bfam_gloidx_t *gxtmp, const bfam_long_real_t *xc,
+    const bfam_long_real_t *yc, const bfam_long_real_t *zc);
 
 #endif
