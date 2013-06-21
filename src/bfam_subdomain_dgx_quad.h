@@ -136,6 +136,9 @@ typedef struct bfam_subdomain_dgx_quad_glue
                             * a boundary subdomain).
                             */
 
+  bfam_locidx_t    id_m;   /* Sort Id of the subdomain on the minus side */
+  bfam_locidx_t    id_p;   /* Sort Id of the subdomain on the plus  side */
+
   bfam_locidx_t    s_m;    /* Id of the subdomain on the minus side */
   bfam_locidx_t    s_p;    /* Id of the subdomain on the plus  side */
 
