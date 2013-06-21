@@ -184,6 +184,34 @@ bfam_subdomain_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
 int
 bfam_subdomain_field_add(bfam_subdomain_t *thisSubdomain, const char* name);
 
+/** Add a field to the plus side of the subdomain.
+ *
+ * \param [in,out] thisSubdomain subdomain to search for the tag
+ * \param [in]     name          name of the field to add to the subdomain
+ *
+ * \returns:
+ *   $\cases{ 0 &if {\rm out of memory} \cr
+ *            1 &if {\it name} {\rm was already a field} \cr
+ *            2 &if {\it name} {\rm was added successfully}}$.
+ */
+int
+bfam_subdomain_field_plus_add(bfam_subdomain_t *thisSubdomain,
+                              const char* name);
+
+/** Add a field to the minus side of the subdomain.
+ *
+ * \param [in,out] thisSubdomain subdomain to search for the tag
+ * \param [in]     name          name of the field to add to the subdomain
+ *
+ * \returns:
+ *   $\cases{ 0 &if {\rm out of memory} \cr
+ *            1 &if {\it name} {\rm was already a field} \cr
+ *            2 &if {\it name} {\rm was added successfully}}$.
+ */
+int
+bfam_subdomain_field_minus_add(bfam_subdomain_t *thisSubdomain,
+                               const char* name);
+
 /** Initialize a field in the subdomain
  *
  * \param [in,out] thisSubdomain subdomain to search for the tag
