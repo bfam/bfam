@@ -15,45 +15,28 @@ bfam_subdomain_face_send_cmp(const void* a, const void*b)
     return -1;
   else if(la->np > lb->np)
     return  1;
+  else if(la->ns < lb->ns)
+    return -1;
+  else if(la->ns > lb->ns)
+    return  1;
+  else if(la->s  < lb->s)
+    return -1;
+  else if(la->s  > lb->s)
+    return  1;
+  else if(la->nk < lb->nk)
+    return -1;
+  else if(la->nk > lb->nk)
+    return  1;
+  else if(la->nf < lb->nf)
+    return -1;
+  else if(la->nf > lb->nf)
+    return  1;
+  else if(la->nh < lb->nh)
+    return -1;
+  else if(la->nh > lb->nh)
+    return  1;
   else
-  {
-    if(la->ns < lb->ns)
-      return -1;
-    else if(la->ns > lb->ns)
-      return  1;
-    else
-    {
-      if(la->s < lb->s)
-        return -1;
-      else if(la->s > lb->s)
-        return  1;
-      else
-      {
-        if(la->nk < lb->nk)
-          return -1;
-        else if(la->nk > lb->nk)
-          return  1;
-        else
-        {
-          if(la->nf < lb->nf)
-            return -1;
-          else if(la->nf > lb->nf)
-            return  1;
-          else
-          {
-            if(la->nh < lb->nh)
-              return -1;
-            else if(la->nh > lb->nh)
-              return  1;
-            else
-            {
-              return 0;
-            }
-          }
-        }
-      }
-    }
-  }
+    return  0;
 
   BFAM_ABORT("We should never reach here.");
 }
@@ -72,45 +55,28 @@ bfam_subdomain_face_recv_cmp(const void* a, const void*b)
     return -1;
   else if(la->np > lb->np)
     return  1;
+  else if(la->s  < lb->s)
+    return -1;
+  else if(la->s  > lb->s)
+    return  1;
+  else if(la->ns < lb->ns)
+    return -1;
+  else if(la->ns > lb->ns)
+    return  1;
+  else if(la->k  < lb->k)
+    return -1;
+  else if(la->k  > lb->k)
+    return  1;
+  else if(la->f  < lb->f)
+    return -1;
+  else if(la->f  > lb->f)
+    return  1;
+  else if(la->h  < lb->h)
+    return -1;
+  else if(la->h  > lb->h)
+    return  1;
   else
-  {
-    if(la->s < lb->s)
-      return -1;
-    else if(la->s > lb->s)
-      return  1;
-    else
-    {
-      if(la->ns < lb->ns)
-        return -1;
-      else if(la->ns > lb->ns)
-        return  1;
-      else
-      {
-        if(la->k < lb->k)
-          return -1;
-        else if(la->k > lb->k)
-          return  1;
-        else
-        {
-          if(la->f < lb->f)
-            return -1;
-          else if(la->f > lb->f)
-            return  1;
-          else
-          {
-            if(la->h < lb->h)
-              return -1;
-            else if(la->h > lb->h)
-              return  1;
-            else
-            {
-              return 0;
-            }
-          }
-        }
-      }
-    }
-  }
+    return  0;
 
   BFAM_ABORT("We should never reach here.");
 }
