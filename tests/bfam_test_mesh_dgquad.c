@@ -103,10 +103,9 @@ build_mesh(MPI_Comm mpicomm)
   int rank;
   BFAM_MPI_CHECK(MPI_Comm_rank(mpicomm, &rank));
 
-  bfam_mpicomm_t comm = { .comm = mpicomm, .isMember = 1 };
   p4est_connectivity_t *conn = p4est_connectivity_new_corner();
 
-  bfam_domain_p4est_t* domain = bfam_domain_p4est_new(&comm, conn);
+  bfam_domain_p4est_t* domain = bfam_domain_p4est_new(mpicomm, conn);
 
   refine_level = 4;
   p4est_refine(domain->p4est, 2, refine_fn, NULL);

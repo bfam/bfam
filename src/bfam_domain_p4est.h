@@ -27,7 +27,7 @@ typedef struct bfam_domain_p4est
  * \return the newly created p4est managed domain
  */
 bfam_domain_p4est_t*
-bfam_domain_p4est_new(bfam_mpicomm_t *domComm,
+bfam_domain_p4est_new(MPI_Comm domComm,
                       p4est_connectivity_t *conn);
 
 /** initializes a domain
@@ -37,7 +37,7 @@ bfam_domain_p4est_new(bfam_mpicomm_t *domComm,
  * \param [in]     conn    pointer to the p4est connectivity for the domain
  */
 void
-bfam_domain_p4est_init(bfam_domain_p4est_t *domain, bfam_mpicomm_t *domComm,
+bfam_domain_p4est_init(bfam_domain_p4est_t *domain, MPI_Comm domComm,
                        p4est_connectivity_t *conn);
 
 /** Clean up domain

@@ -94,8 +94,6 @@ bfam_subdomain_init(bfam_subdomain_t *thisSubdomain, bfam_locidx_t id,
   bfam_dictionary_init(&thisSubdomain->fields_m);
   bfam_dictionary_init(&thisSubdomain->fields_p);
 
-  thisSubdomain->comm = NULL;
-
   thisSubdomain->tags.root = NULL;
 
   thisSubdomain->free                = bfam_subdomain_free;
@@ -120,7 +118,7 @@ bfam_subdomain_free(bfam_subdomain_t *thisSubdomain)
   bfam_dictionary_clear(&thisSubdomain->fields);
   bfam_dictionary_clear(&thisSubdomain->fields_m);
   bfam_dictionary_clear(&thisSubdomain->fields_p);
-  thisSubdomain->comm = NULL;
+
   thisSubdomain->tags.root = NULL;
 
   thisSubdomain->vtk_write_vtu_piece  = NULL;

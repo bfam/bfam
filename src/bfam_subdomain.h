@@ -2,7 +2,6 @@
 #define BFAM_SUBDOMAIN_H
 
 #include <bfam_base.h>
-#include <bfam_mpicomm.h>
 #include <bfam_critbit.h>
 #include <bfam_dictionary.h>
 
@@ -73,7 +72,6 @@ typedef struct bfam_subdomain
 {
   bfam_locidx_t   id;
   char*           name;     /**< Name of the subdomain */
-  bfam_mpicomm_t* comm;     /**< communicator for this subdomain */
   bfam_critbit0_tree_t tags; /**< critbit for tags for the subdomain */
   bfam_dictionary_t fields; /**< a dictionary storing pointers to fields */
   bfam_dictionary_t fields_m; /**< a dictionary storing minus fields */

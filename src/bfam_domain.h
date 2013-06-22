@@ -2,7 +2,6 @@
 #define BFAM_DOMAIN_H
 
 #include <bfam_base.h>
-#include <bfam_mpicomm.h>
 #include <bfam_critbit.h>
 #include <bfam_dictionary.h>
 #include <bfam_subdomain.h>
@@ -17,7 +16,7 @@ typedef struct bfam_domain
                                       currently in the domain */
   bfam_locidx_t sizeSubdomains;  /**< total number of subdomains the domain
                                       can hold, i.e.  size of the array*/
-  bfam_mpicomm_t * comm;         /**< communicator for the whole domain */
+  MPI_Comm comm;                 /**< communicator for the whole domain */
   bfam_dictionary_t name2num;    /**< dictionary map for convertings
                                       subdomain names to numbers */
 } bfam_domain_t;
@@ -35,7 +34,7 @@ typedef enum bfam_domain_match
  *
  * \return the newly created domain
  */
-bfam_domain_t* bfam_domain_new(bfam_mpicomm_t *domComm);
+bfam_domain_t* bfam_domain_new(MPI_Comm domComm);
 
 /** initializes a domain
  *
@@ -43,7 +42,7 @@ bfam_domain_t* bfam_domain_new(bfam_mpicomm_t *domComm);
  * \param [in]     domComm pointer to the communicator for the domain
  */
 void
-bfam_domain_init(bfam_domain_t *domain, bfam_mpicomm_t *domComm);
+bfam_domain_init(bfam_domain_t *domain, MPI_Comm domComm);
 
 /** Clean up domain
  *

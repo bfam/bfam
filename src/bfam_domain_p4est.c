@@ -4,7 +4,7 @@
 #include <bfam_subdomain_dgx_quad.h>
 
 bfam_domain_p4est_t*
-bfam_domain_p4est_new(bfam_mpicomm_t *domComm,
+bfam_domain_p4est_new(MPI_Comm domComm,
                       p4est_connectivity_t *conn)
 {
   bfam_domain_p4est_t* newDomain = bfam_malloc(sizeof(bfam_domain_p4est_t));
@@ -13,13 +13,13 @@ bfam_domain_p4est_new(bfam_mpicomm_t *domComm,
 }
 
 void
-bfam_domain_p4est_init(bfam_domain_p4est_t *domain, bfam_mpicomm_t *domComm,
+bfam_domain_p4est_init(bfam_domain_p4est_t *domain, MPI_Comm domComm,
                        p4est_connectivity_t *conn)
 {
   bfam_domain_init(&domain->d,domComm);
 
   domain->conn = conn;
-  domain->p4est = p4est_new_ext(domComm->comm,conn,0,0,0,0,NULL,NULL);
+  domain->p4est = p4est_new_ext(domComm,conn,0,0,0,0,NULL,NULL);
 }
 
 void

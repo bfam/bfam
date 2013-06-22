@@ -108,8 +108,8 @@ bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match,
   bfam_locidx_t numElements = domain->numSubdomains;
 
   int rank, size;
-  BFAM_MPI_CHECK(MPI_Comm_rank(domain->comm->comm, &rank));
-  BFAM_MPI_CHECK(MPI_Comm_size(domain->comm->comm, &size));
+  BFAM_MPI_CHECK(MPI_Comm_rank(domain->comm, &rank));
+  BFAM_MPI_CHECK(MPI_Comm_size(domain->comm, &size));
 
   if(rank == 0)
     bfam_vtk_write_pfile(size, prefix, scalars, vectors, components, binary,

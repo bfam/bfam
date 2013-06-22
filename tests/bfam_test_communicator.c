@@ -63,12 +63,10 @@ main (int argc, char *argv[])
   BFAM_MPI_CHECK(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
   bfam_log_init(rank,stdout,BFAM_LL_VERBOSE);
 
-  bfam_mpicomm_t comm;
-  comm.comm = MPI_COMM_WORLD;
-  comm.isMember = (0==0);
+  MPI_Comm comm = MPI_COMM_WORLD;
 
   bfam_domain_t domain;
-  bfam_domain_init(&domain,&comm);
+  bfam_domain_init(&domain,comm);
 
 
   /* Set up some fake glue grids */

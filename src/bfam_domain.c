@@ -2,7 +2,7 @@
 #include <bfam_base.h>
 #include <bfam_log.h>
 
-bfam_domain_t* bfam_domain_new(bfam_mpicomm_t *domComm)
+bfam_domain_t* bfam_domain_new(MPI_Comm domComm)
 {
   bfam_domain_t* newDomain = bfam_malloc(sizeof(bfam_domain_t));
   bfam_domain_init(newDomain,domComm);
@@ -10,7 +10,7 @@ bfam_domain_t* bfam_domain_new(bfam_mpicomm_t *domComm)
 }
 
 void
-bfam_domain_init(bfam_domain_t *thisDomain, bfam_mpicomm_t *domComm)
+bfam_domain_init(bfam_domain_t *thisDomain, MPI_Comm domComm)
 {
   const bfam_locidx_t sizeSubdomains = 16;
   thisDomain->comm = domComm; // Perhaps we should duplicate it?
