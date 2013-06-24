@@ -124,6 +124,10 @@ bfam_domain_p4est_parallel_face_mapping(p4est_mesh_t *mesh,
             if(ghostf >= 8)
             {
               ghostf -= 8;
+              ghosth  = 2;
+            }
+            else
+            {
               ghosth  = 1;
             }
           }
@@ -176,7 +180,7 @@ bfam_domain_p4est_parallel_face_mapping(p4est_mesh_t *mesh,
             mapping[sk].s  = 0;
             mapping[sk].k  = k;
             mapping[sk].f  = f;
-            mapping[sk].h  = h;
+            mapping[sk].h  = h + 1;
             mapping[sk].o  = o;
             ++sk;
           }
@@ -655,7 +659,11 @@ bfam_domain_p4est_inter_subdomain_face_mapping(bfam_locidx_t rank,
             if(nf >= 8)
             {
               nf -= 8;
-              nh  = 1;
+              nh  = 2;
+            }
+            else
+            {
+              nh = 1;
             }
           }
 
@@ -718,7 +726,7 @@ bfam_domain_p4est_inter_subdomain_face_mapping(bfam_locidx_t rank,
             mapping[sk].s  = idk;
             mapping[sk].k  = k;
             mapping[sk].f  = f;
-            mapping[sk].h  = h;
+            mapping[sk].h  = h + 1;
             mapping[sk].o  = o;
 
             mapping[sk].i  = -1;
