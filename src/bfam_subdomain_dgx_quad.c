@@ -460,6 +460,11 @@ bfam_subdomain_dgx_quad_free(bfam_subdomain_t *thisSubdomain)
 
   bfam_dictionary_allprefixed_ptr(&sub->base.fields,"",
       &bfam_subdomain_dgx_quad_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_p,"",
+      &bfam_subdomain_dgx_quad_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_m,"",
+      &bfam_subdomain_dgx_quad_free_fields,NULL);
+
 
   bfam_subdomain_free(thisSubdomain);
 
