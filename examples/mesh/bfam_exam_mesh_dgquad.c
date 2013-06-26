@@ -220,6 +220,21 @@ build_mesh(MPI_Comm mpicomm)
   bfam_vtk_write_file((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume,
                        "bfam_fields", strain, velocity, velocityComp, 1, 1);
 
+  const char* tags[] = {"_glue_parallel", "_glue_local", NULL};
+  bfam_communicator_t* communicator =
+    bfam_communicator_new((bfam_domain_t*)domain, BFAM_DOMAIN_AND, tags,
+        mpicomm, 10);
+
+  /* start recv_send */
+  bfam_communicator_start(communicator);
+
+  /* finish recv */
+  bfam_communicator_finish(communicator);
+
+  /* clean up */
+  bfam_communicator_free(communicator);
+  bfam_free(communicator);
+
   bfam_free(subdomainID);
   bfam_free(N);
 
