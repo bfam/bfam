@@ -69,8 +69,10 @@ typedef struct bfam_subdomain_dgx_quad
  * \param [in] K    number of elements in the subdomain
  * \param [in] EToV Mapping such that \c EToV[k*4+c] gives the vertex number
  *                  for corner \c c of element \c k.
- * \param [in] EToE Mapping such that \c EToV[k*4+c] gives the vertex number
- *                  for corner \c c of element \c k.
+ * \param [in] EToE Mapping such that \c EToE[k*4+f] gives the element number
+ *                  connected to face \c f of element \c k.
+ * \param [in] EToF Mapping such that \c EToF[k*4+f] gives the face+orientation
+ *                  number connected to face \c f of element \c k.
  *
  * \return Initialized dg quad subdomain
  *
@@ -101,9 +103,11 @@ bfam_subdomain_dgx_quad_new(const bfam_locidx_t     id,
  * \param [in]     K         number of elements in the subdomain
  * \param [in]     EToV      Mapping such that \c EToV[k*4+c] gives the vertex
  *                           number for corner \c c of element \c k.
- * \param [in]     EToE      Mapping such that \c EToV[k*4+c] gives the vertex
- *                           number for corner \c c of element \c k.
- *
+ * \param [in]     EToE      Mapping such that \c EToE[k*4+f] gives the element
+ *                           number connected to face \c f of element \c k.
+ * \param [in]     EToF      Mapping such that \c EToF[k*4+f] gives the
+ *                           face+orientation number connected to face \c f of
+ *                           element \c k.
  */
 void
 bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t *subdomain,
