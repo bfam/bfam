@@ -514,6 +514,263 @@ bfam_subdomain_dgx_quad_free(bfam_subdomain_t *thisSubdomain)
   bfam_free_aligned(sub->fmask);
 }
 
+static int
+bfam_subdomain_dgx_quad_glue_field_minus_add(bfam_subdomain_t *subdomain,
+    const char *name)
+{
+  bfam_subdomain_dgx_quad_glue_t *s =
+    (bfam_subdomain_dgx_quad_glue_t*) subdomain;
+
+  if(bfam_dictionary_get_value_ptr(&s->base.fields_m,name))
+    return 1;
+
+  size_t fieldSize = s->Np*s->K*sizeof(bfam_real_t);
+  bfam_real_t *field = bfam_malloc_aligned(fieldSize);
+
+  int rval = bfam_dictionary_insert_ptr(&s->base.fields_m, name, field);
+
+  BFAM_ASSERT(rval != 1);
+
+  if(rval == 0)
+    bfam_free_aligned(field);
+
+  return rval;
+}
+
+static int
+bfam_subdomain_dgx_quad_glue_field_plus_add(bfam_subdomain_t *subdomain,
+    const char *name)
+{
+  bfam_subdomain_dgx_quad_glue_t *s =
+    (bfam_subdomain_dgx_quad_glue_t*) subdomain;
+
+  if(bfam_dictionary_get_value_ptr(&s->base.fields_p,name))
+    return 1;
+
+  size_t fieldSize = s->Np*s->K*sizeof(bfam_real_t);
+  bfam_real_t *field = bfam_malloc_aligned(fieldSize);
+
+  int rval = bfam_dictionary_insert_ptr(&s->base.fields_p, name, field);
+
+  BFAM_ASSERT(rval != 1);
+
+  if(rval == 0)
+    bfam_free_aligned(field);
+
+  return rval;
+}
+
+static void
+bfam_subdomain_dgx_quad_glue_comm_info(bfam_subdomain_t *thisSubdomain,
+    int *rank, bfam_locidx_t *my_id, bfam_locidx_t *neigh_id,
+    size_t *send_sz, size_t *recv_sz)
+{
+  bfam_subdomain_dgx_quad_glue_t *sub =
+    (bfam_subdomain_dgx_quad_glue_t*) thisSubdomain;
+
+  *rank     = sub->rank_p;
+  *neigh_id = sub->id_p;
+  *my_id    = sub->id_m;
+
+  const size_t send_num = sub->base.fields_m.num_entries * sub->K * sub->Np;
+  const size_t recv_num = sub->base.fields_p.num_entries * sub->K * sub->Np;
+
+  *send_sz  = send_num*sizeof(bfam_real_t);
+  *recv_sz  = recv_num*sizeof(bfam_real_t);
+
+  BFAM_LDEBUG(" rank %3d   ms %3jd   ns %3jd   send_sz %3zd   recv_sz %3zd",
+      *rank, (intmax_t) *my_id, (intmax_t) *neigh_id, *send_sz, *recv_sz);
+}
+
+typedef struct bfam_subdomain_dgx_quad_get_put_data
+{
+  bfam_subdomain_dgx_quad_glue_t *sub;
+  bfam_real_t *buffer;
+  size_t size;
+  size_t field;
+} bfam_subdomain_dgx_quad_get_put_data_t;
+
+static int
+bfam_subdomain_dgx_quad_glue_get_fields_m(const char * key, void *val,
+    void *arg)
+{
+  bfam_subdomain_dgx_quad_get_put_data_t *data =
+    (bfam_subdomain_dgx_quad_get_put_data_t*) arg;
+
+  bfam_subdomain_dgx_quad_glue_t *sub = data->sub;
+  const bfam_locidx_t K = sub->K;
+  const int Np = sub->Np;
+
+  const bfam_locidx_t *restrict EToEp = sub->EToEp;
+  const bfam_locidx_t *restrict EToEm = sub->EToEm;
+  const int8_t        *restrict EToFm = sub->EToFm;
+  const int8_t        *restrict EToHm = sub->EToHm;
+  const int8_t        *restrict EToOm = sub->EToOm;
+
+  const int sub_m_Np = sub->sub_m->Np;
+  const int sub_m_Nfp = sub->sub_m->Nfp;
+
+  const size_t buffer_offset = data->field * Np * K;
+
+  bfam_real_t *restrict send_field = data->buffer + buffer_offset;
+
+  BFAM_ASSERT((data->field+1) * Np * K * sizeof(bfam_real_t) <= data->size);
+
+  const bfam_real_t *restrict sub_m_field =
+    bfam_dictionary_get_value_ptr(&sub->sub_m->base.fields, key);
+
+  bfam_real_t *restrict glue_field = val;
+
+  BFAM_ASSERT( send_field != NULL);
+  BFAM_ASSERT(sub_m_field != NULL);
+  BFAM_ASSERT( glue_field != NULL);
+
+  BFAM_ASSUME_ALIGNED( send_field, 32);
+  BFAM_ASSUME_ALIGNED(sub_m_field, 32);
+  BFAM_ASSUME_ALIGNED( glue_field, 32);
+
+  BFAM_ASSUME_ALIGNED(EToEp, 32);
+  BFAM_ASSUME_ALIGNED(EToEm, 32);
+  BFAM_ASSUME_ALIGNED(EToFm, 32);
+  BFAM_ASSUME_ALIGNED(EToHm, 32);
+  BFAM_ASSUME_ALIGNED(EToOm, 32);
+
+  for(bfam_locidx_t k = 0; k < K; ++k)
+  {
+    BFAM_ASSERT(EToEp[k] < sub->K);
+    BFAM_ASSERT(EToEm[k] < sub->sub_m->K);
+    BFAM_ASSERT(EToFm[k] < sub->sub_m->Nfaces);
+    BFAM_ASSERT(EToHm[k] < sub->sub_m->Nh);
+    BFAM_ASSERT(EToOm[k] < sub->sub_m->No);
+
+    bfam_real_t *restrict send_elem = send_field + EToEp[k] * Np;
+
+    bfam_locidx_t *restrict fmask = sub->sub_m->fmask[EToFm[k]];
+
+    const bfam_real_t *restrict sub_m_elem = sub_m_field + EToEm[k] * sub_m_Np;
+
+    bfam_real_t *restrict glue_elem = glue_field + k * Np;
+
+    BFAM_ASSUME_ALIGNED(sub_m_elem, 32);
+    BFAM_ASSUME_ALIGNED( glue_elem, 32);
+
+    /*
+     * Decide which interpolation operation to use.
+     */
+    const bfam_real_t *restrict interpolation = sub->interpolation[EToHm[k]];
+    BFAM_ASSUME_ALIGNED(interpolation, 32);
+
+    /*
+     * Interpolate.
+     */
+    if(interpolation)
+    {
+      /*
+       * XXX: Replace with something faster; this will also have to change
+       * for 3D.
+       */
+      for(int n = 0; n < Np; ++n)
+        glue_elem[n] = 0;
+      for(int j = 0; j < sub_m_Nfp; ++j)
+        for(int i = 0; i < Np; ++i)
+          glue_elem[i] += interpolation[j * Np + i] * sub_m_elem[fmask[j]];
+    }
+    else
+    {
+      for(int i = 0; i < Np; ++i)
+        glue_elem[i] = sub_m_elem[fmask[i]];
+    }
+
+    /*
+     * Copy data to send buffer based on orientation.
+     */
+    if(EToOm[k])
+    {
+      for(int n = 0; n < Np; ++n)
+        send_elem[n] = glue_elem[Np-1-n];
+    }
+    else
+    {
+      memcpy(send_elem, glue_elem, Np * sizeof(bfam_real_t));
+    }
+  }
+
+  ++data->field;
+  return 0;
+}
+
+void
+bfam_subdomain_dgx_quad_glue_put_send_buffer(bfam_subdomain_t *thisSubdomain,
+    void *buffer, size_t send_sz)
+{
+  bfam_subdomain_dgx_quad_get_put_data_t data;
+
+  data.sub    = (bfam_subdomain_dgx_quad_glue_t*) thisSubdomain;
+  data.buffer = (bfam_real_t*) buffer;
+  data.size   = send_sz;
+  data.field  = 0;
+
+  BFAM_ASSERT(send_sz == data.sub->base.fields_m.num_entries * data.sub->K *
+      data.sub->Np * sizeof(bfam_real_t));
+
+  /*
+   * Fill fields_m and the send buffer from sub_m.
+   */
+  bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
+      &bfam_subdomain_dgx_quad_glue_get_fields_m, &data);
+}
+
+static int
+bfam_subdomain_dgx_quad_glue_put_fields_p(const char * key, void *val,
+    void *arg)
+{
+  bfam_subdomain_dgx_quad_get_put_data_t *data =
+    (bfam_subdomain_dgx_quad_get_put_data_t*) arg;
+
+  const bfam_locidx_t K = data->sub->K;
+  const int Np = data->sub->Np;
+
+  const size_t buffer_offset = data->field * Np * K;
+  const bfam_real_t *restrict recv_field = data->buffer + buffer_offset;
+
+  BFAM_ASSERT((data->field+1) * Np * K * sizeof(bfam_real_t) <= data->size);
+
+  bfam_real_t *restrict glue_field = val;
+
+  BFAM_ASSUME_ALIGNED(recv_field, 32);
+  BFAM_ASSUME_ALIGNED(glue_field, 32);
+
+  memcpy(glue_field, recv_field, K * Np * sizeof(bfam_real_t));
+
+  ++data->field;
+  return 0;
+}
+
+void
+bfam_subdomain_dgx_quad_glue_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
+    void *buffer, size_t recv_sz)
+{
+  bfam_subdomain_dgx_quad_get_put_data_t data;
+
+  data.sub    = (bfam_subdomain_dgx_quad_glue_t*) thisSubdomain;
+  data.buffer = (bfam_real_t*) buffer;
+  data.size   = recv_sz;
+  data.field  = 0;
+
+  BFAM_ASSERT(recv_sz == data.sub->base.fields_m.num_entries * data.sub->K *
+      data.sub->Np * sizeof(bfam_real_t));
+
+  /*
+   * Fill fields_p from the recv buffer.
+   */
+  bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_p, "",
+      &bfam_subdomain_dgx_quad_glue_put_fields_p, &data);
+
+  BFAM_ASSERT(recv_sz == data.sub->base.fields_p.num_entries * data.sub->K *
+      data.sub->Np * sizeof(bfam_real_t));
+}
+
+
 bfam_subdomain_dgx_quad_glue_t*
 bfam_subdomain_dgx_quad_glue_new(const bfam_locidx_t              id,
                                  const char                      *name,
@@ -554,17 +811,189 @@ bfam_subdomain_dgx_quad_glue_init(bfam_subdomain_dgx_quad_glue_t  *subdomain,
 {
   bfam_subdomain_init(&subdomain->base, id, name);
   bfam_subdomain_add_tag(&subdomain->base, "_subdomain_dgx_quad");
+  subdomain->base.glue_comm_info = bfam_subdomain_dgx_quad_glue_comm_info;
+  subdomain->base.glue_put_send_buffer =
+    bfam_subdomain_dgx_quad_glue_put_send_buffer;
+  subdomain->base.glue_get_recv_buffer =
+    bfam_subdomain_dgx_quad_glue_get_recv_buffer;
+  subdomain->base.field_minus_add =
+    bfam_subdomain_dgx_quad_glue_field_minus_add;
+  subdomain->base.field_plus_add = bfam_subdomain_dgx_quad_glue_field_plus_add;
   subdomain->base.free = bfam_subdomain_dgx_quad_glue_free;
+
+  const int N   = BFAM_MAX(N_m, N_p);
+  const int Nrp = N+1;
+  const int sub_m_Nrp = N_m+1;
+
+  const int num_interp = 3;
+
+  bfam_long_real_t **lr;
+  lr = bfam_malloc_aligned(num_interp*sizeof(bfam_long_real_t*));
+
+  for(int i = 0; i < num_interp; ++i)
+    lr[i] = bfam_malloc_aligned(Nrp*sizeof(bfam_long_real_t));
+
+  bfam_long_real_t *restrict lw;
+  lw = bfam_malloc_aligned(Nrp*sizeof(bfam_long_real_t));
+
+  bfam_jacobi_gauss_lobatto_quadrature(0, 0, N, lr[0], lw);
+
+  const bfam_long_real_t half = BFAM_LONG_REAL(0.5);
+  for(int n = 0; n < Nrp; ++n)
+  {
+    lr[1][n] = -half + half * lr[0][n];
+    lr[2][n] =  half + half * lr[0][n];
+  }
+
+  bfam_long_real_t *restrict sub_m_lr, *restrict sub_m_lw;
+  sub_m_lr = bfam_malloc_aligned(sub_m_Nrp*sizeof(bfam_long_real_t));
+  sub_m_lw = bfam_malloc_aligned(sub_m_Nrp*sizeof(bfam_long_real_t));
+
+  bfam_jacobi_gauss_lobatto_quadrature(0, 0, N_m, sub_m_lr, sub_m_lw);
+
+  bfam_long_real_t *restrict sub_m_V;
+  sub_m_V = bfam_malloc_aligned(sub_m_Nrp*sub_m_Nrp*sizeof(bfam_long_real_t));
+
+  bfam_jacobi_p_vandermonde(0, 0, N_m, N_m+1, sub_m_lr, sub_m_V);
+
+  bfam_long_real_t **interpolation =
+    bfam_malloc_aligned(num_interp*sizeof(bfam_long_real_t*));
+
+  for(int i = 0; i < num_interp; ++i)
+  {
+    interpolation[i] =
+      bfam_malloc_aligned(Nrp*sub_m_Nrp*sizeof(bfam_long_real_t));
+
+    bfam_jacobi_p_interpolation(0, 0, N_m, Nrp, lr[i], sub_m_V,
+        interpolation[i]);
+  }
+
+  subdomain->N_m = N_m;
+  subdomain->N_p = N_p;
+
+  subdomain->rank_m = rank_m;
+  subdomain->rank_p = rank_p;
+
+  subdomain->id_m = id_m;
+  subdomain->id_p = id_p;
+
+  subdomain->s_m = imaxabs(id_m)-1;
+  subdomain->s_p = imaxabs(id_p)-1;
+
+  subdomain->sub_m = sub_m;
+
+  subdomain->N        = N;
+  subdomain->Np       = Nrp;
+  subdomain->Nfp      = 1;
+  subdomain->Nfaces   = 2;
+  subdomain->Ncorners = 2;
+
+  subdomain->r = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
+  subdomain->w = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
+  for(int n = 0; n < Nrp; ++n)
+  {
+    subdomain->r[n] = (bfam_real_t) lr[0][n];
+    subdomain->w[n] = (bfam_real_t) lw[n];
+  }
+
+  subdomain->K = K;
+
+  subdomain->num_interp = num_interp;
+
+  subdomain->interpolation =
+    bfam_malloc_aligned(subdomain->num_interp * sizeof(bfam_real_t*));
+
+  for(int i = 0; i < subdomain->num_interp; ++i)
+  {
+    if(i == 0 && N_m == N)
+    {
+      /*
+       * Identity interpolation operator
+       */
+      subdomain->interpolation[i] = NULL;
+    }
+    else
+    {
+      subdomain->interpolation[i] =
+        bfam_malloc_aligned(Nrp * sub_m_Nrp * sizeof(bfam_real_t));
+      for(int n = 0; n < Nrp*sub_m_Nrp; ++n)
+        subdomain->interpolation[i][n] = (bfam_real_t) interpolation[i][n];
+    }
+  }
+
+  subdomain->EToEp = bfam_malloc_aligned(K*sizeof(bfam_locidx_t));
+  subdomain->EToEm = bfam_malloc_aligned(K*sizeof(bfam_locidx_t));
+  subdomain->EToFm = bfam_malloc_aligned(K*sizeof(int8_t));
+  subdomain->EToHm = bfam_malloc_aligned(K*sizeof(int8_t));
+  subdomain->EToOm = bfam_malloc_aligned(K*sizeof(int8_t));
+
+  qsort(mapping, K, sizeof(bfam_subdomain_face_map_entry_t),
+      bfam_subdomain_face_send_cmp);
+
+  for(bfam_locidx_t k = 0; k < K; ++k)
+    mapping[k].i = k;
+
+  qsort(mapping, K, sizeof(bfam_subdomain_face_map_entry_t),
+      bfam_subdomain_face_recv_cmp);
+
+  for(bfam_locidx_t k = 0; k < K; ++k)
+  {
+    subdomain->EToEm[k] = ktok_m[mapping[k].k];
+    subdomain->EToFm[k] = mapping[k].f;
+    subdomain->EToHm[k] = mapping[k].h;
+    subdomain->EToOm[k] = mapping[k].o;
+
+    subdomain->EToEp[k] = mapping[k].i;
+  }
 
 #ifdef BFAM_DEBUG
   for(bfam_locidx_t k = 0; k < K; ++k)
-    BFAM_ASSERT(mapping[k].s  == imaxabs(id_m)-1 &&
-                mapping[k].ns == imaxabs(id_p)-1);
+    BFAM_ASSERT(mapping[k].s  == subdomain->s_m &&
+                mapping[k].ns == subdomain->s_p);
 #endif
+
+  for(int i = 0; i < num_interp; ++i)
+  {
+    bfam_free_aligned(lr[i]);
+    bfam_free_aligned(interpolation[i]);
+  }
+
+  bfam_free_aligned(lr);
+  bfam_free_aligned(lw);
+
+  bfam_free_aligned(interpolation);
+
+  bfam_free_aligned(sub_m_lr);
+  bfam_free_aligned(sub_m_lw);
+  bfam_free_aligned(sub_m_V);
 }
 
 void
 bfam_subdomain_dgx_quad_glue_free(bfam_subdomain_t *subdomain)
 {
+  bfam_subdomain_dgx_quad_glue_t *sub =
+    (bfam_subdomain_dgx_quad_glue_t*) subdomain;
+
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields,"",
+      &bfam_subdomain_dgx_quad_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_p,"",
+      &bfam_subdomain_dgx_quad_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_m,"",
+      &bfam_subdomain_dgx_quad_free_fields,NULL);
+
+  bfam_free_aligned(sub->r);
+  bfam_free_aligned(sub->w);
+
+  for(int i = 0; i < sub->num_interp; ++i)
+    if(sub->interpolation[i])
+      bfam_free_aligned(sub->interpolation[i]);
+  bfam_free_aligned(sub->interpolation);
+
+  bfam_free_aligned(sub->EToEp);
+  bfam_free_aligned(sub->EToEm);
+  bfam_free_aligned(sub->EToFm);
+  bfam_free_aligned(sub->EToHm);
+  bfam_free_aligned(sub->EToOm);
+
   bfam_subdomain_free(subdomain);
 }

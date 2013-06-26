@@ -476,6 +476,21 @@ target_link_libraries(bfam_test_util bfam)
 
 add_test(bfam_test_util_test bfam_test_util)
 
+add_executable(bfam_test_mesh_dgquad tests/bfam_test_mesh_dgquad.c)
+target_link_libraries(bfam_test_mesh_dgquad bfam)
+
+add_test(bfam_test_mesh_dgquad_1
+  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
+  ${MPIEXEC_PREFLAGS} bfam_test_mesh_dgquad ${MPIEXEC_POSTFLAGS})
+
+add_test(bfam_test_mesh_dgquad_2
+  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
+  ${MPIEXEC_PREFLAGS} bfam_test_mesh_dgquad ${MPIEXEC_POSTFLAGS})
+
+add_test(bfam_test_mesh_dgquad_3
+  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
+  ${MPIEXEC_PREFLAGS} bfam_test_mesh_dgquad ${MPIEXEC_POSTFLAGS})
+
 add_test(bfam_test_communicator_test
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
   ${MPIEXEC_PREFLAGS} bfam_test_communicator ${MPIEXEC_POSTFLAGS})
