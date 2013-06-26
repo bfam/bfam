@@ -4,15 +4,17 @@
 
 bfam_subdomain_sbp_t*
 bfam_subdomain_sbp_new(const bfam_locidx_t     id,
-                            const char             *name,
-                            const int               dim,
-                            const bfam_gloidx_t    *N,
-                            const bfam_locidx_t    *Nl,
-                            const bfam_locidx_t    *Nb,
-                            const bfam_gloidx_t    *gx)
+                       const bfam_locidx_t loc_id,
+                       const bfam_locidx_t num_id,
+                       const char             *name,
+                       const int               dim,
+                       const bfam_gloidx_t    *N,
+                       const bfam_locidx_t    *Nl,
+                       const bfam_locidx_t    *Nb,
+                       const bfam_gloidx_t    *gx)
 {
   bfam_subdomain_sbp_t *newSub = bfam_malloc(sizeof(bfam_subdomain_sbp_t));
-  bfam_subdomain_sbp_init(newSub,id,name,dim,N,Nl,Nb,gx);
+  bfam_subdomain_sbp_init(newSub,id,loc_id,num_id,name,dim,N,Nl,Nb,gx);
   return newSub;
 }
 
@@ -59,13 +61,15 @@ bfam_subdomain_sbp_field_init(bfam_subdomain_t *subdomain,
 
 void
 bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
-                            const bfam_locidx_t     id,
-                            const char             *name,
-                            const int               dim,
-                            const bfam_gloidx_t    *N,
-                            const bfam_locidx_t    *Nl,
-                            const bfam_locidx_t    *Nb,
-                            const bfam_gloidx_t    *gx)
+                        const bfam_locidx_t     id,
+                        const bfam_locidx_t loc_id,
+                        const bfam_locidx_t num_id,
+                        const char             *name,
+                        const int               dim,
+                        const bfam_gloidx_t    *N,
+                        const bfam_locidx_t    *Nl,
+                        const bfam_locidx_t    *Nb,
+                        const bfam_gloidx_t    *gx)
 {
   bfam_subdomain_init(&subdomain->base, id, name);
   bfam_subdomain_add_tag(&subdomain->base, "_subdomain_sbp");
@@ -73,6 +77,8 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
   subdomain->base.field_add = bfam_subdomain_sbp_field_add;
   subdomain->base.field_init = bfam_subdomain_sbp_field_init;
 
+  subdomain->dim = loc_id;
+  subdomain->dim = num_id;
   subdomain->dim = dim;
 
   subdomain->N  = bfam_malloc(  dim*sizeof(bfam_gloidx_t));

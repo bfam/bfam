@@ -52,6 +52,8 @@ typedef struct bfam_subdomain_sbp
   bfam_subdomain_t base;
   int              p;   /**< 1D SBP finite difference order */
   int            dim;   /**< number of dimensions */
+  bfam_locidx_t loc_id;  /**< local subdomain id */
+  bfam_locidx_t num_id;  /**< number pieces this subdomain is split into */
 
   bfam_gloidx_t   *N;   /**< "global" subdomain grid size (size N +1) */
 
@@ -78,6 +80,8 @@ typedef struct bfam_subdomain_sbp
  */
 bfam_subdomain_sbp_t*
 bfam_subdomain_sbp_new(const bfam_locidx_t     id,
+                            const bfam_locidx_t loc_id,
+                            const bfam_locidx_t num_id,
                             const char             *name,
                             const int               dim,
                             const bfam_gloidx_t    *N,
@@ -100,6 +104,8 @@ bfam_subdomain_sbp_new(const bfam_locidx_t     id,
 void
 bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
                             const bfam_locidx_t     id,
+                            const bfam_locidx_t loc_id,
+                            const bfam_locidx_t num_id,
                             const char             *name,
                             const int               dim,
                             const bfam_gloidx_t    *N,
