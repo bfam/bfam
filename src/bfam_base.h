@@ -131,15 +131,17 @@
 #    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
 #elif defined(__ICC) || defined(__INTEL_COMPILER)
 /* Intel ICC/ICPC. ------------------------------------------ */
-#    define BFAM_ASSUME_ALIGNED(lvalueptr, align) \
-         __assume_aligned(lvalueptr, align)
+#    define BFAM_ASSUME_ALIGNED(lvalueptr, align)        \
+         __assume_aligned(lvalueptr, align);             \
+         BFAM_ASSERT(BFAM_IS_ALIGNED(lvalueptr, align))
 
 #elif defined(__GNUC__) || defined(__GNUG__)
 /* GNU GCC/G++. --------------------------------------------- */
 #  if __GNUC_PREREQ(4,7)
 //      If  gcc_version >= 4.7
-#    define BFAM_ASSUME_ALIGNED(lvalueptr, align) \
-         lvalueptr = __builtin_assume_aligned (lvalueptr, align)
+#    define BFAM_ASSUME_ALIGNED(lvalueptr, align)                 \
+         lvalueptr = __builtin_assume_aligned (lvalueptr, align); \
+         BFAM_ASSERT(BFAM_IS_ALIGNED(lvalueptr, align))
 #  else
 //       Else
 #    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
