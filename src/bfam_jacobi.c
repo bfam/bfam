@@ -201,9 +201,6 @@ bfam_jacobi_gauss_quadrature_half(bfam_long_real_t alpha,
   BFAM_ASSERT(!(BFAM_LONG_REAL_APPROX_EQ(alpha, BFAM_LONG_REAL(-0.5), 10) &&
                 BFAM_LONG_REAL_APPROX_EQ(beta,  BFAM_LONG_REAL(-0.5), 10)));
 
-  BFAM_ASSUME_ALIGNED(x, 32);
-  BFAM_ASSUME_ALIGNED(w, 32);
-
   const int MAX_ITERATIONS = 200;
 
   int nk = (half) ?
@@ -338,9 +335,6 @@ bfam_jacobi_gauss_lobatto_quadrature(bfam_long_real_t alpha,
     bfam_long_real_t *restrict w)
 {
   BFAM_ASSERT(N>=1);
-
-  BFAM_ASSUME_ALIGNED(x, 32);
-  BFAM_ASSUME_ALIGNED(w, 32);
 
   x[0] = -1;
   x[N] =  1;

@@ -625,7 +625,6 @@ bfam_subdomain_dgx_quad_glue_get_fields_m(const char * key, void *val,
   BFAM_ASSERT(sub_m_field != NULL);
   BFAM_ASSERT( glue_field != NULL);
 
-  BFAM_ASSUME_ALIGNED( send_field, 32);
   BFAM_ASSUME_ALIGNED(sub_m_field, 32);
   BFAM_ASSUME_ALIGNED( glue_field, 32);
 
@@ -650,9 +649,6 @@ bfam_subdomain_dgx_quad_glue_get_fields_m(const char * key, void *val,
     const bfam_real_t *restrict sub_m_elem = sub_m_field + EToEm[k] * sub_m_Np;
 
     bfam_real_t *restrict glue_elem = glue_field + k * Np;
-
-    BFAM_ASSUME_ALIGNED(sub_m_elem, 32);
-    BFAM_ASSUME_ALIGNED( glue_elem, 32);
 
     /*
      * Decide which interpolation operation to use.
@@ -737,7 +733,6 @@ bfam_subdomain_dgx_quad_glue_put_fields_p(const char * key, void *val,
 
   bfam_real_t *restrict glue_field = val;
 
-  BFAM_ASSUME_ALIGNED(recv_field, 32);
   BFAM_ASSUME_ALIGNED(glue_field, 32);
 
   memcpy(glue_field, recv_field, K * Np * sizeof(bfam_real_t));
