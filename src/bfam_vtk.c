@@ -62,7 +62,7 @@ bfam_vtk_write_pfile(int size, const char *prefix, const char **scalars,
   char pointvectors[BFAM_BUFSIZ];
   bfam_util_strcsl(pointvectors, vectors);
 
-  fprintf(file, "      <PPointData Scalars=\"%s\" Vectors=\"%s\">\n",
+  fprintf(file, "    <PPointData Scalars=\"%s\" Vectors=\"%s\">\n",
       pointscalars, pointvectors);
 
   if(scalars)
