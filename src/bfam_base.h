@@ -221,7 +221,7 @@ typedef long double bfam_long_real_t;
 
 #define BFAM_LONG_REAL_APPROX_EQ(x, y, K)                               \
   BFAM_APPROX_EQ((x), (y), (K), BFAM_LONG_REAL_ABS, BFAM_LONG_REAL_EPS, \
-                 BFAM_LONG_REAL_MIN)
+                 BFAM_LONG_REAL_EPS * BFAM_LONG_REAL_EPS)
 
 /* Type for runtime computations */
 typedef double bfam_real_t;
@@ -239,7 +239,8 @@ typedef double bfam_real_t;
 #define BFAM_REAL_FMTe "24.16e"
 
 #define BFAM_REAL_APPROX_EQ(x, y, K)                                         \
-  BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, BFAM_REAL_MIN)
+  BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS,                \
+                 BFAM_REAL_EPS * BFAM_REAL_EPS)
 
 /* Type for processor-local indexing */
 typedef int32_t bfam_locidx_t;
