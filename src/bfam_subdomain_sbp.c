@@ -1,20 +1,25 @@
 #include <bfam_subdomain_sbp.h>
 #include <bfam_log.h>
 #include <bfam_vtk.h>
+#include <bfam_util.h>
 
 bfam_subdomain_sbp_t*
 bfam_subdomain_sbp_new(const bfam_locidx_t     id,
-                       const bfam_locidx_t loc_id,
-                       const bfam_locidx_t num_id,
-                       const char             *name,
-                       const int               dim,
-                       const bfam_gloidx_t    *N,
-                       const bfam_locidx_t    *Nl,
-                       const bfam_locidx_t    *Nb,
-                       const bfam_gloidx_t    *gx)
+                            const bfam_locidx_t loc_id,
+                            const bfam_locidx_t num_id,
+                            const char             *name,
+                            const int               dim,
+                            const bfam_gloidx_t    *N,
+                            const bfam_locidx_t    *Nl,
+                            const bfam_locidx_t    *Nb,
+                            const bfam_gloidx_t    *gx,
+                            const bfam_long_real_t *c_x,
+                            const bfam_long_real_t *c_y,
+                            const bfam_long_real_t *c_z)
 {
   bfam_subdomain_sbp_t *newSub = bfam_malloc(sizeof(bfam_subdomain_sbp_t));
-  bfam_subdomain_sbp_init(newSub,id,loc_id,num_id,name,dim,N,Nl,Nb,gx);
+  bfam_subdomain_sbp_init(newSub,id,loc_id,num_id,name,dim,N,Nl,Nb,gx,
+                          c_x,c_y,c_z);
   return newSub;
 }
 
@@ -61,15 +66,18 @@ bfam_subdomain_sbp_field_init(bfam_subdomain_t *subdomain,
 
 void
 bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
-                        const bfam_locidx_t     id,
-                        const bfam_locidx_t loc_id,
-                        const bfam_locidx_t num_id,
-                        const char             *name,
-                        const int               dim,
-                        const bfam_gloidx_t    *N,
-                        const bfam_locidx_t    *Nl,
-                        const bfam_locidx_t    *Nb,
-                        const bfam_gloidx_t    *gx)
+                            const bfam_locidx_t     id,
+                            const bfam_locidx_t loc_id,
+                            const bfam_locidx_t num_id,
+                            const char             *name,
+                            const int               dim,
+                            const bfam_gloidx_t    *N,
+                            const bfam_locidx_t    *Nl,
+                            const bfam_locidx_t    *Nb,
+                            const bfam_gloidx_t    *gx,
+                            const bfam_long_real_t *c_x,
+                            const bfam_long_real_t *c_y,
+                            const bfam_long_real_t *c_z)
 {
   bfam_subdomain_init(&subdomain->base, id, name);
   bfam_subdomain_add_tag(&subdomain->base, "_subdomain_sbp");
@@ -86,6 +94,9 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
   subdomain->Nb = bfam_malloc(2*dim*sizeof(bfam_locidx_t));
   subdomain->gx = bfam_malloc(  dim*sizeof(bfam_gloidx_t));
 
+  bfam_locidx_t Nltmp[dim];
+
+  bfam_locidx_t sz = 1;
   for(int d = 0; d < dim; d++)
   {
     subdomain->N [  d  ] = N [  d  ];
@@ -94,10 +105,40 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
     subdomain->Nb[2*d+1] = Nb[2*d+1];
     subdomain->gx[  d  ] = gx[  d  ];
 
+    Nltmp[d] = (Nb[2*d] + Nl[d] + Nb[2*d+1]);
+    sz *= Nltmp[d];
+
     BFAM_ABORT_IF(N [d] < 0 || Nl[d] < 0 || Nb[2*d] < 0 || Nb[2*d+1] < 0 ||
                   gx[d] < 0 || gx[d] > N[d] || gx[d]+Nl[d] > N[d],
                   "%s: problem with a dimension %d", d, subdomain->base.name);
   }
+
+  bfam_long_real_t *x = NULL;
+  if(c_x != NULL)
+  {
+    x = bfam_malloc_aligned(sizeof(bfam_long_real_t)*sz);
+    int val = bfam_dictionary_insert_ptr(&subdomain->base.fields, "_grid_x", x);
+    BFAM_ABORT_IF(val != 2, "problem adding x to fields");
+  }
+
+  bfam_long_real_t *y = NULL;
+  if(c_y != NULL)
+  {
+    y = bfam_malloc_aligned(sizeof(bfam_long_real_t)*sz);
+    int val = bfam_dictionary_insert_ptr(&subdomain->base.fields, "_grid_y", y);
+    BFAM_ABORT_IF(val != 2, "problem adding y to fields");
+  }
+
+  bfam_long_real_t *z = NULL;
+  if(c_z != NULL)
+  {
+    z = bfam_malloc_aligned(sizeof(bfam_long_real_t)*sz);
+    int val = bfam_dictionary_insert_ptr(&subdomain->base.fields, "_grid_z", z);
+    BFAM_ABORT_IF(val != 2, "problem adding z to fields");
+  }
+
+  bfam_util_linear_blend(x,y,z,dim,N,Nltmp,gx,c_x,c_y,c_z);
+
 }
 
 static int

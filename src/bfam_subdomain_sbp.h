@@ -68,12 +68,19 @@ typedef struct bfam_subdomain_sbp
 /** create a sbp subdomain.
  *
  * \param [in] id    unique id number for this subdomain
+ * \param [in] loc_id local ID for this processor (0...num_id-1)
+ * \param [in] num_id number of pieces this subdomain is split into
  * \param [in] name  name of this subdomain
  * \param [in] dim   dimension of the problem
  * \param [in] N     global grid top indices (size dim)
  * \param [in] Nl    local grid top indices (size dim)
  * \param [in] Nb    number of points in buffer for each edge (size 2*dim)
  * \param [in] gx    global data index (size dim)
+ * \param [in] c_x   pointer to corners x coordinates in z-order (size 2^dim)
+ * \param [in] c_y   pointer to corners y coordinates in z-order (size 2^dim)
+ * \param [in] c_z   pointer to corners z coordinates in z-order (size 2^dim)
+ *
+ * \note z pointer can be null, in which case z is set to zero
  *
  * \return Initialized sbp subdomain
  *
@@ -87,18 +94,28 @@ bfam_subdomain_sbp_new(const bfam_locidx_t     id,
                             const bfam_gloidx_t    *N,
                             const bfam_locidx_t    *Nl,
                             const bfam_locidx_t    *Nb,
-                            const bfam_gloidx_t    *gx);
+                            const bfam_gloidx_t    *gx,
+                            const bfam_long_real_t *c_x,
+                            const bfam_long_real_t *c_y,
+                            const bfam_long_real_t *c_z);
 
 /** initializes a sbp subdomain
  *
  * \param [in,out]   subdomain pointer to the subdomain to initialize
  * \param [in] id    unique id number for this subdomain
+ * \param [in] loc_id local ID for this processor (0...num_id-1)
+ * \param [in] num_id number of pieces this subdomain is split into
  * \param [in] name  name of this subdomain
  * \param [in] dim   dimension of the problem
  * \param [in] N     global grid top indices (size dim)
  * \param [in] Nl    local grid top indices (size dim)
  * \param [in] Nb    number of points in buffer for each edge (size 2*dim)
  * \param [in] gx    global data index (size dim)
+ * \param [in] c_x   pointer to corners x coordinates in z-order (size 2^dim)
+ * \param [in] c_y   pointer to corners y coordinates in z-order (size 2^dim)
+ * \param [in] c_z   pointer to corners z coordinates in z-order (size 2^dim)
+ *
+ * \note z pointer can be null, in which case z is set to zero
  *
  */
 void
@@ -111,7 +128,10 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
                             const bfam_gloidx_t    *N,
                             const bfam_locidx_t    *Nl,
                             const bfam_locidx_t    *Nb,
-                            const bfam_gloidx_t    *gx);
+                            const bfam_gloidx_t    *gx,
+                            const bfam_long_real_t *c_x,
+                            const bfam_long_real_t *c_y,
+                            const bfam_long_real_t *c_z);
 
 /** free up the memory allocated by the subdomain
  *
