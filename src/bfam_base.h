@@ -194,7 +194,7 @@
 #endif
 
 #define BFAM_APPROX_EQ(x, y, K, abs, eps, min) \
-  ((abs)((x)-(y)) < (K) * (eps) * (abs)((x)+(y)) || (abs)((x)-(y)) < (min))
+  ((abs)((x)-(y)) < (min) + (K) * (eps) * BFAM_MAX((abs)((x)),(abs)((y))))
 
 /* Type for setup computations */
 typedef long double bfam_long_real_t;
