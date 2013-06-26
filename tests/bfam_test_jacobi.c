@@ -359,9 +359,9 @@ bfam_long_real_t wl_53_42_5[] = {
 };
 
 bfam_long_real_t vx_3[] = {
-  -1.000000000000000e+00L,
-  -7.500000000000000e-01L,
-   2.500000000000000e-01L,
+  BFAM_LONG_REAL(-1.000000000000000e+00),
+  BFAM_LONG_REAL(-7.500000000000000e-01),
+  BFAM_LONG_REAL( 2.500000000000000e-01),
 };
 
 bfam_long_real_t V_3_3[] = {
@@ -576,6 +576,7 @@ main (int argc, char *argv[])
 
     failures += check_approx_eq(BFAM_REAL_EPS*100, (N+1)*(nx+1), I, I_5_10);
 #undef N
+#undef nx
   }
 
   if(failures)
