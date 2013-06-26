@@ -73,6 +73,22 @@ void
 bfam_jacobi_p_vandermonde(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
     size_t nx, bfam_long_real_t *x, bfam_long_real_t *V);
 
+/** Compute the Gradient Jacobi Vandermonde matrix.
+ *
+ * \param[in]  alpha Jacobi polynomial parameter
+ * \param[in]  beta  Jacobi polynomial parameter
+ * \param[in]  N     Jacobi polynomial order
+ * \param[in]  nx    Number of locations to evaluate the Jacobi polynomial
+ * \param[in]  x     Array of length \a nx containing the locations in [-1,1]
+ *                   to evaluate the Jacobi polynomial
+ * \param[out] V     A \a nx by \a N+1 matrix in column first order where
+ *                   the $i,j$ entry contains the normalized Jacobi polynomials
+ *                   $p^{(\alpha,\beta)}_j$ evaluated at \a x[i].
+ */
+void
+bfam_grad_jacobi_p_vandermonde(bfam_long_real_t alpha, bfam_long_real_t beta,
+    int N, size_t nx, bfam_long_real_t *x, bfam_long_real_t *V);
+
 /** Compute the interpolation matrix using Jacobi polynomials.
  *
  * \param[in]  alpha Jacobi polynomial parameter
@@ -92,5 +108,25 @@ void
 bfam_jacobi_p_interpolation(bfam_long_real_t alpha, bfam_long_real_t beta,
     int N, size_t nx, bfam_long_real_t *x, bfam_long_real_t *V,
     bfam_long_real_t *I);
+
+/** Compute the differentiation matrix using Jacobi polynomials.
+ *
+ * \param[in]  alpha Jacobi polynomial parameter
+ * \param[in]  beta  Jacobi polynomial parameter
+ * \param[in]  N     Jacobi polynomial order
+ * \param[in]  nx    Number of locations to evaluate the Jacobi polynomial
+ * \param[in]  x     Array of length \a nx containing the locations in [-1,1]
+ *                   to evaluate the interpolating polynomial
+ * \param[in]  V     A \a N+1 by \a N+1 matrix in column first order where
+ *                   the $i,j$ entry contains the normalized Jacobi polynomials
+ *                   $p^{(\alpha,\beta)}_j$ evaluated at the N+1 interpolating
+ *                   points r[i] in [-1,1].
+ * \param[out] D     Differentiation matrix.
+ *
+ */
+void
+bfam_jacobi_p_differentiation(bfam_long_real_t alpha, bfam_long_real_t beta,
+    int N, size_t nx, bfam_long_real_t *x, bfam_long_real_t *V,
+    bfam_long_real_t *D);
 
 #endif

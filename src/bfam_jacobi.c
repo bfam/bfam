@@ -368,6 +368,16 @@ bfam_jacobi_p_vandermonde(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
 }
 
 void
+bfam_grad_jacobi_p_vandermonde(bfam_long_real_t alpha, bfam_long_real_t beta,
+    int N, size_t nx, bfam_long_real_t *x, bfam_long_real_t *V)
+{
+  for (int j=0; j <= N; ++j)
+    bfam_grad_jacobi_p(alpha, beta, j, nx, x, V + j*nx);
+
+  return;
+}
+
+void
 bfam_jacobi_p_interpolation(bfam_long_real_t alpha, bfam_long_real_t beta,
     int N, size_t nx, bfam_long_real_t *x, bfam_long_real_t *V,
     bfam_long_real_t *I)
@@ -378,6 +388,23 @@ bfam_jacobi_p_interpolation(bfam_long_real_t alpha, bfam_long_real_t beta,
   bfam_jacobi_p_vandermonde(alpha, beta, N, nx, x, Vx);
 
   bfam_util_forwardslash(nx, N+1, Vx, V, I);
+
+  bfam_free_aligned(Vx);
+
+  return;
+}
+
+void
+bfam_jacobi_p_differentiation(bfam_long_real_t alpha, bfam_long_real_t beta,
+    int N, size_t nx, bfam_long_real_t *x, bfam_long_real_t *V,
+    bfam_long_real_t *D)
+{
+
+  bfam_long_real_t *Vx = bfam_malloc_aligned((N+1)*nx*sizeof(bfam_long_real_t));
+
+  bfam_grad_jacobi_p_vandermonde(alpha, beta, N, nx, x, Vx);
+
+  bfam_util_forwardslash(nx, N+1, Vx, V, D);
 
   bfam_free_aligned(Vx);
 
