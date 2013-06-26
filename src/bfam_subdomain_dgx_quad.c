@@ -436,6 +436,36 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
     subdomain->z[n] = (bfam_real_t) lz[n];
   }
 
+  subdomain->fmask = bfam_malloc_aligned(Nfaces * sizeof(int*));
+
+  for(int f = 0; f < Nfaces; ++f)
+    subdomain->fmask[f] = bfam_malloc_aligned(Nfp * sizeof(int));
+
+  /*
+   * Face 0 -x
+   */
+  for(int i = 0; i < N+1; ++i)
+    subdomain->fmask[0][i] = i*(N+1);
+
+  /*
+   * Face 1 +x
+   */
+  for(int i = 0; i < N+1; ++i)
+    subdomain->fmask[1][i] = (i+1)*(N+1)-1;
+
+  /*
+   * Face 2 -y
+   */
+  for(int i = 0; i < N+1; ++i)
+    subdomain->fmask[2][i] = i;
+
+  /*
+   * Face 3 +y
+   */
+  for(int i = 0; i < N+1; ++i)
+    subdomain->fmask[3][i] = (N+1)*N + i;
+
+
   bfam_free_aligned(lr);
   bfam_free_aligned(lw);
 
@@ -474,6 +504,10 @@ bfam_subdomain_dgx_quad_free(bfam_subdomain_t *thisSubdomain)
   bfam_free_aligned(sub->x);
   bfam_free_aligned(sub->y);
   bfam_free_aligned(sub->z);
+
+  for(int f = 0; f < sub->Nfaces; ++f)
+    bfam_free_aligned(sub->fmask[f]);
+  bfam_free_aligned(sub->fmask);
 }
 
 bfam_subdomain_dgx_quad_glue_t*
