@@ -153,6 +153,7 @@ void bfam_util_transfinite(
 void bfam_util_linear_blend(
     bfam_long_real_t *restrict x, bfam_long_real_t *restrict y,
     bfam_long_real_t *restrict z,
+    const int dim,
     const bfam_gloidx_t *N, const bfam_locidx_t *Nltmp,
     const bfam_gloidx_t *gxtmp, const bfam_long_real_t *xc,
     const bfam_long_real_t *yc, const bfam_long_real_t *zc);

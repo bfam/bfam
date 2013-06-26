@@ -253,14 +253,11 @@ void bfam_util_transfinite(
 void bfam_util_linear_blend(
     bfam_long_real_t *restrict x, bfam_long_real_t *restrict y,
     bfam_long_real_t *restrict z,
+    const int dim,
     const bfam_gloidx_t *N, const bfam_locidx_t *Nltmp,
     const bfam_gloidx_t *gxtmp, const bfam_long_real_t *xc,
     const bfam_long_real_t *yc, const bfam_long_real_t *zc)
 {
-  int dim = 3;
-  if(x == NULL) return;
-  else if(y == NULL) dim = 1;
-  else if(z == NULL) dim = 2;
 
   bfam_locidx_t Nl[3] = {0,0,0};
   if(Nltmp == NULL) for(int d = 0;d < dim; d++) Nl[d] = (bfam_locidx_t)N[d];
@@ -278,29 +275,30 @@ void bfam_util_linear_blend(
         bfam_long_real_t a = ((bfam_long_real_t) (gx[0]+i))/N[0];
         if(N[0] == 0) a = 0;
 
-        x[ix] = (1-a)*xc[0]+a*xc[1];
+        if(x != NULL) x[ix] = (1-a)*xc[0]+a*xc[1];
+        if(y != NULL) y[ix] = (1-a)*yc[0]+a*yc[1];
+        if(z != NULL) z[ix] = (1-a)*zc[0]+a*zc[1];
         if(dim == 1) continue;
-        y[ix] = (1-a)*yc[0]+a*yc[1];
-        if(dim > 2) z[ix] = (1-a)*zc[0]+a*zc[1];
 
         bfam_long_real_t b = ((bfam_long_real_t) (gx[1]+j))/N[1];
         if(N[1] == 0) b = 0;
 
-        x[ix] *= (1-b);
-        x[ix] += b*((1-a)*xc[2]+a*xc[3]);
-        y[ix] *= (1-b);
-        y[ix] += b*((1-a)*yc[2]+a*yc[3]);
+        if(x != NULL) x[ix] *= (1-b);
+        if(x != NULL) x[ix] += b*((1-a)*xc[2]+a*xc[3]);
+        if(y != NULL) y[ix] *= (1-b);
+        if(y != NULL) y[ix] += b*((1-a)*yc[2]+a*yc[3]);
+        if(z != NULL) z[ix] *= (1-b);
+        if(z != NULL) z[ix] += b*((1-a)*zc[2]+a*zc[3]);
+
         if(dim == 2) continue;
-        z[ix] *= (1-b);
-        z[ix] += b*((1-a)*zc[2]+a*zc[3]);
 
         bfam_long_real_t c = ((bfam_long_real_t) (gx[2]+k))/N[2];
         if(N[2] == 0) c = 0;
-        x[ix] *= (1-c);
-        x[ix] += c*((1-b)*((1-a)*xc[4]+a*xc[5]) + b*((1-a)*xc[6]+a*xc[7]));
-        y[ix] *= (1-c);
-        y[ix] += c*((1-b)*((1-a)*yc[4]+a*yc[5]) + b*((1-a)*yc[6]+a*yc[7]));
-        z[ix] *= (1-c);
-        z[ix] += c*((1-b)*((1-a)*zc[4]+a*zc[5]) + b*((1-a)*zc[6]+a*zc[7]));
+        if(x != NULL) x[ix] *= (1-c);
+        if(x != NULL) x[ix] += c*((1-b)*((1-a)*xc[4]+a*xc[5]) + b*((1-a)*xc[6]+a*xc[7]));
+        if(y != NULL) y[ix] *= (1-c);
+        if(y != NULL) y[ix] += c*((1-b)*((1-a)*yc[4]+a*yc[5]) + b*((1-a)*yc[6]+a*yc[7]));
+        if(z != NULL) z[ix] *= (1-c);
+        if(z != NULL) z[ix] += c*((1-b)*((1-a)*zc[4]+a*zc[5]) + b*((1-a)*zc[6]+a*zc[7]));
       }
 }
