@@ -106,7 +106,7 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
     subdomain->gx[  d  ] = gx[  d  ];
 
     Nltmp[d] = (Nb[2*d] + Nl[d] + Nb[2*d+1]);
-    sz *= Nltmp[d];
+    sz *= (Nltmp[d]+1);
 
     BFAM_ABORT_IF(N [d] < 0 || Nl[d] < 0 || Nb[2*d] < 0 || Nb[2*d+1] < 0 ||
                   gx[d] < 0 || gx[d] > N[d] || gx[d]+Nl[d] > N[d],
@@ -138,7 +138,6 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
   }
 
   bfam_util_linear_blend(x,y,z,dim,N,Nltmp,gx,c_x,c_y,c_z);
-
 }
 
 static int

@@ -15,6 +15,23 @@ main (int argc, char *argv[])
   bfam_domain_t domain;
   bfam_domain_init(&domain,MPI_COMM_WORLD);
 
+  /* set up the block information */
+  bfam_long_real_t x0[4] = {0,0.25,0,0.25};
+  bfam_long_real_t y0[4] = {0,0,0.5,0.25};
+
+  bfam_long_real_t x1[4] = {0.25,1,0.25,0.5};
+  bfam_long_real_t y1[4] = {0,0,0.25,0.5};
+
+  bfam_long_real_t x2[4] = {0.25,0.5,0,0};
+  bfam_long_real_t y2[4] = {0.25,0.5,0.5,1};
+
+  /* figure out which part of the domain I handle */
+  if(size < 3)
+  {
+  }
+  else
+  {
+  }
 
   /* clean up */
   bfam_domain_free(&domain);
