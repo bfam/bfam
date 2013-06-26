@@ -1,5 +1,6 @@
 #include <bfam_subdomain_dgx_quad.h>
 #include <bfam_jacobi.h>
+#include <bfam_kron.h>
 #include <bfam_log.h>
 #include <bfam_util.h>
 #include <bfam_vtk.h>
@@ -356,6 +357,52 @@ bfam_subdomain_dgx_quad_field_init(bfam_subdomain_t *subdomain,
   init_field(fieldLength, time, x, y, z, subdomain, arg, field);
 }
 
+static void
+bfam_subdomain_dgx_quad_geo2D(int N, bfam_locidx_t K,
+                              const bfam_long_real_t *restrict x,
+                              const bfam_long_real_t *restrict y,
+                              const bfam_long_real_t *restrict Dr,
+                                    bfam_long_real_t *restrict rx,
+                                    bfam_long_real_t *restrict sx,
+                                    bfam_long_real_t *restrict ry,
+                                    bfam_long_real_t *restrict sy,
+                                    bfam_long_real_t *restrict J)
+{
+  const int Nrp = N + 1;
+  BFAM_ASSUME_ALIGNED( x, 32);
+  BFAM_ASSUME_ALIGNED( y, 32);
+  BFAM_ASSUME_ALIGNED(Dr, 32);
+  BFAM_ASSUME_ALIGNED(rx, 32);
+  BFAM_ASSUME_ALIGNED(sx, 32);
+  BFAM_ASSUME_ALIGNED(ry, 32);
+  BFAM_ASSUME_ALIGNED(sy, 32);
+  BFAM_ASSUME_ALIGNED( J, 32);
+
+  for(bfam_locidx_t k = 0, vsk = 0; k < K; ++k)
+  {
+    BFAM_KRON_IXA(Nrp, Dr, x + vsk, sy + vsk); /* xr */
+    BFAM_KRON_IXA(Nrp, Dr, y + vsk, sx + vsk); /* yr */
+
+    BFAM_KRON_AXI(Nrp, Dr, x + vsk, ry + vsk); /* xs */
+    BFAM_KRON_AXI(Nrp, Dr, y + vsk, rx + vsk); /* ys */
+
+    for(int n = 0; n < Nrp*Nrp; ++n)
+    {
+      bfam_locidx_t idx = n + vsk;
+
+      J[idx] = sy[idx]*rx[idx] - ry[idx]*sx[idx];
+
+      rx[idx] =  rx[idx]/J[idx];
+      ry[idx] = -ry[idx]/J[idx];
+
+      sx[idx] = -sx[idx]/J[idx];
+      sy[idx] =  sy[idx]/J[idx];
+    }
+
+    vsk += Nrp*Nrp;
+  }
+}
+
 void
 bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
                              const bfam_locidx_t              id,
@@ -433,6 +480,16 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
 
   bfam_jacobi_p_differentiation(0, 0, N, Nrp, lr, V, D);
 
+  bfam_long_real_t *lrx, *lsx, *lry, *lsy, *lJ;
+
+  lrx = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
+  lsx = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
+  lry = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
+  lsy = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
+  lJ  = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
+
+  bfam_subdomain_dgx_quad_geo2D(N, K, lx, ly, D, lrx, lsx, lry, lsy, lJ);
+
   /*
    * Set subdomain values
    */
@@ -462,6 +519,18 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_z");
   BFAM_ASSERT(rval == 2);
 
+  rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_rx");
+  BFAM_ASSERT(rval == 2);
+  rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_ry");
+  BFAM_ASSERT(rval == 2);
+  rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_sx");
+  BFAM_ASSERT(rval == 2);
+  rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_sy");
+  BFAM_ASSERT(rval == 2);
+
+  rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_J");
+  BFAM_ASSERT(rval == 2);
+
   bfam_real_t *restrict x =
     bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_x");
   bfam_real_t *restrict y =
@@ -469,11 +538,30 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   bfam_real_t *restrict z =
     bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_z");
 
+  bfam_real_t *restrict rx =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_rx");
+  bfam_real_t *restrict ry =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_ry");
+  bfam_real_t *restrict sx =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_sx");
+  bfam_real_t *restrict sy =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_sy");
+
+  bfam_real_t *restrict J =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_J");
+
   for(int n = 0; n < K*Np; ++n)
   {
     x[n] = (bfam_real_t) lx[n];
     y[n] = (bfam_real_t) ly[n];
     z[n] = (bfam_real_t) lz[n];
+
+    rx[n] = (bfam_real_t) lrx[n];
+    ry[n] = (bfam_real_t) lry[n];
+    sx[n] = (bfam_real_t) lsx[n];
+    sy[n] = (bfam_real_t) lsy[n];
+
+    J[n] = (bfam_real_t) lJ[n];
   }
 
   subdomain->Dr = bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_real_t));
@@ -508,6 +596,12 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
    */
   for(int i = 0; i < N+1; ++i)
     subdomain->fmask[3][i] = (N+1)*N + i;
+
+  bfam_free_aligned(lrx);
+  bfam_free_aligned(lsx);
+  bfam_free_aligned(lry);
+  bfam_free_aligned(lsy);
+  bfam_free_aligned(lJ );
 
   bfam_free_aligned(D);
   bfam_free_aligned(V);
