@@ -28,6 +28,13 @@ bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
   const bfam_locidx_t Ncells = K * N * N;
   const bfam_locidx_t Ntotal = K * Np;
 
+  bfam_real_t *restrict x =
+    bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_x");
+  bfam_real_t *restrict y =
+    bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_y");
+  bfam_real_t *restrict z =
+    bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_z");
+
   fprintf(file,
            "    <Piece NumberOfPoints=\"%jd\" NumberOfCells=\"%jd\">\n",
            (intmax_t) Ntotal, (intmax_t) Ncells);
@@ -38,7 +45,7 @@ bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
   fprintf (file, "      <Points>\n");
 
   bfam_vtk_write_real_vector_data_array(file, "Position", writeBinary,
-      writeCompressed, Ntotal, s->x, s->y, s->z);
+      writeCompressed, Ntotal, x, y, z);
 
   fprintf(file, "      </Points>\n");
 
@@ -339,7 +346,14 @@ bfam_subdomain_dgx_quad_field_init(bfam_subdomain_t *subdomain,
 
   size_t fieldLength = s->Np*s->K;
 
-  init_field(fieldLength, time, s->x, s->y, s->z, subdomain, arg, field);
+  bfam_real_t *restrict x =
+    bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_x");
+  bfam_real_t *restrict y =
+    bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_y");
+  bfam_real_t *restrict z =
+    bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_z");
+
+  init_field(fieldLength, time, x, y, z, subdomain, arg, field);
 }
 
 void
@@ -430,14 +444,26 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
 
   subdomain->K = K;
 
-  subdomain->x = bfam_malloc_aligned(K*Np*sizeof(bfam_real_t));
-  subdomain->y = bfam_malloc_aligned(K*Np*sizeof(bfam_real_t));
-  subdomain->z = bfam_malloc_aligned(K*Np*sizeof(bfam_real_t));
+  int rval;
+  rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_x");
+  BFAM_ASSERT(rval == 2);
+  rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_y");
+  BFAM_ASSERT(rval == 2);
+  rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_z");
+  BFAM_ASSERT(rval == 2);
+
+  bfam_real_t *restrict x =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_x");
+  bfam_real_t *restrict y =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_y");
+  bfam_real_t *restrict z =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_z");
+
   for(int n = 0; n < K*Np; ++n)
   {
-    subdomain->x[n] = (bfam_real_t) lx[n];
-    subdomain->y[n] = (bfam_real_t) ly[n];
-    subdomain->z[n] = (bfam_real_t) lz[n];
+    x[n] = (bfam_real_t) lx[n];
+    y[n] = (bfam_real_t) ly[n];
+    z[n] = (bfam_real_t) lz[n];
   }
 
   subdomain->fmask = bfam_malloc_aligned(Nfaces * sizeof(int*));
@@ -504,10 +530,6 @@ bfam_subdomain_dgx_quad_free(bfam_subdomain_t *thisSubdomain)
 
   bfam_free_aligned(sub->r);
   bfam_free_aligned(sub->w);
-
-  bfam_free_aligned(sub->x);
-  bfam_free_aligned(sub->y);
-  bfam_free_aligned(sub->z);
 
   for(int f = 0; f < sub->Nfaces; ++f)
     bfam_free_aligned(sub->fmask[f]);

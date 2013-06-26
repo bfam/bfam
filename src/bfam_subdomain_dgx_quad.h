@@ -50,10 +50,6 @@ typedef struct bfam_subdomain_dgx_quad
 
   bfam_locidx_t    K;   /* Number of elements in the subdomain */
 
-  bfam_real_t     *x;   /* x-coordinates of the nodes */
-  bfam_real_t     *y;   /* y-coordinates of the nodes */
-  bfam_real_t     *z;   /* z-coordinates of the nodes */
-
   int            **fmask; /* face mask */
 } bfam_subdomain_dgx_quad_t;
 
