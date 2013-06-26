@@ -48,6 +48,8 @@ typedef struct bfam_subdomain_dgx_quad
   bfam_real_t     *r;   /* 1D LGL Nodal Point in [-1,1] */
   bfam_real_t     *w;   /* 1D LGL Weights */
 
+  bfam_real_t     *Dr;  /* 1D LGL differentiation matrix */
+
   bfam_locidx_t    K;   /* Number of elements in the subdomain */
 
   int            **fmask; /* face mask */
