@@ -368,6 +368,8 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   const int Nfp = N+1;
   const int Nfaces = 4;
   const int Ncorners = 4;
+  const int Nh = 3;
+  const int No = 2;
 
   const int Nrp = N+1;
   bfam_long_real_t *lr, *lw;
@@ -415,6 +417,8 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   subdomain->Nfp = Nfp;
   subdomain->Nfaces = Nfaces;
   subdomain->Ncorners = Ncorners;
+  subdomain->Nh = Nh;
+  subdomain->No = No;
 
   subdomain->r = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
   subdomain->w = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
