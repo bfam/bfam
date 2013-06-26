@@ -89,7 +89,8 @@ bfam_jacobi_p_vandermonde(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
  *
  */
 void
-bfam_jacobi_p_interpolation(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
-    size_t nx, bfam_long_real_t *x, bfam_long_real_t *V, bfam_long_real_t *I);
+bfam_jacobi_p_interpolation(bfam_long_real_t alpha, bfam_long_real_t beta,
+    int N, size_t nx, bfam_long_real_t *x, bfam_long_real_t *V,
+    bfam_long_real_t *I);
 
 #endif
