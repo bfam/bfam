@@ -100,6 +100,10 @@ bfam_subdomain_init(bfam_subdomain_t *thisSubdomain, bfam_locidx_t id,
   thisSubdomain->free                = bfam_subdomain_free;
 
   thisSubdomain->vtk_write_vtu_piece = NULL;
+  thisSubdomain->vtk_write_vts_piece = NULL;
+  thisSubdomain->vtk_write_pvts_pieces = NULL;
+  thisSubdomain->vtk_write_suffix    = NULL;
+
   thisSubdomain->field_add           = NULL;
   thisSubdomain->field_plus_add      = NULL;
   thisSubdomain->field_minus_add     = NULL;
@@ -125,6 +129,9 @@ bfam_subdomain_free(bfam_subdomain_t *thisSubdomain)
   thisSubdomain->tags.root = NULL;
 
   thisSubdomain->vtk_write_vtu_piece  = NULL;
+  thisSubdomain->vtk_write_vts_piece  = NULL;
+  thisSubdomain->vtk_write_pvts_pieces = NULL;
+  thisSubdomain->vtk_write_suffix    = NULL;
   thisSubdomain->field_add            = NULL;
   thisSubdomain->field_plus_add       = NULL;
   thisSubdomain->field_minus_add      = NULL;

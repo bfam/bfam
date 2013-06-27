@@ -139,7 +139,7 @@ void bfam_util_backslash(size_t m, size_t n, bfam_long_real_t *restrict A,
 /** Transfinite Interpolation
  */
 void bfam_util_transfinite(
-    bfam_long_real_t *x, bfam_long_real_t *y, bfam_long_real_t *z,
+    bfam_real_t *x, bfam_real_t *y, bfam_real_t *z,
     const bfam_gloidx_t *N, const bfam_locidx_t *Nl, const bfam_gloidx_t *gx,
     const bfam_long_real_t *xc, const bfam_long_real_t *xe,
     const bfam_long_real_t *r,
@@ -151,8 +151,7 @@ void bfam_util_transfinite(
 /** Linear blending
  */
 void bfam_util_linear_blend(
-    bfam_long_real_t *restrict x, bfam_long_real_t *restrict y,
-    bfam_long_real_t *restrict z,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
     const int dim,
     const bfam_gloidx_t *N, const bfam_locidx_t *Nltmp,
     const bfam_gloidx_t *gxtmp, const bfam_long_real_t *xc,

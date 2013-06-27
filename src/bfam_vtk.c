@@ -4,9 +4,11 @@
 #include <bfam_util.h>
 
 #define BFAM_VTK_VTU_FORMAT "%s_%05d.vtu"
+#define BFAM_VTK_VTS_FORMAT "%s_%s_%05d.vts"
+#define BFAM_VTK_PVTS_FORMAT "%s_%s.pvts"
 
 static void
-bfam_vtk_write_pfile(int size, const char *prefix, const char **scalars,
+bfam_vtk_write_file_pvtu(int size, const char *prefix, const char **scalars,
     const char **vectors, const char **components, int binary,
     int compress)
 {
@@ -112,7 +114,7 @@ bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match,
   BFAM_MPI_CHECK(MPI_Comm_size(domain->comm, &size));
 
   if(rank == 0)
-    bfam_vtk_write_pfile(size, prefix, scalars, vectors, components, binary,
+    bfam_vtk_write_file_pvtu(size, prefix, scalars, vectors, components, binary,
         compress);
 
   bfam_subdomain_t **subdomains =
@@ -272,4 +274,80 @@ bfam_vtk_write_real_vector_data_array(FILE* file, const char *name,
 
   fprintf(file, "        </DataArray>\n");
 
+}
+
+
+void
+bfam_vtk_write_struc_file(bfam_domain_t *domain, bfam_domain_match_t match,
+    const char **tags, const char *prefix, const char **scalars,
+    const char **vectors, const char **components, int binary,
+    int compress)
+{
+  const int endian = bfam_endian();
+
+  bfam_locidx_t numElements = domain->numSubdomains;
+
+  int rank, size;
+  BFAM_MPI_CHECK(MPI_Comm_rank(domain->comm, &rank));
+  BFAM_MPI_CHECK(MPI_Comm_size(domain->comm, &size));
+
+  bfam_subdomain_t **subdomains =
+    bfam_malloc(numElements*sizeof(bfam_subdomain_t*));
+  bfam_locidx_t numSubdomains = 0;
+
+  bfam_domain_get_subdomains(domain, match, tags,
+    numElements, subdomains, &numSubdomains);
+
+  for(bfam_locidx_t s = 0; s < numSubdomains; s++)
+  {
+    char filename[BFAM_BUFSIZ];
+    bfam_subdomain_t *subdomain = subdomains[s];
+
+    if(subdomain->vtk_write_suffix)
+      snprintf(filename, BFAM_BUFSIZ, BFAM_VTK_VTS_FORMAT, prefix,
+          subdomain->name, subdomain->vtk_write_suffix(subdomain));
+    else
+      snprintf(filename, BFAM_BUFSIZ, BFAM_VTK_VTS_FORMAT, prefix,
+          subdomain->name, rank);
+
+    BFAM_VERBOSE("Writing file: '%s'", filename);
+    FILE *file = fopen(filename, "w");
+    if(file == NULL)
+    {
+      BFAM_LERROR("Could not open %s for output!\n", filename);
+      return;
+    }
+    fprintf(file, "<?xml version=\"1.0\"?>\n");
+    fprintf(file, "<VTKFile type=\"StructuredGrid\" version=\"0.1\"");
+
+    if(binary && compress)
+      fprintf(file, " compressor=\"vtkZLibDataCompressor\"");
+
+    if(endian == BFAM_BIG_ENDIAN)
+      fprintf(file, " byte_order=\"BigEndian\">\n");
+    else
+      fprintf(file, " byte_order=\"LittleEndian\">\n");
+
+    if(subdomain->vtk_write_vts_piece)
+      subdomain->vtk_write_vts_piece(subdomain, file, scalars, vectors,
+          components, binary, compress);
+    else
+      BFAM_WARNING("Subdomain: %s does not implement vtk_write_vts_piece",
+          subdomain->name);
+
+    fprintf(file, "</VTKFile>\n");
+
+    if(ferror(file))
+    {
+      BFAM_LERROR("Error writing to %s\n", filename);
+    }
+
+    if(fclose(file))
+    {
+      BFAM_LERROR("Error closing %s\n", filename);
+    }
+
+  }
+
+  bfam_free(subdomains);
 }

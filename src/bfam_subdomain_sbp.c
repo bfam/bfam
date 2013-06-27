@@ -2,6 +2,12 @@
 #include <bfam_log.h>
 #include <bfam_vtk.h>
 #include <bfam_util.h>
+#include <inttypes.h>
+
+int bfam_subdomain_sbp_vtk_write_suffix(bfam_subdomain_t *thisSubdomain)
+{
+  return ((bfam_subdomain_sbp_t*)thisSubdomain)->loc_id;
+}
 
 bfam_subdomain_sbp_t*
 bfam_subdomain_sbp_new(const bfam_locidx_t     id,
@@ -21,6 +27,128 @@ bfam_subdomain_sbp_new(const bfam_locidx_t     id,
   bfam_subdomain_sbp_init(newSub,id,loc_id,num_id,name,dim,N,Nl,Nb,gx,
                           c_x,c_y,c_z);
   return newSub;
+}
+
+void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
+                                       FILE *file,
+                                       const char **scalars,
+                                       const char **vectors,
+                                       const char **components,
+                                       int writeBinary,
+                                       int writeCompressed)
+{
+  bfam_subdomain_sbp_t* s = (bfam_subdomain_sbp_t*) subdomain;
+
+  bfam_locidx_t Nl[3] = {0,0,0};
+  bfam_locidx_t Nb[6] = {0,0,0,0,0,0};
+  bfam_locidx_t Nt[3] = {0,0,0};
+  bfam_locidx_t gx[3] = {0,0,0};
+  for(int d = 0;d < s->dim; d++)
+  {
+    Nl[d] = s->Nl[d];
+    Nb[2*d  ] = s->Nb[2*d  ];
+    Nb[2*d+1] = s->Nb[2*d+1];
+    Nt[d] = Nb[2*d] + Nl[d] + Nb[2*d+1];
+    gx[d] = s->gx[d];
+  }
+
+  /* start StructuredGrid */
+  fprintf(file, "  <StructuredGrid WholeExtent=\"");
+  fprintf(file, "%" PRId64 " %" PRId64,
+      (int64_t)gx[0],(int64_t)(gx[0]+Nl[0]));
+  fprintf(file, " %" PRId64 " %" PRId64,
+      (int64_t)gx[1],(int64_t)(gx[1]+Nl[1]));
+  fprintf(file, " %" PRId64 " %" PRId64,
+      (int64_t)gx[2],(int64_t)(gx[2]+Nl[2]));
+  fprintf(file, "\">\n");
+
+  /* write the piece data */
+  fprintf(file, "    <Piece Extent=\"");
+  fprintf(file, "%" PRId64 " %" PRId64,
+      (int64_t)gx[0],(int64_t)(gx[0]+Nl[0]));
+  fprintf(file, " %" PRId64 " %" PRId64,
+      (int64_t)gx[1],(int64_t)(gx[1]+Nl[1]));
+  fprintf(file, " %" PRId64 " %" PRId64,
+      (int64_t)gx[2],(int64_t)(gx[2]+Nl[2]));
+  fprintf(file, "\">\n");
+
+  /*
+   * Points
+   */
+
+  bfam_locidx_t sz = 1;
+  for(int i = 0; i < s->dim; i++) sz *= (s->Nl[i]+1);
+  bfam_real_t *storage0 = bfam_malloc_aligned(sz*sizeof(bfam_real_t));
+  bfam_real_t *storage1 = bfam_malloc_aligned(sz*sizeof(bfam_real_t));
+  bfam_real_t *storage2 = bfam_malloc_aligned(sz*sizeof(bfam_real_t));
+
+  fprintf(file, "      <Points>\n");
+
+  bfam_real_t *x = bfam_dictionary_get_value_ptr(&subdomain->fields,"_grid_x");
+  bfam_real_t *y = bfam_dictionary_get_value_ptr(&subdomain->fields,"_grid_y");
+  bfam_real_t *z = bfam_dictionary_get_value_ptr(&subdomain->fields,"_grid_z");
+
+  if(x!=NULL)
+  {
+    int i = 0;
+    for(int k = 0; k <= Nl[2]; k++)
+      for(int j = 0; j <= Nl[1]; j++)
+        memcpy(&storage0[i + (Nl[0]+1)*(j + k*(Nl[1]+1))],
+            &x[i+Nb[0] + (Nt[0]+1)*(j+Nb[2] + (k+Nb[4])*(Nt[1]+1))],
+            (Nl[0]+1)*sizeof(bfam_real_t));
+  }
+  else
+  {
+    memset(storage0,0,sz);
+  }
+
+  if(y!=NULL)
+  {
+    int i = 0;
+    for(int k = 0; k <= Nl[2]; k++)
+      for(int j = 0; j <= Nl[1]; j++)
+        memcpy(&storage1[i + (Nl[0]+1)*(j + k*(Nl[1]+1))],
+            &y[i+Nb[0] + (Nt[0]+1)*(j+Nb[2] + (k+Nb[4])*(Nt[1]+1))],
+            (Nl[0]+1)*sizeof(bfam_real_t));
+  }
+  else
+  {
+    memset(storage1,0,sz);
+  }
+
+  if(z!=NULL)
+  {
+    int i = 0;
+    for(int k = 0; k <= Nl[2]; k++)
+      for(int j = 0; j <= Nl[1]; j++)
+        memcpy(&storage2[i + (Nl[0]+1)*(j + k*(Nl[1]+1))],
+            &z[i+Nb[0] + (Nt[0]+1)*(j+Nb[2] + (k+Nb[4])*(Nt[1]+1))],
+            (Nl[0]+1)*sizeof(bfam_real_t));
+  }
+  else
+  {
+    memset(storage2,0,sz);
+  }
+
+  bfam_vtk_write_real_vector_data_array(file, "Position", writeBinary,
+      writeCompressed, sz, storage0, storage1, storage2);
+
+  fprintf(file, "      </Points>\n");
+
+  /*
+   * Cells
+   */
+  fprintf(file, "      <Cells>\n");
+  fprintf(file, "      </Cells>\n");
+
+  fprintf(file, "    </Piece>\n");
+
+  /* close StructuredGrid */
+  fprintf(file, "  </StructuredGrid>\n");
+
+  bfam_free_aligned(storage0);
+  bfam_free_aligned(storage1);
+  bfam_free_aligned(storage2);
 }
 
 static int
@@ -84,9 +212,11 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
   subdomain->base.free = bfam_subdomain_sbp_free;
   subdomain->base.field_add = bfam_subdomain_sbp_field_add;
   subdomain->base.field_init = bfam_subdomain_sbp_field_init;
+  subdomain->base.vtk_write_vts_piece = bfam_subdomain_sbp_vtk_vts_piece;
+  subdomain->base.vtk_write_suffix = bfam_subdomain_sbp_vtk_write_suffix;
 
-  subdomain->dim = loc_id;
-  subdomain->dim = num_id;
+  subdomain->loc_id = loc_id;
+  subdomain->num_id = num_id;
   subdomain->dim = dim;
 
   subdomain->N  = bfam_malloc(  dim*sizeof(bfam_gloidx_t));
@@ -113,26 +243,28 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
                   "%s: problem with a dimension %d", d, subdomain->base.name);
   }
 
-  bfam_long_real_t *x = NULL;
+  bfam_real_t *x = NULL;
   if(c_x != NULL)
   {
-    x = bfam_malloc_aligned(sizeof(bfam_long_real_t)*sz);
+    x = bfam_malloc_aligned(sizeof(bfam_real_t)*sz);
     int val = bfam_dictionary_insert_ptr(&subdomain->base.fields, "_grid_x", x);
     BFAM_ABORT_IF(val != 2, "problem adding x to fields");
   }
 
-  bfam_long_real_t *y = NULL;
+  bfam_real_t *y = NULL;
   if(c_y != NULL)
   {
-    y = bfam_malloc_aligned(sizeof(bfam_long_real_t)*sz);
+    BFAM_ASSERT(c_x != NULL);
+    y = bfam_malloc_aligned(sizeof(bfam_real_t)*sz);
     int val = bfam_dictionary_insert_ptr(&subdomain->base.fields, "_grid_y", y);
     BFAM_ABORT_IF(val != 2, "problem adding y to fields");
   }
 
-  bfam_long_real_t *z = NULL;
+  bfam_real_t *z = NULL;
   if(c_z != NULL)
   {
-    z = bfam_malloc_aligned(sizeof(bfam_long_real_t)*sz);
+    BFAM_ASSERT(c_y != NULL);
+    z = bfam_malloc_aligned(sizeof(bfam_real_t)*sz);
     int val = bfam_dictionary_insert_ptr(&subdomain->base.fields, "_grid_z", z);
     BFAM_ABORT_IF(val != 2, "problem adding z to fields");
   }

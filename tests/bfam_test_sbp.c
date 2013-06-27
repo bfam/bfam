@@ -46,15 +46,15 @@ main (int argc, char *argv[])
   /* set up the block information */
   bfam_long_real_t x0[4] = {0,0.25,0,0.25};
   bfam_long_real_t y0[4] = {0,0,0.5,0.25};
-  bfam_gloidx_t    N0[2] = {100,200};
+  bfam_gloidx_t    N0[2] = {10,20};
 
   bfam_long_real_t x1[4] = {0.25,1,0.25,0.5};
   bfam_long_real_t y1[4] = {0,0,0.25,0.5};
-  bfam_gloidx_t    N1[2] = {300,200};
+  bfam_gloidx_t    N1[2] = {30,20};
 
   bfam_long_real_t x2[4] = {0.25,0.5,0,0};
   bfam_long_real_t y2[4] = {0.25,0.5,0.5,1};
-  bfam_gloidx_t    N2[2] = {300,100};
+  bfam_gloidx_t    N2[2] = {30,10};
 
   /* figure out which part of the domain I handle */
   if(size <= 6)
@@ -91,6 +91,14 @@ main (int argc, char *argv[])
   else
   {
   }
+
+  const char *tags[] = {NULL};
+  const char *scalars[] = {"_grid_x","_grid_y","_grid_z",NULL};
+  const char *vectors[] = {NULL};
+  const char *components[] = {NULL};
+  bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
+      tags,"sbp_fields",scalars,vectors,components,1,1);
+
 
   /* clean up */
   bfam_domain_free(&domain);

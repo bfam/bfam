@@ -70,7 +70,9 @@ typedef void (*bfam_subdomain_init_field_t) (bfam_locidx_t npoints,
  */
 typedef struct bfam_subdomain
 {
-  bfam_locidx_t   id;
+  bfam_locidx_t     id;
+  bfam_locidx_t loc_id;
+  bfam_locidx_t num_id;
   char*           name;     /**< Name of the subdomain */
   bfam_critbit0_tree_t tags; /**< critbit for tags for the subdomain */
   bfam_dictionary_t fields; /**< a dictionary storing pointers to fields */
@@ -81,7 +83,7 @@ typedef struct bfam_subdomain
   /* Function pointers that domain will need to call */
   void (*free)                (struct bfam_subdomain *thisSubdomain);
 
-  /**< Write a vtk file */
+  /**< Write a vtk vtu file */
   void (*vtk_write_vtu_piece) (struct bfam_subdomain *thisSubdomain,
                                FILE *file,
                                const char **scalars,
@@ -91,6 +93,26 @@ typedef struct bfam_subdomain
                                int writeCompressed,
                                int rank,
                                bfam_locidx_t id);
+
+  /**< Write a vtk vts file */
+  void (*vtk_write_vts_piece) (struct bfam_subdomain *thisSubdomain,
+                               FILE *file,
+                               const char **scalars,
+                               const char **vectors,
+                               const char **components,
+                               int writeBinary,
+                               int writeCompressed);
+
+  /**< vts filename */
+  void (*vtk_write_vts_filename) (struct bfam_subdomain *thisSubdomain,
+      void *buffer, size_t recv_sz);
+
+  /**< write the filename suffix */
+  int (*vtk_write_suffix) (struct bfam_subdomain *thisSubdomain);
+
+  /**< write the pvts filename */
+  void (*vtk_write_pvts_pieces) (struct bfam_subdomain *thisSubdomain,
+      const char* filename, FILE *file);
 
   /**< Add a field to the subdomain */
   int (*field_add) (struct bfam_subdomain *thisSubdomain, const char* name);
