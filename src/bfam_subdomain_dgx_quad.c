@@ -358,7 +358,7 @@ bfam_subdomain_dgx_quad_field_init(bfam_subdomain_t *subdomain,
 }
 
 static void
-bfam_subdomain_dgx_quad_geo2D(int N, bfam_locidx_t K,
+bfam_subdomain_dgx_quad_geo2D(int N, bfam_locidx_t K, int **fmask,
                               const bfam_long_real_t *restrict x,
                               const bfam_long_real_t *restrict y,
                               const bfam_long_real_t *restrict Dr,
@@ -366,8 +366,12 @@ bfam_subdomain_dgx_quad_geo2D(int N, bfam_locidx_t K,
                                     bfam_long_real_t *restrict sx,
                                     bfam_long_real_t *restrict ry,
                                     bfam_long_real_t *restrict sy,
-                                    bfam_long_real_t *restrict J)
+                                    bfam_long_real_t *restrict J,
+                                    bfam_long_real_t *restrict nx,
+                                    bfam_long_real_t *restrict ny,
+                                    bfam_long_real_t *restrict sJ)
 {
+  const int Nfaces = 4;
   const int Nrp = N + 1;
   BFAM_ASSUME_ALIGNED( x, 32);
   BFAM_ASSUME_ALIGNED( y, 32);
@@ -378,13 +382,56 @@ bfam_subdomain_dgx_quad_geo2D(int N, bfam_locidx_t K,
   BFAM_ASSUME_ALIGNED(sy, 32);
   BFAM_ASSUME_ALIGNED( J, 32);
 
-  for(bfam_locidx_t k = 0, vsk = 0; k < K; ++k)
+  for(bfam_locidx_t k = 0, vsk = 0, fsk = 0; k < K; ++k)
   {
     BFAM_KRON_IXA(Nrp, Dr, x + vsk, sy + vsk); /* xr */
     BFAM_KRON_IXA(Nrp, Dr, y + vsk, sx + vsk); /* yr */
 
     BFAM_KRON_AXI(Nrp, Dr, x + vsk, ry + vsk); /* xs */
     BFAM_KRON_AXI(Nrp, Dr, y + vsk, rx + vsk); /* ys */
+
+    for(int n = 0; n < Nrp; ++n)
+    {
+      const bfam_locidx_t fidx0 = fsk + 0 * Nrp + n;
+      const bfam_locidx_t fidx1 = fsk + 1 * Nrp + n;
+      const bfam_locidx_t fidx2 = fsk + 2 * Nrp + n;
+      const bfam_locidx_t fidx3 = fsk + 3 * Nrp + n;
+
+      const bfam_locidx_t vidx0 = vsk + fmask[0][n];
+      const bfam_locidx_t vidx1 = vsk + fmask[1][n];
+      const bfam_locidx_t vidx2 = vsk + fmask[2][n];
+      const bfam_locidx_t vidx3 = vsk + fmask[3][n];
+
+      /* face 0 */
+      nx[fidx0] = -rx[vidx0];
+      ny[fidx0] =  ry[vidx0];
+
+      /* face 1 */
+      nx[fidx1] =  rx[vidx1];
+      ny[fidx1] = -ry[vidx1];
+
+      /* face 2 */
+      nx[fidx2] =  sx[vidx2];
+      ny[fidx2] = -sy[vidx2];
+
+      /* face 3 */
+      nx[fidx3] = -sx[vidx3];
+      ny[fidx3] =  sy[vidx3];
+
+      sJ[fidx0] = BFAM_LONG_REAL_HYPOT(nx[fidx0],ny[fidx0]);
+      sJ[fidx1] = BFAM_LONG_REAL_HYPOT(nx[fidx1],ny[fidx1]);
+      sJ[fidx2] = BFAM_LONG_REAL_HYPOT(nx[fidx2],ny[fidx2]);
+      sJ[fidx3] = BFAM_LONG_REAL_HYPOT(nx[fidx3],ny[fidx3]);
+
+      nx[fidx0] /= sJ[fidx0];
+      ny[fidx0] /= sJ[fidx0];
+      nx[fidx1] /= sJ[fidx1];
+      ny[fidx1] /= sJ[fidx1];
+      nx[fidx2] /= sJ[fidx2];
+      ny[fidx2] /= sJ[fidx2];
+      nx[fidx3] /= sJ[fidx3];
+      ny[fidx3] /= sJ[fidx3];
+    }
 
     for(int n = 0; n < Nrp*Nrp; ++n)
     {
@@ -400,6 +447,7 @@ bfam_subdomain_dgx_quad_geo2D(int N, bfam_locidx_t K,
     }
 
     vsk += Nrp*Nrp;
+    fsk += Nfaces*Nrp;
   }
 }
 
@@ -433,6 +481,37 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   const int No = 2;
 
   const int Nrp = N+1;
+
+  subdomain->fmask = bfam_malloc_aligned(Nfaces * sizeof(int*));
+
+  for(int f = 0; f < Nfaces; ++f)
+    subdomain->fmask[f] = bfam_malloc_aligned(Nfp * sizeof(int));
+
+  /*
+   * Face 0 -x
+   */
+  for(int i = 0; i < N+1; ++i)
+    subdomain->fmask[0][i] = i*(N+1);
+
+  /*
+   * Face 1 +x
+   */
+  for(int i = 0; i < N+1; ++i)
+    subdomain->fmask[1][i] = (i+1)*(N+1)-1;
+
+  /*
+   * Face 2 -y
+   */
+  for(int i = 0; i < N+1; ++i)
+    subdomain->fmask[2][i] = i;
+
+  /*
+   * Face 3 +y
+   */
+  for(int i = 0; i < N+1; ++i)
+    subdomain->fmask[3][i] = (N+1)*N + i;
+
+
   bfam_long_real_t *lr, *lw;
   lr = bfam_malloc_aligned(Nrp*sizeof(bfam_long_real_t));
   lw = bfam_malloc_aligned(Nrp*sizeof(bfam_long_real_t));
@@ -488,7 +567,14 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   lsy = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
   lJ  = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
 
-  bfam_subdomain_dgx_quad_geo2D(N, K, lx, ly, D, lrx, lsx, lry, lsy, lJ);
+  bfam_long_real_t *lnx, *lny, *lsJ;
+
+  lnx = bfam_malloc_aligned(K*Nfaces*Nfp*sizeof(bfam_long_real_t));
+  lny = bfam_malloc_aligned(K*Nfaces*Nfp*sizeof(bfam_long_real_t));
+  lsJ = bfam_malloc_aligned(K*Nfaces*Nfp*sizeof(bfam_long_real_t));
+
+  bfam_subdomain_dgx_quad_geo2D(N, K, subdomain->fmask, lx, ly, D, lrx, lsx,
+      lry, lsy, lJ, lnx, lny, lsJ);
 
   /*
    * Set subdomain values
@@ -568,34 +654,9 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   for(int n = 0; n < Nrp*Nrp; ++n)
     subdomain->Dr[n] = (bfam_real_t) D[n];
 
-  subdomain->fmask = bfam_malloc_aligned(Nfaces * sizeof(int*));
-
-  for(int f = 0; f < Nfaces; ++f)
-    subdomain->fmask[f] = bfam_malloc_aligned(Nfp * sizeof(int));
-
-  /*
-   * Face 0 -x
-   */
-  for(int i = 0; i < N+1; ++i)
-    subdomain->fmask[0][i] = i*(N+1);
-
-  /*
-   * Face 1 +x
-   */
-  for(int i = 0; i < N+1; ++i)
-    subdomain->fmask[1][i] = (i+1)*(N+1)-1;
-
-  /*
-   * Face 2 -y
-   */
-  for(int i = 0; i < N+1; ++i)
-    subdomain->fmask[2][i] = i;
-
-  /*
-   * Face 3 +y
-   */
-  for(int i = 0; i < N+1; ++i)
-    subdomain->fmask[3][i] = (N+1)*N + i;
+  bfam_free_aligned(lnx);
+  bfam_free_aligned(lny);
+  bfam_free_aligned(lsJ);
 
   bfam_free_aligned(lrx);
   bfam_free_aligned(lsx);
