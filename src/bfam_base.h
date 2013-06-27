@@ -211,6 +211,7 @@ typedef long double bfam_long_real_t;
 #define BFAM_LONG_REAL_LGAMMA lgammal
 #define BFAM_LONG_REAL_LOG       logl
 #define BFAM_LONG_REAL_EXP       expl
+#define BFAM_LONG_REAL_HYPOT   hypotl
 #define BFAM_LONG_REAL_SQRT     sqrtl
 #define BFAM_LONG_REAL_SIN       sinl
 #define BFAM_LONG_REAL_TAN       tanl
