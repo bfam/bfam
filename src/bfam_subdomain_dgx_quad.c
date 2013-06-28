@@ -673,6 +673,27 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
     J[n] = (bfam_real_t) lJ[n];
   }
 
+  rval = bfam_subdomain_dgx_quad_field_face_add(&subdomain->base, "_grid_nx");
+  BFAM_ASSERT(rval == 2);
+  rval = bfam_subdomain_dgx_quad_field_face_add(&subdomain->base, "_grid_ny");
+  BFAM_ASSERT(rval == 2);
+  rval = bfam_subdomain_dgx_quad_field_face_add(&subdomain->base, "_grid_sJ");
+  BFAM_ASSERT(rval == 2);
+
+  bfam_real_t *restrict nx =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields_face, "_grid_nx");
+  bfam_real_t *restrict ny =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields_face, "_grid_ny");
+  bfam_real_t *restrict sJ =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields_face, "_grid_sJ");
+
+  for(int n = 0; n < K*Nfp*Nfaces; ++n)
+  {
+    nx[n] = (bfam_real_t) lnx[n];
+    ny[n] = (bfam_real_t) lny[n];
+    sJ[n] = (bfam_real_t) lsJ[n];
+  }
+
   subdomain->Dr = bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_real_t));
   for(int n = 0; n < Nrp*Nrp; ++n)
     subdomain->Dr[n] = (bfam_real_t) D[n];
