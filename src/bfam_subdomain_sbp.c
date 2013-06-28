@@ -223,6 +223,7 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
   subdomain->Nl = bfam_malloc(  dim*sizeof(bfam_locidx_t));
   subdomain->Nb = bfam_malloc(2*dim*sizeof(bfam_locidx_t));
   subdomain->gx = bfam_malloc(  dim*sizeof(bfam_gloidx_t));
+  bfam_gloidx_t gxb[dim];
 
   bfam_locidx_t Nltmp[dim];
 
@@ -234,6 +235,7 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
     subdomain->Nb[2*d  ] = Nb[2*d  ];
     subdomain->Nb[2*d+1] = Nb[2*d+1];
     subdomain->gx[  d  ] = gx[  d  ];
+    gxb[d] = gx[d]-Nb[2*d];
 
     Nltmp[d] = (Nb[2*d] + Nl[d] + Nb[2*d+1]);
     sz *= (Nltmp[d]+1);
@@ -269,7 +271,7 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
     BFAM_ABORT_IF(val != 2, "problem adding z to fields");
   }
 
-  bfam_util_linear_blend(x,y,z,dim,N,Nltmp,gx,c_x,c_y,c_z);
+  bfam_util_linear_blend(x,y,z,dim,N,Nltmp,gxb,c_x,c_y,c_z);
 }
 
 static int
