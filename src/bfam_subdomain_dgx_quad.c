@@ -333,6 +333,28 @@ bfam_subdomain_dgx_quad_field_add(bfam_subdomain_t *subdomain, const char *name)
   return rval;
 }
 
+static int
+bfam_subdomain_dgx_quad_field_face_add(bfam_subdomain_t *subdomain,
+    const char *name)
+{
+  bfam_subdomain_dgx_quad_t *s = (bfam_subdomain_dgx_quad_t*) subdomain;
+
+  if(bfam_dictionary_get_value_ptr(&s->base.fields_face,name))
+    return 1;
+
+  size_t fieldSize = s->Nfaces*s->Nfp*s->K*sizeof(bfam_real_t);
+  bfam_real_t *field = bfam_malloc_aligned(fieldSize);
+
+  int rval = bfam_dictionary_insert_ptr(&s->base.fields_face, name, field);
+
+  BFAM_ASSERT(rval != 1);
+
+  if(rval == 0)
+    bfam_free_aligned(field);
+
+  return rval;
+}
+
 static void
 bfam_subdomain_dgx_quad_field_init(bfam_subdomain_t *subdomain,
     const char *name, bfam_real_t time, bfam_subdomain_init_field_t init_field,
@@ -471,6 +493,7 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   subdomain->base.vtk_write_vtu_piece =
     bfam_subdomain_dgx_quad_vtk_write_vtu_piece;
   subdomain->base.field_add = bfam_subdomain_dgx_quad_field_add;
+  subdomain->base.field_face_add = bfam_subdomain_dgx_quad_field_face_add;
   subdomain->base.field_init = bfam_subdomain_dgx_quad_field_init;
 
   const int Np = (N+1)*(N+1);
@@ -694,6 +717,8 @@ bfam_subdomain_dgx_quad_free(bfam_subdomain_t *thisSubdomain)
   bfam_dictionary_allprefixed_ptr(&sub->base.fields_p,"",
       &bfam_subdomain_dgx_quad_free_fields,NULL);
   bfam_dictionary_allprefixed_ptr(&sub->base.fields_m,"",
+      &bfam_subdomain_dgx_quad_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_face,"",
       &bfam_subdomain_dgx_quad_free_fields,NULL);
 
 
@@ -1169,6 +1194,8 @@ bfam_subdomain_dgx_quad_glue_free(bfam_subdomain_t *subdomain)
   bfam_dictionary_allprefixed_ptr(&sub->base.fields_p,"",
       &bfam_subdomain_dgx_quad_free_fields,NULL);
   bfam_dictionary_allprefixed_ptr(&sub->base.fields_m,"",
+      &bfam_subdomain_dgx_quad_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_face,"",
       &bfam_subdomain_dgx_quad_free_fields,NULL);
 
   bfam_free_aligned(sub->r);
