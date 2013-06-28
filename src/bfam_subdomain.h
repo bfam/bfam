@@ -76,6 +76,7 @@ typedef struct bfam_subdomain
   bfam_dictionary_t fields; /**< a dictionary storing pointers to fields */
   bfam_dictionary_t fields_m; /**< a dictionary storing minus fields */
   bfam_dictionary_t fields_p; /**< a dictionary storing plus fields */
+  bfam_dictionary_t fields_face; /**< a dictionary storing face fields */
 
   /* Function pointers that domain will need to call */
   void (*free)                (struct bfam_subdomain *thisSubdomain);
@@ -100,6 +101,11 @@ typedef struct bfam_subdomain
   /**< Add a field to the minus side of the  subdomain */
   int (*field_minus_add) (struct bfam_subdomain *thisSubdomain,
                           const char* name);
+
+  /**< Add a field to the faces of the subdomain */
+  int (*field_face_add) (struct bfam_subdomain *thisSubdomain,
+                         const char* name);
+
 
   /**< Initialize a field in the subdomain */
   void (*field_init) (struct bfam_subdomain *thisSubdomain, const char* name,
@@ -209,6 +215,20 @@ bfam_subdomain_field_plus_add(bfam_subdomain_t *thisSubdomain,
 int
 bfam_subdomain_field_minus_add(bfam_subdomain_t *thisSubdomain,
                                const char* name);
+
+/** Add a field to the faces of the subdomain.
+ *
+ * \param [in,out] thisSubdomain subdomain to search for the tag
+ * \param [in]     name          name of the field to add to the subdomain
+ *
+ * \returns:
+ *   $\cases{ 0 &if {\rm out of memory} \cr
+ *            1 &if {\it name} {\rm was already a field} \cr
+ *            2 &if {\it name} {\rm was added successfully}}$.
+ */
+int
+bfam_subdomain_field_face_add(bfam_subdomain_t *thisSubdomain,
+                              const char* name);
 
 /** Initialize a field in the subdomain
  *

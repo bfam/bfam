@@ -93,6 +93,7 @@ bfam_subdomain_init(bfam_subdomain_t *thisSubdomain, bfam_locidx_t id,
   bfam_dictionary_init(&thisSubdomain->fields);
   bfam_dictionary_init(&thisSubdomain->fields_m);
   bfam_dictionary_init(&thisSubdomain->fields_p);
+  bfam_dictionary_init(&thisSubdomain->fields_face);
 
   thisSubdomain->tags.root = NULL;
 
@@ -102,6 +103,7 @@ bfam_subdomain_init(bfam_subdomain_t *thisSubdomain, bfam_locidx_t id,
   thisSubdomain->field_add           = NULL;
   thisSubdomain->field_plus_add      = NULL;
   thisSubdomain->field_minus_add     = NULL;
+  thisSubdomain->field_face_add      = NULL;
   thisSubdomain->field_init          = NULL;
 
   thisSubdomain->glue_comm_info      = NULL;
@@ -118,6 +120,7 @@ bfam_subdomain_free(bfam_subdomain_t *thisSubdomain)
   bfam_dictionary_clear(&thisSubdomain->fields);
   bfam_dictionary_clear(&thisSubdomain->fields_m);
   bfam_dictionary_clear(&thisSubdomain->fields_p);
+  bfam_dictionary_clear(&thisSubdomain->fields_face);
 
   thisSubdomain->tags.root = NULL;
 
@@ -125,6 +128,7 @@ bfam_subdomain_free(bfam_subdomain_t *thisSubdomain)
   thisSubdomain->field_add            = NULL;
   thisSubdomain->field_plus_add       = NULL;
   thisSubdomain->field_minus_add      = NULL;
+  thisSubdomain->field_face_add       = NULL;
   thisSubdomain->field_init           = NULL;
 
   thisSubdomain->glue_comm_info       = NULL;
@@ -178,6 +182,16 @@ bfam_subdomain_field_minus_add(bfam_subdomain_t *thisSubdomain,
 {
   if(thisSubdomain->field_minus_add)
     return thisSubdomain->field_minus_add(thisSubdomain, name);
+  else
+    return 0;
+}
+
+int
+bfam_subdomain_field_face_add(bfam_subdomain_t *thisSubdomain,
+    const char* name)
+{
+  if(thisSubdomain->field_face_add)
+    return thisSubdomain->field_face_add(thisSubdomain, name);
   else
     return 0;
 }
