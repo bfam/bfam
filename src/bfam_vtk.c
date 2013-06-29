@@ -330,7 +330,7 @@ bfam_vtk_write_struc_file(bfam_domain_t *domain, bfam_domain_match_t match,
 
     if(subdomain->vtk_write_vts_piece)
       subdomain->vtk_write_vts_piece(subdomain, file, scalars, vectors,
-          components, binary, compress);
+          components, binary, compress,rank);
     else
       BFAM_WARNING("Subdomain: %s does not implement vtk_write_vts_piece",
           subdomain->name);

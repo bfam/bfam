@@ -35,9 +35,18 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
                                        const char **vectors,
                                        const char **components,
                                        int writeBinary,
-                                       int writeCompressed)
+                                       int writeCompressed,
+                                       int rank)
 {
   bfam_subdomain_sbp_t* s = (bfam_subdomain_sbp_t*) subdomain;
+
+  const char *format;
+
+  if(writeBinary)
+    format = "binary";
+  else
+    format = "ascii";
+
 
   bfam_locidx_t Nl[3] = {0,0,0};
   bfam_locidx_t Nb[6] = {0,0,0,0,0,0};
@@ -76,11 +85,12 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
    * Points
    */
 
-  bfam_locidx_t sz = 1;
-  for(int i = 0; i < s->dim; i++) sz *= (s->Nl[i]+1);
-  bfam_real_t *storage0 = bfam_malloc_aligned(sz*sizeof(bfam_real_t));
-  bfam_real_t *storage1 = bfam_malloc_aligned(sz*sizeof(bfam_real_t));
-  bfam_real_t *storage2 = bfam_malloc_aligned(sz*sizeof(bfam_real_t));
+  bfam_locidx_t Ntot = 1;
+  for(int i = 0; i < s->dim; i++) Ntot *= (s->Nl[i]+1);
+  size_t sz = Ntot*sizeof(bfam_real_t);
+  bfam_real_t *storage0 = bfam_malloc_aligned(sz);
+  bfam_real_t *storage1 = bfam_malloc_aligned(sz);
+  bfam_real_t *storage2 = bfam_malloc_aligned(sz);
 
   fprintf(file, "      <Points>\n");
 
@@ -131,7 +141,7 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
   }
 
   bfam_vtk_write_real_vector_data_array(file, "Position", writeBinary,
-      writeCompressed, sz, storage0, storage1, storage2);
+      writeCompressed, Ntot, storage0, storage1, storage2);
 
   fprintf(file, "      </Points>\n");
 
@@ -140,6 +150,63 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
    */
   fprintf(file, "      <Cells>\n");
   fprintf(file, "      </Cells>\n");
+
+  /*
+   * PointData
+   */
+  fprintf(file, "      <PointData Scalars=\"mpirank,subdomain_id\">\n");
+
+  /* mpi rank */
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"mpirank\""
+           " format=\"%s\">\n", BFAM_LOCIDX_VTK, format);
+  fprintf(file, "          ");
+  if(writeBinary)
+  {
+    for(bfam_locidx_t i = 0; i < Ntot; ++i)
+      storage0[i] = rank;
+
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)storage0,
+          Ntot);
+    if(rval)
+      BFAM_WARNING("Error encoding rank");
+  }
+  else
+  {
+    for(bfam_locidx_t i = 0;i < Ntot; ++i)
+    {
+      fprintf(file, " %6jd", (intmax_t)rank);
+    }
+  }
+  fprintf(file, "\n");
+  fprintf(file, "        </DataArray>\n");
+
+  /* subdomain id */
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"subdomain_id\""
+           " format=\"%s\">\n", BFAM_LOCIDX_VTK, format);
+  fprintf(file, "          ");
+  if(writeBinary)
+  {
+    for(bfam_locidx_t i = 0; i < Ntot; ++i)
+      storage0[i] = s->base.id;
+
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)storage0,
+          Ntot);
+    if(rval)
+      BFAM_WARNING("Error encoding subdomain_id");
+  }
+  else
+  {
+    for(bfam_locidx_t i = 0;i < Ntot; ++i)
+    {
+      fprintf(file, " %6jd", (intmax_t)s->base.id);
+    }
+  }
+  fprintf(file, "\n");
+  fprintf(file, "        </DataArray>\n");
+
+  fprintf(file, "      </PointData>\n");
 
   fprintf(file, "    </Piece>\n");
 

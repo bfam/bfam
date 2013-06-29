@@ -101,7 +101,8 @@ typedef struct bfam_subdomain
                                const char **vectors,
                                const char **components,
                                int writeBinary,
-                               int writeCompressed);
+                               int writeCompressed,
+                               int rank);
 
   /**< vts filename */
   void (*vtk_write_vts_filename) (struct bfam_subdomain *thisSubdomain,
