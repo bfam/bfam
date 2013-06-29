@@ -96,6 +96,40 @@ simple_load_balance(bfam_locidx_t *procs,const bfam_gloidx_t *N,
   }
 }
 
+
+void
+setup_subdomains(bfam_domain_t *domain,
+    int dim, int num_blocks, bfam_locidx_t bufsz,int rank,const char **names,
+    const bfam_locidx_t *procs,const bfam_gloidx_t *EtoV,
+    const bfam_gloidx_t *N, const bfam_long_real_t* Vx,
+    const bfam_long_real_t *Vy, const bfam_long_real_t *Vz)
+{
+  BFAM_ASSERT(dim == 2);
+  for(int b = 0; b < num_blocks;b++)
+  {
+    if(procs[2*b] <= rank && rank <= procs[2*b+1])
+    {
+      bfam_locidx_t Nl[2] = {-1,-1};
+      bfam_gloidx_t gx[2] = {-1,-1};
+      bfam_locidx_t Nb[4] = {0,0,0,0};
+      bfam_locidx_t l_rank = rank-procs[2*b];
+      bfam_locidx_t l_size = procs[2*b+1]-procs[2*b]+1;
+
+      simple_partition(Nl,gx,Nb,&N[2*b],l_size,l_rank,bufsz,dim);
+      bfam_gloidx_t V[] = {EtoV[4*b+0],EtoV[4*b+1],EtoV[4*b+2],EtoV[4*b+3]};
+      bfam_long_real_t  x[] = {Vx[V[0]],Vx[V[1]],Vx[V[2]],Vx[V[3]]};
+      bfam_long_real_t  y[] = {Vy[V[0]],Vy[V[1]],Vy[V[2]],Vy[V[3]]};
+      bfam_long_real_t *z   = NULL;
+
+      bfam_subdomain_sbp_t *sub =
+        bfam_subdomain_sbp_new(0,l_rank,l_size,names[b],dim,
+            &N[2*b],Nl,Nb,gx,x,y,z);
+
+      bfam_domain_add_subdomain(domain,(bfam_subdomain_t*)sub);
+    }
+  }
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -138,34 +172,13 @@ main (int argc, char *argv[])
   bfam_long_real_t *Vz   = NULL;
   bfam_locidx_t  procs[2*num_blocks];
 
+  /* load balance */
   simple_load_balance(procs,N,mpi_size,num_blocks,dim);
 
-  for(int b = 0; b < num_blocks;b++)
-  {
-    if(procs[2*b] <= rank && rank <= procs[2*b+1])
-    {
-      bfam_locidx_t Nl[2] = {-1,-1};
-      bfam_gloidx_t gx[2] = {-1,-1};
-      bfam_locidx_t Nb[4] = {0,0,0,0};
-      bfam_locidx_t l_rank = rank-procs[2*b];
-      bfam_locidx_t l_size = procs[2*b+1]-procs[2*b]+1;
+  /* setup subdomains */
+  setup_subdomains(&domain,dim,num_blocks,bufsz,rank,
+      names,procs,EtoV,N,Vx,Vy,Vz);
 
-      simple_partition(Nl,gx,Nb,&N[2*b],l_size,l_rank,bufsz,dim);
-      BFAM_VERBOSE("s%-3d: Nl: %3d %3d gx: %3d %3d buf: %3d %3d %3d %3d",
-          b,Nl[0],Nl[1],gx[0],gx[1],(int)Nb[0],(int)Nb[1],(int)Nb[2],(int) Nb[3]);
-
-      bfam_gloidx_t V[] = {EtoV[4*b+0],EtoV[4*b+1],EtoV[4*b+2],EtoV[4*b+3]};
-      bfam_long_real_t  x[] = {Vx[V[0]],Vx[V[1]],Vx[V[2]],Vx[V[3]]};
-      bfam_long_real_t  y[] = {Vy[V[0]],Vy[V[1]],Vy[V[2]],Vy[V[3]]};
-      bfam_long_real_t *z   = Vz;
-
-      bfam_subdomain_sbp_t *sub =
-        bfam_subdomain_sbp_new(0,l_rank,l_size,names[b],dim,
-            &N[2*b],Nl,Nb,gx,x,y,z);
-
-      bfam_domain_add_subdomain(&domain,(bfam_subdomain_t*)sub);
-    }
-  }
 
   const char *tags[] = {NULL};
   const char *scalars[] = {"_grid_x","_grid_y","_grid_z",NULL};
@@ -173,7 +186,6 @@ main (int argc, char *argv[])
   const char *components[] = {NULL};
   bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
       tags,"sbp_fields",scalars,vectors,components,0,1);
-
 
   /* clean up */
   bfam_domain_free(&domain);
