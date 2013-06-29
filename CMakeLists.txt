@@ -481,6 +481,11 @@ target_link_libraries(bfam_test_kron bfam)
 
 add_test(bfam_test_kron_test bfam_test_kron)
 
+add_executable(bfam_test_mesh_dgquad_geo tests/bfam_test_mesh_dgquad_geo.c)
+target_link_libraries(bfam_test_mesh_dgquad_geo bfam)
+
+add_test(bfam_test_mesh_dgquad_geo bfam_test_mesh_dgquad_geo)
+
 add_executable(bfam_test_mesh_dgquad tests/bfam_test_mesh_dgquad.c)
 target_link_libraries(bfam_test_mesh_dgquad bfam)
 
