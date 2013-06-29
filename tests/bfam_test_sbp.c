@@ -104,43 +104,56 @@ setup_subdomains(bfam_domain_t *domain,
     const bfam_gloidx_t *N, const bfam_long_real_t* Vx,
     const bfam_long_real_t *Vy, const bfam_long_real_t *Vz)
 {
-  BFAM_ASSERT(dim == 2);
+  int ncorn = (int)pow(2,dim);
+  bfam_long_real_t *x = NULL;
+  bfam_long_real_t *y = NULL;
+  bfam_long_real_t *z = NULL;
+  if(dim > 0) x = bfam_malloc_aligned(ncorn*sizeof(bfam_long_real_t));
+  if(dim > 1) y = bfam_malloc_aligned(ncorn*sizeof(bfam_long_real_t));
+  if(dim > 2) z = bfam_malloc_aligned(ncorn*sizeof(bfam_long_real_t));
   for(int b = 0; b < num_blocks;b++)
   {
     if(procs[2*b] <= rank && rank <= procs[2*b+1])
     {
-      bfam_locidx_t Nl[2] = {-1,-1};
-      bfam_gloidx_t gx[2] = {-1,-1};
-      bfam_locidx_t Nb[4] = {0,0,0,0};
+      bfam_locidx_t Nl[  dim];
+      bfam_gloidx_t gx[  dim];
+      bfam_locidx_t Nb[2*dim];
+      for(int d = 0;d<dim;d++)
+      {
+        Nl[d] = -1;
+        gx[d] = -1;
+        Nb[2*d] = 0;
+        Nb[2*d+1] = 0;
+      }
+
       bfam_locidx_t l_rank = rank-procs[2*b];
       bfam_locidx_t l_size = procs[2*b+1]-procs[2*b]+1;
 
-      simple_partition(Nl,gx,Nb,&N[2*b],l_size,l_rank,bufsz,dim);
-      bfam_gloidx_t V[] = {EtoV[4*b+0],EtoV[4*b+1],EtoV[4*b+2],EtoV[4*b+3]};
-      bfam_long_real_t  x[] = {Vx[V[0]],Vx[V[1]],Vx[V[2]],Vx[V[3]]};
-      bfam_long_real_t  y[] = {Vy[V[0]],Vy[V[1]],Vy[V[2]],Vy[V[3]]};
-      bfam_long_real_t *z   = NULL;
+      simple_partition(Nl,gx,Nb,&N[dim*b],l_size,l_rank,bufsz,dim);
+
+      for(int ix = 0; ix < ncorn; ix++)
+      {
+        int V = EtoV[ncorn*b+ix];
+        if(x != NULL) x[ix] = Vx[V];
+        if(y != NULL) y[ix] = Vy[V];
+        if(z != NULL) z[ix] = Vz[V];
+      }
 
       bfam_subdomain_sbp_t *sub =
-        bfam_subdomain_sbp_new(0,l_rank,l_size,names[b],dim,
-            &N[2*b],Nl,Nb,gx,x,y,z);
+        bfam_subdomain_sbp_new(b,l_rank,l_size,names[b],dim,
+            &N[dim*b],Nl,Nb,gx,x,y,z);
 
       bfam_domain_add_subdomain(domain,(bfam_subdomain_t*)sub);
     }
   }
+  if(x != NULL) bfam_free_aligned(x);
+  if(y != NULL) bfam_free_aligned(y);
+  if(z != NULL) bfam_free_aligned(z);
 }
 
-int
-main (int argc, char *argv[])
+void
+test_2d(int rank, int mpi_size)
 {
-  int rank, mpi_size;
-
-  /* startup MPI */
-  BFAM_MPI_CHECK(MPI_Init(&argc,&argv));
-  BFAM_MPI_CHECK(MPI_Comm_size(MPI_COMM_WORLD, &mpi_size));
-  BFAM_MPI_CHECK(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
-  bfam_log_init(rank,stdout,BFAM_LL_VERBOSE);
-
   /* setup the domain*/
   bfam_domain_t domain;
   bfam_domain_init(&domain,MPI_COMM_WORLD);
@@ -155,15 +168,12 @@ main (int argc, char *argv[])
   bfam_gloidx_t   EtoV[] = {0,1,3,4,
                             1,2,4,5,
                             3,4,6,5};
-  bfam_gloidx_t   EtoE[] = {0,1,0,2,
-                            0,1,1,2,
-                            2,1,0,2};
-  bfam_locidx_t   EtoF[] = {0,0,2,2,
-                            1,1,2,1,
-                            2,3,3,3};
-  bfam_locidx_t   Eto0[] = {0,0,2,2,
-                            1,1,2,1,
-                            2,3,3,3};
+  // bfam_gloidx_t   EtoE[] = {0,1,0,2,
+  //                           0,1,1,2,
+  //                           2,1,0,2};
+  // bfam_locidx_t   EtoF[] = {0,0,2,2,
+  //                           1,1,2,1,
+  //                           2,3,3,3};
   bfam_gloidx_t      N[] = {1*foo,2*foo,
                             3*foo,2*foo,
                             1*foo,3*foo};
@@ -179,15 +189,99 @@ main (int argc, char *argv[])
   setup_subdomains(&domain,dim,num_blocks,bufsz,rank,
       names,procs,EtoV,N,Vx,Vy,Vz);
 
-
+  /* dump the entire mesh */
   const char *tags[] = {NULL};
   const char *scalars[] = {"_grid_x","_grid_y","_grid_z",NULL};
   const char *vectors[] = {NULL};
   const char *components[] = {NULL};
   bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
-      tags,"sbp_fields",scalars,vectors,components,0,1);
+      tags,"sbp_fields_2d",scalars,vectors,components,0,1);
 
   /* clean up */
   bfam_domain_free(&domain);
+}
+
+void
+test_3d(int rank, int mpi_size)
+{
+  /* setup the domain*/
+  bfam_domain_t domain;
+  bfam_domain_init(&domain,MPI_COMM_WORLD);
+
+  int foo   = 15;
+  int dim   =  3;
+
+  const char *names[] = {"sub0","sub1","sub2","sub3","sub4","sub5"};
+  bfam_locidx_t bufsz = 5;
+
+  /* connectivity from p8est_connectivity_new_rotcubes */
+  bfam_locidx_t num_blocks = 6;
+  const bfam_gloidx_t EtoV[6 * 8] = {
+    0, 17, 3, 4, 15, 11, 13, 14,
+    7, 2, 6, 17, 9, 12, 8, 11,
+    2, 12, 5, 10, 17, 11, 4, 14,
+    19, 13, 18, 14, 16, 15, 1, 11,
+    14, 11, 21, 25, 18, 1, 22, 23,
+    21, 20, 25, 24, 14, 10, 11, 12,
+  };
+  const bfam_gloidx_t N[6 * 3] = {
+     1+foo, 2+foo, 3+foo,
+     4+foo, 5+foo, 6+foo,
+     7+foo, 8+foo, 9+foo,
+    10+foo,11+foo,12+foo,
+    13+foo,14+foo,15+foo,
+    16+foo,17+foo,18+foo
+  };
+
+  const bfam_long_real_t Vx[26] =
+    {0,1,2,0,1,2,1,2,1,2,2,1,2,0,1,0,0,1,1,0,2.5,2,2,2,2.5,2};
+  const bfam_long_real_t Vy[26] =
+    {0,0,0,1,1,1,-1,-1,-1,-1,1,0,0,1,1,0,0,0,1,1,1.5,1.5,1.5,.5,.5,.5};
+  const bfam_long_real_t Vz[26] =
+    {0,2,0,0,0,0,0,0,1,1,1,1,1,1,1,1,2,0,2,2,2,2,2.5,2.5,2,2};
+
+  bfam_locidx_t  procs[2*num_blocks];
+
+  /* load balance */
+  simple_load_balance(procs,N,mpi_size,num_blocks,dim);
+
+  for(int b = 0; b < num_blocks;b++)
+    BFAM_ROOT_VERBOSE("b%-3d: %3d %3d",b,procs[2*b],procs[2*b+1]);
+
+  /* setup subdomains */
+  setup_subdomains(&domain,dim,num_blocks,bufsz,rank,
+      names,procs,EtoV,N,Vx,Vy,Vz);
+
+  /* dump the entire mesh */
+  const char *tags[] = {NULL};
+  const char *scalars[] = {"_grid_x","_grid_y","_grid_z",NULL};
+  const char *vectors[] = {NULL};
+  const char *components[] = {NULL};
+  bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
+      tags,"sbp_fields_3d",scalars,vectors,components,0,1);
+
+
+  /* clean up */
+  bfam_domain_free(&domain);
+}
+
+int
+main (int argc, char *argv[])
+{
+  int rank, mpi_size;
+
+  /* startup MPI */
+  BFAM_MPI_CHECK(MPI_Init(&argc,&argv));
+  BFAM_MPI_CHECK(MPI_Comm_size(MPI_COMM_WORLD, &mpi_size));
+  BFAM_MPI_CHECK(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+  bfam_log_init(rank,stdout,BFAM_LL_VERBOSE);
+
+  /* test 3d */
+  test_2d(rank,mpi_size);
+
+  /* test 3d */
+  test_3d(rank,mpi_size);
+
+  /* stop MPI */
   BFAM_MPI_CHECK(MPI_Finalize());
 }
