@@ -154,7 +154,7 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
   /*
    * PointData
    */
-  fprintf(file, "      <PointData Scalars=\"mpirank,subdomain_id\">\n");
+  fprintf(file, "      <PointData Scalars=\"mpirank,subdomain_id,local_subdomain_id\">\n");
 
   /* mpi rank */
   fprintf(file, "        <DataArray type=\"%s\" Name=\"mpirank\""
@@ -189,6 +189,31 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
   {
     for(bfam_locidx_t i = 0; i < Ntot; ++i)
       storage0[i] = s->base.id;
+
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)storage0,
+          Ntot);
+    if(rval)
+      BFAM_WARNING("Error encoding subdomain_id");
+  }
+  else
+  {
+    for(bfam_locidx_t i = 0;i < Ntot; ++i)
+    {
+      fprintf(file, " %6jd", (intmax_t)s->base.id);
+    }
+  }
+  fprintf(file, "\n");
+  fprintf(file, "        </DataArray>\n");
+
+  /* local subdomain id */
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"local_subdomain_id\""
+           " format=\"%s\">\n", BFAM_LOCIDX_VTK, format);
+  fprintf(file, "          ");
+  if(writeBinary)
+  {
+    for(bfam_locidx_t i = 0; i < Ntot; ++i)
+      storage0[i] = s->base.loc_id;
 
     int rval =
       bfam_vtk_write_binary_data(writeCompressed, file, (char*)storage0,
