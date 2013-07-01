@@ -71,8 +71,6 @@ typedef void (*bfam_subdomain_init_field_t) (bfam_locidx_t npoints,
 typedef struct bfam_subdomain
 {
   bfam_locidx_t     id;
-  bfam_locidx_t loc_id;
-  bfam_locidx_t num_id;
   char*           name;     /**< Name of the subdomain */
   bfam_critbit0_tree_t tags; /**< critbit for tags for the subdomain */
   bfam_dictionary_t fields; /**< a dictionary storing pointers to fields */

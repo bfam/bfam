@@ -258,7 +258,7 @@ test_3d(int rank, int mpi_size)
   const char *vectors[] = {NULL};
   const char *components[] = {NULL};
   bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
-      tags,"sbp_fields_3d",scalars,vectors,components,0,1);
+      tags,"sbp_fields_3d",scalars,vectors,components,1,1);
 
 
   /* clean up */

@@ -155,6 +155,7 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
    * PointData
    */
   fprintf(file, "      <PointData Scalars=\"mpirank,subdomain_id,local_subdomain_id\">\n");
+  bfam_locidx_t *storage_locid = bfam_malloc_aligned(Ntot*sizeof(bfam_locidx_t));
 
   /* mpi rank */
   fprintf(file, "        <DataArray type=\"%s\" Name=\"mpirank\""
@@ -163,11 +164,11 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
   if(writeBinary)
   {
     for(bfam_locidx_t i = 0; i < Ntot; ++i)
-      storage0[i] = rank;
+      storage_locid[i] = rank;
 
     int rval =
-      bfam_vtk_write_binary_data(writeCompressed, file, (char*)storage0,
-          Ntot);
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)storage_locid,
+          sizeof(bfam_locidx_t)*Ntot);
     if(rval)
       BFAM_WARNING("Error encoding rank");
   }
@@ -188,11 +189,11 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
   if(writeBinary)
   {
     for(bfam_locidx_t i = 0; i < Ntot; ++i)
-      storage0[i] = s->base.id;
+      storage_locid[i] = s->base.id;
 
     int rval =
-      bfam_vtk_write_binary_data(writeCompressed, file, (char*)storage0,
-          Ntot);
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)storage_locid,
+          sizeof(bfam_locidx_t)*Ntot);
     if(rval)
       BFAM_WARNING("Error encoding subdomain_id");
   }
@@ -213,19 +214,19 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
   if(writeBinary)
   {
     for(bfam_locidx_t i = 0; i < Ntot; ++i)
-      storage0[i] = s->base.loc_id;
+      storage_locid[i] = s->loc_id;
 
     int rval =
-      bfam_vtk_write_binary_data(writeCompressed, file, (char*)storage0,
-          Ntot);
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)storage_locid,
+          sizeof(bfam_locidx_t)*Ntot);
     if(rval)
-      BFAM_WARNING("Error encoding subdomain_id");
+      BFAM_WARNING("Error encoding local subdomain id");
   }
   else
   {
     for(bfam_locidx_t i = 0;i < Ntot; ++i)
     {
-      fprintf(file, " %6jd", (intmax_t)s->base.id);
+      fprintf(file, " %6jd", (intmax_t)s->loc_id);
     }
   }
   fprintf(file, "\n");
@@ -238,6 +239,7 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
   /* close StructuredGrid */
   fprintf(file, "  </StructuredGrid>\n");
 
+  bfam_free_aligned(storage_locid);
   bfam_free_aligned(storage0);
   bfam_free_aligned(storage1);
   bfam_free_aligned(storage2);
