@@ -15,8 +15,8 @@
       (y)[bfam_kron_n] = 0;                                        \
                                                                    \
     for(int bfam_kron_k = 0; bfam_kron_k < (N); ++bfam_kron_k)     \
-      for(int bfam_kron_j = 0; bfam_kron_j < (N); ++bfam_kron_j)   \
-        for(int bfam_kron_i = 0; bfam_kron_i < (N); ++bfam_kron_i) \
+      for(int bfam_kron_i = 0; bfam_kron_i < (N); ++bfam_kron_i)   \
+        for(int bfam_kron_j = 0; bfam_kron_j < (N); ++bfam_kron_j) \
           (y)[(N) * bfam_kron_k + bfam_kron_j] +=                  \
             (A)[(N) * bfam_kron_i + bfam_kron_j] *                 \
             (x)[(N) * bfam_kron_k + bfam_kron_i];                  \
