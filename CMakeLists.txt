@@ -378,6 +378,27 @@ if(OPENCL_FOUND)
   target_link_libraries(bfam ${OPENCL_LIBRARIES})
 endif(OPENCL_FOUND)
 
+set(bfam_dgx_quad_norders  1  2  3  4  5  6  7  8  9 10
+                          11 12 13 14 15 16 17 18 19 20
+                          21 22 23 24)
+
+function(bfam_multiple_build define_name define_vals lib_name lib_src target)
+  foreach(val ${define_vals})
+    set(full_lib_name "${lib_name}_${val}")
+    add_library(${full_lib_name} ${lib_src})
+
+    set_target_properties(${full_lib_name} PROPERTIES COMPILE_FLAGS
+      "-D${define_name}=${val}")
+
+    target_link_libraries(${full_lib_name} bfam)
+    target_link_libraries(${target} ${full_lib_name})
+  endforeach()
+
+  add_library(${lib_name} ${lib_src})
+  target_link_libraries(${lib_name} bfam)
+  target_link_libraries(${target} ${lib_name})
+endfunction()
+
 ##
 ## Examples
 ##
@@ -591,6 +612,9 @@ function(JOIN VALUES GLUE OUTPUT)
 endfunction()
 
 join("${BFAM_COMPILE_LIST}" "" BFAM_COMPILE_INFO)
+
+set(slash "\\")
+join("${bfam_dgx_quad_norders}" ") X(" BFAM_DGX_QUAD_NORDERS_MID)
 
 ##
 ## Write BFAM config file
