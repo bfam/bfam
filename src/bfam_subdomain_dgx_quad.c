@@ -473,6 +473,66 @@ bfam_subdomain_dgx_quad_geo2D(int N, bfam_locidx_t K, int **fmask,
   }
 }
 
+static void
+bfam_subdomain_dgx_quad_buildmaps(bfam_locidx_t K, int Np, int Nfp, int Nfaces,
+   const bfam_locidx_t *EToE, const int8_t *EToF, int **fmask,
+   bfam_locidx_t *restrict vmapP, bfam_locidx_t *restrict vmapM)
+{
+  for(bfam_locidx_t k1 = 0, sk = 0; k1 < K; ++k1)
+  {
+    for(int8_t f1 = 0; f1 < Nfaces; ++f1)
+    {
+      bfam_locidx_t k2 = EToE[Nfaces * k1 + f1];
+      int8_t        f2 = EToF[Nfaces * k1 + f1] % Nfaces;
+      int8_t        o  = EToF[Nfaces * k1 + f1] / Nfaces;
+
+      for(int n = 0; n < Nfp; ++n)
+      {
+        vmapM[sk + n] = Np * k1 + fmask[f1][n];
+
+        if(o)
+          vmapP[sk + n] = Np * k2 + fmask[f2][Nfp-1-n];
+        else
+          vmapP[sk + n] = Np * k2 + fmask[f2][n];
+      }
+
+      sk += Nfp;
+    }
+  }
+}
+
+#ifdef BFAM_DEBUG
+static void
+bfam_subdomain_dgx_quad_check(bfam_subdomain_dgx_quad_t* subdomain)
+{
+  const int K = subdomain->K;
+  const int Nfp = subdomain->Nfp;
+  const int Nfaces = subdomain->Nfaces;
+
+  /*
+   * Check to see if the subdomain is connected.
+   */
+  bfam_real_t *restrict x =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_x");
+  bfam_real_t *restrict y =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_y");
+  bfam_real_t *restrict z =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_z");
+
+  for(bfam_locidx_t n = 0; n < K*Nfp*Nfaces; ++n)
+    BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(x[subdomain->vmapP[n]],
+          x[subdomain->vmapM[n]], 10), "Mapping not correct x");
+
+  for(bfam_locidx_t n = 0; n < K*Nfp*Nfaces; ++n)
+    BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(y[subdomain->vmapP[n]],
+          y[subdomain->vmapM[n]], 10), "Mapping not correct y");
+
+  for(bfam_locidx_t n = 0; n < K*Nfp*Nfaces; ++n)
+    BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(z[subdomain->vmapP[n]],
+          z[subdomain->vmapM[n]], 10), "Mapping not correct z");
+}
+#endif
+
 void
 bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
                              const bfam_locidx_t              id,
@@ -698,6 +758,16 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   for(int n = 0; n < Nrp*Nrp; ++n)
     subdomain->Dr[n] = (bfam_real_t) D[n];
 
+  subdomain->vmapP = bfam_malloc_aligned(K*Nfp*Nfaces*sizeof(bfam_locidx_t));
+  subdomain->vmapM = bfam_malloc_aligned(K*Nfp*Nfaces*sizeof(bfam_locidx_t));
+
+  bfam_subdomain_dgx_quad_buildmaps(K, Np, Nfp, Nfaces, EToE, EToF,
+      subdomain->fmask, subdomain->vmapP, subdomain->vmapM);
+
+#ifdef BFAM_DEBUG
+  bfam_subdomain_dgx_quad_check(subdomain);
+#endif
+
   bfam_free_aligned(lnx);
   bfam_free_aligned(lny);
   bfam_free_aligned(lsJ);
@@ -753,6 +823,9 @@ bfam_subdomain_dgx_quad_free(bfam_subdomain_t *thisSubdomain)
   for(int f = 0; f < sub->Nfaces; ++f)
     bfam_free_aligned(sub->fmask[f]);
   bfam_free_aligned(sub->fmask);
+
+  bfam_free_aligned(sub->vmapP);
+  bfam_free_aligned(sub->vmapM);
 }
 
 static int

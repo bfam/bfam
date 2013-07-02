@@ -52,6 +52,11 @@ typedef struct bfam_subdomain_dgx_quad
 
   bfam_locidx_t    K;   /* Number of elements in the subdomain */
 
+  bfam_locidx_t   *vmapM; /* Mapping into the volume for the minus side of the
+                             face mesh */
+  bfam_locidx_t   *vmapP; /* Mapping into the volume for the plus  side of the
+                             face mesh */
+
   int            **fmask; /* face mask */
 } bfam_subdomain_dgx_quad_t;
 
