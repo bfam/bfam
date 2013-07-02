@@ -426,6 +426,14 @@ target_link_libraries(bfam_exam_zpipe bfam)
 add_executable(bfam_exam_clock examples/clock/bfam_exam_clock.c)
 target_link_libraries(bfam_exam_clock bfam)
 
+add_executable(bfam_exam_elasticity_dgx_quad
+  examples/elasticity_dgx_quad/bfam_exam_elasticity_dgx_quad.c)
+
+bfam_multiple_build("NORDER" "${bfam_dgx_quad_norders}"
+  bfam_exam_elasticity_dgx_quad_rhs
+  examples/elasticity_dgx_quad/bfam_exam_elasticity_dgx_quad_rhs.c
+  bfam_exam_elasticity_dgx_quad)
+
 ##
 ## Tests
 ##
