@@ -52,8 +52,10 @@ typedef struct bfam_subdomain_sbp
   bfam_subdomain_t base;
   int              p;   /**< 1D SBP finite difference order */
   int            dim;   /**< number of dimensions */
-  bfam_locidx_t loc_id;  /**< local subdomain id */
-  bfam_locidx_t num_id;  /**< number pieces this subdomain is split into */
+  bfam_locidx_t* sub_ix;  /**< local subdomain indices */
+  bfam_locidx_t* sub_N;   /**< number pieces this subdomain is split in each dim */
+  bfam_locidx_t  loc_id;
+  bfam_locidx_t  num_id;
 
   bfam_gloidx_t   *N;   /**< "global" subdomain grid size (size N +1) */
 
@@ -68,8 +70,8 @@ typedef struct bfam_subdomain_sbp
 /** create a sbp subdomain.
  *
  * \param [in] id    unique id number for this subdomain
- * \param [in] loc_id local ID for this processor (0...num_id-1)
- * \param [in] num_id number of pieces this subdomain is split into
+ * \param [in] sub_ix local id in each dimension
+ * \param [in] sub_N number of pieces in each dimension
  * \param [in] name  name of this subdomain
  * \param [in] dim   dimension of the problem
  * \param [in] N     global grid top indices (size dim)
@@ -87,8 +89,8 @@ typedef struct bfam_subdomain_sbp
  */
 bfam_subdomain_sbp_t*
 bfam_subdomain_sbp_new(const bfam_locidx_t     id,
-                            const bfam_locidx_t loc_id,
-                            const bfam_locidx_t num_id,
+                            const bfam_locidx_t *sub_ix,
+                            const bfam_locidx_t *sub_N,
                             const char             *name,
                             const int               dim,
                             const bfam_gloidx_t    *N,
@@ -103,8 +105,8 @@ bfam_subdomain_sbp_new(const bfam_locidx_t     id,
  *
  * \param [in,out]   subdomain pointer to the subdomain to initialize
  * \param [in] id    unique id number for this subdomain
- * \param [in] loc_id local ID for this processor (0...num_id-1)
- * \param [in] num_id number of pieces this subdomain is split into
+ * \param [in] sub_ix local id in each dimension
+ * \param [in] sub_N number of pieces in each dimension
  * \param [in] name  name of this subdomain
  * \param [in] dim   dimension of the problem
  * \param [in] N     global grid top indices (size dim)
@@ -121,8 +123,8 @@ bfam_subdomain_sbp_new(const bfam_locidx_t     id,
 void
 bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
                             const bfam_locidx_t     id,
-                            const bfam_locidx_t loc_id,
-                            const bfam_locidx_t num_id,
+                            const bfam_locidx_t* sub_ix,
+                            const bfam_locidx_t* sub_N,
                             const char             *name,
                             const int               dim,
                             const bfam_gloidx_t    *N,

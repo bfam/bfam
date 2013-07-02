@@ -4,7 +4,7 @@
 #include <bfam_util.h>
 
 #define BFAM_VTK_VTU_FORMAT "%s_%05d.vtu"
-#define BFAM_VTK_VTS_FORMAT "%s_%s_%05d.vts"
+#define BFAM_VTK_VTS_FORMAT "%s_%s_%s.vts"
 #define BFAM_VTK_PVTS_FORMAT "%s_%s.pvts"
 
 static void
@@ -301,14 +301,21 @@ bfam_vtk_write_struc_file(bfam_domain_t *domain, bfam_domain_match_t match,
   for(bfam_locidx_t s = 0; s < numSubdomains; s++)
   {
     char filename[BFAM_BUFSIZ];
+    char suffix[BFAM_BUFSIZ];
     bfam_subdomain_t *subdomain = subdomains[s];
 
     if(subdomain->vtk_write_suffix)
+    {
+      subdomain->vtk_write_suffix(subdomain,suffix,BFAM_BUFSIZ);
       snprintf(filename, BFAM_BUFSIZ, BFAM_VTK_VTS_FORMAT, prefix,
-          subdomain->name, subdomain->vtk_write_suffix(subdomain));
+          subdomain->name, suffix);
+    }
     else
+    {
+      snprintf(suffix, BFAM_BUFSIZ, "%d", rank);
       snprintf(filename, BFAM_BUFSIZ, BFAM_VTK_VTS_FORMAT, prefix,
-          subdomain->name, rank);
+          subdomain->name, suffix);
+    }
 
     BFAM_VERBOSE("Writing file: '%s'", filename);
     FILE *file = fopen(filename, "w");

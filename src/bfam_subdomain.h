@@ -107,7 +107,8 @@ typedef struct bfam_subdomain
       void *buffer, size_t recv_sz);
 
   /**< write the filename suffix */
-  int (*vtk_write_suffix) (struct bfam_subdomain *thisSubdomain);
+  void (*vtk_write_suffix) (struct bfam_subdomain *thisSubdomain,char * suffix,
+      int len);
 
   /**< write the pvts filename */
   void (*vtk_write_pvts_pieces) (struct bfam_subdomain *thisSubdomain,

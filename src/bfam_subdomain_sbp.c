@@ -4,15 +4,25 @@
 #include <bfam_util.h>
 #include <inttypes.h>
 
-int bfam_subdomain_sbp_vtk_write_suffix(bfam_subdomain_t *thisSubdomain)
+void
+bfam_subdomain_sbp_vtk_write_suffix(bfam_subdomain_t *thisSubdomain,
+    char* suffix, int len)
 {
-  return ((bfam_subdomain_sbp_t*)thisSubdomain)->loc_id;
+  bfam_subdomain_sbp_t * s = (bfam_subdomain_sbp_t*) thisSubdomain;
+  snprintf(suffix,len,"%05d",s->sub_ix[0]);
+  BFAM_VERBOSE(suffix);
+  for(int d = 1; d < s->dim;d++)
+  {
+    char tmpstr[BFAM_BUFSIZ];
+    snprintf(tmpstr,BFAM_BUFSIZ,"_%05d",s->sub_ix[d]);
+    strncat(suffix,tmpstr,len);
+  }
 }
 
 bfam_subdomain_sbp_t*
 bfam_subdomain_sbp_new(const bfam_locidx_t     id,
-                            const bfam_locidx_t loc_id,
-                            const bfam_locidx_t num_id,
+                            const bfam_locidx_t* sub_ix,
+                            const bfam_locidx_t* sub_N,
                             const char             *name,
                             const int               dim,
                             const bfam_gloidx_t    *N,
@@ -24,7 +34,7 @@ bfam_subdomain_sbp_new(const bfam_locidx_t     id,
                             const bfam_long_real_t *c_z)
 {
   bfam_subdomain_sbp_t *newSub = bfam_malloc(sizeof(bfam_subdomain_sbp_t));
-  bfam_subdomain_sbp_init(newSub,id,loc_id,num_id,name,dim,N,Nl,Nb,gx,
+  bfam_subdomain_sbp_init(newSub,id,sub_ix,sub_N,name,dim,N,Nl,Nb,gx,
                           c_x,c_y,c_z);
   return newSub;
 }
@@ -154,7 +164,15 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
   /*
    * PointData
    */
-  fprintf(file, "      <PointData Scalars=\"mpirank,subdomain_id,local_subdomain_id\">\n");
+  char pointscalars[BFAM_BUFSIZ];
+  bfam_util_strcsl(pointscalars, scalars);
+
+  char pointvectors[BFAM_BUFSIZ];
+  bfam_util_strcsl(pointvectors, vectors);
+
+  fprintf(file, "      <PointData"
+      " Scalars=\"mpirank,subdomain_id,local_subdomain_id,%s\">\n"
+      " Vectors=\"%s\">\n", pointscalars,pointvectors);
   bfam_locidx_t *storage_locid = bfam_malloc_aligned(Ntot*sizeof(bfam_locidx_t));
 
   /* mpi rank */
@@ -231,17 +249,6 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
   }
   fprintf(file, "\n");
   fprintf(file, "        </DataArray>\n");
-
-  fprintf(file, "      </PointData>\n");
-
-  char pointscalars[BFAM_BUFSIZ];
-  bfam_util_strcsl(pointscalars, scalars);
-
-  char pointvectors[BFAM_BUFSIZ];
-  bfam_util_strcsl(pointvectors, vectors);
-
-  fprintf(file, "      <PointData Scalars=\"%s\" Vectors=\"%s\">\n",
-      pointscalars, pointvectors);
 
   if(scalars)
   {
@@ -387,8 +394,8 @@ bfam_subdomain_sbp_field_init(bfam_subdomain_t *subdomain,
 void
 bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
                             const bfam_locidx_t     id,
-                            const bfam_locidx_t loc_id,
-                            const bfam_locidx_t num_id,
+                            const bfam_locidx_t* sub_ix,
+                            const bfam_locidx_t* sub_N,
                             const char             *name,
                             const int               dim,
                             const bfam_gloidx_t    *N,
@@ -407,8 +414,10 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
   subdomain->base.vtk_write_vts_piece = bfam_subdomain_sbp_vtk_vts_piece;
   subdomain->base.vtk_write_suffix = bfam_subdomain_sbp_vtk_write_suffix;
 
-  subdomain->loc_id = loc_id;
-  subdomain->num_id = num_id;
+  subdomain->sub_ix = bfam_malloc(dim*sizeof(bfam_locidx_t));
+  subdomain->sub_N  = bfam_malloc(dim*sizeof(bfam_locidx_t));
+  subdomain->loc_id = 0;
+  subdomain->num_id = 1;
   subdomain->dim = dim;
 
   subdomain->N  = bfam_malloc(  dim*sizeof(bfam_gloidx_t));
@@ -431,6 +440,11 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
 
     Nltmp[d] = (Nb[2*d] + Nl[d] + Nb[2*d+1]);
     sz *= (Nltmp[d]+1);
+
+    subdomain->sub_ix[d] = sub_ix[d];
+    subdomain->sub_N [d] = sub_N[d];
+    subdomain->loc_id += sub_ix[d]*subdomain->num_id;
+    subdomain->num_id *= (sub_N[d]+1);
 
     BFAM_ABORT_IF(N [d] < 0 || Nl[d] < 0 || Nb[2*d] < 0 || Nb[2*d+1] < 0 ||
                   gx[d] < 0 || gx[d] > N[d] || gx[d]+Nl[d] > N[d],
@@ -492,4 +506,6 @@ bfam_subdomain_sbp_free(bfam_subdomain_t *subdomain)
   bfam_free(sub->Nl);
   bfam_free(sub->Nb);
   bfam_free(sub->gx);
+  bfam_free(sub->sub_ix);
+  bfam_free(sub->sub_N);
 }

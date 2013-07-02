@@ -241,8 +241,10 @@ setup_subdomains(bfam_domain_t *domain,
         if(z != NULL) z[ix] = Vz[V];
       }
 
+      for(int d = 0; d < dim; d++) pd[d]--;
+
       bfam_subdomain_sbp_t *sub =
-        bfam_subdomain_sbp_new(b,l_rank,l_size,names[b],dim,
+        bfam_subdomain_sbp_new(b,bx,pd,names[b],dim,
             &N[dim*b],Nl,Nb,gx,x,y,z);
 
       bfam_subdomain_add_tag((bfam_subdomain_t*)sub,"_volume");
@@ -267,7 +269,7 @@ test_2d(int rank, int mpi_size)
   const char *names[] = {"sub0","sub1","sub2"};
   bfam_locidx_t bufsz = 5;
 
-  int foo   = 15;
+  int foo   = 30;
   int dim   =  2;
   bfam_gloidx_t   EtoV[] = {0,1,3,4,
                             1,2,4,5,
