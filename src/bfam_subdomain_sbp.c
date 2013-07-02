@@ -262,29 +262,64 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
     }
   }
 
-  // if(vectors)
-  // {
-  //   for(size_t v = 0; vectors[v]; ++v)
-  //   {
+  if(vectors)
+  {
+    for(size_t v = 0; vectors[v]; ++v)
+    {
 
-  //     bfam_real_t *v1 =
-  //       bfam_dictionary_get_value_ptr(&subdomain->fields, components[3*v+0]);
-  //     bfam_real_t *v2 =
-  //       bfam_dictionary_get_value_ptr(&subdomain->fields, components[3*v+1]);
-  //     bfam_real_t *v3 =
-  //       bfam_dictionary_get_value_ptr(&subdomain->fields, components[3*v+2]);
+      bfam_real_t *v1 =
+        bfam_dictionary_get_value_ptr(&subdomain->fields, components[3*v+0]);
+      bfam_real_t *v2 =
+        bfam_dictionary_get_value_ptr(&subdomain->fields, components[3*v+1]);
+      bfam_real_t *v3 =
+        bfam_dictionary_get_value_ptr(&subdomain->fields, components[3*v+2]);
 
-  //     BFAM_ABORT_IF(v1 == NULL, "VTK: Field %s not in subdomain %s",
-  //         components[3*v+0], subdomain->name);
-  //     BFAM_ABORT_IF(v2 == NULL, "VTK: Field %s not in subdomain %s",
-  //         components[3*v+1], subdomain->name);
-  //     BFAM_ABORT_IF(v3 == NULL, "VTK: Field %s not in subdomain %s",
-  //         components[3*v+2], subdomain->name);
+      if(v1!=NULL)
+      {
+        int i = 0;
+        for(int k = 0; k <= Nl[2]; k++)
+          for(int j = 0; j <= Nl[1]; j++)
+            memcpy(&storage0[i + (Nl[0]+1)*(j + k*(Nl[1]+1))],
+                &v1[i+Nb[0] + (Nt[0]+1)*(j+Nb[2] + (k+Nb[4])*(Nt[1]+1))],
+                (Nl[0]+1)*sizeof(bfam_real_t));
+      }
+      else
+      {
+        memset(storage0,0,sz);
+      }
 
-  //     bfam_vtk_write_real_vector_data_array(file, vectors[v],
-  //         writeBinary, writeCompressed, Ntotal, v1, v2, v3);
-  //   }
-  // }
+      if(v2!=NULL)
+      {
+        int i = 0;
+        for(int k = 0; k <= Nl[2]; k++)
+          for(int j = 0; j <= Nl[1]; j++)
+            memcpy(&storage1[i + (Nl[0]+1)*(j + k*(Nl[1]+1))],
+                &v2[i+Nb[0] + (Nt[0]+1)*(j+Nb[2] + (k+Nb[4])*(Nt[1]+1))],
+                (Nl[0]+1)*sizeof(bfam_real_t));
+      }
+      else
+      {
+        memset(storage1,0,sz);
+      }
+
+      if(v3!=NULL)
+      {
+        int i = 0;
+        for(int k = 0; k <= Nl[2]; k++)
+          for(int j = 0; j <= Nl[1]; j++)
+            memcpy(&storage2[i + (Nl[0]+1)*(j + k*(Nl[1]+1))],
+                &v3[i+Nb[0] + (Nt[0]+1)*(j+Nb[2] + (k+Nb[4])*(Nt[1]+1))],
+                (Nl[0]+1)*sizeof(bfam_real_t));
+      }
+      else
+      {
+        memset(storage2,0,sz);
+      }
+
+      bfam_vtk_write_real_vector_data_array(file, vectors[v],
+          writeBinary, writeCompressed, Ntot, storage0, storage1, storage2);
+    }
+  }
 
   fprintf(file, "      </PointData>\n");
 

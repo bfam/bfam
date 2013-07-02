@@ -256,8 +256,8 @@ test_2d(int rank, int mpi_size)
   /* dump the entire mesh */
   const char *tags[] = {NULL};
   const char *scalars[] = {"p1","p2",NULL};
-  const char *vectors[] = {NULL};
-  const char *components[] = {NULL};
+  const char *vectors[] = {"p",NULL};
+  const char *components[] = {"p1","p2","p3",NULL};
   bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
       tags,"sbp_fields_2d",scalars,vectors,components,0,1);
 
@@ -332,8 +332,8 @@ test_3d(int rank, int mpi_size)
   /* dump the entire mesh */
   const char *tags[] = {NULL};
   const char *scalars[] = {"p1","p2","p3",NULL};
-  const char *vectors[] = {NULL};
-  const char *components[] = {NULL};
+  const char *vectors[] = {"p",NULL};
+  const char *components[] = {"p1","p2","p3",NULL};
   bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
       tags,"sbp_fields_3d",scalars,vectors,components,1,1);
 
