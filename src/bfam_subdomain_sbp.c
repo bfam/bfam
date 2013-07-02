@@ -281,9 +281,18 @@ bfam_subdomain_sbp_field_init(bfam_subdomain_t *subdomain,
   BFAM_ABORT_IF(field==NULL, "Init: Field %s not found in subdomain %s",
       name, subdomain->name);
 
-  // size_t fieldLength = s->Np*s->K;
+  size_t fieldSize = 1;
+  for(int d = 0; d < s->dim; d++)
+    fieldSize *= (s->Nl[d]+1+s->Nb[2*d]+s->Nb[2*d+1]);
 
-  // init_field(fieldLength, time, s->x, s->y, s->z, subdomain, arg, field);
+  bfam_real_t *restrict x =
+    bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_x");
+  bfam_real_t *restrict y =
+    bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_y");
+  bfam_real_t *restrict z =
+    bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_z");
+
+  init_field(fieldSize, time, x, y, z, subdomain, arg, field);
 }
 
 void
@@ -342,27 +351,30 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
   bfam_real_t *x = NULL;
   if(c_x != NULL)
   {
-    x = bfam_malloc_aligned(sizeof(bfam_real_t)*sz);
-    int val = bfam_dictionary_insert_ptr(&subdomain->base.fields, "_grid_x", x);
-    BFAM_ABORT_IF(val != 2, "problem adding x to fields");
+    int rval = bfam_subdomain_sbp_field_add(&subdomain->base, "_grid_x");
+    BFAM_ASSERT(rval==2);
+    x = (bfam_real_t*) bfam_dictionary_get_value_ptr(&subdomain->base.fields,
+        "_grid_x");
   }
 
   bfam_real_t *y = NULL;
   if(c_y != NULL)
   {
     BFAM_ASSERT(c_x != NULL);
-    y = bfam_malloc_aligned(sizeof(bfam_real_t)*sz);
-    int val = bfam_dictionary_insert_ptr(&subdomain->base.fields, "_grid_y", y);
-    BFAM_ABORT_IF(val != 2, "problem adding y to fields");
+    int rval = bfam_subdomain_sbp_field_add(&subdomain->base, "_grid_y");
+    BFAM_ASSERT(rval==2);
+    y = (bfam_real_t*) bfam_dictionary_get_value_ptr(&subdomain->base.fields,
+        "_grid_y");
   }
 
   bfam_real_t *z = NULL;
   if(c_z != NULL)
   {
     BFAM_ASSERT(c_y != NULL);
-    z = bfam_malloc_aligned(sizeof(bfam_real_t)*sz);
-    int val = bfam_dictionary_insert_ptr(&subdomain->base.fields, "_grid_z", z);
-    BFAM_ABORT_IF(val != 2, "problem adding z to fields");
+    int rval = bfam_subdomain_sbp_field_add(&subdomain->base, "_grid_z");
+    BFAM_ASSERT(rval==2);
+    z = (bfam_real_t*) bfam_dictionary_get_value_ptr(&subdomain->base.fields,
+        "_grid_z");
   }
 
   bfam_util_linear_blend(x,y,z,dim,N,Nltmp,gxb,c_x,c_y,c_z);

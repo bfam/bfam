@@ -1,6 +1,58 @@
 #include <bfam.h>
 #include <bfam_subdomain_sbp.h>
 
+static void
+poly1_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
+    bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(field, 32);
+
+  if(z == NULL)
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      field[n] = -x[n] - y[n];
+  else
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      field[n] = -x[n] - y[n] - z[n];
+}
+
+static void
+poly2_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
+    bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(field, 32);
+
+  if(z == NULL)
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      field[n] = x[n] + y[n];
+  else
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      field[n] = x[n] + y[n] + z[n];
+}
+
+static void
+poly3_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
+    bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(field, 32);
+
+  BFAM_ASSERT(z != NULL);
+  for(bfam_locidx_t n=0; n < npoints; ++n)
+    field[n] = x[n] + y[n] - z[n];
+}
+
+
 void
 simple_partition_1d(bfam_locidx_t *Nl, bfam_gloidx_t *gx, bfam_locidx_t *Nb,
     bfam_gloidx_t N, bfam_locidx_t size, bfam_locidx_t rank,
@@ -143,6 +195,8 @@ setup_subdomains(bfam_domain_t *domain,
         bfam_subdomain_sbp_new(b,l_rank,l_size,names[b],dim,
             &N[dim*b],Nl,Nb,gx,x,y,z);
 
+      bfam_subdomain_add_tag((bfam_subdomain_t*)sub,"_volume");
+
       bfam_domain_add_subdomain(domain,(bfam_subdomain_t*)sub);
     }
   }
@@ -189,9 +243,19 @@ test_2d(int rank, int mpi_size)
   setup_subdomains(&domain,dim,num_blocks,bufsz,rank,
       names,procs,EtoV,N,Vx,Vy,Vz);
 
+  /* put in some fields */
+  const char *volume[] = {"_volume", NULL};
+  bfam_domain_add_field(&domain, BFAM_DOMAIN_OR, volume, "p1");
+  bfam_domain_add_field(&domain, BFAM_DOMAIN_OR, volume, "p2");
+
+  bfam_domain_init_field(&domain, BFAM_DOMAIN_OR, volume, "p1",
+      0, poly1_field, NULL);
+  bfam_domain_init_field(&domain, BFAM_DOMAIN_OR, volume, "p2",
+      0, poly2_field, NULL);
+
   /* dump the entire mesh */
   const char *tags[] = {NULL};
-  const char *scalars[] = {"_grid_x","_grid_y","_grid_z",NULL};
+  const char *scalars[] = {"_grid_x","_grid_y","_grid_z","p1","p2",NULL};
   const char *vectors[] = {NULL};
   const char *components[] = {NULL};
   bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
@@ -252,9 +316,22 @@ test_3d(int rank, int mpi_size)
   setup_subdomains(&domain,dim,num_blocks,bufsz,rank,
       names,procs,EtoV,N,Vx,Vy,Vz);
 
+  /* put in some fields */
+  const char *volume[] = {"_volume", NULL};
+  bfam_domain_add_field(&domain, BFAM_DOMAIN_OR, volume, "p1");
+  bfam_domain_add_field(&domain, BFAM_DOMAIN_OR, volume, "p2");
+  bfam_domain_add_field(&domain, BFAM_DOMAIN_OR, volume, "p3");
+
+  bfam_domain_init_field(&domain, BFAM_DOMAIN_OR, volume, "p1",
+      0, poly1_field, NULL);
+  bfam_domain_init_field(&domain, BFAM_DOMAIN_OR, volume, "p2",
+      0, poly2_field, NULL);
+  bfam_domain_init_field(&domain, BFAM_DOMAIN_OR, volume, "p3",
+      0, poly3_field, NULL);
+
   /* dump the entire mesh */
   const char *tags[] = {NULL};
-  const char *scalars[] = {"_grid_x","_grid_y","_grid_z",NULL};
+  const char *scalars[] = {"_grid_x","_grid_y","_grid_z","p1","p2","p3",NULL};
   const char *vectors[] = {NULL};
   const char *components[] = {NULL};
   bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
