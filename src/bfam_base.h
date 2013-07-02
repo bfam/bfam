@@ -90,6 +90,7 @@
 #define BFAM_BIG_ENDIAN    1
 
 #define BFAM_APPEND(x, y) x ## y
+#define BFAM_APPEND_EXPAND(x, y) BFAM_APPEND(x, y)
 
 #define BFAM_MIN(a,b) (((a)<(b))?(a):(b))
 #define BFAM_MAX(a,b) (((a)>(b))?(a):(b))
