@@ -234,6 +234,60 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
 
   fprintf(file, "      </PointData>\n");
 
+  char pointscalars[BFAM_BUFSIZ];
+  bfam_util_strcsl(pointscalars, scalars);
+
+  char pointvectors[BFAM_BUFSIZ];
+  bfam_util_strcsl(pointvectors, vectors);
+
+  fprintf(file, "      <PointData Scalars=\"%s\" Vectors=\"%s\">\n",
+      pointscalars, pointvectors);
+
+  if(scalars)
+  {
+    for(size_t s = 0; scalars[s]; ++s)
+    {
+      bfam_real_t *sdata = bfam_dictionary_get_value_ptr(&subdomain->fields,
+          scalars[s]);
+      BFAM_ABORT_IF(sdata == NULL, "VTK: Field %s not in subdomain %s",
+          scalars[s], subdomain->name);
+      int i = 0;
+      for(int k = 0; k <= Nl[2]; k++)
+        for(int j = 0; j <= Nl[1]; j++)
+          memcpy(&storage0[i + (Nl[0]+1)*(j + k*(Nl[1]+1))],
+              &sdata[i+Nb[0] + (Nt[0]+1)*(j+Nb[2] + (k+Nb[4])*(Nt[1]+1))],
+              (Nl[0]+1)*sizeof(bfam_real_t));
+      bfam_vtk_write_real_scalar_data_array(file, scalars[s],
+          writeBinary, writeCompressed, Ntot, storage0);
+    }
+  }
+
+  // if(vectors)
+  // {
+  //   for(size_t v = 0; vectors[v]; ++v)
+  //   {
+
+  //     bfam_real_t *v1 =
+  //       bfam_dictionary_get_value_ptr(&subdomain->fields, components[3*v+0]);
+  //     bfam_real_t *v2 =
+  //       bfam_dictionary_get_value_ptr(&subdomain->fields, components[3*v+1]);
+  //     bfam_real_t *v3 =
+  //       bfam_dictionary_get_value_ptr(&subdomain->fields, components[3*v+2]);
+
+  //     BFAM_ABORT_IF(v1 == NULL, "VTK: Field %s not in subdomain %s",
+  //         components[3*v+0], subdomain->name);
+  //     BFAM_ABORT_IF(v2 == NULL, "VTK: Field %s not in subdomain %s",
+  //         components[3*v+1], subdomain->name);
+  //     BFAM_ABORT_IF(v3 == NULL, "VTK: Field %s not in subdomain %s",
+  //         components[3*v+2], subdomain->name);
+
+  //     bfam_vtk_write_real_vector_data_array(file, vectors[v],
+  //         writeBinary, writeCompressed, Ntotal, v1, v2, v3);
+  //   }
+  // }
+
+  fprintf(file, "      </PointData>\n");
+
   fprintf(file, "    </Piece>\n");
 
   /* close StructuredGrid */

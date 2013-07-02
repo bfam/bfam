@@ -255,7 +255,7 @@ test_2d(int rank, int mpi_size)
 
   /* dump the entire mesh */
   const char *tags[] = {NULL};
-  const char *scalars[] = {"_grid_x","_grid_y","_grid_z","p1","p2",NULL};
+  const char *scalars[] = {"p1","p2",NULL};
   const char *vectors[] = {NULL};
   const char *components[] = {NULL};
   bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
@@ -331,7 +331,7 @@ test_3d(int rank, int mpi_size)
 
   /* dump the entire mesh */
   const char *tags[] = {NULL};
-  const char *scalars[] = {"_grid_x","_grid_y","_grid_z","p1","p2","p3",NULL};
+  const char *scalars[] = {"p1","p2","p3",NULL};
   const char *vectors[] = {NULL};
   const char *components[] = {NULL};
   bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
