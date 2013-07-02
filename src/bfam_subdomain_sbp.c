@@ -253,11 +253,11 @@ bfam_subdomain_sbp_field_add(bfam_subdomain_t *subdomain, const char *name)
   if(bfam_dictionary_get_value_ptr(&s->base.fields,name))
     return 1;
 
-  size_t fieldSize = 0;
+  size_t fieldSize = 1;
   for(int d = 0; d < s->dim; d++)
     fieldSize *= (s->Nl[d]+1+s->Nb[2*d]+s->Nb[2*d+1]);
 
-  bfam_real_t *field = bfam_malloc_aligned(fieldSize);
+  bfam_real_t *field = bfam_malloc_aligned(fieldSize*sizeof(bfam_real_t));
 
   int rval = bfam_dictionary_insert_ptr(&s->base.fields, name, field);
 
