@@ -77,24 +77,68 @@ simple_partition_1d(bfam_locidx_t *Nl, bfam_gloidx_t *gx, bfam_locidx_t *Nb,
   else Nb[1] = bufsz;
 }
 
+/** Simple domain partitioner for an sbp multi-block
+ *
+ * \param [out]     Nl          local ending index (size dim)
+ * \param [out]     gx          my global starting index (size dim)
+ * \param [out]     Nb          number of buffer cells in each dimension
+ *                              (size 2*dim)
+ * \param [out]     face_neigh  ranks of my face neighbors (size 2*dim)
+ *                              \note not used is NULL
+ * \param [out]     bx          my location in the subdomain partitioning
+ * \param [in,out]  pd          processor dimension (size 2*dim)
+ *                              if pd[d] = 0 then free, if pd[d] > 0 then fixed
+ * \param [in]      N           global ending index
+ * \param [in]      size_in     number of pieces to partion into
+ * \param [in]      rank        my number in the partiion
+ * \param [in]      bufsz       size of the buffer to create is necessary
+ * \param[in]       dim         dimension of the of the parition
+ *
+ * \note if face_
+ */
 void
 simple_partition(bfam_locidx_t *Nl, bfam_gloidx_t *gx, bfam_locidx_t *Nb,
-    const bfam_gloidx_t *N, bfam_locidx_t size_in, bfam_locidx_t rank,
-    bfam_locidx_t bufsz,int dim)
+    bfam_locidx_t *face_neigh, bfam_locidx_t *bx, int *pd, const bfam_gloidx_t
+    *N, bfam_locidx_t size_in, bfam_locidx_t rank, bfam_locidx_t bufsz,int dim)
 {
-  int pd[dim];
-  for(int d = 0; d < dim; d++) pd[d] = 0;
   BFAM_MPI_CHECK(MPI_Dims_create(size_in, dim, pd));
 
-  bfam_locidx_t size = size_in;
-  if(dim == 3)
+  bfam_locidx_t tmp_rank = rank;
+  if(dim > 2)
   {
+    bx[2] = tmp_rank/(pd[0]*pd[1]);
     simple_partition_1d(&Nl[2],&gx[2],&Nb[2*2],N[2],pd[2],
-        rank/(pd[0]*pd[1]),bufsz);
-    size = size % (pd[0]*pd[1]);
+        bx[2],bufsz);
+    tmp_rank = tmp_rank % (pd[0]*pd[1]);
   }
-  simple_partition_1d(&Nl[1],&gx[1],&Nb[1*2],N[1],pd[1],rank/pd[0],bufsz);
-  simple_partition_1d(&Nl[0],&gx[0],&Nb[0*2],N[0],pd[0],rank%pd[0],bufsz);
+
+  if(dim > 1)
+  {
+    bx[1] = tmp_rank/pd[0];
+    simple_partition_1d(&Nl[1],&gx[1],&Nb[1*2],N[1],pd[1],bx[1],bufsz);
+  }
+
+  bx[0] = tmp_rank%pd[0];
+  simple_partition_1d(&Nl[0],&gx[0],&Nb[0*2],N[0],pd[0],bx[0],bufsz);
+
+  simple_partition_1d(&Nl[2],&gx[2],&Nb[2*2],N[2],pd[2],
+      bx[2],bufsz);
+
+  /* now set up the neighboring processor info */
+  if(face_neigh != NULL)
+  {
+    bfam_locidx_t offset = 1;
+    for(int d = 0;d<dim;d++)
+    {
+      face_neigh[2*d] = rank;
+      if(bx[d] != 0) face_neigh[2*d  ] -= offset;
+
+      face_neigh[2*d+1] = rank;
+      if(bx[d] != pd[d]-1) face_neigh[2*d+1] += offset;
+
+      offset *= pd[d];
+    }
+  }
 }
 
 void
@@ -180,8 +224,14 @@ setup_subdomains(bfam_domain_t *domain,
 
       bfam_locidx_t l_rank = rank-procs[2*b];
       bfam_locidx_t l_size = procs[2*b+1]-procs[2*b]+1;
+      bfam_locidx_t face_neigh[2*dim];
+      bfam_locidx_t bx[2*dim];
 
-      simple_partition(Nl,gx,Nb,&N[dim*b],l_size,l_rank,bufsz,dim);
+      int pd[dim];
+      for(int d = 0; d < dim; d++) pd[d] = 0;
+
+      simple_partition(Nl,gx,Nb,face_neigh,bx,pd,&N[dim*b],
+          l_size,l_rank,bufsz,dim);
 
       for(int ix = 0; ix < ncorn; ix++)
       {
