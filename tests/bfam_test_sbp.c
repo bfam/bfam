@@ -75,6 +75,8 @@ simple_partition_1d(bfam_locidx_t *Nl, bfam_gloidx_t *gx, bfam_locidx_t *Nb,
   else Nb[0] = bufsz;
   if(rank == size-1) Nb[1] = 0;
   else Nb[1] = bufsz;
+
+  BFAM_ABORT_IF(Nl[0] < bufsz, "fewer points than buffer size: %d %d",Nl[0],bufsz);
 }
 
 /** Simple domain partitioner for an sbp multi-block
@@ -120,9 +122,6 @@ simple_partition(bfam_locidx_t *Nl, bfam_gloidx_t *gx, bfam_locidx_t *Nb,
 
   bx[0] = tmp_rank%pd[0];
   simple_partition_1d(&Nl[0],&gx[0],&Nb[0*2],N[0],pd[0],bx[0],bufsz);
-
-  simple_partition_1d(&Nl[2],&gx[2],&Nb[2*2],N[2],pd[2],
-      bx[2],bufsz);
 
   /* now set up the neighboring processor info */
   if(face_neigh != NULL)
@@ -267,9 +266,9 @@ test_2d(int rank, int mpi_size)
   /* connectivity */
   int num_blocks = 3;
   const char *names[] = {"sub0","sub1","sub2"};
-  bfam_locidx_t bufsz = 5;
+  bfam_locidx_t bufsz = 3;
 
-  int foo   = 30;
+  int foo   = 100;
   int dim   =  2;
   bfam_gloidx_t   EtoV[] = {0,1,3,4,
                             1,2,4,5,
@@ -324,11 +323,11 @@ test_3d(int rank, int mpi_size)
   bfam_domain_t domain;
   bfam_domain_init(&domain,MPI_COMM_WORLD);
 
-  int foo   = 15;
+  int foo   = 40;
   int dim   =  3;
 
   const char *names[] = {"sub0","sub1","sub2","sub3","sub4","sub5"};
-  bfam_locidx_t bufsz = 5;
+  bfam_locidx_t bufsz = 3;
 
   /* connectivity from p8est_connectivity_new_rotcubes */
   bfam_locidx_t num_blocks = 6;
@@ -405,7 +404,7 @@ main (int argc, char *argv[])
   BFAM_MPI_CHECK(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
   bfam_log_init(rank,stdout,BFAM_LL_VERBOSE);
 
-  /* test 3d */
+  /* test 2d */
   test_2d(rank,mpi_size);
 
   /* test 3d */

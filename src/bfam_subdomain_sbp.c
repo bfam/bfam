@@ -10,7 +10,6 @@ bfam_subdomain_sbp_vtk_write_suffix(bfam_subdomain_t *thisSubdomain,
 {
   bfam_subdomain_sbp_t * s = (bfam_subdomain_sbp_t*) thisSubdomain;
   snprintf(suffix,len,"%05d",s->sub_ix[0]);
-  BFAM_VERBOSE(suffix);
   for(int d = 1; d < s->dim;d++)
   {
     char tmpstr[BFAM_BUFSIZ];
