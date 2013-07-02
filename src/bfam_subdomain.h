@@ -135,7 +135,7 @@ typedef struct bfam_subdomain
 
   /**< Glue grid communication info */
   void (*glue_comm_info) (struct bfam_subdomain *thisSubdomain, int *rank,
-      bfam_locidx_t *my_id, bfam_locidx_t *neigh_id,
+      bfam_locidx_t *s, int num_sort,
       size_t *send_sz, size_t *recv_sz);
 
   /**< Put data into the send buffer */

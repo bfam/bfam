@@ -41,13 +41,14 @@ bfam_subdomain_glue_get(bfam_subdomain_t *thisSubdomain,
 
 void
 bfam_subdomain_comm_test_info(bfam_subdomain_t *thisSubdomain,
-    int *rank, bfam_locidx_t *my_id, bfam_locidx_t *neigh_id,
+    int *rank, bfam_locidx_t *sort, int num_sort,
     size_t *send_sz, size_t *recv_sz)
 {
+  BFAM_ASSERT(num_sort > 1);
   bfam_subdomain_comm_test_t *sub = (bfam_subdomain_comm_test_t*) thisSubdomain;
   *rank = sub->np;
-  *neigh_id = sub->ns;
-  *my_id = sub->ms;
+  sort[0] = sub->ns; /* neighbor ID */
+  sort[1] = sub->ms; /* my ID */
 
   *send_sz = sub->send_num*sizeof(bfam_real_t);
   *recv_sz = sub->recv_num*sizeof(bfam_real_t);

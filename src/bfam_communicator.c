@@ -2,11 +2,15 @@
 #include <bfam_communicator.h>
 #include <bfam_log.h>
 
+#define BFAM_COMM_NUM_SRT (4)
 typedef struct bfam_communicator_map_entry
 {
   bfam_locidx_t np; /* Neighbor's processor number */
-  bfam_locidx_t ns; /* Neighbor's subdomain id */
-  bfam_locidx_t ms; /* My subdomain id */
+  bfam_locidx_t s[BFAM_COMM_NUM_SRT];
+  /* sort param 0: typically Neighbor's subdomain id */
+ /* sort param 1: typically My subdomain id */
+ /* sort param 2: typically local ID (sbp) */
+ /* sort param 3: typically fce ID (sbp) */
   bfam_locidx_t rank; /*my rank*/
   bfam_subdomain_t* subdomain; /*pointer to subdomain*/
 
@@ -33,23 +37,16 @@ bfam_communicator_send_compare(const void *a, const void *b)
   const bfam_communicator_map_entry_t *mapB =
     (const bfam_communicator_map_entry_t *)b;
 
-  int rval = 0;
+  if(mapA->np < mapB->np) return -1;
+  if(mapA->np > mapB->np) return  1;
+  for(int i = 0;i < BFAM_COMM_NUM_SRT;i++)
+  {
+    if(mapA->s[i] < mapB->s[i]) return -1;
+    if(mapA->s[i] > mapB->s[i]) return  1;
+  }
+  BFAM_ABORT_IF_NOT(0==0,"Should not be same map!");
 
-  if(mapA->np < mapB->np)
-    rval = -1;
-  else if(mapA->np > mapB->np)
-    rval =  1;
-  else if(mapA->ns > mapB->ns)
-    rval = -1;
-  else if(mapA->ns < mapB->ns)
-    rval =  1;
-  else if(mapA->ms > mapB->ms)
-    rval = -1;
-  else if(mapA->ms < mapB->ms)
-    rval =  1;
-  BFAM_ABORT_IF_NOT(rval,"Should not be same map!");
-
-  return rval;
+  return 0;
 }
 
 static int
@@ -60,23 +57,16 @@ bfam_communicator_recv_compare(const void *a, const void *b)
   const bfam_communicator_map_entry_t *mapB =
     (const bfam_communicator_map_entry_t *)b;
 
-  int rval = 0;
+  if(mapA->np < mapB->np) return -1;
+  if(mapA->np > mapB->np) return  1;
+  for(int i = BFAM_COMM_NUM_SRT-1;i > -1;i--)
+  {
+    if(mapA->s[i] < mapB->s[i]) return -1;
+    if(mapA->s[i] > mapB->s[i]) return  1;
+  }
+  BFAM_ABORT_IF_NOT(0==0,"Should not be same map!");
 
-  if(mapA->np < mapB->np)
-    rval = -1;
-  else if(mapA->np > mapB->np)
-    rval =  1;
-  else if(mapA->ms > mapB->ms)
-    rval = -1;
-  else if(mapA->ms < mapB->ms)
-    rval =  1;
-  else if(mapA->ns > mapB->ns)
-    rval = -1;
-  else if(mapA->ns < mapB->ns)
-    rval =  1;
-  BFAM_ABORT_IF_NOT(rval,"Should not be same map!");
-
-  return rval;
+  return 0;
 }
 
 
@@ -113,10 +103,13 @@ bfam_communicator_init(bfam_communicator_t* communicator,
         "glue_comm_info not initialized for sudbomain %s",
         subdomains[s]->name);
 
+    for(int i = 0; i < BFAM_COMM_NUM_SRT;i++) map[s].s[i] = 0;
     subdomains[s]->glue_comm_info(subdomains[s],&map[s].np,
-        &map[s].ms,&map[s].ns,
+        map[s].s,BFAM_COMM_NUM_SRT,
         &communicator->sub_data[s].send_sz,
         &communicator->sub_data[s].recv_sz);
+    for(int i = 0; i < BFAM_COMM_NUM_SRT;i++)
+      BFAM_VERBOSE("%d %d",i,(int)map[s].s[i]);
 
     BFAM_MPI_CHECK(MPI_Comm_rank(comm, &map[s].rank));
 

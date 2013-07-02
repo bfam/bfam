@@ -876,15 +876,16 @@ bfam_subdomain_dgx_quad_glue_field_plus_add(bfam_subdomain_t *subdomain,
 
 static void
 bfam_subdomain_dgx_quad_glue_comm_info(bfam_subdomain_t *thisSubdomain,
-    int *rank, bfam_locidx_t *my_id, bfam_locidx_t *neigh_id,
+    int *rank, bfam_locidx_t *sort, int num_sort,
     size_t *send_sz, size_t *recv_sz)
 {
+  BFAM_ASSERT(num_sort > 1);
   bfam_subdomain_dgx_quad_glue_t *sub =
     (bfam_subdomain_dgx_quad_glue_t*) thisSubdomain;
 
   *rank     = sub->rank_p;
-  *neigh_id = sub->id_p;
-  *my_id    = sub->id_m;
+  sort[0] = sub->id_p; /* neighbor ID */
+  sort[1] = sub->id_m; /* my ID */
 
   const size_t send_num = sub->base.fields_m.num_entries * sub->K * sub->Np;
   const size_t recv_num = sub->base.fields_p.num_entries * sub->K * sub->Np;
@@ -893,7 +894,7 @@ bfam_subdomain_dgx_quad_glue_comm_info(bfam_subdomain_t *thisSubdomain,
   *recv_sz  = recv_num*sizeof(bfam_real_t);
 
   BFAM_LDEBUG(" rank %3d   ms %3jd   ns %3jd   send_sz %3zd   recv_sz %3zd",
-      *rank, (intmax_t) *my_id, (intmax_t) *neigh_id, *send_sz, *recv_sz);
+      *rank, (intmax_t) sort[1], (intmax_t) sort[0], *send_sz, *recv_sz);
 }
 
 typedef struct bfam_subdomain_dgx_quad_get_put_data
