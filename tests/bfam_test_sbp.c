@@ -240,17 +240,32 @@ setup_subdomains(bfam_domain_t *domain,
         if(z != NULL) z[ix] = Vz[V];
       }
 
+      /* make pd really the local top index */
       for(int d = 0; d < dim; d++) pd[d]--;
 
+      /* add subdomain */
       bfam_subdomain_sbp_t *sub =
         bfam_subdomain_sbp_new(b,bx,pd,names[b],dim,
             &N[dim*b],Nl,Nb,gx,x,y,z);
-
       bfam_subdomain_add_tag((bfam_subdomain_t*)sub,"_volume");
-
       bfam_domain_add_subdomain(domain,(bfam_subdomain_t*)sub);
+
+      /* add subdomain glue grid */
+      for(int d = 0; d < dim; d++)
+      {
+        /* minus face*/
+        if(face_neigh[2*d  ] != l_rank)
+        {
+        }
+
+        /* plus face */
+        if(face_neigh[2*d+1] != l_rank)
+        {
+        }
+      }
     }
   }
+
   if(x != NULL) bfam_free_aligned(x);
   if(y != NULL) bfam_free_aligned(y);
   if(z != NULL) bfam_free_aligned(z);

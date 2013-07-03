@@ -142,4 +142,72 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
 void
 bfam_subdomain_sbp_free(bfam_subdomain_t *subdomain);
 
+typedef struct bfam_subdomain_sbp_intra_glue
+{
+  bfam_subdomain_t base;
+
+  bfam_locidx_t     rank_m; /* Rank of the subdomain on the minus side */
+  bfam_locidx_t     rank_p; /* Rank of the subdomain on the plus  side;
+                             * if set to -1 then the subdomain is not
+                             * connected on the plus side (i.e., it is
+                             * a boundary subdomain).
+                             */
+
+  bfam_locidx_t     id_m;   /* Subdomain ID on the minus side */
+  bfam_locidx_t     id_p;   /* Subdomain ID on the plus  side */
+
+  bfam_locidx_t     loc_m;   /* local subdomain ID on the minus side */
+  bfam_locidx_t     loc_p;   /* local subdomain ID on the plus side */
+
+  bfam_locidx_t     fce_m;   /* face / corner / edge ID on the minus side */
+  bfam_locidx_t     fce_p;   /* face / corner / edge ID on the plus side */
+
+  bfam_subdomain_sbp_t *sub_m;  /* Local neighboring subdomain */
+
+  int               face;  /* face of the subdomain being handled */
+
+  bfam_locidx_t     *ix;   /* idices to be communicated in Z-order */
+} bfam_subdomain_sbp_intra_glue_t;
+
+/** create a sbp intra glue subdomain.
+ *
+ * \param [in]     id          unique id number for this subdomain
+ * \param [in]     name        name of this subdomain
+ * \param [in]     rank_m      minus side processor rank
+ * \param [in]     rank_p      plus  side processor rank
+ * \param [in]     subdomain_m minus side subdomain pointer
+ * \param [in]     face        face being handled
+ *
+ * \return Initialized dg quad glue subdomain
+ *
+ */
+bfam_subdomain_sbp_intra_glue_t*
+bfam_subdomain_sbp_intra_glue_new(const bfam_locidx_t              id,
+                                 const char                      *name,
+                                 const bfam_locidx_t              rank_m,
+                                 const bfam_locidx_t              rank_p,
+                                 bfam_subdomain_sbp_t            *sub_m,
+                                 const int                        face);
+
+/** create a sbp intra glue subdomain.
+ *
+ * \param [out]    subdomain    pointer to the subdomain to initialize
+ *
+ */
+void
+bfam_subdomain_sbp_intra_glue_init(bfam_subdomain_sbp_intra_glue_t  *subdomain,
+                                   const bfam_locidx_t              id,
+                                   const char                       *name,
+                                   const bfam_locidx_t              rank_m,
+                                   const bfam_locidx_t              rank_p,
+                                   bfam_subdomain_sbp_t            *sub_m,
+                                   const int                         face);
+
+/** free up the memory allocated by the subdomain
+ *
+ * \param [in,out] subdomain subdomain to clean up
+ */
+void
+bfam_subdomain_sbp_intra_glue_free(bfam_subdomain_t *subdomain);
+
 #endif
