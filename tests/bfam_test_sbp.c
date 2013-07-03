@@ -256,11 +256,25 @@ setup_subdomains(bfam_domain_t *domain,
         /* minus face*/
         if(face_neigh[2*d  ] != l_rank)
         {
+          char name[BFAM_BUFSIZ];
+          snprintf(name,BFAM_BUFSIZ,"%s_face_%d",names[b],2*d);
+            bfam_subdomain_sbp_intra_glue_t* glue =
+            bfam_subdomain_sbp_intra_glue_new(b+num_blocks*2*d,name,
+                rank,face_neigh[2*d]+procs[2*b],sub,2*d);
+            bfam_subdomain_add_tag((bfam_subdomain_t*)glue,"_intra_glue");
+            bfam_domain_add_subdomain(domain,(bfam_subdomain_t*)glue);
         }
 
         /* plus face */
         if(face_neigh[2*d+1] != l_rank)
         {
+          char name[BFAM_BUFSIZ];
+          snprintf(name,BFAM_BUFSIZ,"%s_face_%d",names[b],2*d+1);
+            bfam_subdomain_sbp_intra_glue_t* glue =
+            bfam_subdomain_sbp_intra_glue_new(b+num_blocks*(2*d+1),name,
+                rank,face_neigh[2*d+1]+procs[2*b],sub,2*d+1);
+            bfam_subdomain_add_tag((bfam_subdomain_t*)glue,"_intra_glue");
+            bfam_domain_add_subdomain(domain,(bfam_subdomain_t*)glue);
         }
       }
     }
@@ -272,7 +286,7 @@ setup_subdomains(bfam_domain_t *domain,
 }
 
 void
-test_2d(int rank, int mpi_size)
+test_2d(int rank, int mpi_size,MPI_Comm mpicomm)
 {
   /* setup the domain*/
   bfam_domain_t domain;
@@ -319,20 +333,30 @@ test_2d(int rank, int mpi_size)
   bfam_domain_init_field(&domain, BFAM_DOMAIN_OR, volume, "p2",
       0, poly2_field, NULL);
 
+  const char *glue[] = {"_intra_glue", NULL};
+  bfam_domain_add_field(&domain, BFAM_DOMAIN_OR, glue, "p1");
+  bfam_domain_add_field(&domain, BFAM_DOMAIN_OR, glue, "p2");
+
+  bfam_communicator_t* communicator =
+    bfam_communicator_new(&domain, BFAM_DOMAIN_OR, glue,
+        mpicomm, 10);
+
   /* dump the entire mesh */
-  const char *tags[] = {NULL};
-  const char *scalars[] = {"p1","p2",NULL};
-  const char *vectors[] = {"p",NULL};
-  const char *components[] = {"p1","p2","p3",NULL};
+  // const char *tags[] = {NULL};
+  // const char *scalars[] = {"p1","p2",NULL};
+  // const char *vectors[] = {"p",NULL};
+  // const char *components[] = {"p1","p2","p3",NULL};
   // bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
   //     tags,"sbp_fields_2d",scalars,vectors,components,0,1);
 
   /* clean up */
+  bfam_communicator_free(communicator);
+  bfam_free(communicator);
   bfam_domain_free(&domain);
 }
 
 void
-test_3d(int rank, int mpi_size)
+test_3d(int rank, int mpi_size, MPI_Comm mpicomm)
 {
   /* setup the domain*/
   bfam_domain_t domain;
@@ -375,9 +399,6 @@ test_3d(int rank, int mpi_size)
   /* load balance */
   simple_load_balance(procs,N,mpi_size,num_blocks,dim);
 
-  for(int b = 0; b < num_blocks;b++)
-    BFAM_ROOT_VERBOSE("b%-3d: %3d %3d",b,procs[2*b],procs[2*b+1]);
-
   /* setup subdomains */
   setup_subdomains(&domain,dim,num_blocks,bufsz,rank,
       names,procs,EtoV,N,Vx,Vy,Vz);
@@ -395,16 +416,28 @@ test_3d(int rank, int mpi_size)
   bfam_domain_init_field(&domain, BFAM_DOMAIN_OR, volume, "p3",
       0, poly3_field, NULL);
 
+
+  const char *glue[] = {"_intra_glue", NULL};
+  bfam_domain_add_field(&domain, BFAM_DOMAIN_OR, glue, "p1");
+  bfam_domain_add_field(&domain, BFAM_DOMAIN_OR, glue, "p2");
+  bfam_domain_add_field(&domain, BFAM_DOMAIN_OR, glue, "p3");
+
+  bfam_communicator_t* communicator =
+    bfam_communicator_new(&domain, BFAM_DOMAIN_OR, glue,
+        mpicomm, 10);
+
   /* dump the entire mesh */
-  const char *tags[] = {NULL};
-  const char *scalars[] = {"p1","p2","p3",NULL};
-  const char *vectors[] = {"p",NULL};
-  const char *components[] = {"p1","p2","p3",NULL};
+  // const char *tags[] = {NULL};
+  // const char *scalars[] = {"p1","p2","p3",NULL};
+  // const char *vectors[] = {"p",NULL};
+  // const char *components[] = {"p1","p2","p3",NULL};
   // bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
   //     tags,"sbp_fields_3d",scalars,vectors,components,1,1);
 
 
   /* clean up */
+  bfam_communicator_free(communicator);
+  bfam_free(communicator);
   bfam_domain_free(&domain);
 }
 
@@ -420,10 +453,10 @@ main (int argc, char *argv[])
   bfam_log_init(rank,stdout,BFAM_LL_VERBOSE);
 
   /* test 2d */
-  test_2d(rank,mpi_size);
+  test_2d(rank,mpi_size,MPI_COMM_WORLD);
 
   /* test 3d */
-  test_3d(rank,mpi_size);
+  test_3d(rank,mpi_size,MPI_COMM_WORLD);
 
   /* stop MPI */
   BFAM_MPI_CHECK(MPI_Finalize());

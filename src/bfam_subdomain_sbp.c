@@ -543,11 +543,34 @@ bfam_subdomain_sbp_intra_glue_comm_info(bfam_subdomain_t *thisSubdomain,
   sort[4] = sub->fce_m;
   sort[5] = sub->fce_p;
 
-  const int face = sub->face;
-  size_t sr_num = sub_m->Nb[face];
+  size_t sr_num = 1;
   for(int d = 0;d < sub_m->dim;d++)
-    if(d != face / 2) sr_num *= (sub_m->N[d]+1);
+    sr_num *= (sub->ix[2*d+1]+1-sub->ix[2*d]);
 
+#ifdef BFAM_DEBUG
+  if(sub_m->dim == 2)
+  {
+    BFAM_LDEBUG(" r_m %3d r_p %3d Nl[%3d %3d] Nb[%3d %3d %3d %3d]"
+        " ix[%3d %3d %3d %3d] size %3d",
+        sub->rank_m,sub->rank_p,
+        sub_m->Nl[0],sub_m->Nl[1],
+        sub_m->Nb[0],sub_m->Nb[1],sub_m->Nb[2],sub_m->Nb[3],
+        sub->ix[0],sub->ix[1],sub->ix[2],sub->ix[3],
+        sr_num);
+  }
+  if(sub_m->dim == 3)
+  {
+    BFAM_LDEBUG(" r_m %3d r_p %3d Nl[%3d %3d %3d] Nb[%3d %3d %3d %3d %3d %3d]"
+        " ix[%3d %3d %3d %3d %3d %3d] size %3d",
+        sub->rank_m,sub->rank_p,
+        sub_m->Nl[0],sub_m->Nl[1],sub_m->Nl[2],
+        sub_m->Nb[0],sub_m->Nb[1],sub_m->Nb[2],
+        sub_m->Nb[3],sub_m->Nb[4],sub_m->Nb[5],
+        sub->ix[0],sub->ix[1],sub->ix[2],
+        sub->ix[3],sub->ix[4],sub->ix[5],
+        sr_num);
+  }
+#endif
 
 
   *send_sz  = sub->base.fields_p.num_entries*sr_num*sizeof(bfam_real_t);
