@@ -2,7 +2,7 @@
 #include <bfam_communicator.h>
 #include <bfam_log.h>
 
-#define BFAM_COMM_NUM_SRT (4)
+#define BFAM_COMM_NUM_SRT (6)
 typedef struct bfam_communicator_map_entry
 {
   bfam_locidx_t np; /* Neighbor's processor number */
@@ -108,8 +108,6 @@ bfam_communicator_init(bfam_communicator_t* communicator,
         map[s].s,BFAM_COMM_NUM_SRT,
         &communicator->sub_data[s].send_sz,
         &communicator->sub_data[s].recv_sz);
-    for(int i = 0; i < BFAM_COMM_NUM_SRT;i++)
-      BFAM_VERBOSE("%d %d",i,(int)map[s].s[i]);
 
     BFAM_MPI_CHECK(MPI_Comm_rank(comm, &map[s].rank));
 
