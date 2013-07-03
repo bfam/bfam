@@ -665,7 +665,7 @@ bfam_subdomain_sbp_intra_glue_init(bfam_subdomain_sbp_intra_glue_t* sub,
   sub->fce_m = face;
 
   /* initialize all the indices to full size */
-  sub->ix = bfam_malloc(2*sub_m->dim);
+  sub->ix = bfam_malloc(2*sub_m->dim*sizeof(bfam_locidx_t));
   for(int d = 0;d < sub_m->dim;d++)
   {
     sub->ix[2*d  ] = sub_m->Nb[2*d];
@@ -718,6 +718,7 @@ bfam_subdomain_sbp_intra_glue_free(bfam_subdomain_t *thisSubdomain)
 {
   bfam_subdomain_sbp_intra_glue_t* sub =
     (bfam_subdomain_sbp_intra_glue_t*) thisSubdomain;
+  bfam_subdomain_free(thisSubdomain);
   bfam_free(sub->ix);
 }
 
