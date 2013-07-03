@@ -324,8 +324,8 @@ test_2d(int rank, int mpi_size)
   const char *scalars[] = {"p1","p2",NULL};
   const char *vectors[] = {"p",NULL};
   const char *components[] = {"p1","p2","p3",NULL};
-  bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
-      tags,"sbp_fields_2d",scalars,vectors,components,0,1);
+  // bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
+  //     tags,"sbp_fields_2d",scalars,vectors,components,0,1);
 
   /* clean up */
   bfam_domain_free(&domain);
@@ -338,7 +338,7 @@ test_3d(int rank, int mpi_size)
   bfam_domain_t domain;
   bfam_domain_init(&domain,MPI_COMM_WORLD);
 
-  int foo   = 40;
+  int foo   = 15;
   int dim   =  3;
 
   const char *names[] = {"sub0","sub1","sub2","sub3","sub4","sub5"};
@@ -400,8 +400,8 @@ test_3d(int rank, int mpi_size)
   const char *scalars[] = {"p1","p2","p3",NULL};
   const char *vectors[] = {"p",NULL};
   const char *components[] = {"p1","p2","p3",NULL};
-  bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
-      tags,"sbp_fields_3d",scalars,vectors,components,1,1);
+  // bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
+  //     tags,"sbp_fields_3d",scalars,vectors,components,1,1);
 
 
   /* clean up */
