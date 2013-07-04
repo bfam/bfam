@@ -80,8 +80,8 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts, bfam_domain_t* dom,
       break;
     case BFAM_TS_LSRK_FE:
       ts->nStages = 1;
-      ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
-      ts->B = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
+      ts->A = bfam_malloc_aligned(sizeof(bfam_long_real_t));
+      ts->B = bfam_malloc_aligned(sizeof(bfam_long_real_t));
       ts->C = bfam_malloc_aligned((ts->nStages+1)*sizeof(bfam_long_real_t));
 
       ts->A[0] = 0.0;
