@@ -3,8 +3,6 @@
 #define REAL_APPROX_EQ(x, y, K)                                              \
   BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, BFAM_REAL_EPS)
 
-static int          refine_level = 0;
-
 void
 run(MPI_Comm mpicomm)
 {
