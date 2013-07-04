@@ -682,23 +682,23 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
 
   int rval;
   rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_x");
-  BFAM_ASSERT(rval == 2);
+  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_x");
   rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_y");
-  BFAM_ASSERT(rval == 2);
+  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_y");
   rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_z");
-  BFAM_ASSERT(rval == 2);
+  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_z");
 
   rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_rx");
-  BFAM_ASSERT(rval == 2);
+  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_rx");
   rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_ry");
-  BFAM_ASSERT(rval == 2);
+  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_ry");
   rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_sx");
-  BFAM_ASSERT(rval == 2);
+  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_sx");
   rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_sy");
-  BFAM_ASSERT(rval == 2);
+  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_sy");
 
   rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_J");
-  BFAM_ASSERT(rval == 2);
+  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_J");
 
   bfam_real_t *restrict x =
     bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_x");
@@ -734,11 +734,11 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   }
 
   rval = bfam_subdomain_dgx_quad_field_face_add(&subdomain->base, "_grid_nx");
-  BFAM_ASSERT(rval == 2);
+  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_nx");
   rval = bfam_subdomain_dgx_quad_field_face_add(&subdomain->base, "_grid_ny");
-  BFAM_ASSERT(rval == 2);
+  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_ny");
   rval = bfam_subdomain_dgx_quad_field_face_add(&subdomain->base, "_grid_sJ");
-  BFAM_ASSERT(rval == 2);
+  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_sJ");
 
   bfam_real_t *restrict nx =
     bfam_dictionary_get_value_ptr(&subdomain->base.fields_face, "_grid_nx");
