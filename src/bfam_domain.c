@@ -203,7 +203,7 @@ bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
   }
 
   // create the key value pair
-  BFAM_VERBOSE("adding subdomain %3d with name %s",
+  BFAM_VERBOSE("adding subdomain %3"BFAM_LOCIDX_PRId" with name %s",
       thisDomain->numSubdomains,newSubdomain->name);
 
   // check if it's already there

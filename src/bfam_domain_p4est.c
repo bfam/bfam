@@ -72,7 +72,7 @@ bfam_domain_p4est_num_parallel_faces(p4est_mesh_t *mesh)
     }
   }
 
-  BFAM_LDEBUG("Counted %zd parallel faces.", (intmax_t)numParallelFaces);
+  BFAM_LDEBUG("Counted %jd parallel faces.", (intmax_t)numParallelFaces);
 
   return numParallelFaces;
 }
@@ -198,7 +198,7 @@ bfam_domain_p4est_parallel_face_mapping(p4est_mesh_t *mesh,
         "np", "nk", "nf", "nh", "gi", "i", "k", "f", "h", "o");
     for(bfam_locidx_t i = 0; i < numParallelFaces; ++i)
     {
-      BFAM_LDEBUG("mapping: %5zd %5zd %5zd %5zd %5zd %5zd %5zd %5zd %5zd %5zd",
+      BFAM_LDEBUG("mapping: %5jd %5jd %5jd %5jd %5jd %5jd %5jd %5jd %5jd %5jd",
           (intmax_t)mapping[i].np,
           (intmax_t)mapping[i].nk,
           (intmax_t)mapping[i].nf,
@@ -289,17 +289,17 @@ bfam_domain_p4est_num_neighbor_faces(bfam_locidx_t numParallelFaces,
     for(bfam_locidx_t n = 0; n < numNeighbors; ++n)
       faces += numNeighborFaces[n];
 
-    BFAM_LDEBUG(" XXX  NumNeighbors %zd", (intmax_t) numNeighbors);
+    BFAM_LDEBUG(" XXX  NumNeighbors %jd", (intmax_t) numNeighbors);
     for(bfam_locidx_t n = 0; n < numNeighbors; ++n)
-      BFAM_LDEBUG(" XXX     neighborFaces[%zd] = %zd", (intmax_t) n,
+      BFAM_LDEBUG(" XXX     neighborFaces[%jd] = %jd", (intmax_t) n,
           (intmax_t) numNeighborFaces[n]);
 
     for(bfam_locidx_t n = 0; n < numNeighbors; ++n)
-      BFAM_LDEBUG(" XXX     neighborRanks[%zd] = %zd", (intmax_t) n,
+      BFAM_LDEBUG(" XXX     neighborRanks[%jd] = %jd", (intmax_t) n,
           (intmax_t) neighborRank[n]);
 
 
-    BFAM_LDEBUG(" XXX  faces: %zd =?= %zd", (intmax_t) faces,
+    BFAM_LDEBUG(" XXX  faces: %jd =?= %jd", (intmax_t) faces,
         (intmax_t) numParallelFaces);
 
     BFAM_ASSERT(faces == numParallelFaces);
@@ -884,7 +884,7 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
   bfam_locidx_t numInterSubdomainFaces =
     bfam_domain_p4est_num_inter_subdomain_faces(mesh, subdomainID);
 
-  BFAM_LDEBUG("numInterSubdomainFaces = %zd", (intmax_t) numInterSubdomainFaces);
+  BFAM_LDEBUG("numInterSubdomainFaces = %jd", (intmax_t) numInterSubdomainFaces);
 
   bfam_subdomain_face_map_entry_t *ifmapping
     = bfam_malloc_aligned(numInterSubdomainFaces*
@@ -900,7 +900,7 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
   bfam_locidx_t numBoundaryFaces =
     bfam_domain_p4est_num_boundary_faces(mesh);
 
-  BFAM_LDEBUG("numBoundaryFaces = %zd", (intmax_t) numBoundaryFaces);
+  BFAM_LDEBUG("numBoundaryFaces = %jd", (intmax_t) numBoundaryFaces);
 
   bfam_subdomain_face_map_entry_t *bfmapping
     = bfam_malloc_aligned(numBoundaryFaces*
