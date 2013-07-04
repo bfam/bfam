@@ -1,4 +1,5 @@
 #include <bfam.h>
+#include "bfam_exam_elasticity_dgx_quad_rhs.h"
 
 #define REAL_APPROX_EQ(x, y, K)                                              \
   BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, BFAM_REAL_EPS)
@@ -94,13 +95,13 @@ static void
 print_order(int N)
 {
 #define X(order) \
-  case order: bfam_elasticity_dgx_quad_print_order_##order(); break;
+  case order: bfam_elasticity_dgx_quad_print_order_##order(N); break;
 
   switch(N)
   {
     BFAM_LIST_OF_DGX_QUAD_NORDERS
     default:
-      bfam_elasticity_dgx_quad_print_order_();
+      bfam_elasticity_dgx_quad_print_order_(N);
       break;
   }
 #undef X
