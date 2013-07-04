@@ -205,18 +205,10 @@ bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
   // create the key value pair
   BFAM_VERBOSE("adding subdomain %3d with name %s",
       thisDomain->numSubdomains,newSubdomain->name);
-  size_t len = strlen(newSubdomain->name);
-
-  char* key = bfam_malloc(sizeof(char)*(len+1));
-  strncpy(key,newSubdomain->name,len);
-  key[len] = '\0';
-
-  char* val = bfam_malloc(sizeof(char)+sizeof(bfam_locidx_t));
-  *((bfam_locidx_t *) (val)) = thisDomain->numSubdomains;
-  val[sizeof(bfam_locidx_t)] = '\0';
 
   // check if it's already there
-  if(1 == bfam_dictionary_insert(&(thisDomain->name2num),key,val))
+  if(1 == bfam_dictionary_insert_locidx(&(thisDomain->name2num),
+        newSubdomain->name,thisDomain->numSubdomains))
   {
     BFAM_ABORT("domain already contains subdomain \"%s\"",
         newSubdomain->name);
@@ -225,9 +217,6 @@ bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
   // add block
   thisDomain->subdomains[thisDomain->numSubdomains] = newSubdomain;
   thisDomain->numSubdomains++;
-
-  bfam_free(key);
-  bfam_free(val);
 }
 
 void
