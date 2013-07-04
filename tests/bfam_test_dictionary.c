@@ -120,11 +120,48 @@ test_contains_ptr()
   bfam_dictionary_clear(&dict);
 }
 
+static void
+test_contains_locidx()
+{
+  bfam_dictionary_t dict;
+  bfam_dictionary_init(&dict);
+
+  static const char *keys[] = {"@^1", "@2","^3","@^44",NULL};
+
+  static const bfam_locidx_t values[] = {1,2,3,44};
+
+  for (unsigned i = 0; keys[i]; ++i)
+    bfam_dictionary_insert_locidx(&dict, keys[i], values[i]);
+
+  for (unsigned i = 0; keys[i]; ++i)
+  {
+    if(1 != bfam_dictionary_insert_locidx(&dict, keys[i], values[i]))
+      BFAM_ABORT("double insert fail");
+  }
+
+  for (unsigned i = 0; keys[i]; ++i)
+  {
+    if (!bfam_dictionary_contains(&dict, keys[i]))
+      BFAM_ABORT("Contains fail");
+  }
+
+  for (unsigned i = 0; keys[i]; ++i)
+  {
+    bfam_locidx_t val;
+    int rval = bfam_dictionary_get_value_locidx(&dict, keys[i], &val);
+    if(rval != 1 || val != values[i])
+      BFAM_ABORT("Return is key fail %d %d %d", rval, val, values[i]);
+  }
+
+  bfam_dictionary_clear(&dict);
+}
+
 int
 main (int argc, char *argv[])
 {
   test_contains();
   test_contains_ptr();
+  test_contains_locidx();
 
   return EXIT_SUCCESS;
 }

@@ -3,6 +3,7 @@
 
 #define BFAM_PTR_STR_LEN 128
 
+#include <bfam_base.h>
 #include <bfam_critbit.h>
 
 typedef struct {
@@ -62,6 +63,23 @@ int bfam_dictionary_insert(bfam_dictionary_t *d, const char *key,
 int bfam_dictionary_insert_ptr(bfam_dictionary_t *d, const char *key,
                                   const void *val);
 
+/** Inserting key and value pair where value is a \c bfam_locidx_t into a
+ * dictionary.
+ *
+ * It takes a dictionary, \a d, and possibly mutates it such that a \c NULL
+ * terminated strings, \a key and \a value \c snprintf'd, is a member on exit.
+ *
+ * \param [in,out] d dictionary
+ * \param [in] key possible key
+ * \param [in] val possible \c bfam_locidx_t
+ * \returns:
+ *   $\cases{ 0 &if {\rm out of memory} \cr
+ *            1 &if {\it key} {\rm was already a member} \cr
+ *            2 &if {\it d} {\rm was mutated successfully}}$.
+ */
+int bfam_dictionary_insert_locidx(bfam_dictionary_t *d, const char *key,
+                                  const bfam_locidx_t val);
+
 /** Return a value given a key
  *
  * It takes a dictionary, \a d, returns a pointer to the value associated with
@@ -87,6 +105,22 @@ char* bfam_dictionary_get_value(bfam_dictionary_t *d, const char *key);
  *          {\rm pointer to value} & if {\it key} {\rm is a member}$
  */
 void* bfam_dictionary_get_value_ptr(bfam_dictionary_t *d, const char *key);
+
+/** Return a value given a key assuming value is a \c bfam_locidx_t.
+ *
+ * It takes a dictionary, \a d, returns a pointer that points to where the
+ * value pointed associated with a \c NULL terminated \a key.
+ *
+ * \param [in]  d dictionary
+ * \param [in]  key possible key
+ * \param [out] val value if function returned \c 1
+ *
+ * \returns:
+ *   $\cases{ \c 0 & if {\it key} {\rm is not a member} \cr
+ *            \c 1 & if {\it key} {\rm is a member}$
+ */
+int bfam_dictionary_get_value_locidx(bfam_dictionary_t *d, const char *key,
+    bfam_locidx_t *val);
 
 /** Clearing a dictionarty.
  *
