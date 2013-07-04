@@ -26,14 +26,14 @@ bfam_subdomain_sbp_new(const bfam_locidx_t     id,
                             const int               dim,
                             const bfam_gloidx_t    *N,
                             const bfam_locidx_t    *Nl,
-                            const bfam_locidx_t    *Nb,
+                            const bfam_locidx_t    *buf_sz,
                             const bfam_gloidx_t    *gx,
                             const bfam_long_real_t *c_x,
                             const bfam_long_real_t *c_y,
                             const bfam_long_real_t *c_z)
 {
   bfam_subdomain_sbp_t *newSub = bfam_malloc(sizeof(bfam_subdomain_sbp_t));
-  bfam_subdomain_sbp_init(newSub,id,sub_ix,sub_N,name,dim,N,Nl,Nb,gx,
+  bfam_subdomain_sbp_init(newSub,id,sub_ix,sub_N,name,dim,N,Nl,buf_sz,gx,
                           c_x,c_y,c_z);
   return newSub;
 }
@@ -58,15 +58,15 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
 
 
   bfam_locidx_t Nl[3] = {0,0,0};
-  bfam_locidx_t Nb[6] = {0,0,0,0,0,0};
+  bfam_locidx_t buf_sz[6] = {0,0,0,0,0,0};
   bfam_locidx_t Nt[3] = {0,0,0};
   bfam_locidx_t gx[3] = {0,0,0};
   for(int d = 0;d < s->dim; d++)
   {
     Nl[d] = s->Nl[d];
-    Nb[2*d  ] = s->Nb[2*d  ];
-    Nb[2*d+1] = s->Nb[2*d+1];
-    Nt[d] = Nb[2*d] + Nl[d] + Nb[2*d+1];
+    buf_sz[2*d  ] = s->buf_sz[2*d  ];
+    buf_sz[2*d+1] = s->buf_sz[2*d+1];
+    Nt[d] = buf_sz[2*d] + Nl[d] + buf_sz[2*d+1];
     gx[d] = s->gx[d];
   }
 
@@ -113,7 +113,7 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
     for(int k = 0; k <= Nl[2]; k++)
       for(int j = 0; j <= Nl[1]; j++)
         memcpy(&storage0[i + (Nl[0]+1)*(j + k*(Nl[1]+1))],
-            &x[i+Nb[0] + (Nt[0]+1)*(j+Nb[2] + (k+Nb[4])*(Nt[1]+1))],
+            &x[i+buf_sz[0] + (Nt[0]+1)*(j+buf_sz[2] + (k+buf_sz[4])*(Nt[1]+1))],
             (Nl[0]+1)*sizeof(bfam_real_t));
   }
   else
@@ -127,7 +127,7 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
     for(int k = 0; k <= Nl[2]; k++)
       for(int j = 0; j <= Nl[1]; j++)
         memcpy(&storage1[i + (Nl[0]+1)*(j + k*(Nl[1]+1))],
-            &y[i+Nb[0] + (Nt[0]+1)*(j+Nb[2] + (k+Nb[4])*(Nt[1]+1))],
+            &y[i+buf_sz[0] + (Nt[0]+1)*(j+buf_sz[2] + (k+buf_sz[4])*(Nt[1]+1))],
             (Nl[0]+1)*sizeof(bfam_real_t));
   }
   else
@@ -141,7 +141,7 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
     for(int k = 0; k <= Nl[2]; k++)
       for(int j = 0; j <= Nl[1]; j++)
         memcpy(&storage2[i + (Nl[0]+1)*(j + k*(Nl[1]+1))],
-            &z[i+Nb[0] + (Nt[0]+1)*(j+Nb[2] + (k+Nb[4])*(Nt[1]+1))],
+            &z[i+buf_sz[0] + (Nt[0]+1)*(j+buf_sz[2] + (k+buf_sz[4])*(Nt[1]+1))],
             (Nl[0]+1)*sizeof(bfam_real_t));
   }
   else
@@ -261,7 +261,7 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
       for(int k = 0; k <= Nl[2]; k++)
         for(int j = 0; j <= Nl[1]; j++)
           memcpy(&storage0[i + (Nl[0]+1)*(j + k*(Nl[1]+1))],
-              &sdata[i+Nb[0] + (Nt[0]+1)*(j+Nb[2] + (k+Nb[4])*(Nt[1]+1))],
+              &sdata[i+buf_sz[0] + (Nt[0]+1)*(j+buf_sz[2] + (k+buf_sz[4])*(Nt[1]+1))],
               (Nl[0]+1)*sizeof(bfam_real_t));
       bfam_vtk_write_real_scalar_data_array(file, scalars[s],
           writeBinary, writeCompressed, Ntot, storage0);
@@ -286,7 +286,7 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
         for(int k = 0; k <= Nl[2]; k++)
           for(int j = 0; j <= Nl[1]; j++)
             memcpy(&storage0[i + (Nl[0]+1)*(j + k*(Nl[1]+1))],
-                &v1[i+Nb[0] + (Nt[0]+1)*(j+Nb[2] + (k+Nb[4])*(Nt[1]+1))],
+                &v1[i+buf_sz[0] + (Nt[0]+1)*(j+buf_sz[2] + (k+buf_sz[4])*(Nt[1]+1))],
                 (Nl[0]+1)*sizeof(bfam_real_t));
       }
       else
@@ -300,7 +300,7 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
         for(int k = 0; k <= Nl[2]; k++)
           for(int j = 0; j <= Nl[1]; j++)
             memcpy(&storage1[i + (Nl[0]+1)*(j + k*(Nl[1]+1))],
-                &v2[i+Nb[0] + (Nt[0]+1)*(j+Nb[2] + (k+Nb[4])*(Nt[1]+1))],
+                &v2[i+buf_sz[0] + (Nt[0]+1)*(j+buf_sz[2] + (k+buf_sz[4])*(Nt[1]+1))],
                 (Nl[0]+1)*sizeof(bfam_real_t));
       }
       else
@@ -314,7 +314,7 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
         for(int k = 0; k <= Nl[2]; k++)
           for(int j = 0; j <= Nl[1]; j++)
             memcpy(&storage2[i + (Nl[0]+1)*(j + k*(Nl[1]+1))],
-                &v3[i+Nb[0] + (Nt[0]+1)*(j+Nb[2] + (k+Nb[4])*(Nt[1]+1))],
+                &v3[i+buf_sz[0] + (Nt[0]+1)*(j+buf_sz[2] + (k+buf_sz[4])*(Nt[1]+1))],
                 (Nl[0]+1)*sizeof(bfam_real_t));
       }
       else
@@ -350,7 +350,7 @@ bfam_subdomain_sbp_field_add(bfam_subdomain_t *subdomain, const char *name)
 
   size_t fieldSize = 1;
   for(int d = 0; d < s->dim; d++)
-    fieldSize *= (s->Nl[d]+1+s->Nb[2*d]+s->Nb[2*d+1]);
+    fieldSize *= (s->Nl[d]+1+s->buf_sz[2*d]+s->buf_sz[2*d+1]);
 
   bfam_real_t *field = bfam_malloc_aligned(fieldSize*sizeof(bfam_real_t));
 
@@ -378,7 +378,7 @@ bfam_subdomain_sbp_field_init(bfam_subdomain_t *subdomain,
 
   size_t fieldSize = 1;
   for(int d = 0; d < s->dim; d++)
-    fieldSize *= (s->Nl[d]+1+s->Nb[2*d]+s->Nb[2*d+1]);
+    fieldSize *= (s->Nl[d]+1+s->buf_sz[2*d]+s->buf_sz[2*d+1]);
 
   bfam_real_t *restrict x =
     bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_x");
@@ -399,7 +399,7 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
                             const int               dim,
                             const bfam_gloidx_t    *N,
                             const bfam_locidx_t    *Nl,
-                            const bfam_locidx_t    *Nb,
+                            const bfam_locidx_t    *buf_sz,
                             const bfam_gloidx_t    *gx,
                             const bfam_long_real_t *c_x,
                             const bfam_long_real_t *c_y,
@@ -421,7 +421,7 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
 
   subdomain->N  = bfam_malloc(  dim*sizeof(bfam_gloidx_t));
   subdomain->Nl = bfam_malloc(  dim*sizeof(bfam_locidx_t));
-  subdomain->Nb = bfam_malloc(2*dim*sizeof(bfam_locidx_t));
+  subdomain->buf_sz = bfam_malloc(2*dim*sizeof(bfam_locidx_t));
   subdomain->gx = bfam_malloc(  dim*sizeof(bfam_gloidx_t));
   bfam_gloidx_t gxb[dim];
 
@@ -432,12 +432,12 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
   {
     subdomain->N [  d  ] = N [  d  ];
     subdomain->Nl[  d  ] = Nl[  d  ];
-    subdomain->Nb[2*d  ] = Nb[2*d  ];
-    subdomain->Nb[2*d+1] = Nb[2*d+1];
+    subdomain->buf_sz[2*d  ] = buf_sz[2*d  ];
+    subdomain->buf_sz[2*d+1] = buf_sz[2*d+1];
     subdomain->gx[  d  ] = gx[  d  ];
-    gxb[d] = gx[d]-Nb[2*d];
+    gxb[d] = gx[d]-buf_sz[2*d];
 
-    Nltmp[d] = (Nb[2*d] + Nl[d] + Nb[2*d+1]);
+    Nltmp[d] = (buf_sz[2*d] + Nl[d] + buf_sz[2*d+1]);
     sz *= (Nltmp[d]+1);
 
     subdomain->sub_ix[d] = sub_ix[d];
@@ -445,7 +445,7 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
     subdomain->loc_id += sub_ix[d]*subdomain->num_id;
     subdomain->num_id *= (sub_N[d]+1);
 
-    BFAM_ABORT_IF(N [d] < 0 || Nl[d] < 0 || Nb[2*d] < 0 || Nb[2*d+1] < 0 ||
+    BFAM_ABORT_IF(N [d] < 0 || Nl[d] < 0 || buf_sz[2*d] < 0 || buf_sz[2*d+1] < 0 ||
                   gx[d] < 0 || gx[d] > N[d] || gx[d]+Nl[d] > N[d],
                   "%s: problem with a dimension %d", d, subdomain->base.name);
   }
@@ -503,7 +503,7 @@ bfam_subdomain_sbp_free(bfam_subdomain_t *subdomain)
 
   bfam_free(sub->N );
   bfam_free(sub->Nl);
-  bfam_free(sub->Nb);
+  bfam_free(sub->buf_sz);
   bfam_free(sub->gx);
   bfam_free(sub->sub_ix);
   bfam_free(sub->sub_N);
@@ -543,38 +543,42 @@ bfam_subdomain_sbp_intra_glue_comm_info(bfam_subdomain_t *thisSubdomain,
   sort[4] = sub->fce_m;
   sort[5] = sub->fce_p;
 
-  size_t sr_num = 1;
+  size_t s_num = 1;
+  size_t r_num = 1;
   for(int d = 0;d < sub_m->dim;d++)
-    sr_num *= (sub->ix[2*d+1]+1-sub->ix[2*d]);
+  {
+    s_num *= (sub->send_ix[2*d+1]+1-sub->send_ix[2*d]);
+    r_num *= (sub->recv_ix[2*d+1]+1-sub->recv_ix[2*d]);
+  }
 
 #ifdef BFAM_DEBUG
   if(sub_m->dim == 2)
   {
-    BFAM_LDEBUG(" r_m %3d r_p %3d Nl[%3d %3d] Nb[%3d %3d %3d %3d]"
-        " ix[%3d %3d %3d %3d] size %3d",
+    BFAM_LDEBUG(" r_m %3d r_p %3d Nl[%3d %3d] buf_sz[%3d %3d %3d %3d]"
+        " send_ix[%3d %3d %3d %3d] size %3d",
         sub->rank_m,sub->rank_p,
         sub_m->Nl[0],sub_m->Nl[1],
-        sub_m->Nb[0],sub_m->Nb[1],sub_m->Nb[2],sub_m->Nb[3],
-        sub->ix[0],sub->ix[1],sub->ix[2],sub->ix[3],
-        sr_num);
+        sub_m->buf_sz[0],sub_m->buf_sz[1],sub_m->buf_sz[2],sub_m->buf_sz[3],
+        sub->send_ix[0],sub->send_ix[1],sub->send_ix[2],sub->send_ix[3],
+        s_num);
   }
   if(sub_m->dim == 3)
   {
-    BFAM_LDEBUG(" r_m %3d r_p %3d Nl[%3d %3d %3d] Nb[%3d %3d %3d %3d %3d %3d]"
-        " ix[%3d %3d %3d %3d %3d %3d] size %3d",
+    BFAM_LDEBUG(" r_m %3d r_p %3d Nl[%3d %3d %3d] buf_sz[%3d %3d %3d %3d %3d %3d]"
+        " send_ix[%3d %3d %3d %3d %3d %3d] size %3d",
         sub->rank_m,sub->rank_p,
         sub_m->Nl[0],sub_m->Nl[1],sub_m->Nl[2],
-        sub_m->Nb[0],sub_m->Nb[1],sub_m->Nb[2],
-        sub_m->Nb[3],sub_m->Nb[4],sub_m->Nb[5],
-        sub->ix[0],sub->ix[1],sub->ix[2],
-        sub->ix[3],sub->ix[4],sub->ix[5],
-        sr_num);
+        sub_m->buf_sz[0],sub_m->buf_sz[1],sub_m->buf_sz[2],
+        sub_m->buf_sz[3],sub_m->buf_sz[4],sub_m->buf_sz[5],
+        sub->send_ix[0],sub->send_ix[1],sub->send_ix[2],
+        sub->send_ix[3],sub->send_ix[4],sub->send_ix[5],
+        r_num);
   }
 #endif
 
 
-  *send_sz  = sub->base.fields_p.num_entries*sr_num*sizeof(bfam_real_t);
-  *recv_sz  = sub->base.fields_m.num_entries*sr_num*sizeof(bfam_real_t);
+  *send_sz  = sub->base.fields_p.num_entries*s_num*sizeof(bfam_real_t);
+  *recv_sz  = sub->base.fields_m.num_entries*r_num*sizeof(bfam_real_t);
 }
 
 static int
@@ -631,9 +635,37 @@ bfam_subdomain_sbp_intra_glue_get_fields_m(const char * key, void *val,
 
   bfam_subdomain_sbp_t *sub_m = data->sub->sub_m;
 
+  bfam_real_t *restrict glue_field = val;
+
   BFAM_ASSERT(sub_m->dim < 4);
 
   // FINISH
+  size_t line_size =  sub->recv_ix[1]+1-sub->recv_ix[0];
+  if(sub_m->dim == 3)
+  {
+    bfam_locidx_t num_x = sub_m->buf_sz[0] + sub_m->Nl[0]+1 + sub_m->buf_sz[1];
+    bfam_locidx_t num_y = sub_m->buf_sz[2] + sub_m->Nl[1]+1 + sub_m->buf_sz[3];
+    int offset = 0;
+    for(int j = sub->recv_ix[2];j < sub->recv_ix[3]+1;j++)
+    {
+      for(int k = sub->recv_ix[4];k < sub->recv_ix[5]+1;k++)
+      {
+      }
+    }
+  }
+  else if(sub_m->dim == 2)
+  {
+    bfam_locidx_t num_x = sub_m->buf_sz[0] + sub_m->Nl[0]+1 + sub_m->buf_sz[1];
+    int offset = 0;
+    for(int j = sub->recv_ix[2];j < sub->recv_ix[3]+1;j++)
+    {
+      offset += line_size;
+    }
+  }
+  else if(sub_m->dim == 1)
+  {
+  }
+  else BFAM_ABORT("must have dim 1, 2, or 3");
 
   return 0;
 }
@@ -657,6 +689,25 @@ bfam_subdomain_sbp_intra_glue_put_send_buffer(bfam_subdomain_t *thisSubdomain,
 }
 
 void
+bfam_subdomain_sbp_intra_glue_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
+    void *buffer, size_t recv_sz)
+{
+  bfam_subdomain_sbp_intra_get_put_data_t data;
+
+  data.sub    = (bfam_subdomain_sbp_intra_glue_t*) thisSubdomain;
+  data.buffer = (bfam_real_t*) buffer;
+  data.size   = recv_sz;
+  data.field  = 0;
+
+  /*
+   * Fill fields_m and the send buffer from sub_m.
+   */
+  // bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
+  //     &bfam_subdomain_sbp_intra_glue_get_fields_m, &data);
+}
+
+
+void
 bfam_subdomain_sbp_intra_glue_init(bfam_subdomain_sbp_intra_glue_t* sub,
                                  const bfam_locidx_t              id,
                                  const char                      *name,
@@ -670,10 +721,10 @@ bfam_subdomain_sbp_intra_glue_init(bfam_subdomain_sbp_intra_glue_t* sub,
   bfam_subdomain_add_tag(&sub->base, "_subdomain_sbp_intra_glue");
 
   sub->base.glue_comm_info = bfam_subdomain_sbp_intra_glue_comm_info;
-  // sub->base.glue_put_send_buffer =
-  //   bfam_subdomain_sbp_intra_glue_put_send_buffer;
-  // sub->base.glue_get_recv_buffer =
-  //   bfam_subdomain_sbp_intra_glue_get_recv_buffer;
+  sub->base.glue_put_send_buffer =
+    bfam_subdomain_sbp_intra_glue_put_send_buffer;
+  sub->base.glue_get_recv_buffer =
+    bfam_subdomain_sbp_intra_glue_get_recv_buffer;
   sub->base.field_minus_add = bfam_subdomain_sbp_intra_glue_field_minus_add;
   sub->base.field_plus_add  = bfam_subdomain_sbp_intra_glue_field_plus_add;
   sub->base.free = bfam_subdomain_sbp_intra_glue_free;
@@ -688,11 +739,14 @@ bfam_subdomain_sbp_intra_glue_init(bfam_subdomain_sbp_intra_glue_t* sub,
   sub->fce_m = face;
 
   /* initialize all the indices to full size */
-  sub->ix = bfam_malloc(2*sub_m->dim*sizeof(bfam_locidx_t));
+  sub->send_ix = bfam_malloc(2*sub_m->dim*sizeof(bfam_locidx_t));
+  sub->recv_ix = bfam_malloc(2*sub_m->dim*sizeof(bfam_locidx_t));
   for(int d = 0;d < sub_m->dim;d++)
   {
-    sub->ix[2*d  ] = sub_m->Nb[2*d];
-    sub->ix[2*d+1] = sub_m->Nb[2*d]+sub_m->Nl[d];
+    sub->send_ix[2*d  ] = sub_m->buf_sz[2*d];
+    sub->send_ix[2*d+1] = sub_m->buf_sz[2*d]+sub_m->Nl[d];
+    sub->recv_ix[2*d  ] = sub_m->buf_sz[2*d];
+    sub->recv_ix[2*d+1] = sub_m->buf_sz[2*d]+sub_m->Nl[d];
   }
 
   sub->id_p  = sub_m->base.id; /* assume we number in the same order! */
@@ -700,33 +754,45 @@ bfam_subdomain_sbp_intra_glue_init(bfam_subdomain_sbp_intra_glue_t* sub,
   {
     case 0 :
       sub->loc_p  = sub_m->loc_id-1;
-      sub->ix[0] = 0;
-      sub->ix[1] = sub_m->Nb[0]-1;
+      sub->send_ix[0] = sub_m->buf_sz[0];
+      sub->send_ix[1] = sub_m->buf_sz[0]+sub_m->buf_sz[0]-1;
+      sub->recv_ix[0] = 0;
+      sub->recv_ix[1] = sub_m->buf_sz[0]-1;
       break;
     case 1 :
       sub->loc_p  = sub_m->loc_id+1;
-      sub->ix[0] = sub_m->Nb[0] + sub_m->Nl[0]+1;
-      sub->ix[1] = sub_m->Nb[0] + sub_m->Nl[0]+1 + sub_m->Nb[1]-1;
+      sub->send_ix[0] = sub_m->buf_sz[0] + sub_m->Nl[0] - sub_m->buf_sz[1];
+      sub->send_ix[1] = sub_m->buf_sz[0] + sub_m->Nl[0]-1;
+      sub->recv_ix[0] = sub_m->buf_sz[0] + sub_m->Nl[0]+1;
+      sub->recv_ix[1] = sub_m->buf_sz[0] + sub_m->Nl[0]+1 + sub_m->buf_sz[1]-1;
       break;
     case 2 :
       sub->loc_p  = sub_m->loc_id-(sub_m->sub_N[0]+1);
-      sub->ix[2] = 0;
-      sub->ix[3] = sub_m->Nb[2]-1;
+      sub->send_ix[2] = sub_m->buf_sz[2];
+      sub->send_ix[3] = sub_m->buf_sz[2]+sub_m->buf_sz[2]-1;
+      sub->recv_ix[2] = 0;
+      sub->recv_ix[3] = sub_m->buf_sz[2]-1;
       break;
     case 3 :
       sub->loc_p  = sub_m->loc_id+(sub_m->sub_N[0]+1);
-      sub->ix[2] = sub_m->Nb[2] + sub_m->Nl[1]+1;
-      sub->ix[3] = sub_m->Nb[2] + sub_m->Nl[1]+1 + sub_m->Nb[3]-1;
+      sub->send_ix[2] = sub_m->buf_sz[2] + sub_m->Nl[1] - sub_m->buf_sz[3];
+      sub->send_ix[3] = sub_m->buf_sz[2] + sub_m->Nl[1]-1;
+      sub->recv_ix[2] = sub_m->buf_sz[2] + sub_m->Nl[1]+1;
+      sub->recv_ix[3] = sub_m->buf_sz[2] + sub_m->Nl[1]+1 + sub_m->buf_sz[3]-1;
       break;
     case 4 :
       sub->loc_p  = sub_m->loc_id-(sub_m->sub_N[0]+1)*(sub_m->sub_N[1]+1);
-      sub->ix[4] = 0;
-      sub->ix[5] = sub_m->Nb[4]-1;
+      sub->send_ix[4] = sub_m->buf_sz[4];
+      sub->send_ix[5] = sub_m->buf_sz[4]+sub_m->buf_sz[4]-1;
+      sub->recv_ix[4] = 0;
+      sub->recv_ix[5] = sub_m->buf_sz[4]-1;
       break;
     case 5 :
       sub->loc_p  = sub_m->loc_id+(sub_m->sub_N[0]+1)*(sub_m->sub_N[1]+1);
-      sub->ix[4] = sub_m->Nb[4] + sub_m->Nl[2]+1;
-      sub->ix[5] = sub_m->Nb[4] + sub_m->Nl[2]+1 + sub_m->Nb[5]-1;
+      sub->send_ix[4] = sub_m->buf_sz[4] + sub_m->Nl[2] - sub_m->buf_sz[5];
+      sub->send_ix[5] = sub_m->buf_sz[4] + sub_m->Nl[2]-1;
+      sub->recv_ix[4] = sub_m->buf_sz[4] + sub_m->Nl[2]+1;
+      sub->recv_ix[5] = sub_m->buf_sz[4] + sub_m->Nl[2]+1 + sub_m->buf_sz[5]-1;
       break;
   }
 
@@ -742,6 +808,7 @@ bfam_subdomain_sbp_intra_glue_free(bfam_subdomain_t *thisSubdomain)
   bfam_subdomain_sbp_intra_glue_t* sub =
     (bfam_subdomain_sbp_intra_glue_t*) thisSubdomain;
   bfam_subdomain_free(thisSubdomain);
-  bfam_free(sub->ix);
+  bfam_free(sub->send_ix);
+  bfam_free(sub->recv_ix);
 }
 

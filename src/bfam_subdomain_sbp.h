@@ -22,7 +22,7 @@
 
 
 
-/*
+/* Nb = buf_sz
  *
  *  (0,N[1])                                                        (N[0],N[1])
  *    +------------------------------------------------------------------+
@@ -60,8 +60,8 @@ typedef struct bfam_subdomain_sbp
   bfam_gloidx_t   *N;   /**< "global" subdomain grid size (size N +1) */
 
   bfam_locidx_t   *Nl;  /**< "local"  subdomain grid size (size Nl+1) */
-  bfam_locidx_t   *Nb;  /**< buffer size in each dimension (+/-) */
-  /* total grid size for malloc is Prod_{i}(Nl[i] + 1 + Nb[2*i] + Nb[2*i+1]) */
+  bfam_locidx_t   *buf_sz;  /**< buffer size in each dimension (+/-) */
+  /* total grid size for malloc is Prod_{i}(Nl[i] + 1 + buf_sz[2*i] + buf_sz[2*i+1]) */
 
   bfam_gloidx_t   *gx;  /**< my global starting indices
                              (corresponds to my data not ghost cells) */
@@ -76,7 +76,7 @@ typedef struct bfam_subdomain_sbp
  * \param [in] dim   dimension of the problem
  * \param [in] N     global grid top indices (size dim)
  * \param [in] Nl    local grid top indices (size dim)
- * \param [in] Nb    number of points in buffer for each edge (size 2*dim)
+ * \param [in] buf_sz    number of points in buffer for each edge (size 2*dim)
  * \param [in] gx    global data index (size dim)
  * \param [in] c_x   pointer to corners x coordinates in z-order (size 2^dim)
  * \param [in] c_y   pointer to corners y coordinates in z-order (size 2^dim)
@@ -95,7 +95,7 @@ bfam_subdomain_sbp_new(const bfam_locidx_t     id,
                             const int               dim,
                             const bfam_gloidx_t    *N,
                             const bfam_locidx_t    *Nl,
-                            const bfam_locidx_t    *Nb,
+                            const bfam_locidx_t    *buf_sz,
                             const bfam_gloidx_t    *gx,
                             const bfam_long_real_t *c_x,
                             const bfam_long_real_t *c_y,
@@ -111,7 +111,7 @@ bfam_subdomain_sbp_new(const bfam_locidx_t     id,
  * \param [in] dim   dimension of the problem
  * \param [in] N     global grid top indices (size dim)
  * \param [in] Nl    local grid top indices (size dim)
- * \param [in] Nb    number of points in buffer for each edge (size 2*dim)
+ * \param [in] buf_sz    number of points in buffer for each edge (size 2*dim)
  * \param [in] gx    global data index (size dim)
  * \param [in] c_x   pointer to corners x coordinates in z-order (size 2^dim)
  * \param [in] c_y   pointer to corners y coordinates in z-order (size 2^dim)
@@ -129,7 +129,7 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
                             const int               dim,
                             const bfam_gloidx_t    *N,
                             const bfam_locidx_t    *Nl,
-                            const bfam_locidx_t    *Nb,
+                            const bfam_locidx_t    *buf_sz,
                             const bfam_gloidx_t    *gx,
                             const bfam_long_real_t *c_x,
                             const bfam_long_real_t *c_y,
@@ -166,7 +166,8 @@ typedef struct bfam_subdomain_sbp_intra_glue
 
   int               face;  /* face of the subdomain being handled */
 
-  bfam_locidx_t     *ix;   /* idices to be communicated in Z-order */
+  bfam_locidx_t     *send_ix;   /* idices to be sent in Z-order */
+  bfam_locidx_t     *recv_ix;   /* idices to be recv in Z-order */
 } bfam_subdomain_sbp_intra_glue_t;
 
 /** create a sbp intra glue subdomain.

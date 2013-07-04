@@ -334,12 +334,22 @@ test_2d(int rank, int mpi_size,MPI_Comm mpicomm)
       0, poly2_field, NULL);
 
   const char *glue[] = {"_intra_glue", NULL};
-  bfam_domain_add_field(&domain, BFAM_DOMAIN_OR, glue, "p1");
-  bfam_domain_add_field(&domain, BFAM_DOMAIN_OR, glue, "p2");
+  bfam_domain_add_minus_field(&domain, BFAM_DOMAIN_OR, glue, "p1");
+  bfam_domain_add_minus_field(&domain, BFAM_DOMAIN_OR, glue, "p2");
+
+  bfam_domain_add_plus_field(&domain, BFAM_DOMAIN_OR, glue, "p1");
+  bfam_domain_add_plus_field(&domain, BFAM_DOMAIN_OR, glue, "p2");
 
   bfam_communicator_t* communicator =
     bfam_communicator_new(&domain, BFAM_DOMAIN_OR, glue,
         mpicomm, 10);
+
+  /* start recv_send */
+  bfam_communicator_start(communicator);
+
+  /* finish recv */
+  bfam_communicator_finish(communicator);
+
 
   /* dump the entire mesh */
   // const char *tags[] = {NULL};
@@ -418,9 +428,13 @@ test_3d(int rank, int mpi_size, MPI_Comm mpicomm)
 
 
   const char *glue[] = {"_intra_glue", NULL};
-  bfam_domain_add_field(&domain, BFAM_DOMAIN_OR, glue, "p1");
-  bfam_domain_add_field(&domain, BFAM_DOMAIN_OR, glue, "p2");
-  bfam_domain_add_field(&domain, BFAM_DOMAIN_OR, glue, "p3");
+  bfam_domain_add_minus_field(&domain, BFAM_DOMAIN_OR, glue, "p1");
+  bfam_domain_add_minus_field(&domain, BFAM_DOMAIN_OR, glue, "p2");
+  bfam_domain_add_minus_field(&domain, BFAM_DOMAIN_OR, glue, "p3");
+
+  bfam_domain_add_plus_field(&domain, BFAM_DOMAIN_OR, glue, "p1");
+  bfam_domain_add_plus_field(&domain, BFAM_DOMAIN_OR, glue, "p2");
+  bfam_domain_add_plus_field(&domain, BFAM_DOMAIN_OR, glue, "p3");
 
   bfam_communicator_t* communicator =
     bfam_communicator_new(&domain, BFAM_DOMAIN_OR, glue,
