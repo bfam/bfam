@@ -18,6 +18,8 @@
 #include <unistd.h>
 #include <signal.h>
 
+#include <inttypes.h>
+
 #include <sys/types.h>
 #include <execinfo.h>
 #include <errno.h>
@@ -252,6 +254,8 @@ typedef int32_t bfam_locidx_t;
 #define BFAM_LOCIDX_VTK "Int32"
 #define BFAM_LOCIDX_MIN INT32_MIN
 #define BFAM_LOCIDX_MAX INT32_MAX
+#define BFAM_LOCIDX_PRId PRId32
+#define BFAM_LOCIDX_SCNd SCNd32
 
 /* Type for globally unique indexing */
 typedef int64_t bfam_gloidx_t;
@@ -259,6 +263,8 @@ typedef int64_t bfam_gloidx_t;
 #define BFAM_GLOIDX_VTK "Int64"
 #define BFAM_GLOIDX_MIN INT64_MIN
 #define BFAM_GLOIDX_MAX INT64_MAX
+#define BFAM_GLOIDX_PRId PRId64
+#define BFAM_GLOIDX_SCNd SCNd64
 
 /** Abort function.
  *
