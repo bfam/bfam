@@ -1,6 +1,38 @@
 #include <bfam.h>
 #include <bfam_subdomain_sbp.h>
 
+void
+zero_buffer(bfam_real_t* field,bfam_subdomain_sbp_t *sub)
+{
+  bfam_locidx_t ix[6] = {0,0,0,0,0,0};
+  bfam_locidx_t bx[6] = {0,0,0,0,0,0};
+  for(int d = 0;d < sub->dim;d++)
+  {
+    ix[2*d  ] = sub->buf_sz[2*d];
+    ix[2*d+1] = sub->buf_sz[2*d]+sub->Nl[d];
+    bx[2*d+1] = sub->buf_sz[2*d]+sub->Nl[d]+sub->buf_sz[2*d+1];
+  }
+
+  int nx = bx[1]-bx[0]+1;
+  int ny = bx[3]-bx[2]+1;
+  for(int k = 0; k <= bx[5]; k++)
+    for(int j = 0; j <= bx[3]; j++)
+      for(int i = 0; i <= bx[1]; i++)
+        if(i<ix[0] && ix[2]<j && j<ix[3] && ix[4]<k && k<ix[5])
+          field[i+nx*(j+ny*k)] = 0;
+        else if(ix[1]<i && ix[2]<j && j<ix[3] && ix[4]<k && k<ix[5])
+          field[i+nx*(j+ny*k)] = 1;
+        else if(ix[0]<i && i<ix[1] && j<ix[2] && ix[4]<k && k<ix[5])
+          field[i+nx*(j+ny*k)] = 2;
+        else if(ix[0]<i && i<ix[1] && ix[3]<j && ix[4]<k && k<ix[5])
+          field[i+nx*(j+ny*k)] = 3;
+        else if(ix[0]<i && i<ix[1] && ix[2]<j && j<ix[3] && k<ix[4])
+          field[i+nx*(j+ny*k)] = 4;
+        else if(ix[0]<i && i<ix[1] && ix[2]<j && j<ix[3] && ix[5]<k)
+          field[i+nx*(j+ny*k)] = 5;
+}
+
+
 static void
 poly1_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
     bfam_real_t *restrict y, bfam_real_t *restrict z,
@@ -17,6 +49,31 @@ poly1_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
   else
     for(bfam_locidx_t n=0; n < npoints; ++n)
       field[n] = -x[n] - y[n] - z[n];
+
+  zero_buffer(field,(bfam_subdomain_sbp_t*)s);
+}
+
+static void
+poly1_field_check(bfam_locidx_t npoints, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(field, 32);
+
+  if(z == NULL)
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      BFAM_ABORT_IF_NOT(field[n] == -x[n] - y[n],
+          "poly1_field_check failed on %d got %f expected %f",
+          n, field[n],-x[n]-y[n]);
+  else
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      BFAM_ABORT_IF_NOT(field[n] == -x[n] - y[n] - z[n],
+          "poly1_field_check failed on %d got %f expected %f",
+          n, field[n],-x[n]-y[n]-z[n]);
+
 }
 
 static void
@@ -35,6 +92,32 @@ poly2_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
   else
     for(bfam_locidx_t n=0; n < npoints; ++n)
       field[n] = x[n] + y[n] + z[n];
+
+  zero_buffer(field,(bfam_subdomain_sbp_t*)s);
+}
+
+static void
+poly2_field_check(bfam_locidx_t npoints, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(field, 32);
+
+  if(z == NULL)
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      BFAM_ABORT_IF_NOT(field[n] == x[n] + y[n],
+          "poly2_field_check failed on %d got %f expected %f",
+          n,field[n],x[n]+y[n]);
+  else
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      BFAM_ABORT_IF_NOT(field[n] == x[n] + y[n] + z[n],
+          "poly2_field_check failed on %d got %f expected %f",
+          n,field[n],x[n]+y[n]+z[n]);
+
+  zero_buffer(field,(bfam_subdomain_sbp_t*)s);
 }
 
 static void
@@ -50,6 +133,28 @@ poly3_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
   BFAM_ASSERT(z != NULL);
   for(bfam_locidx_t n=0; n < npoints; ++n)
     field[n] = x[n] + y[n] - z[n];
+
+  zero_buffer(field,(bfam_subdomain_sbp_t*)s);
+}
+
+
+static void
+poly3_field_check(bfam_locidx_t npoints, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(field, 32);
+
+  BFAM_ASSERT(z != NULL);
+  for(bfam_locidx_t n=0; n < npoints; ++n)
+    BFAM_ABORT_IF_NOT(field[n] == x[n] + y[n] - z[n],
+        "poly3_field_check failed on %d got %f expected %f",
+        n,field[n],x[n]+y[n]-z[n]);
+
+  zero_buffer(field,(bfam_subdomain_sbp_t*)s);
 }
 
 
@@ -350,9 +455,15 @@ test_2d(int rank, int mpi_size,MPI_Comm mpicomm)
   /* finish recv */
   bfam_communicator_finish(communicator);
 
+  /* check values */
+  bfam_domain_init_field(&domain, BFAM_DOMAIN_OR, volume, "p1",
+      0, poly1_field_check, NULL);
+  bfam_domain_init_field(&domain, BFAM_DOMAIN_OR, volume, "p2",
+      0, poly2_field_check, NULL);
+
 
   /* dump the entire mesh */
-  // const char *tags[] = {NULL};
+  // const char *tags[] = {"_volume",NULL};
   // const char *scalars[] = {"p1","p2",NULL};
   // const char *vectors[] = {"p",NULL};
   // const char *components[] = {"p1","p2","p3",NULL};
@@ -446,8 +557,17 @@ test_3d(int rank, int mpi_size, MPI_Comm mpicomm)
   /* finish recv */
   bfam_communicator_finish(communicator);
 
+
+  /* check the comm results */
+  bfam_domain_init_field(&domain, BFAM_DOMAIN_OR, volume, "p1",
+      0, poly1_field_check, NULL);
+  bfam_domain_init_field(&domain, BFAM_DOMAIN_OR, volume, "p2",
+      0, poly2_field_check, NULL);
+  bfam_domain_init_field(&domain, BFAM_DOMAIN_OR, volume, "p3",
+      0, poly3_field_check, NULL);
+
   /* dump the entire mesh */
-  // const char *tags[] = {NULL};
+  // const char *tags[] = {"_volume",NULL};
   // const char *scalars[] = {"p1","p2","p3",NULL};
   // const char *vectors[] = {"p",NULL};
   // const char *components[] = {"p1","p2","p3",NULL};

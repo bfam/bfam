@@ -689,6 +689,7 @@ bfam_subdomain_sbp_intra_glue_get_fields_m(const char * key, void *val,
   }
   else BFAM_ABORT("must have dim 1, 2, or 3");
 
+  data->field++;
   return 0;
 }
 
@@ -769,6 +770,7 @@ bfam_subdomain_sbp_intra_glue_put_fields_p(const char * key, void *val,
   }
   else BFAM_ABORT("must have dim 1, 2, or 3");
 
+  data->field++;
   return 0;
 }
 
@@ -843,69 +845,82 @@ bfam_subdomain_sbp_intra_glue_init(bfam_subdomain_sbp_intra_glue_t* sub,
   {
     case 0 :
       sub->loc_p  = sub_m->loc_id-1;
+
       sub->send_nm /= (sub->send_ix[1]+1-sub->send_ix[0]);
       sub->recv_nm /= (sub->recv_ix[1]+1-sub->recv_ix[0]);
-      sub->send_ix[0] = sub_m->buf_sz[0];
-      sub->send_ix[1] = sub_m->buf_sz[0]+sub_m->buf_sz[0]-1;
+      sub->send_nm *= sub_m->buf_sz[0];
+      sub->recv_nm *= sub_m->buf_sz[0];
+
       sub->recv_ix[0] = 0;
-      sub->recv_ix[1] = sub_m->buf_sz[0]-1;
-      sub->send_nm *= (sub->send_ix[1]+1-sub->send_ix[0]);
-      sub->recv_nm *= (sub->recv_ix[1]+1-sub->recv_ix[0]);
+      sub->recv_ix[1] = sub_m->buf_sz[0]-1 + sub->recv_ix[0];
+      sub->send_ix[0] = sub_m->buf_sz[0]   + sub->recv_ix[0] ;
+      sub->send_ix[1] = sub_m->buf_sz[0]   + sub->recv_ix[1] ;
       break;
     case 1 :
       sub->loc_p  = sub_m->loc_id+1;
+
       sub->send_nm /= (sub->send_ix[1]+1-sub->send_ix[0]);
       sub->recv_nm /= (sub->recv_ix[1]+1-sub->recv_ix[0]);
-      sub->send_ix[0] = sub_m->buf_sz[0] + sub_m->Nl[0] - sub_m->buf_sz[1];
-      sub->send_ix[1] = sub_m->buf_sz[0] + sub_m->Nl[0]-1;
+      sub->send_nm *= sub_m->buf_sz[1];
+      sub->recv_nm *= sub_m->buf_sz[1];
+
       sub->recv_ix[0] = sub_m->buf_sz[0] + sub_m->Nl[0]+1;
-      sub->recv_ix[1] = sub_m->buf_sz[0] + sub_m->Nl[0]+1 + sub_m->buf_sz[1]-1;
-      sub->send_nm *= (sub->send_ix[1]+1-sub->send_ix[0]);
-      sub->recv_nm *= (sub->recv_ix[1]+1-sub->recv_ix[0]);
+      sub->recv_ix[1] = sub_m->buf_sz[1]-1 + sub->recv_ix[0];
+      sub->send_ix[0] = sub->recv_ix[0] - sub_m->buf_sz[1];
+      sub->send_ix[1] = sub->recv_ix[1] - sub_m->buf_sz[1];
       break;
     case 2 :
       sub->loc_p  = sub_m->loc_id-(sub_m->sub_N[0]+1);
+
       sub->send_nm /= (sub->send_ix[3]+1-sub->send_ix[2]);
       sub->recv_nm /= (sub->recv_ix[3]+1-sub->recv_ix[2]);
-      sub->send_ix[2] = sub_m->buf_sz[2];
-      sub->send_ix[3] = sub_m->buf_sz[2]+sub_m->buf_sz[2]-1;
+      sub->send_nm *= sub_m->buf_sz[2];
+      sub->recv_nm *= sub_m->buf_sz[2];
+
       sub->recv_ix[2] = 0;
-      sub->recv_ix[3] = sub_m->buf_sz[2]-1;
-      sub->send_nm *= (sub->send_ix[3]+1-sub->send_ix[2]);
-      sub->recv_nm *= (sub->recv_ix[3]+1-sub->recv_ix[2]);
+      sub->recv_ix[3] = sub_m->buf_sz[2]-1 + sub->recv_ix[2];
+      sub->send_ix[2] = sub_m->buf_sz[2]   + sub->recv_ix[2] ;
+      sub->send_ix[3] = sub_m->buf_sz[2]   + sub->recv_ix[3] ;
       break;
     case 3 :
       sub->loc_p  = sub_m->loc_id+(sub_m->sub_N[0]+1);
+
       sub->send_nm /= (sub->send_ix[3]+1-sub->send_ix[2]);
       sub->recv_nm /= (sub->recv_ix[3]+1-sub->recv_ix[2]);
-      sub->send_ix[2] = sub_m->buf_sz[2] + sub_m->Nl[1] - sub_m->buf_sz[3];
-      sub->send_ix[3] = sub_m->buf_sz[2] + sub_m->Nl[1]-1;
+      sub->send_nm *= sub_m->buf_sz[3];
+      sub->recv_nm *= sub_m->buf_sz[3];
+
       sub->recv_ix[2] = sub_m->buf_sz[2] + sub_m->Nl[1]+1;
-      sub->recv_ix[3] = sub_m->buf_sz[2] + sub_m->Nl[1]+1 + sub_m->buf_sz[3]-1;
-      sub->send_nm *= (sub->send_ix[3]+1-sub->send_ix[2]);
-      sub->recv_nm *= (sub->recv_ix[3]+1-sub->recv_ix[2]);
+      sub->recv_ix[3] = sub_m->buf_sz[3]-1 + sub->recv_ix[2];
+      sub->send_ix[2] = sub->recv_ix[2] - sub_m->buf_sz[3];
+      sub->send_ix[3] = sub->recv_ix[3] - sub_m->buf_sz[3];
       break;
     case 4 :
       sub->loc_p  = sub_m->loc_id-(sub_m->sub_N[0]+1)*(sub_m->sub_N[1]+1);
+
       sub->send_nm /= (sub->send_ix[5]+1-sub->send_ix[4]);
       sub->recv_nm /= (sub->recv_ix[5]+1-sub->recv_ix[4]);
-      sub->send_ix[4] = sub_m->buf_sz[4];
-      sub->send_ix[5] = sub_m->buf_sz[4]+sub_m->buf_sz[4]-1;
+      sub->send_nm *= sub_m->buf_sz[4];
+      sub->recv_nm *= sub_m->buf_sz[4];
+
       sub->recv_ix[4] = 0;
-      sub->recv_ix[5] = sub_m->buf_sz[4]-1;
-      sub->send_nm *= (sub->send_ix[5]+1-sub->send_ix[4]);
-      sub->recv_nm *= (sub->recv_ix[5]+1-sub->recv_ix[4]);
+      sub->recv_ix[5] = sub_m->buf_sz[4]-1 + sub->recv_ix[4];
+      sub->send_ix[4] = sub_m->buf_sz[4]   + sub->recv_ix[4] ;
+      sub->send_ix[5] = sub_m->buf_sz[4]   + sub->recv_ix[5] ;
+
       break;
     case 5 :
       sub->loc_p  = sub_m->loc_id+(sub_m->sub_N[0]+1)*(sub_m->sub_N[1]+1);
+
       sub->send_nm /= (sub->send_ix[5]+1-sub->send_ix[4]);
       sub->recv_nm /= (sub->recv_ix[5]+1-sub->recv_ix[4]);
-      sub->send_ix[4] = sub_m->buf_sz[4] + sub_m->Nl[2] - sub_m->buf_sz[5];
-      sub->send_ix[5] = sub_m->buf_sz[4] + sub_m->Nl[2]-1;
+      sub->send_nm *= sub_m->buf_sz[5];
+      sub->recv_nm *= sub_m->buf_sz[5];
+
       sub->recv_ix[4] = sub_m->buf_sz[4] + sub_m->Nl[2]+1;
-      sub->recv_ix[5] = sub_m->buf_sz[4] + sub_m->Nl[2]+1 + sub_m->buf_sz[5]-1;
-      sub->send_nm *= (sub->send_ix[5]+1-sub->send_ix[4]);
-      sub->recv_nm *= (sub->recv_ix[5]+1-sub->recv_ix[4]);
+      sub->recv_ix[5] = sub_m->buf_sz[5]-1 + sub->recv_ix[4];
+      sub->send_ix[4] = sub->recv_ix[4] - sub_m->buf_sz[5];
+      sub->send_ix[5] = sub->recv_ix[5] - sub_m->buf_sz[5];
       break;
   }
 
