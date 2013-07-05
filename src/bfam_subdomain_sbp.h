@@ -168,6 +168,9 @@ typedef struct bfam_subdomain_sbp_intra_glue
 
   bfam_locidx_t     *send_ix;   /* idices to be sent in Z-order */
   bfam_locidx_t     *recv_ix;   /* idices to be recv in Z-order */
+
+  size_t            send_nm;
+  size_t            recv_nm;
 } bfam_subdomain_sbp_intra_glue_t;
 
 /** create a sbp intra glue subdomain.

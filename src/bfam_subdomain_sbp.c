@@ -486,7 +486,7 @@ static int
 bfam_subdomain_sbp_free_fields(const char * key, void *val,
     void *arg)
 {
-  bfam_free_aligned(val);
+  if(val != NULL) bfam_free_aligned(val);
 
   return 1;
 }
@@ -497,6 +497,12 @@ bfam_subdomain_sbp_free(bfam_subdomain_t *subdomain)
   bfam_subdomain_sbp_t *sub = (bfam_subdomain_sbp_t*) subdomain;
 
   bfam_dictionary_allprefixed_ptr(&sub->base.fields,"",
+      &bfam_subdomain_sbp_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_p,"",
+      &bfam_subdomain_sbp_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_m,"",
+      &bfam_subdomain_sbp_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_face,"",
       &bfam_subdomain_sbp_free_fields,NULL);
 
   bfam_subdomain_free(subdomain);
@@ -633,37 +639,53 @@ bfam_subdomain_sbp_intra_glue_get_fields_m(const char * key, void *val,
 
   bfam_subdomain_sbp_intra_glue_t *sub = data->sub;
 
+  const size_t buffer_offset = data->field * sub->send_nm;
+  bfam_real_t *restrict send_field = data->buffer + buffer_offset;
+
   bfam_subdomain_sbp_t *sub_m = data->sub->sub_m;
 
-  bfam_real_t *restrict glue_field = val;
+  const bfam_real_t *restrict sub_m_field =
+    bfam_dictionary_get_value_ptr(&sub->sub_m->base.fields, key);
 
   BFAM_ASSERT(sub_m->dim < 4);
 
-  // FINISH
-  size_t line_size =  sub->recv_ix[1]+1-sub->recv_ix[0];
+  BFAM_ASSERT( send_field != NULL);
+  BFAM_ASSERT(sub_m_field != NULL);
+
+  BFAM_ASSUME_ALIGNED(sub_m_field, 32);
+
+  /* length of line being copied */
+  size_t line_size =  sub->send_ix[1]+1-sub->send_ix[0];
   if(sub_m->dim == 3)
   {
     bfam_locidx_t num_x = sub_m->buf_sz[0] + sub_m->Nl[0]+1 + sub_m->buf_sz[1];
     bfam_locidx_t num_y = sub_m->buf_sz[2] + sub_m->Nl[1]+1 + sub_m->buf_sz[3];
-    int offset = 0;
-    for(int j = sub->recv_ix[2];j < sub->recv_ix[3]+1;j++)
+    const int i = sub->send_ix[0];
+    for(int j = sub->send_ix[2];j < sub->send_ix[3]+1;j++)
     {
-      for(int k = sub->recv_ix[4];k < sub->recv_ix[5]+1;k++)
+      for(int k = sub->send_ix[4];k < sub->send_ix[5]+1;k++)
       {
+        memcpy(send_field,sub_m_field+(i+num_x*(j+num_y*k)),
+            line_size * sizeof(bfam_real_t));
+        send_field += line_size;
       }
     }
   }
   else if(sub_m->dim == 2)
   {
     bfam_locidx_t num_x = sub_m->buf_sz[0] + sub_m->Nl[0]+1 + sub_m->buf_sz[1];
-    int offset = 0;
-    for(int j = sub->recv_ix[2];j < sub->recv_ix[3]+1;j++)
+    const int i = sub->send_ix[0];
+    for(int j = sub->send_ix[2];j < sub->send_ix[3]+1;j++)
     {
-      offset += line_size;
+      memcpy(send_field,sub_m_field+(i+num_x*j),
+          line_size * sizeof(bfam_real_t));
+      send_field += line_size;
     }
   }
   else if(sub_m->dim == 1)
   {
+    const int i = sub->send_ix[0];
+    memcpy(send_field,sub_m_field+i,line_size * sizeof(bfam_real_t));
   }
   else BFAM_ABORT("must have dim 1, 2, or 3");
 
@@ -688,6 +710,68 @@ bfam_subdomain_sbp_intra_glue_put_send_buffer(bfam_subdomain_t *thisSubdomain,
       &bfam_subdomain_sbp_intra_glue_get_fields_m, &data);
 }
 
+static int
+bfam_subdomain_sbp_intra_glue_put_fields_p(const char * key, void *val,
+    void *arg)
+{
+  bfam_subdomain_sbp_intra_get_put_data_t *data =
+    (bfam_subdomain_sbp_intra_get_put_data_t*) arg;
+
+  bfam_subdomain_sbp_intra_glue_t *sub = data->sub;
+
+  const size_t buffer_offset = data->field * sub->recv_nm;
+  bfam_real_t *restrict recv_field = data->buffer + buffer_offset;
+
+  bfam_subdomain_sbp_t *sub_m = data->sub->sub_m;
+
+  bfam_real_t *restrict sub_m_field =
+    bfam_dictionary_get_value_ptr(&sub->sub_m->base.fields, key);
+
+  BFAM_ASSERT(sub_m->dim < 4);
+
+  BFAM_ASSERT( recv_field != NULL);
+  BFAM_ASSERT(sub_m_field != NULL);
+
+  BFAM_ASSUME_ALIGNED(sub_m_field, 32);
+
+  /* length of line being copied */
+  size_t line_size =  sub->recv_ix[1]+1-sub->recv_ix[0];
+  if(sub_m->dim == 3)
+  {
+    bfam_locidx_t num_x = sub_m->buf_sz[0] + sub_m->Nl[0]+1 + sub_m->buf_sz[1];
+    bfam_locidx_t num_y = sub_m->buf_sz[2] + sub_m->Nl[1]+1 + sub_m->buf_sz[3];
+    const int i = sub->recv_ix[0];
+    for(int j = sub->recv_ix[2];j < sub->recv_ix[3]+1;j++)
+    {
+      for(int k = sub->recv_ix[4];k < sub->recv_ix[5]+1;k++)
+      {
+        memcpy(sub_m_field+(i+num_x*(j+num_y*k)),recv_field,
+            line_size * sizeof(bfam_real_t));
+        recv_field += line_size;
+      }
+    }
+  }
+  else if(sub_m->dim == 2)
+  {
+    bfam_locidx_t num_x = sub_m->buf_sz[0] + sub_m->Nl[0]+1 + sub_m->buf_sz[1];
+    const int i = sub->recv_ix[0];
+    for(int j = sub->recv_ix[2];j < sub->recv_ix[3]+1;j++)
+    {
+      memcpy(sub_m_field+(i+num_x*j),recv_field,
+          line_size * sizeof(bfam_real_t));
+      recv_field += line_size;
+    }
+  }
+  else if(sub_m->dim == 1)
+  {
+    const int i = sub->recv_ix[0];
+    memcpy(sub_m_field+i,recv_field,line_size * sizeof(bfam_real_t));
+  }
+  else BFAM_ABORT("must have dim 1, 2, or 3");
+
+  return 0;
+}
+
 void
 bfam_subdomain_sbp_intra_glue_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
     void *buffer, size_t recv_sz)
@@ -702,8 +786,8 @@ bfam_subdomain_sbp_intra_glue_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
   /*
    * Fill fields_m and the send buffer from sub_m.
    */
-  // bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
-  //     &bfam_subdomain_sbp_intra_glue_get_fields_m, &data);
+  bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
+      &bfam_subdomain_sbp_intra_glue_put_fields_p, &data);
 }
 
 
@@ -741,12 +825,17 @@ bfam_subdomain_sbp_intra_glue_init(bfam_subdomain_sbp_intra_glue_t* sub,
   /* initialize all the indices to full size */
   sub->send_ix = bfam_malloc(2*sub_m->dim*sizeof(bfam_locidx_t));
   sub->recv_ix = bfam_malloc(2*sub_m->dim*sizeof(bfam_locidx_t));
+  sub->send_nm = 1;
+  sub->recv_nm = 1;
   for(int d = 0;d < sub_m->dim;d++)
   {
     sub->send_ix[2*d  ] = sub_m->buf_sz[2*d];
     sub->send_ix[2*d+1] = sub_m->buf_sz[2*d]+sub_m->Nl[d];
     sub->recv_ix[2*d  ] = sub_m->buf_sz[2*d];
     sub->recv_ix[2*d+1] = sub_m->buf_sz[2*d]+sub_m->Nl[d];
+
+    sub->send_nm *= (sub->send_ix[2*d+1]+1-sub->send_ix[2*d]);
+    sub->recv_nm *= (sub->recv_ix[2*d+1]+1-sub->recv_ix[2*d]);
   }
 
   sub->id_p  = sub_m->base.id; /* assume we number in the same order! */
@@ -754,45 +843,69 @@ bfam_subdomain_sbp_intra_glue_init(bfam_subdomain_sbp_intra_glue_t* sub,
   {
     case 0 :
       sub->loc_p  = sub_m->loc_id-1;
+      sub->send_nm /= (sub->send_ix[1]+1-sub->send_ix[0]);
+      sub->recv_nm /= (sub->recv_ix[1]+1-sub->recv_ix[0]);
       sub->send_ix[0] = sub_m->buf_sz[0];
       sub->send_ix[1] = sub_m->buf_sz[0]+sub_m->buf_sz[0]-1;
       sub->recv_ix[0] = 0;
       sub->recv_ix[1] = sub_m->buf_sz[0]-1;
+      sub->send_nm *= (sub->send_ix[1]+1-sub->send_ix[0]);
+      sub->recv_nm *= (sub->recv_ix[1]+1-sub->recv_ix[0]);
       break;
     case 1 :
       sub->loc_p  = sub_m->loc_id+1;
+      sub->send_nm /= (sub->send_ix[1]+1-sub->send_ix[0]);
+      sub->recv_nm /= (sub->recv_ix[1]+1-sub->recv_ix[0]);
       sub->send_ix[0] = sub_m->buf_sz[0] + sub_m->Nl[0] - sub_m->buf_sz[1];
       sub->send_ix[1] = sub_m->buf_sz[0] + sub_m->Nl[0]-1;
       sub->recv_ix[0] = sub_m->buf_sz[0] + sub_m->Nl[0]+1;
       sub->recv_ix[1] = sub_m->buf_sz[0] + sub_m->Nl[0]+1 + sub_m->buf_sz[1]-1;
+      sub->send_nm *= (sub->send_ix[1]+1-sub->send_ix[0]);
+      sub->recv_nm *= (sub->recv_ix[1]+1-sub->recv_ix[0]);
       break;
     case 2 :
       sub->loc_p  = sub_m->loc_id-(sub_m->sub_N[0]+1);
+      sub->send_nm /= (sub->send_ix[3]+1-sub->send_ix[2]);
+      sub->recv_nm /= (sub->recv_ix[3]+1-sub->recv_ix[2]);
       sub->send_ix[2] = sub_m->buf_sz[2];
       sub->send_ix[3] = sub_m->buf_sz[2]+sub_m->buf_sz[2]-1;
       sub->recv_ix[2] = 0;
       sub->recv_ix[3] = sub_m->buf_sz[2]-1;
+      sub->send_nm *= (sub->send_ix[3]+1-sub->send_ix[2]);
+      sub->recv_nm *= (sub->recv_ix[3]+1-sub->recv_ix[2]);
       break;
     case 3 :
       sub->loc_p  = sub_m->loc_id+(sub_m->sub_N[0]+1);
+      sub->send_nm /= (sub->send_ix[3]+1-sub->send_ix[2]);
+      sub->recv_nm /= (sub->recv_ix[3]+1-sub->recv_ix[2]);
       sub->send_ix[2] = sub_m->buf_sz[2] + sub_m->Nl[1] - sub_m->buf_sz[3];
       sub->send_ix[3] = sub_m->buf_sz[2] + sub_m->Nl[1]-1;
       sub->recv_ix[2] = sub_m->buf_sz[2] + sub_m->Nl[1]+1;
       sub->recv_ix[3] = sub_m->buf_sz[2] + sub_m->Nl[1]+1 + sub_m->buf_sz[3]-1;
+      sub->send_nm *= (sub->send_ix[3]+1-sub->send_ix[2]);
+      sub->recv_nm *= (sub->recv_ix[3]+1-sub->recv_ix[2]);
       break;
     case 4 :
       sub->loc_p  = sub_m->loc_id-(sub_m->sub_N[0]+1)*(sub_m->sub_N[1]+1);
+      sub->send_nm /= (sub->send_ix[5]+1-sub->send_ix[4]);
+      sub->recv_nm /= (sub->recv_ix[5]+1-sub->recv_ix[4]);
       sub->send_ix[4] = sub_m->buf_sz[4];
       sub->send_ix[5] = sub_m->buf_sz[4]+sub_m->buf_sz[4]-1;
       sub->recv_ix[4] = 0;
       sub->recv_ix[5] = sub_m->buf_sz[4]-1;
+      sub->send_nm *= (sub->send_ix[5]+1-sub->send_ix[4]);
+      sub->recv_nm *= (sub->recv_ix[5]+1-sub->recv_ix[4]);
       break;
     case 5 :
       sub->loc_p  = sub_m->loc_id+(sub_m->sub_N[0]+1)*(sub_m->sub_N[1]+1);
+      sub->send_nm /= (sub->send_ix[5]+1-sub->send_ix[4]);
+      sub->recv_nm /= (sub->recv_ix[5]+1-sub->recv_ix[4]);
       sub->send_ix[4] = sub_m->buf_sz[4] + sub_m->Nl[2] - sub_m->buf_sz[5];
       sub->send_ix[5] = sub_m->buf_sz[4] + sub_m->Nl[2]-1;
       sub->recv_ix[4] = sub_m->buf_sz[4] + sub_m->Nl[2]+1;
       sub->recv_ix[5] = sub_m->buf_sz[4] + sub_m->Nl[2]+1 + sub_m->buf_sz[5]-1;
+      sub->send_nm *= (sub->send_ix[5]+1-sub->send_ix[4]);
+      sub->recv_nm *= (sub->recv_ix[5]+1-sub->recv_ix[4]);
       break;
   }
 
@@ -807,7 +920,18 @@ bfam_subdomain_sbp_intra_glue_free(bfam_subdomain_t *thisSubdomain)
 {
   bfam_subdomain_sbp_intra_glue_t* sub =
     (bfam_subdomain_sbp_intra_glue_t*) thisSubdomain;
+
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields,"",
+      &bfam_subdomain_sbp_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_p,"",
+      &bfam_subdomain_sbp_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_m,"",
+      &bfam_subdomain_sbp_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_face,"",
+      &bfam_subdomain_sbp_free_fields,NULL);
+
   bfam_subdomain_free(thisSubdomain);
+
   bfam_free(sub->send_ix);
   bfam_free(sub->recv_ix);
 }

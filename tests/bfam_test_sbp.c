@@ -440,6 +440,12 @@ test_3d(int rank, int mpi_size, MPI_Comm mpicomm)
     bfam_communicator_new(&domain, BFAM_DOMAIN_OR, glue,
         mpicomm, 10);
 
+  /* start recv_send */
+  bfam_communicator_start(communicator);
+
+  /* finish recv */
+  bfam_communicator_finish(communicator);
+
   /* dump the entire mesh */
   // const char *tags[] = {NULL};
   // const char *scalars[] = {"p1","p2","p3",NULL};
