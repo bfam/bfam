@@ -300,17 +300,19 @@ simple_load_balance(bfam_locidx_t *procs,const bfam_gloidx_t *N,
 void
 setup_subdomains(bfam_domain_t *domain,
     int dim, int num_blocks, bfam_locidx_t bufsz,int rank,const char **names,
-    const bfam_locidx_t *procs,const bfam_gloidx_t *EtoV,
+    const bfam_locidx_t *procs,
+    const bfam_gloidx_t *EtoV,const bfam_gloidx_t *EtoE,const int8_t *EtoF,
     const bfam_gloidx_t *N, const bfam_long_real_t* Vx,
     const bfam_long_real_t *Vy, const bfam_long_real_t *Vz)
 {
-  int ncorn = (int)pow(2,dim);
+  const int num_corners = (int)pow(2,dim);
+  const int num_face = 2*dim;
   bfam_long_real_t *x = NULL;
   bfam_long_real_t *y = NULL;
   bfam_long_real_t *z = NULL;
-  if(dim > 0) x = bfam_malloc_aligned(ncorn*sizeof(bfam_long_real_t));
-  if(dim > 1) y = bfam_malloc_aligned(ncorn*sizeof(bfam_long_real_t));
-  if(dim > 2) z = bfam_malloc_aligned(ncorn*sizeof(bfam_long_real_t));
+  if(dim > 0) x = bfam_malloc_aligned(num_corners*sizeof(bfam_long_real_t));
+  if(dim > 1) y = bfam_malloc_aligned(num_corners*sizeof(bfam_long_real_t));
+  if(dim > 2) z = bfam_malloc_aligned(num_corners*sizeof(bfam_long_real_t));
   for(int b = 0; b < num_blocks;b++)
   {
     if(procs[2*b] <= rank && rank <= procs[2*b+1])
@@ -337,9 +339,9 @@ setup_subdomains(bfam_domain_t *domain,
       simple_partition(Nl,gx,Nb,face_neigh,bx,pd,&N[dim*b],
           l_size,l_rank,bufsz,dim);
 
-      for(int ix = 0; ix < ncorn; ix++)
+      for(int ix = 0; ix < num_corners; ix++)
       {
-        int V = EtoV[ncorn*b+ix];
+        int V = EtoV[num_corners*b+ix];
         if(x != NULL) x[ix] = Vx[V];
         if(y != NULL) y[ix] = Vy[V];
         if(z != NULL) z[ix] = Vz[V];
@@ -369,6 +371,12 @@ setup_subdomains(bfam_domain_t *domain,
             bfam_subdomain_add_tag((bfam_subdomain_t*)glue,"_intra_glue");
             bfam_domain_add_subdomain(domain,(bfam_subdomain_t*)glue);
         }
+        else
+        {
+          bfam_gloidx_t neigh  = EtoE[b*num_face+2*d];
+          bfam_gloidx_t n_face = EtoF[b*num_face+2*d]%num_face;
+          bfam_gloidx_t orient = EtoF[b*num_face+2*d]/num_face;
+        }
 
         /* plus face */
         if(face_neigh[2*d+1] != l_rank)
@@ -380,6 +388,12 @@ setup_subdomains(bfam_domain_t *domain,
                 rank,face_neigh[2*d+1]+procs[2*b],sub,2*d+1);
             bfam_subdomain_add_tag((bfam_subdomain_t*)glue,"_intra_glue");
             bfam_domain_add_subdomain(domain,(bfam_subdomain_t*)glue);
+        }
+        else
+        {
+          bfam_gloidx_t neigh  = EtoE[b*num_face+2*d+1];
+          bfam_gloidx_t n_face = EtoF[b*num_face+2*d+1]%num_face;
+          bfam_gloidx_t orient = EtoF[b*num_face+2*d+1]/num_face;
         }
       }
     }
@@ -407,12 +421,12 @@ test_2d(int rank, int mpi_size,MPI_Comm mpicomm)
   bfam_gloidx_t   EtoV[] = {0,1,3,4,
                             1,2,4,5,
                             3,4,6,5};
-  // bfam_gloidx_t   EtoE[] = {0,1,0,2,
-  //                           0,1,1,2,
-  //                           2,1,0,2};
-  // bfam_locidx_t   EtoF[] = {0,0,2,2,
-  //                           1,1,2,1,
-  //                           2,3,3,3};
+  bfam_gloidx_t   EtoE[] = {0,1,0,2,
+                            0,1,1,2,
+                            2,1,0,2};
+  int8_t          EtoF[] = {0,0,2,2,
+                            1,1,2,1,
+                            2,3,3,3};
   bfam_gloidx_t      N[] = {1*foo,2*foo,
                             3*foo,2*foo,
                             1*foo,3*foo};
@@ -426,7 +440,7 @@ test_2d(int rank, int mpi_size,MPI_Comm mpicomm)
 
   /* setup subdomains */
   setup_subdomains(&domain,dim,num_blocks,bufsz,rank,
-      names,procs,EtoV,N,Vx,Vy,Vz);
+      names,procs,EtoV,EtoE,EtoF,N,Vx,Vy,Vz);
 
   /* put in some fields */
   const char *volume[] = {"_volume", NULL};
@@ -507,6 +521,22 @@ test_3d(int rank, int mpi_size, MPI_Comm mpicomm)
     13+foo,14+foo,15+foo,
     16+foo,17+foo,18+foo
   };
+  const bfam_gloidx_t EtoE[6 * 6] = {
+    0, 2, 0, 0, 0, 3,
+    1, 2, 1, 1, 1, 1,
+    2, 5, 1, 2, 2, 0,
+    3, 0, 3, 4, 3, 3,
+    4, 4, 3, 4, 5, 4,
+    4, 5, 5, 5, 5, 2,
+  };
+  const int8_t EtoF[6 * 6] = {
+    0, 5, 2, 3, 4, 13,
+    0, 2, 2, 3, 4, 5,
+    0, 23, 1, 3, 4, 1,
+    0, 17, 2, 8, 4, 5,
+    0, 1, 9, 3, 12, 5,
+    16, 1, 2, 3, 4, 19,
+  };
 
   const bfam_long_real_t Vx[26] =
     {0,1,2,0,1,2,1,2,1,2,2,1,2,0,1,0,0,1,1,0,2.5,2,2,2,2.5,2};
@@ -522,7 +552,7 @@ test_3d(int rank, int mpi_size, MPI_Comm mpicomm)
 
   /* setup subdomains */
   setup_subdomains(&domain,dim,num_blocks,bufsz,rank,
-      names,procs,EtoV,N,Vx,Vy,Vz);
+      names,procs,EtoV,EtoE,EtoF,N,Vx,Vy,Vz);
 
   /* put in some fields */
   const char *volume[] = {"_volume", NULL};
