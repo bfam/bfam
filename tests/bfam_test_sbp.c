@@ -377,24 +377,37 @@ setup_subdomains(bfam_domain_t *domain,
             bfam_locidx_t neigh  = EToE[b*num_face+face];
             int8_t n_face = EToF[b*num_face+face]%num_face;
             int8_t orient = EToF[b*num_face+face]/num_face;
-            switch(BFAM_P8EST_ORIENTATION(face,n_face,orient))
+            if(dim == 2)
             {
-              case 0:
-                break;
-              case 1:
-                break;
-              case 2:
-                break;
-              case 3:
-                break;
-              case 4:
-                break;
-              case 5:
-                break;
-              case 6:
-                break;
-              case 7:
-                break;
+              switch(orient)
+              {
+                case 0:
+                  break;
+                case 1:
+                  break;
+              }
+            }
+            else
+            {
+              switch(BFAM_P8EST_ORIENTATION(face,n_face,orient))
+              {
+                case 0:
+                  break;
+                case 1:
+                  break;
+                case 2:
+                  break;
+                case 3:
+                  break;
+                case 4:
+                  break;
+                case 5:
+                  break;
+                case 6:
+                  break;
+                case 7:
+                  break;
+              }
             }
           }
       }
