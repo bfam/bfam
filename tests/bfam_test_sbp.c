@@ -301,7 +301,7 @@ void
 setup_subdomains(bfam_domain_t *domain,
     int dim, int num_blocks, bfam_locidx_t bufsz,int rank,const char **names,
     const bfam_locidx_t *procs,
-    const bfam_gloidx_t *EtoV,const bfam_gloidx_t *EtoE,const int8_t *EtoF,
+    const bfam_gloidx_t *EToV,const bfam_gloidx_t *EToE,const int8_t *EToF,
     const bfam_gloidx_t *N, const bfam_long_real_t* Vx,
     const bfam_long_real_t *Vy, const bfam_long_real_t *Vz)
 {
@@ -341,7 +341,7 @@ setup_subdomains(bfam_domain_t *domain,
 
       for(int ix = 0; ix < num_corners; ix++)
       {
-        int V = EtoV[num_corners*b+ix];
+        int V = EToV[num_corners*b+ix];
         if(x != NULL) x[ix] = Vx[V];
         if(y != NULL) y[ix] = Vy[V];
         if(z != NULL) z[ix] = Vz[V];
@@ -373,9 +373,9 @@ setup_subdomains(bfam_domain_t *domain,
         }
         else
         {
-          bfam_gloidx_t neigh  = EtoE[b*num_face+2*d];
-          bfam_gloidx_t n_face = EtoF[b*num_face+2*d]%num_face;
-          bfam_gloidx_t orient = EtoF[b*num_face+2*d]/num_face;
+          bfam_gloidx_t neigh  = EToE[b*num_face+2*d];
+          bfam_gloidx_t n_face = EToF[b*num_face+2*d]%num_face;
+          bfam_gloidx_t orient = EToF[b*num_face+2*d]/num_face;
         }
 
         /* plus face */
@@ -391,9 +391,9 @@ setup_subdomains(bfam_domain_t *domain,
         }
         else
         {
-          bfam_gloidx_t neigh  = EtoE[b*num_face+2*d+1];
-          bfam_gloidx_t n_face = EtoF[b*num_face+2*d+1]%num_face;
-          bfam_gloidx_t orient = EtoF[b*num_face+2*d+1]/num_face;
+          bfam_gloidx_t neigh  = EToE[b*num_face+2*d+1];
+          bfam_gloidx_t n_face = EToF[b*num_face+2*d+1]%num_face;
+          bfam_gloidx_t orient = EToF[b*num_face+2*d+1]/num_face;
         }
       }
     }
@@ -418,13 +418,13 @@ test_2d(int rank, int mpi_size,MPI_Comm mpicomm)
 
   int foo   = 100;
   int dim   =  2;
-  bfam_gloidx_t   EtoV[] = {0,1,3,4,
+  bfam_gloidx_t   EToV[] = {0,1,3,4,
                             1,2,4,5,
                             3,4,6,5};
-  bfam_gloidx_t   EtoE[] = {0,1,0,2,
+  bfam_gloidx_t   EToE[] = {0,1,0,2,
                             0,1,1,2,
                             2,1,0,2};
-  int8_t          EtoF[] = {0,0,2,2,
+  int8_t          EToF[] = {0,0,2,2,
                             1,1,2,1,
                             2,3,3,3};
   bfam_gloidx_t      N[] = {1*foo,2*foo,
@@ -440,7 +440,7 @@ test_2d(int rank, int mpi_size,MPI_Comm mpicomm)
 
   /* setup subdomains */
   setup_subdomains(&domain,dim,num_blocks,bufsz,rank,
-      names,procs,EtoV,EtoE,EtoF,N,Vx,Vy,Vz);
+      names,procs,EToV,EToE,EToF,N,Vx,Vy,Vz);
 
   /* put in some fields */
   const char *volume[] = {"_volume", NULL};
@@ -505,7 +505,7 @@ test_3d(int rank, int mpi_size, MPI_Comm mpicomm)
 
   /* connectivity from p8est_connectivity_new_rotcubes */
   bfam_locidx_t num_blocks = 6;
-  const bfam_gloidx_t EtoV[6 * 8] = {
+  const bfam_gloidx_t EToV[6 * 8] = {
     0, 17, 3, 4, 15, 11, 13, 14,
     7, 2, 6, 17, 9, 12, 8, 11,
     2, 12, 5, 10, 17, 11, 4, 14,
@@ -521,7 +521,7 @@ test_3d(int rank, int mpi_size, MPI_Comm mpicomm)
     13+foo,14+foo,15+foo,
     16+foo,17+foo,18+foo
   };
-  const bfam_gloidx_t EtoE[6 * 6] = {
+  const bfam_gloidx_t EToE[6 * 6] = {
     0, 2, 0, 0, 0, 3,
     1, 2, 1, 1, 1, 1,
     2, 5, 1, 2, 2, 0,
@@ -529,7 +529,7 @@ test_3d(int rank, int mpi_size, MPI_Comm mpicomm)
     4, 4, 3, 4, 5, 4,
     4, 5, 5, 5, 5, 2,
   };
-  const int8_t EtoF[6 * 6] = {
+  const int8_t EToF[6 * 6] = {
     0, 5, 2, 3, 4, 13,
     0, 2, 2, 3, 4, 5,
     0, 23, 1, 3, 4, 1,
@@ -552,7 +552,7 @@ test_3d(int rank, int mpi_size, MPI_Comm mpicomm)
 
   /* setup subdomains */
   setup_subdomains(&domain,dim,num_blocks,bufsz,rank,
-      names,procs,EtoV,EtoE,EtoF,N,Vx,Vy,Vz);
+      names,procs,EToV,EToE,EToF,N,Vx,Vy,Vz);
 
   /* put in some fields */
   const char *volume[] = {"_volume", NULL};
