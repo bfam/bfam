@@ -266,6 +266,94 @@ typedef int64_t bfam_gloidx_t;
 #define BFAM_GLOIDX_PRId PRId64
 #define BFAM_GLOIDX_SCNd SCNd64
 
+/* conversions between p4est and standard orientation */
+static const int8_t bfam_p8est_FToF_code[6][6] = {{0,1,1,0,0,1},
+                                                  {2,0,0,1,1,0},
+                                                  {2,0,0,1,1,0},
+                                                  {0,2,2,0,0,1},
+                                                  {0,2,2,0,0,1},
+                                                  {2,0,0,2,2,0}};
+
+static const int8_t bfam_p8est_code_to_perm[3][4] = {{1,2,5,6},
+                                                     {0,3,4,7},
+                                                     {0,4,3,7}};
+
+static const int8_t bfam_p8est_perm_to_order[8][4] = {{0,1,2,3},
+                                                      {0,2,1,3},
+                                                      {1,0,3,2},
+                                                      {1,3,0,2},
+                                                      {2,0,3,1},
+                                                      {2,3,0,1},
+                                                      {3,1,2,0},
+                                                      {3,2,1,0}};
+
+/** BFAM_P8EST_ORIENTATION
+ * f    my face
+ * nf   neighbor face
+ * o    p8est orientation code
+ */
+#define BFAM_P8EST_ORIENTATION(f,nf,o) \
+  (bfam_p8est_FToF_perm[o][bfam_p8est_FToF_code[nf][f]])
+
+/*
+ * orientation 0:
+ *   2---3     2---3
+ *   |   | --> |   |
+ *   0---1     0---1
+ *   same:
+ *   (a,b) --> (a,b)
+ *
+ * orientation 1:
+ *   2---3     1---3
+ *   |   | --> |   |
+ *   0---1     0---2
+ *   switch indices:
+ *   (a,b) --> (b,a)
+ *
+ * orientation 2:
+ *   2---3     3---2
+ *   |   | --> |   |
+ *   0---1     1---0
+ *   reverse first index:
+ *   (a,b) --> (Na-a,b)
+ *
+ * orientation 3:
+ *   2---3     0---2
+ *   |   | --> |   |
+ *   0---1     1---3
+ *   reverse first index and switch:
+ *   (a,b) --> (b,Na-a)
+ *
+ * orientation 4:
+ *   2---3     3---1
+ *   |   | --> |   |
+ *   0---1     2---0
+ *   reverse second index and switch:
+ *   (a,b) --> (Nb-b,a)
+ *
+ * orientation 5:
+ *   2---3     0---1
+ *   |   | --> |   |
+ *   0---1     2---3
+ *   reverse second index:
+ *   (a,b) --> (a,Nb-b)
+ *
+ * orientation 6:
+ *   2---3     2---0
+ *   |   | --> |   |
+ *   0---1     3---1
+ *   reverse both and switch:
+ *   (a,b) --> (Nb-b,Na-a)
+ *
+ * orientation 7:
+ *   2---3     1---0
+ *   |   | --> |   |
+ *   0---1     3---2
+ *   reverse both:
+ *   (a,b) --> (Na-a,Nb-b)
+ */
+
+
 /** Abort function.
  *
  * This call will abort the program.
