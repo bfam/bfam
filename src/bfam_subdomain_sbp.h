@@ -172,8 +172,8 @@ typedef struct bfam_subdomain_sbp_intra_glue
   bfam_locidx_t     *send_ix;   /* idices to be sent in Z-order */
   bfam_locidx_t     *recv_ix;   /* idices to be recv in Z-order */
 
-  size_t            send_nm;
-  size_t            recv_nm;
+  size_t            field_size_m;
+  size_t            field_size_p;
 } bfam_subdomain_sbp_intra_glue_t;
 
 /** create a sbp intra glue subdomain.
@@ -247,11 +247,8 @@ typedef struct bfam_subdomain_sbp_inter_glue
   bfam_locidx_t     *ix;    /* face index I work with */
   int               orient; /* orientation of my neighbor */
 
-  bfam_locidx_t     *send_ix;   /* idices to be sent in Z-order */
-  bfam_locidx_t     *recv_ix;   /* idices to be recv in Z-order */
-
-  size_t            send_nm;
-  size_t            recv_nm;
+  size_t            field_size_m;
+  size_t            field_size_p;
 } bfam_subdomain_sbp_inter_glue_t;
 
 /** create a sbp inter glue subdomain.
