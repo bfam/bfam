@@ -234,6 +234,12 @@ typedef struct bfam_subdomain_sbp_inter_glue
   bfam_locidx_t     id_m;   /* Subdomain ID on the minus side */
   bfam_locidx_t     id_p;   /* Subdomain ID on the plus  side */
 
+  bfam_locidx_t     loc_m;   /* local subdomain ID on the minus side */
+  bfam_locidx_t     loc_p;   /* local subdomain ID on the plus side */
+
+  bfam_locidx_t     fce_m;   /* face / corner / edge ID on the minus side */
+  bfam_locidx_t     fce_p;   /* face / corner / edge ID on the plus side */
+
   bfam_subdomain_sbp_t *sub_m;  /* Local neighboring subdomain */
 
   int               face;   /* face of the subdomain being handled */
@@ -258,6 +264,9 @@ typedef struct bfam_subdomain_sbp_inter_glue
  * \param [in]     ix          global face indices being handled by this glue
  * \param [in]     face        face being handled
  * \param [in]     orient      orientation code for neigh (see bfam_base.h)
+ * \param [in]     id_p        plus sides id
+ * \param [in]     loc_p       plus sides local id
+ * \param [in]     face_p      plus sides face
  *
  * \return Initialized dg quad glue subdomain
  *
@@ -270,7 +279,10 @@ bfam_subdomain_sbp_inter_glue_new(const bfam_locidx_t              id,
                                  bfam_subdomain_sbp_t            *sub_m,
                                  const bfam_gloidx_t             *ix,
                                  const int                        face,
-                                 const int                        orient);
+                                 const int                        orient,
+                                 bfam_locidx_t                    id_p,
+                                 bfam_locidx_t                    loc_p,
+                                 bfam_locidx_t                    face_p);
 
 /** create a sbp inter glue subdomain.
  *
@@ -283,6 +295,9 @@ bfam_subdomain_sbp_inter_glue_new(const bfam_locidx_t              id,
  * \param [in]     ix           global face indices being handled by this glue
  * \param [in]     face         face being handled
  * \param [in]     orient       orientation code for neigh (see bfam_base.h)
+ * \param [in]     id_p        plus sides id
+ * \param [in]     loc_p       plus sides local id
+ * \param [in]     face_p      plus sides face
  *
  */
 void
@@ -294,7 +309,10 @@ bfam_subdomain_sbp_inter_glue_init(bfam_subdomain_sbp_inter_glue_t  *subdomain,
                                    bfam_subdomain_sbp_t            *sub_m,
                                    const bfam_gloidx_t             *ix,
                                    const int                        face,
-                                   const int                        orient);
+                                   const int                        orient,
+                                   bfam_locidx_t                    id_p,
+                                   bfam_locidx_t                    loc_p,
+                                   bfam_locidx_t                    face_p);
 
 /** free up the memory allocated by the subdomain
  *

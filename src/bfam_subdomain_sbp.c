@@ -959,12 +959,15 @@ bfam_subdomain_sbp_inter_glue_new(const bfam_locidx_t              id,
                                  bfam_subdomain_sbp_t            *sub_m,
                                  const bfam_gloidx_t             *ix,
                                  const int                        face,
-                                 const int                        orient)
+                                 const int                        orient,
+                                 bfam_locidx_t                    id_p,
+                                 bfam_locidx_t                    loc_p,
+                                 bfam_locidx_t                    face_p)
 {
   bfam_subdomain_sbp_inter_glue_t *newSub =
     bfam_malloc(sizeof(bfam_subdomain_sbp_inter_glue_t));
   bfam_subdomain_sbp_inter_glue_init(newSub,id,name,rank_m,rank_p,sub_m,ix,face,
-      orient);
+      orient,id_p,loc_p,face_p);
   return newSub;
 }
 
@@ -977,7 +980,10 @@ bfam_subdomain_sbp_inter_glue_init(bfam_subdomain_sbp_inter_glue_t* sub,
                                  bfam_subdomain_sbp_t            *sub_m,
                                  const bfam_gloidx_t             *ix,
                                  const int                        face,
-                                 const int                        orient)
+                                 const int                        orient,
+                                 bfam_locidx_t                    id_p,
+                                 bfam_locidx_t                    loc_p,
+                                 bfam_locidx_t                    face_p)
 {
   bfam_subdomain_init(&sub->base, id, name);
   bfam_subdomain_add_tag(&sub->base, "_subdomain_sbp");
@@ -997,6 +1003,14 @@ bfam_subdomain_sbp_inter_glue_init(bfam_subdomain_sbp_inter_glue_t* sub,
   sub->sub_m  = sub_m;
   sub->face   = face;
   sub->orient = orient;
+
+  sub->id_m  = sub_m->base.id;
+  sub->loc_m = sub_m->loc_id;
+  sub->fce_m = face;
+
+  sub->id_p = id_p;
+  sub->loc_p = loc_p;
+  sub->fce_p = face_p;
 
   sub->ix = bfam_malloc(sub_m->dim*2*sizeof(bfam_gloidx_t));
   for(int d = 0; d < sub_m->dim;d++)
