@@ -381,6 +381,7 @@ setup_subdomains(bfam_domain_t *domain,
             if(face == n_face && neigh == b)
             {
               //boundary
+              BFAM_VERBOSE("BOUNDARY: %s",glue_name);
             }
             else
             {
@@ -425,6 +426,17 @@ setup_subdomains(bfam_domain_t *domain,
                  * neighbors */
                 bfam_gloidx_t m_ix[2] = {gx[m_mask],gx[m_mask]+Nl[m_mask]};
 
+                int n_pd_ix[2] = {0,0};
+                switch(n_face)
+                {
+                  case 1:
+                    n_pd_ix[0] = n_pd[0]-1;
+                    break;
+                  case 3:
+                    n_pd_ix[1] = n_pd[1]-1;
+                    break;
+                }
+
                 for(int nr = 0; nr < n_pd[n_mask];nr++)
                 {
                   bfam_locidx_t n_Nl = -1;
@@ -435,7 +447,7 @@ setup_subdomains(bfam_domain_t *domain,
                   simple_partition_1d(&n_Nl,&n_gx,n_Nb,n_N,n_pd[n_mask],nr,0);
                   if(orient==1)
                   {
-                    n_gx = n_N - (n_gx-n_Nl);
+                    n_gx = n_N - (n_gx+n_Nl);
                     bfam_locidx_t tmp = n_Nb[1];
                     n_Nb[1] = n_Nb[0];
                     n_Nb[0] = tmp;
@@ -444,20 +456,24 @@ setup_subdomains(bfam_domain_t *domain,
                   /* determine overlap */
                   bfam_gloidx_t n_ix[2] = {n_gx,n_gx+n_Nl};
                   bfam_gloidx_t glue_ix[2] =
-                    {BFAM_MIN(n_ix[0],m_ix[0]),BFAM_MAX(n_ix[1],m_ix[1])};
+                    {BFAM_MAX(n_ix[0],m_ix[0]),BFAM_MIN(n_ix[1],m_ix[1])};
                   bfam_gloidx_t glue_size = glue_ix[1]+1-glue_ix[0];
 
                   if(glue_size > 0)
                   {
+                    n_pd_ix[n_mask] = nr;
+                    bfam_locidx_t n_rank = procs[2*neigh]
+                                         + (n_pd_ix[0]+n_pd_ix[1]*n_pd[0]);
                     /* determine overlap */
                     char tmp_name[BFAM_BUFSIZ];
                     snprintf(tmp_name,BFAM_BUFSIZ,"%s_piece_%d",glue_name,nr);
                     bfam_subdomain_sbp_inter_glue_t* glue =
                       bfam_subdomain_sbp_inter_glue_new(glue_id,tmp_name,
-                          rank,nr+procs[2*neigh],sub,glue_ix,face,orient);
+                          rank,n_rank,sub,glue_ix,face,orient);
                     bfam_subdomain_add_tag((bfam_subdomain_t*)glue,
                                            "_inter_glue");
                     bfam_domain_add_subdomain(domain,(bfam_subdomain_t*)glue);
+                    BFAM_VERBOSE("me: %3d %3d",glue_ix[0],glue_ix[1]);
                   }
                 }
               }
@@ -513,16 +529,16 @@ test_2d(int rank, int mpi_size,MPI_Comm mpicomm)
   int dim   =  2;
   bfam_locidx_t   EToV[] = {0,1,3,4,
                             1,2,4,5,
-                            3,4,6,5};
+                            4,5,3,6};
   bfam_locidx_t   EToE[] = {0,1,0,2,
                             0,1,1,2,
-                            2,1,0,2};
-  int8_t          EToF[] = {0,0,2,2,
-                            1,1,2,1,
-                            0,3,3,3};
+                            0,2,1,2};
+  int8_t          EToF[] = {0,0,2,0+4,
+                            1,1,2,2+4,
+                            3+4,1,3+4,3};
   bfam_gloidx_t      N[] = {100,110,
                             120,110,
-                            100,120};
+                            120,100};
   bfam_long_real_t  Vx[] = {0,0.25,1,  0,0.25,0.5,0};
   bfam_long_real_t  Vy[] = {0,   0,0,0.5,0.25,0.5,1};
   bfam_long_real_t *Vz   = NULL;
@@ -570,12 +586,12 @@ test_2d(int rank, int mpi_size,MPI_Comm mpicomm)
 
 
   /* dump the entire mesh */
-  // const char *tags[] = {"_volume",NULL};
-  // const char *scalars[] = {"p1","p2",NULL};
-  // const char *vectors[] = {"p",NULL};
-  // const char *components[] = {"p1","p2","p3",NULL};
-  // bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
-  //     tags,"sbp_fields_2d",scalars,vectors,components,0,1);
+  const char *tags[] = {"_volume",NULL};
+  const char *scalars[] = {"p1","p2",NULL};
+  const char *vectors[] = {"p",NULL};
+  const char *components[] = {"p1","p2","p3",NULL};
+  bfam_vtk_write_struc_file(&domain,BFAM_DOMAIN_AND,
+      tags,"sbp_fields_2d",scalars,vectors,components,0,1);
 
   /* clean up */
   bfam_communicator_free(communicator);
