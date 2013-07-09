@@ -360,14 +360,15 @@ setup_subdomains(bfam_domain_t *domain,
       /* add subdomain glue grid */
       for(int d = 0; d < dim; d++)
       {
-        for(int face = 2*d;face<2*d+2;face++)\
+        for(int face = 2*d;face<2*d+2;face++)
         {
+          char glue_name[BFAM_BUFSIZ];
+          snprintf(glue_name,BFAM_BUFSIZ,"%s_face_%d",names[b],face);
+          bfam_locidx_t glue_id = b+num_blocks*face;
           if(face_neigh[face] != l_rank)
           {
-            char name[BFAM_BUFSIZ];
-            snprintf(name,BFAM_BUFSIZ,"%s_face_%d",names[b],face);
             bfam_subdomain_sbp_intra_glue_t* glue =
-              bfam_subdomain_sbp_intra_glue_new(b+num_blocks*face,name,
+              bfam_subdomain_sbp_intra_glue_new(glue_id,glue_name,
                   rank,face_neigh[face]+procs[2*b],sub,face);
             bfam_subdomain_add_tag((bfam_subdomain_t*)glue,"_intra_glue");
             bfam_domain_add_subdomain(domain,(bfam_subdomain_t*)glue);
@@ -383,37 +384,80 @@ setup_subdomains(bfam_domain_t *domain,
             }
             else
             {
+              int m_mask = 0;
+              switch(face)
+              {
+                case 0:
+                case 1:
+                  m_mask = 1;
+                  break;
+                case 2:
+                case 3:
+                  m_mask = 0;
+                  break;
+              }
+              int n_mask = 0;
+              switch(n_face)
+              {
+                case 0:
+                case 1:
+                  n_mask = 1;
+                  break;
+                case 2:
+                case 3:
+                  n_mask = 0;
+                  break;
+              }
               if(dim == 2)
               {
                 int n_pd[2] = {0,0};
                 bfam_locidx_t n_size = procs[2*neigh+1]-procs[2*neigh]+1;
-                bfam_gloidx_t n_N = N[dim*neigh + n_face/2];
                 BFAM_MPI_CHECK(MPI_Dims_create(n_size, 2, n_pd));
 
-                BFAM_ABORT_IF_NOT(N[dim*b+face/2] == n_N,
-                    "Cannot connect %3d face %3d with %3d face %3d. "
-                    "Non-conforming not implemented.",b,face,neigh,n_face);
+                bfam_gloidx_t n_N = N[dim*neigh + n_mask];
+                BFAM_ABORT_IF_NOT(N[dim*b+m_mask] == n_N,
+                    "Cannot connect %3d face %3d of size %d with "
+                    "%3d face %3d of size %d. "
+                    "Non-conforming not implemented.",b,face,N[dim*b+m_mask],
+                    neigh,n_face,n_N);
 
-                /* sx are the smallest and largest indices I need from my
+                /* m_ix are the smallest and largest indices I need from my
                  * neighbors */
-                bfam_gloidx_t sx[2] = {gx[face/2],gx[face/2]+Nl[face/2]};
+                bfam_gloidx_t m_ix[2] = {gx[m_mask],gx[m_mask]+Nl[m_mask]};
 
-                /* reverse orientation */
-                if(orient==1)
-                {
-                  sx[0] = n_N - (gx[face/2]+Nl[face/2]);
-                  sx[1] = n_N -  gx[face/2];
-                }
-                for(int nr = 0; nr < n_pd[n_face/2];nr++)
+                for(int nr = 0; nr < n_pd[n_mask];nr++)
                 {
                   bfam_locidx_t n_Nl = -1;
                   bfam_gloidx_t n_gx = -1;
                   bfam_locidx_t n_Nb[2] = {-1,-1};
-                  simple_partition_1d(&n_Nl,&n_gx,n_Nb,n_N,n_pd[n_face/2],nr,0);
-                  if(sx[0] <= n_gx+n_Nl && n_gx <= sx[1])
+
+                  /* determine neighbors orientation and flip if needed */
+                  simple_partition_1d(&n_Nl,&n_gx,n_Nb,n_N,n_pd[n_mask],nr,0);
+                  if(orient==1)
                   {
-                    // overlap
-                    BFAM_VERBOSE("overlap");
+                    n_gx = n_N - (n_gx-n_Nl);
+                    bfam_locidx_t tmp = n_Nb[1];
+                    n_Nb[1] = n_Nb[0];
+                    n_Nb[0] = tmp;
+                  }
+
+                  /* determine overlap */
+                  bfam_gloidx_t n_ix[2] = {n_gx,n_gx+n_Nl};
+                  bfam_gloidx_t glue_ix[2] =
+                    {BFAM_MIN(n_ix[0],m_ix[0]),BFAM_MAX(n_ix[1],m_ix[1])};
+                  bfam_gloidx_t glue_size = glue_ix[1]+1-glue_ix[0];
+
+                  if(glue_size > 0)
+                  {
+                    /* determine overlap */
+                    char tmp_name[BFAM_BUFSIZ];
+                    snprintf(tmp_name,BFAM_BUFSIZ,"%s_piece_%d",glue_name,nr);
+                    bfam_subdomain_sbp_inter_glue_t* glue =
+                      bfam_subdomain_sbp_inter_glue_new(glue_id,tmp_name,
+                          rank,nr+procs[2*neigh],sub,glue_ix,face,orient);
+                    bfam_subdomain_add_tag((bfam_subdomain_t*)glue,
+                                           "_inter_glue");
+                    bfam_domain_add_subdomain(domain,(bfam_subdomain_t*)glue);
                   }
                 }
               }
@@ -477,8 +521,8 @@ test_2d(int rank, int mpi_size,MPI_Comm mpicomm)
                             1,1,2,1,
                             0,3,3,3};
   bfam_gloidx_t      N[] = {100,110,
-                            100,120,
-                            120,110};
+                            120,110,
+                            100,120};
   bfam_long_real_t  Vx[] = {0,0.25,1,  0,0.25,0.5,0};
   bfam_long_real_t  Vy[] = {0,   0,0,0.5,0.25,0.5,1};
   bfam_long_real_t *Vz   = NULL;
@@ -675,7 +719,7 @@ main (int argc, char *argv[])
   test_2d(rank,mpi_size,MPI_COMM_WORLD);
 
   /* test 3d */
-  test_3d(rank,mpi_size,MPI_COMM_WORLD);
+  // test_3d(rank,mpi_size,MPI_COMM_WORLD);
 
   /* stop MPI */
   BFAM_MPI_CHECK(MPI_Finalize());

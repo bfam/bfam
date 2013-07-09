@@ -951,3 +951,77 @@ bfam_subdomain_sbp_intra_glue_free(bfam_subdomain_t *thisSubdomain)
   bfam_free(sub->recv_ix);
 }
 
+bfam_subdomain_sbp_inter_glue_t*
+bfam_subdomain_sbp_inter_glue_new(const bfam_locidx_t              id,
+                                 const char                      *name,
+                                 const bfam_locidx_t              rank_m,
+                                 const bfam_locidx_t              rank_p,
+                                 bfam_subdomain_sbp_t            *sub_m,
+                                 const bfam_gloidx_t             *ix,
+                                 const int                        face,
+                                 const int                        orient)
+{
+  bfam_subdomain_sbp_inter_glue_t *newSub =
+    bfam_malloc(sizeof(bfam_subdomain_sbp_inter_glue_t));
+  bfam_subdomain_sbp_inter_glue_init(newSub,id,name,rank_m,rank_p,sub_m,ix,face,
+      orient);
+  return newSub;
+}
+
+void
+bfam_subdomain_sbp_inter_glue_init(bfam_subdomain_sbp_inter_glue_t* sub,
+                                 const bfam_locidx_t              id,
+                                 const char                      *name,
+                                 const bfam_locidx_t              rank_m,
+                                 const bfam_locidx_t              rank_p,
+                                 bfam_subdomain_sbp_t            *sub_m,
+                                 const bfam_gloidx_t             *ix,
+                                 const int                        face,
+                                 const int                        orient)
+{
+  bfam_subdomain_init(&sub->base, id, name);
+  bfam_subdomain_add_tag(&sub->base, "_subdomain_sbp");
+  bfam_subdomain_add_tag(&sub->base, "_subdomain_sbp_inter_glue");
+
+  // sub->base.glue_comm_info = bfam_subdomain_sbp_inter_glue_comm_info;
+  // sub->base.glue_put_send_buffer =
+  //   bfam_subdomain_sbp_inter_glue_put_send_buffer;
+  // sub->base.glue_get_recv_buffer =
+  //   bfam_subdomain_sbp_inter_glue_get_recv_buffer;
+  // sub->base.field_minus_add = bfam_subdomain_sbp_inter_glue_field_minus_add;
+  // sub->base.field_plus_add  = bfam_subdomain_sbp_inter_glue_field_plus_add;
+  sub->base.free = bfam_subdomain_sbp_inter_glue_free;
+
+  sub->rank_m = rank_m;
+  sub->rank_p = rank_p;
+  sub->sub_m  = sub_m;
+  sub->face   = face;
+  sub->orient = orient;
+
+  sub->ix = bfam_malloc(sub_m->dim*2*sizeof(bfam_gloidx_t));
+  for(int d = 0; d < sub_m->dim;d++)
+  {
+    sub->ix[2*d  ] = ix[2*d  ];
+    sub->ix[2*d+1] = ix[2*d+1];
+  }
+}
+
+void
+bfam_subdomain_sbp_inter_glue_free(bfam_subdomain_t *thisSubdomain)
+{
+  bfam_subdomain_sbp_inter_glue_t* sub =
+    (bfam_subdomain_sbp_inter_glue_t*) thisSubdomain;
+
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields,"",
+      &bfam_subdomain_sbp_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_p,"",
+      &bfam_subdomain_sbp_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_m,"",
+      &bfam_subdomain_sbp_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_face,"",
+      &bfam_subdomain_sbp_free_fields,NULL);
+
+  bfam_subdomain_free(thisSubdomain);
+
+  bfam_free(sub->ix);
+}
