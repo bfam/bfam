@@ -387,18 +387,34 @@ setup_subdomains(bfam_domain_t *domain,
               {
                 int n_pd[2] = {0,0};
                 bfam_locidx_t n_size = procs[2*neigh+1]-procs[2*neigh]+1;
+                bfam_gloidx_t n_N = N[dim*neigh + n_face/2];
                 BFAM_MPI_CHECK(MPI_Dims_create(n_size, 2, n_pd));
 
-                BFAM_ABORT_IF_NOT(N[dim*b+face/2] == N[dim*neigh + n_face/2],
+                BFAM_ABORT_IF_NOT(N[dim*b+face/2] == n_N,
                     "Cannot connect %3d face %3d with %3d face %3d. "
                     "Non-conforming not implemented.",b,face,neigh,n_face);
 
-                /* sx is the indices I need from my neighbor */
-                bfam_locidx_t sx[2] = {gx[face/2],gx[face/2+1]};
+                /* sx are the smallest and largest indices I need from my
+                 * neighbors */
+                bfam_gloidx_t sx[2] = {gx[face/2],gx[face/2]+Nl[face/2]};
 
                 /* reverse orientation */
                 if(orient==1)
                 {
+                  sx[0] = n_N - (gx[face/2]+Nl[face/2]);
+                  sx[1] = n_N -  gx[face/2];
+                }
+                for(int nr = 0; nr < n_pd[n_face/2];nr++)
+                {
+                  bfam_locidx_t n_Nl = -1;
+                  bfam_gloidx_t n_gx = -1;
+                  bfam_locidx_t n_Nb[2] = {-1,-1};
+                  simple_partition_1d(&n_Nl,&n_gx,n_Nb,n_N,n_pd[n_face/2],nr,0);
+                  if(sx[0] <= n_gx+n_Nl && n_gx <= sx[1])
+                  {
+                    // overlap
+                    BFAM_VERBOSE("overlap");
+                  }
                 }
               }
               else
