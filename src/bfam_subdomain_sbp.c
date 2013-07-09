@@ -583,8 +583,8 @@ bfam_subdomain_sbp_intra_glue_comm_info(bfam_subdomain_t *thisSubdomain,
 #endif
 
 
-  *send_sz  = sub->base.fields_p.num_entries*s_num*sizeof(bfam_real_t);
-  *recv_sz  = sub->base.fields_m.num_entries*r_num*sizeof(bfam_real_t);
+  *send_sz  = sub->base.fields_m.num_entries*s_num*sizeof(bfam_real_t);
+  *recv_sz  = sub->base.fields_p.num_entries*r_num*sizeof(bfam_real_t);
 }
 
 static int
@@ -1008,6 +1008,71 @@ bfam_subdomain_sbp_inter_glue_field_plus_add(bfam_subdomain_t *subdomain,
   return rval;
 }
 
+static void
+bfam_subdomain_sbp_inter_glue_comm_info(bfam_subdomain_t *thisSubdomain,
+    int *rank, bfam_locidx_t *sort, int sort_num,
+    size_t *send_sz, size_t *recv_sz)
+{
+  BFAM_ASSERT(sort_num > 5);
+  bfam_subdomain_sbp_inter_glue_t *sub =
+    (bfam_subdomain_sbp_inter_glue_t*) thisSubdomain;
+
+  *rank     = sub->rank_p;
+  sort[0] = sub->id_m;
+  sort[1] = sub->id_p;
+  sort[2] = sub->loc_m;
+  sort[3] = sub->loc_p;
+  sort[4] = sub->fce_m;
+  sort[5] = sub->fce_p;
+
+  *send_sz  = sub->base.fields_m.num_entries*sub->field_size_m*sizeof(bfam_real_t);
+  *recv_sz  = sub->base.fields_p.num_entries*sub->field_size_p*sizeof(bfam_real_t);
+}
+
+typedef struct bfam_subdomain_sbp_inter_get_put_data
+{
+  bfam_subdomain_sbp_inter_glue_t *sub;
+  bfam_real_t *buffer;
+  size_t size;
+  size_t field;
+} bfam_subdomain_sbp_inter_get_put_data_t;
+
+void
+bfam_subdomain_sbp_inter_glue_put_send_buffer(bfam_subdomain_t *thisSubdomain,
+    void *buffer, size_t send_sz)
+{
+  bfam_subdomain_sbp_inter_get_put_data_t data;
+
+  data.sub    = (bfam_subdomain_sbp_inter_glue_t*) thisSubdomain;
+  data.buffer = (bfam_real_t*) buffer;
+  data.size   = send_sz;
+  data.field  = 0;
+
+  /*
+   * Fill fields_m and the send buffer from sub_m.
+   */
+  // bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
+  //     &bfam_subdomain_sbp_inter_glue_get_fields_m, &data);
+}
+
+void
+bfam_subdomain_sbp_inter_glue_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
+    void *buffer, size_t recv_sz)
+{
+  bfam_subdomain_sbp_inter_get_put_data_t data;
+
+  data.sub    = (bfam_subdomain_sbp_inter_glue_t*) thisSubdomain;
+  data.buffer = (bfam_real_t*) buffer;
+  data.size   = recv_sz;
+  data.field  = 0;
+
+  /*
+   * Fill fields_m and the send buffer from sub_m.
+   */
+  // bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
+  //     &bfam_subdomain_sbp_inter_glue_put_fields_p, &data);
+}
+
 
 void
 bfam_subdomain_sbp_inter_glue_init(bfam_subdomain_sbp_inter_glue_t* sub,
@@ -1027,13 +1092,13 @@ bfam_subdomain_sbp_inter_glue_init(bfam_subdomain_sbp_inter_glue_t* sub,
   bfam_subdomain_add_tag(&sub->base, "_subdomain_sbp");
   bfam_subdomain_add_tag(&sub->base, "_subdomain_sbp_inter_glue");
 
-  // sub->base.glue_comm_info = bfam_subdomain_sbp_inter_glue_comm_info;
-  // sub->base.glue_put_send_buffer =
-  //   bfam_subdomain_sbp_inter_glue_put_send_buffer;
-  // sub->base.glue_get_recv_buffer =
-  //   bfam_subdomain_sbp_inter_glue_get_recv_buffer;
-  // sub->base.field_minus_add = bfam_subdomain_sbp_inter_glue_field_minus_add;
-  // sub->base.field_plus_add  = bfam_subdomain_sbp_inter_glue_field_plus_add;
+  sub->base.glue_comm_info = bfam_subdomain_sbp_inter_glue_comm_info;
+  sub->base.glue_put_send_buffer =
+    bfam_subdomain_sbp_inter_glue_put_send_buffer;
+  sub->base.glue_get_recv_buffer =
+    bfam_subdomain_sbp_inter_glue_get_recv_buffer;
+  sub->base.field_minus_add = bfam_subdomain_sbp_inter_glue_field_minus_add;
+  sub->base.field_plus_add  = bfam_subdomain_sbp_inter_glue_field_plus_add;
   sub->base.free = bfam_subdomain_sbp_inter_glue_free;
 
   sub->rank_m = rank_m;
@@ -1050,12 +1115,20 @@ bfam_subdomain_sbp_inter_glue_init(bfam_subdomain_sbp_inter_glue_t* sub,
   sub->loc_p = loc_p;
   sub->fce_p = face_p;
 
-  sub->ix = bfam_malloc(sub_m->dim*2*sizeof(bfam_gloidx_t));
-  for(int d = 0; d < sub_m->dim;d++)
+  sub->field_size_m = 1;
+  sub->field_size_p = 1;
+
+  sub->ix = bfam_malloc((sub_m->dim-1)*2*sizeof(bfam_gloidx_t));
+  for(int d = 0; d < sub_m->dim-1;d++)
   {
     sub->ix[2*d  ] = ix[2*d  ];
     sub->ix[2*d+1] = ix[2*d+1];
+
+    // THIS WILL HAVE TO CHANGE FOR NON-CONFORMING!
+    sub->field_size_m *= (ix[2*d+1]+1-ix[2*d]);
+    sub->field_size_p *= (ix[2*d+1]+1-ix[2*d]);
   }
+
 }
 
 void

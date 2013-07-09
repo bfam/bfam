@@ -474,7 +474,6 @@ setup_subdomains(bfam_domain_t *domain,
                     bfam_subdomain_add_tag((bfam_subdomain_t*)glue,
                                            "_inter_glue");
                     bfam_domain_add_subdomain(domain,(bfam_subdomain_t*)glue);
-                    BFAM_VERBOSE("me: %3d %3d",glue_ix[0],glue_ix[1]);
                   }
                 }
               }
@@ -562,12 +561,21 @@ test_2d(int rank, int mpi_size,MPI_Comm mpicomm)
   bfam_domain_init_field(&domain, BFAM_DOMAIN_OR, volume, "p2",
       0, poly2_field, NULL);
 
-  const char *glue[] = {"_intra_glue", NULL};
-  bfam_domain_add_minus_field(&domain, BFAM_DOMAIN_OR, glue, "p1");
-  bfam_domain_add_minus_field(&domain, BFAM_DOMAIN_OR, glue, "p2");
+  const char *intra_glue[] = {"_intra_glue", NULL};
+  bfam_domain_add_minus_field(&domain, BFAM_DOMAIN_OR, intra_glue, "p1");
+  bfam_domain_add_minus_field(&domain, BFAM_DOMAIN_OR, intra_glue, "p2");
 
-  bfam_domain_add_plus_field(&domain, BFAM_DOMAIN_OR, glue, "p1");
-  bfam_domain_add_plus_field(&domain, BFAM_DOMAIN_OR, glue, "p2");
+  bfam_domain_add_plus_field(&domain, BFAM_DOMAIN_OR, intra_glue, "p1");
+  bfam_domain_add_plus_field(&domain, BFAM_DOMAIN_OR, intra_glue, "p2");
+
+  const char *inter_glue[] = {"_inter_glue", NULL};
+  bfam_domain_add_minus_field(&domain, BFAM_DOMAIN_OR, inter_glue, "p1");
+  bfam_domain_add_minus_field(&domain, BFAM_DOMAIN_OR, inter_glue, "p2");
+
+  bfam_domain_add_plus_field(&domain, BFAM_DOMAIN_OR, inter_glue, "p1");
+  bfam_domain_add_plus_field(&domain, BFAM_DOMAIN_OR, inter_glue, "p2");
+
+  const char *glue[] = {"_inter_glue","_intra_glue", NULL};
 
   bfam_communicator_t* communicator =
     bfam_communicator_new(&domain, BFAM_DOMAIN_OR, glue,
