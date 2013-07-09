@@ -193,8 +193,7 @@ simple_partition_1d(bfam_locidx_t *Nl, bfam_gloidx_t *gx, bfam_locidx_t *Nb,
  * \param [out]     face_neigh  ranks of my face neighbors (size 2*dim)
  *                              \note not used is NULL
  * \param [out]     bx          my location in the subdomain partitioning
- * \param [in,out]  pd          processor dimension (size 2*dim)
- *                              if pd[d] = 0 then free, if pd[d] > 0 then fixed
+ * \param [in]      pd          processor dimension / layout (size dim)
  * \param [in]      N           global ending index
  * \param [in]      size_in     number of pieces to partion into
  * \param [in]      rank        my number in the partiion
@@ -205,12 +204,10 @@ simple_partition_1d(bfam_locidx_t *Nl, bfam_gloidx_t *gx, bfam_locidx_t *Nb,
  */
 void
 simple_partition(bfam_locidx_t *Nl, bfam_gloidx_t *gx, bfam_locidx_t *Nb,
-    bfam_locidx_t *face_neigh, bfam_locidx_t *bx, int *pd,
-    const bfam_gloidx_t *N, bfam_locidx_t size_in, bfam_locidx_t rank,
+    bfam_locidx_t *face_neigh, bfam_locidx_t *bx, const int *pd,
+    const bfam_gloidx_t *N, bfam_locidx_t rank,
     bfam_locidx_t bufsz,int dim)
 {
-  BFAM_MPI_CHECK(MPI_Dims_create(size_in, dim, pd));
-
   bfam_locidx_t tmp_rank = rank;
   if(dim > 2)
   {
@@ -337,8 +334,10 @@ setup_subdomains(bfam_domain_t *domain,
       int pd[dim];
       for(int d = 0; d < dim; d++) pd[d] = 0;
 
+      BFAM_MPI_CHECK(MPI_Dims_create(l_size, dim, pd));
+
       simple_partition(Nl,gx,Nb,face_neigh,bx,pd,&N[dim*b],
-          l_size,l_rank,bufsz,dim);
+          l_rank,bufsz,dim);
 
       for(int ix = 0; ix < num_corners; ix++)
       {
@@ -361,7 +360,8 @@ setup_subdomains(bfam_domain_t *domain,
       /* add subdomain glue grid */
       for(int d = 0; d < dim; d++)
       {
-        for(int face = 2*d;face<2*d+2;face++)
+        for(int face = 2*d;face<2*d+2;face++)\
+        {
           if(face_neigh[face] != l_rank)
           {
             char name[BFAM_BUFSIZ];
@@ -377,39 +377,58 @@ setup_subdomains(bfam_domain_t *domain,
             bfam_locidx_t neigh  = EToE[b*num_face+face];
             int8_t n_face = EToF[b*num_face+face]%num_face;
             int8_t orient = EToF[b*num_face+face]/num_face;
-            if(dim == 2)
+            if(face == n_face && neigh == b)
             {
-              switch(orient)
-              {
-                case 0:
-                  break;
-                case 1:
-                  break;
-              }
+              //boundary
             }
             else
             {
-              switch(BFAM_P8EST_ORIENTATION(face,n_face,orient))
+              if(dim == 2)
               {
-                case 0:
-                  break;
-                case 1:
-                  break;
-                case 2:
-                  break;
-                case 3:
-                  break;
-                case 4:
-                  break;
-                case 5:
-                  break;
-                case 6:
-                  break;
-                case 7:
-                  break;
+                int n_pd[2] = {0,0};
+                bfam_locidx_t n_size = procs[2*neigh+1]-procs[2*neigh]+1;
+                BFAM_MPI_CHECK(MPI_Dims_create(n_size, 2, n_pd));
+
+                BFAM_ABORT_IF_NOT(N[dim*b+face/2] == N[dim*neigh + n_face/2],
+                    "Cannot connect %3d face %3d with %3d face %3d. "
+                    "Non-conforming not implemented.",b,face,neigh,n_face);
+
+                /* sx is the indices I need from my neighbor */
+                bfam_locidx_t sx[2] = {gx[face/2],gx[face/2+1]};
+
+                /* reverse orientation */
+                if(orient==1)
+                {
+                }
+              }
+              else
+              {
+                int n_pd[3] = {0,0,0};
+                bfam_locidx_t n_size = procs[2*neigh+1]-procs[2*neigh]+1;
+                BFAM_MPI_CHECK(MPI_Dims_create(n_size, 3, n_pd));
+                switch(BFAM_P8EST_ORIENTATION(face,n_face,orient))
+                {
+                  case 0:
+                    break;
+                  case 1:
+                    break;
+                  case 2:
+                    break;
+                  case 3:
+                    break;
+                  case 4:
+                    break;
+                  case 5:
+                    break;
+                  case 6:
+                    break;
+                  case 7:
+                    break;
+                }
               }
             }
           }
+        }
       }
     }
   }
@@ -431,7 +450,6 @@ test_2d(int rank, int mpi_size,MPI_Comm mpicomm)
   const char *names[] = {"sub0","sub1","sub2"};
   bfam_locidx_t bufsz = 3;
 
-  int foo   = 100;
   int dim   =  2;
   bfam_locidx_t   EToV[] = {0,1,3,4,
                             1,2,4,5,
@@ -441,10 +459,10 @@ test_2d(int rank, int mpi_size,MPI_Comm mpicomm)
                             2,1,0,2};
   int8_t          EToF[] = {0,0,2,2,
                             1,1,2,1,
-                            2,3,3,3};
-  bfam_gloidx_t      N[] = {1*foo,2*foo,
-                            3*foo,2*foo,
-                            1*foo,3*foo};
+                            0,3,3,3};
+  bfam_gloidx_t      N[] = {100,110,
+                            100,120,
+                            120,110};
   bfam_long_real_t  Vx[] = {0,0.25,1,  0,0.25,0.5,0};
   bfam_long_real_t  Vy[] = {0,   0,0,0.5,0.25,0.5,1};
   bfam_long_real_t *Vz   = NULL;
