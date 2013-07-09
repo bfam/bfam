@@ -44,7 +44,7 @@ bfam_communicator_send_compare(const void *a, const void *b)
     if(mapA->s[i] < mapB->s[i]) return -1;
     if(mapA->s[i] > mapB->s[i]) return  1;
   }
-  BFAM_ABORT_IF_NOT(0==0,"Should not be same map!");
+  BFAM_ABORT_IF(0==0,"Should not be same map!");
 
   return 0;
 }
@@ -64,7 +64,7 @@ bfam_communicator_recv_compare(const void *a, const void *b)
     if(mapA->s[i] < mapB->s[i]) return -1;
     if(mapA->s[i] > mapB->s[i]) return  1;
   }
-  BFAM_ABORT_IF_NOT(0==0,"Should not be same map!");
+  BFAM_ABORT_IF(0==0,"Should not be same map!");
 
   return 0;
 }
