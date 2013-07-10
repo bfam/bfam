@@ -231,7 +231,7 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
   if(writeBinary)
   {
     for(bfam_locidx_t i = 0; i < Ntot; ++i)
-      storage_locid[i] = s->loc_id;
+      storage_locid[i] = s->patch_id;
 
     int rval =
       bfam_vtk_write_binary_data(writeCompressed, file, (char*)storage_locid,
@@ -243,7 +243,7 @@ void bfam_subdomain_sbp_vtk_vts_piece (struct bfam_subdomain *subdomain,
   {
     for(bfam_locidx_t i = 0;i < Ntot; ++i)
     {
-      fprintf(file, " %6jd", (intmax_t)s->loc_id);
+      fprintf(file, " %6jd", (intmax_t)s->patch_id);
     }
   }
   fprintf(file, "\n");
@@ -415,7 +415,7 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
 
   subdomain->sub_ix = bfam_malloc(dim*sizeof(bfam_locidx_t));
   subdomain->sub_N  = bfam_malloc(dim*sizeof(bfam_locidx_t));
-  subdomain->loc_id = 0;
+  subdomain->patch_id = 0;
   subdomain->num_id = 1;
   subdomain->dim = dim;
 
@@ -442,7 +442,7 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
 
     subdomain->sub_ix[d] = sub_ix[d];
     subdomain->sub_N [d] = sub_N[d];
-    subdomain->loc_id += sub_ix[d]*subdomain->num_id;
+    subdomain->patch_id += sub_ix[d]*subdomain->num_id;
     subdomain->num_id *= (sub_N[d]+1);
 
     BFAM_ABORT_IF(N [d] < 0 || Nl[d] < 0 || buf_sz[2*d] < 0 || buf_sz[2*d+1] < 0 ||
@@ -544,8 +544,8 @@ bfam_subdomain_sbp_intra_glue_comm_info(bfam_subdomain_t *thisSubdomain,
   *rank     = sub->rank_p;
   sort[0] = sub->id_m;
   sort[1] = sub->id_p;
-  sort[2] = sub->loc_m;
-  sort[3] = sub->loc_p;
+  sort[2] = sub->patch_id_m;
+  sort[3] = sub->patch_id_p;
   sort[4] = sub->fce_m;
   sort[5] = sub->fce_p;
 
@@ -821,7 +821,7 @@ bfam_subdomain_sbp_intra_glue_init(bfam_subdomain_sbp_intra_glue_t* sub,
   sub->face   = face;
 
   sub->id_m  = sub_m->base.id;
-  sub->loc_m = sub_m->loc_id;
+  sub->patch_id_m = sub_m->patch_id;
   sub->fce_m = face;
 
   /* initialize all the indices to full size */
@@ -844,7 +844,7 @@ bfam_subdomain_sbp_intra_glue_init(bfam_subdomain_sbp_intra_glue_t* sub,
   switch(face)
   {
     case 0 :
-      sub->loc_p  = sub_m->loc_id-1;
+      sub->patch_id_p  = sub_m->patch_id-1;
 
       sub->field_size_m /= (sub->send_ix[1]+1-sub->send_ix[0]);
       sub->field_size_p /= (sub->recv_ix[1]+1-sub->recv_ix[0]);
@@ -857,7 +857,7 @@ bfam_subdomain_sbp_intra_glue_init(bfam_subdomain_sbp_intra_glue_t* sub,
       sub->send_ix[1] = sub_m->buf_sz[0]   + sub->recv_ix[1] ;
       break;
     case 1 :
-      sub->loc_p  = sub_m->loc_id+1;
+      sub->patch_id_p  = sub_m->patch_id+1;
 
       sub->field_size_m /= (sub->send_ix[1]+1-sub->send_ix[0]);
       sub->field_size_p /= (sub->recv_ix[1]+1-sub->recv_ix[0]);
@@ -870,7 +870,7 @@ bfam_subdomain_sbp_intra_glue_init(bfam_subdomain_sbp_intra_glue_t* sub,
       sub->send_ix[1] = sub->recv_ix[1] - sub_m->buf_sz[1];
       break;
     case 2 :
-      sub->loc_p  = sub_m->loc_id-(sub_m->sub_N[0]+1);
+      sub->patch_id_p  = sub_m->patch_id-(sub_m->sub_N[0]+1);
 
       sub->field_size_m /= (sub->send_ix[3]+1-sub->send_ix[2]);
       sub->field_size_p /= (sub->recv_ix[3]+1-sub->recv_ix[2]);
@@ -883,7 +883,7 @@ bfam_subdomain_sbp_intra_glue_init(bfam_subdomain_sbp_intra_glue_t* sub,
       sub->send_ix[3] = sub_m->buf_sz[2]   + sub->recv_ix[3] ;
       break;
     case 3 :
-      sub->loc_p  = sub_m->loc_id+(sub_m->sub_N[0]+1);
+      sub->patch_id_p  = sub_m->patch_id+(sub_m->sub_N[0]+1);
 
       sub->field_size_m /= (sub->send_ix[3]+1-sub->send_ix[2]);
       sub->field_size_p /= (sub->recv_ix[3]+1-sub->recv_ix[2]);
@@ -896,7 +896,7 @@ bfam_subdomain_sbp_intra_glue_init(bfam_subdomain_sbp_intra_glue_t* sub,
       sub->send_ix[3] = sub->recv_ix[3] - sub_m->buf_sz[3];
       break;
     case 4 :
-      sub->loc_p  = sub_m->loc_id-(sub_m->sub_N[0]+1)*(sub_m->sub_N[1]+1);
+      sub->patch_id_p  = sub_m->patch_id-(sub_m->sub_N[0]+1)*(sub_m->sub_N[1]+1);
 
       sub->field_size_m /= (sub->send_ix[5]+1-sub->send_ix[4]);
       sub->field_size_p /= (sub->recv_ix[5]+1-sub->recv_ix[4]);
@@ -910,7 +910,7 @@ bfam_subdomain_sbp_intra_glue_init(bfam_subdomain_sbp_intra_glue_t* sub,
 
       break;
     case 5 :
-      sub->loc_p  = sub_m->loc_id+(sub_m->sub_N[0]+1)*(sub_m->sub_N[1]+1);
+      sub->patch_id_p  = sub_m->patch_id+(sub_m->sub_N[0]+1)*(sub_m->sub_N[1]+1);
 
       sub->field_size_m /= (sub->send_ix[5]+1-sub->send_ix[4]);
       sub->field_size_p /= (sub->recv_ix[5]+1-sub->recv_ix[4]);
@@ -961,13 +961,13 @@ bfam_subdomain_sbp_inter_glue_new(const bfam_locidx_t              id,
                                  const int                        face,
                                  const int                        orient,
                                  bfam_locidx_t                    id_p,
-                                 bfam_locidx_t                    loc_p,
+                                 bfam_locidx_t                    patch_id_p,
                                  bfam_locidx_t                    face_p)
 {
   bfam_subdomain_sbp_inter_glue_t *newSub =
     bfam_malloc(sizeof(bfam_subdomain_sbp_inter_glue_t));
   bfam_subdomain_sbp_inter_glue_init(newSub,id,name,rank_m,rank_p,sub_m,ix,face,
-      orient,id_p,loc_p,face_p);
+      orient,id_p,patch_id_p,face_p);
   return newSub;
 }
 
@@ -1020,8 +1020,8 @@ bfam_subdomain_sbp_inter_glue_comm_info(bfam_subdomain_t *thisSubdomain,
   *rank     = sub->rank_p;
   sort[0] = sub->id_m;
   sort[1] = sub->id_p;
-  sort[2] = sub->loc_m;
-  sort[3] = sub->loc_p;
+  sort[2] = sub->patch_id_m;
+  sort[3] = sub->patch_id_p;
   sort[4] = sub->fce_m;
   sort[5] = sub->fce_p;
 
@@ -1085,7 +1085,7 @@ bfam_subdomain_sbp_inter_glue_init(bfam_subdomain_sbp_inter_glue_t* sub,
                                  const int                        face,
                                  const int                        orient,
                                  bfam_locidx_t                    id_p,
-                                 bfam_locidx_t                    loc_p,
+                                 bfam_locidx_t                    patch_id_p,
                                  bfam_locidx_t                    face_p)
 {
   bfam_subdomain_init(&sub->base, id, name);
@@ -1108,11 +1108,11 @@ bfam_subdomain_sbp_inter_glue_init(bfam_subdomain_sbp_inter_glue_t* sub,
   sub->orient = orient;
 
   sub->id_m  = sub_m->base.id;
-  sub->loc_m = sub_m->loc_id;
+  sub->patch_id_m = sub_m->patch_id;
   sub->fce_m = face;
 
-  sub->id_p = id_p;
-  sub->loc_p = loc_p;
+  sub->id_p  = id_p;
+  sub->patch_id_p = patch_id_p;
   sub->fce_p = face_p;
 
   sub->field_size_m = 1;
