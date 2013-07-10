@@ -59,10 +59,12 @@ bfam_communicator_recv_compare(const void *a, const void *b)
 
   if(mapA->np < mapB->np) return -1;
   if(mapA->np > mapB->np) return  1;
-  for(int i = BFAM_COMM_NUM_SRT-1;i > -1;i--)
+  for(int i = 0;i < BFAM_COMM_NUM_SRT/2;i++)
   {
-    if(mapA->s[i] < mapB->s[i]) return -1;
-    if(mapA->s[i] > mapB->s[i]) return  1;
+    if(mapA->s[2*i+1] < mapB->s[2*i+1]) return -1;
+    if(mapA->s[2*i+1] > mapB->s[2*i+1]) return  1;
+    if(mapA->s[2*i  ] < mapB->s[2*i  ]) return -1;
+    if(mapA->s[2*i  ] > mapB->s[2*i  ]) return  1;
   }
   BFAM_ABORT_IF(0==0,"Should not be same map!");
 
