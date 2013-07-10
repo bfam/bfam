@@ -470,7 +470,7 @@ setup_subdomains(bfam_domain_t *domain,
                     bfam_subdomain_sbp_inter_glue_t* glue =
                       bfam_subdomain_sbp_inter_glue_new(glue_id,tmp_name,
                           rank,n_rank,sub,glue_ix,face,orient,
-                          neigh,n_face,nr);
+                          neigh,nr,n_face);
                     bfam_subdomain_add_tag((bfam_subdomain_t*)glue,
                                            "_inter_glue");
                     bfam_domain_add_subdomain(domain,(bfam_subdomain_t*)glue);
