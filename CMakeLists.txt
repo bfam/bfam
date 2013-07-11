@@ -539,8 +539,20 @@ add_test(bfam_test_mesh_dgquad_3
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
   ${MPIEXEC_PREFLAGS} bfam_test_mesh_dgquad ${MPIEXEC_POSTFLAGS})
 
-add_test(bfam_test_sbp_test
-  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
+add_test(bfam_test_sbp_test_1
+  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
+  ${MPIEXEC_PREFLAGS} bfam_test_sbp ${MPIEXEC_POSTFLAGS})
+
+add_test(bfam_test_sbp_test_2
+  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
+  ${MPIEXEC_PREFLAGS} bfam_test_sbp ${MPIEXEC_POSTFLAGS})
+
+add_test(bfam_test_sbp_test_4
+  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 4
+  ${MPIEXEC_PREFLAGS} bfam_test_sbp ${MPIEXEC_POSTFLAGS})
+
+add_test(bfam_test_sbp_test_25
+  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 25
   ${MPIEXEC_PREFLAGS} bfam_test_sbp ${MPIEXEC_POSTFLAGS})
 
 add_test(bfam_test_communicator_test
