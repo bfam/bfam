@@ -244,7 +244,8 @@ typedef struct bfam_subdomain_sbp_inter_glue
 
   int               face;   /* face of the subdomain being handled */
 
-  bfam_locidx_t     *ix;    /* face index I work with */
+  bfam_gloidx_t     *fc_gx_rg;    /* global face index I work with */
+  bfam_locidx_t     *vl_ix_rg;    /* volume index I work with */
   int               orient; /* orientation of my neighbor */
 
   size_t            field_size_m;
@@ -258,7 +259,7 @@ typedef struct bfam_subdomain_sbp_inter_glue
  * \param [in]     rank_m      minus side processor rank
  * \param [in]     rank_p      plus  side processor rank
  * \param [in]     subdomain_m minus side subdomain pointer
- * \param [in]     ix          global face indices being handled by this glue
+ * \param [in]     fc_gx_rg          global face indices being handled by this glue
  * \param [in]     face        face being handled
  * \param [in]     orient      orientation code for neigh (see bfam_base.h)
  * \param [in]     id_p        plus sides id
@@ -274,7 +275,7 @@ bfam_subdomain_sbp_inter_glue_new(const bfam_locidx_t              id,
                                  const bfam_locidx_t              rank_m,
                                  const bfam_locidx_t              rank_p,
                                  bfam_subdomain_sbp_t            *sub_m,
-                                 const bfam_gloidx_t             *ix,
+                                 const bfam_gloidx_t             *fc_gx_rg,
                                  const int                        face,
                                  const int                        orient,
                                  bfam_locidx_t                    id_p,
@@ -289,7 +290,7 @@ bfam_subdomain_sbp_inter_glue_new(const bfam_locidx_t              id,
  * \param [in]     rank_m       minus side processor rank
  * \param [in]     rank_p       plus  side processor rank
  * \param [in]     subdomain_m  minus side subdomain pointer
- * \param [in]     ix           global face indices being handled by this glue
+ * \param [in]     fc_gx_rg           global face indices being handled by this glue
  * \param [in]     face         face being handled
  * \param [in]     orient       orientation code for neigh (see bfam_base.h)
  * \param [in]     id_p        plus sides id
@@ -304,7 +305,7 @@ bfam_subdomain_sbp_inter_glue_init(bfam_subdomain_sbp_inter_glue_t  *subdomain,
                                    const bfam_locidx_t              rank_m,
                                    const bfam_locidx_t              rank_p,
                                    bfam_subdomain_sbp_t            *sub_m,
-                                   const bfam_gloidx_t             *ix,
+                                   const bfam_gloidx_t             *fc_gx_rg,
                                    const int                        face,
                                    const int                        orient,
                                    bfam_locidx_t                    id_p,

@@ -693,6 +693,7 @@ bfam_subdomain_sbp_intra_glue_get_fields_m(const char * key, void *val,
   return 0;
 }
 
+
 void
 bfam_subdomain_sbp_intra_glue_put_send_buffer(bfam_subdomain_t *thisSubdomain,
     void *buffer, size_t send_sz)
@@ -786,7 +787,7 @@ bfam_subdomain_sbp_intra_glue_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
   data.field  = 0;
 
   /*
-   * Fill fields_m and the send buffer from sub_m.
+   * Fill fields_p from receive buffer
    */
   bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
       &bfam_subdomain_sbp_intra_glue_put_fields_p, &data);
@@ -957,7 +958,7 @@ bfam_subdomain_sbp_inter_glue_new(const bfam_locidx_t              id,
                                  const bfam_locidx_t              rank_m,
                                  const bfam_locidx_t              rank_p,
                                  bfam_subdomain_sbp_t            *sub_m,
-                                 const bfam_gloidx_t             *ix,
+                                 const bfam_gloidx_t             *fc_gx_rg,
                                  const int                        face,
                                  const int                        orient,
                                  bfam_locidx_t                    id_p,
@@ -966,7 +967,7 @@ bfam_subdomain_sbp_inter_glue_new(const bfam_locidx_t              id,
 {
   bfam_subdomain_sbp_inter_glue_t *newSub =
     bfam_malloc(sizeof(bfam_subdomain_sbp_inter_glue_t));
-  bfam_subdomain_sbp_inter_glue_init(newSub,id,name,rank_m,rank_p,sub_m,ix,face,
+  bfam_subdomain_sbp_inter_glue_init(newSub,id,name,rank_m,rank_p,sub_m,fc_gx_rg,face,
       orient,id_p,patch_id_p,face_p);
   return newSub;
 }
@@ -981,7 +982,7 @@ bfam_subdomain_sbp_inter_glue_field_minus_add(bfam_subdomain_t *subdomain,
   if(bfam_dictionary_get_value_ptr(&s->base.fields_m,name))
     return 1;
 
-  bfam_real_t *field = bfam_malloc_aligned(s->field_size_m);
+  bfam_real_t *field = bfam_malloc_aligned(s->field_size_m*sizeof(bfam_real_t));
   int rval = bfam_dictionary_insert_ptr(&s->base.fields_m, name, field);
 
   BFAM_ASSERT(rval != 1);
@@ -1000,7 +1001,7 @@ bfam_subdomain_sbp_inter_glue_field_plus_add(bfam_subdomain_t *subdomain,
   if(bfam_dictionary_get_value_ptr(&s->base.fields_p,name))
     return 1;
 
-  bfam_real_t *field = bfam_malloc_aligned(s->field_size_p);
+  bfam_real_t *field = bfam_malloc_aligned(s->field_size_p*sizeof(bfam_real_t));
   int rval = bfam_dictionary_insert_ptr(&s->base.fields_p, name, field);
 
   BFAM_ASSERT(rval != 1);
@@ -1037,6 +1038,67 @@ typedef struct bfam_subdomain_sbp_inter_get_put_data
   size_t field;
 } bfam_subdomain_sbp_inter_get_put_data_t;
 
+static int
+bfam_subdomain_sbp_inter_glue_get_fields_m(const char * key, void *val,
+    void *arg)
+{
+  bfam_subdomain_sbp_inter_get_put_data_t *data =
+    (bfam_subdomain_sbp_inter_get_put_data_t*) arg;
+
+  bfam_subdomain_sbp_inter_glue_t *sub = data->sub;
+
+  const size_t buffer_offset = data->field * sub->field_size_m;
+  bfam_real_t *restrict send_field = data->buffer + buffer_offset;
+
+  bfam_subdomain_sbp_t *sub_m = data->sub->sub_m;
+
+  const bfam_real_t *restrict sub_m_field =
+    bfam_dictionary_get_value_ptr(&sub->sub_m->base.fields, key);
+  bfam_real_t *restrict glue_field = val;
+
+  BFAM_ASSERT(sub_m->dim < 4);
+
+  BFAM_ASSERT( glue_field != NULL);
+  BFAM_ASSERT( send_field != NULL);
+  BFAM_ASSERT(sub_m_field != NULL);
+
+  BFAM_ASSUME_ALIGNED(sub_m_field, 32);
+  BFAM_ASSUME_ALIGNED( glue_field, 32);
+
+  /* length of line being copied */
+  size_t line_size = sub->vl_ix_rg[1]+1-sub->vl_ix_rg[0];
+  if(sub_m->dim == 3)
+  {
+    BFAM_ABORT("3D not implemented");
+  }
+  else if(sub_m->dim == 2)
+  {
+    bfam_locidx_t num_x = sub_m->buf_sz[0] + sub_m->Nl[0]+1 + sub_m->buf_sz[1];
+    const int i = sub->vl_ix_rg[0];
+    for(int j = sub->vl_ix_rg[2],count=0;j < sub->vl_ix_rg[3]+1;j++,count++)
+      memcpy(glue_field+line_size*count,sub_m_field+(i+num_x*j),
+          line_size*sizeof(bfam_real_t));
+    if(sub->orient==0)
+    {
+      memcpy(send_field,glue_field,sub->field_size_m*sizeof(bfam_real_t));
+    }
+    else
+    {
+      for(bfam_locidx_t itor=0,jtor=sub->field_size_m-1;
+          itor < (bfam_locidx_t)sub->field_size_m; itor++,jtor--)
+        send_field[itor] = glue_field[jtor];
+    }
+  }
+  else if(sub_m->dim == 1)
+  {
+    BFAM_ABORT("1D not implemented");
+  }
+  else BFAM_ABORT("must have dim 1, 2, or 3");
+
+  data->field++;
+  return 0;
+}
+
 void
 bfam_subdomain_sbp_inter_glue_put_send_buffer(bfam_subdomain_t *thisSubdomain,
     void *buffer, size_t send_sz)
@@ -1051,8 +1113,30 @@ bfam_subdomain_sbp_inter_glue_put_send_buffer(bfam_subdomain_t *thisSubdomain,
   /*
    * Fill fields_m and the send buffer from sub_m.
    */
-  // bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
-  //     &bfam_subdomain_sbp_inter_glue_get_fields_m, &data);
+  bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
+      &bfam_subdomain_sbp_inter_glue_get_fields_m, &data);
+}
+
+static int
+bfam_subdomain_sbp_inter_glue_put_fields_p(const char * key, void *val,
+    void *arg)
+{
+  bfam_subdomain_sbp_inter_get_put_data_t *data =
+    (bfam_subdomain_sbp_inter_get_put_data_t*) arg;
+
+  bfam_subdomain_sbp_inter_glue_t *sub = data->sub;
+
+  const size_t buffer_offset = data->field * sub->field_size_p;
+  bfam_real_t *restrict recv_field = data->buffer + buffer_offset;
+
+  bfam_real_t *restrict glue_field = val;
+
+  BFAM_ASSUME_ALIGNED(glue_field, 32);
+
+  memcpy(glue_field, recv_field, sub->field_size_p * sizeof(bfam_real_t));
+
+  data->field++;
+  return 0;
 }
 
 void
@@ -1067,10 +1151,10 @@ bfam_subdomain_sbp_inter_glue_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
   data.field  = 0;
 
   /*
-   * Fill fields_m and the send buffer from sub_m.
+   * Fill fields_p from the receive buffer
    */
-  // bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
-  //     &bfam_subdomain_sbp_inter_glue_put_fields_p, &data);
+  bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_p, "",
+      &bfam_subdomain_sbp_inter_glue_put_fields_p, &data);
 }
 
 
@@ -1081,7 +1165,7 @@ bfam_subdomain_sbp_inter_glue_init(bfam_subdomain_sbp_inter_glue_t* sub,
                                  const bfam_locidx_t              rank_m,
                                  const bfam_locidx_t              rank_p,
                                  bfam_subdomain_sbp_t            *sub_m,
-                                 const bfam_gloidx_t             *ix,
+                                 const bfam_gloidx_t             *fc_gx_rg,
                                  const int                        face,
                                  const int                        orient,
                                  bfam_locidx_t                    id_p,
@@ -1118,17 +1202,101 @@ bfam_subdomain_sbp_inter_glue_init(bfam_subdomain_sbp_inter_glue_t* sub,
   sub->field_size_m = 1;
   sub->field_size_p = 1;
 
-  sub->ix = bfam_malloc((sub_m->dim-1)*2*sizeof(bfam_gloidx_t));
+  sub->fc_gx_rg = bfam_malloc((sub_m->dim-1)*2*sizeof(bfam_gloidx_t));
+  sub->vl_ix_rg = bfam_malloc( sub_m->dim   *2*sizeof(bfam_gloidx_t));
   for(int d = 0; d < sub_m->dim-1;d++)
   {
-    sub->ix[2*d  ] = ix[2*d  ];
-    sub->ix[2*d+1] = ix[2*d+1];
+    sub->fc_gx_rg[2*d  ] = fc_gx_rg[2*d  ];
+    sub->fc_gx_rg[2*d+1] = fc_gx_rg[2*d+1];
 
     // THIS WILL HAVE TO CHANGE FOR NON-CONFORMING!
-    sub->field_size_m *= (ix[2*d+1]+1-ix[2*d]);
-    sub->field_size_p *= (ix[2*d+1]+1-ix[2*d]);
+    sub->field_size_m *= (fc_gx_rg[2*d+1]+1-fc_gx_rg[2*d]);
+    sub->field_size_p *= (fc_gx_rg[2*d+1]+1-fc_gx_rg[2*d]);
   }
 
+  switch(face)
+  {
+    case 0:
+      BFAM_ASSERT(sub_m->dim > 0);
+      sub->vl_ix_rg[0] = sub_m->buf_sz[0];
+      sub->vl_ix_rg[1] = sub->vl_ix_rg[0];
+      if(sub_m->dim>1)
+      {
+        sub->vl_ix_rg[2] = sub_m->buf_sz[2] + fc_gx_rg[0] - sub_m->gx[1];
+        sub->vl_ix_rg[3] = sub_m->buf_sz[2] + fc_gx_rg[1] - sub_m->gx[1];
+      }
+      if(sub_m->dim>2)
+      {
+        sub->vl_ix_rg[4] = sub_m->buf_sz[4] + fc_gx_rg[2] - sub_m->gx[2];
+        sub->vl_ix_rg[5] = sub_m->buf_sz[4] + fc_gx_rg[3] - sub_m->gx[2];
+      }
+      break;
+
+    case 1:
+      BFAM_ASSERT(sub_m->dim > 0);
+      sub->vl_ix_rg[0] = sub_m->buf_sz[0] + sub_m->Nl[0];
+      sub->vl_ix_rg[1] = sub->vl_ix_rg[0];
+      if(sub_m->dim>1)
+      {
+        sub->vl_ix_rg[2] = sub_m->buf_sz[2] + fc_gx_rg[0] - sub_m->gx[1];
+        sub->vl_ix_rg[3] = sub_m->buf_sz[2] + fc_gx_rg[1] - sub_m->gx[1];
+      }
+      if(sub_m->dim>2)
+      {
+        sub->vl_ix_rg[4] = sub_m->buf_sz[4] + fc_gx_rg[2] - sub_m->gx[2];
+        sub->vl_ix_rg[5] = sub_m->buf_sz[4] + fc_gx_rg[3] - sub_m->gx[2];
+      }
+      break;
+
+    case 2:
+      BFAM_ASSERT(sub_m->dim > 1);
+      sub->vl_ix_rg[0] = sub_m->buf_sz[0] + fc_gx_rg[0] - sub_m->gx[0];
+      sub->vl_ix_rg[1] = sub_m->buf_sz[0] + fc_gx_rg[1] - sub_m->gx[0];
+      sub->vl_ix_rg[2] = sub_m->buf_sz[2];
+      sub->vl_ix_rg[3] = sub->vl_ix_rg[2];
+      if(sub_m->dim>2)
+      {
+        sub->vl_ix_rg[4] = sub_m->buf_sz[4] + fc_gx_rg[2] - sub_m->gx[2];
+        sub->vl_ix_rg[5] = sub_m->buf_sz[4] + fc_gx_rg[3] - sub_m->gx[2];
+      }
+      break;
+
+    case 3:
+      BFAM_ASSERT(sub_m->dim > 1);
+      sub->vl_ix_rg[0] = sub_m->buf_sz[0] + fc_gx_rg[0] - sub_m->gx[0];
+      sub->vl_ix_rg[1] = sub_m->buf_sz[0] + fc_gx_rg[1] - sub_m->gx[0];
+      sub->vl_ix_rg[2] = sub_m->buf_sz[2] + sub_m->Nl[1];
+      sub->vl_ix_rg[3] = sub->vl_ix_rg[2];
+      if(sub_m->dim>2)
+      {
+        sub->vl_ix_rg[4] = sub_m->buf_sz[4] + fc_gx_rg[2] - sub_m->gx[2];
+        sub->vl_ix_rg[5] = sub_m->buf_sz[4] + fc_gx_rg[3] - sub_m->gx[2];
+      }
+      break;
+
+    case 4:
+      BFAM_ASSERT(sub_m->dim > 2);
+      sub->vl_ix_rg[0] = sub_m->buf_sz[0] + fc_gx_rg[0] - sub_m->gx[0];
+      sub->vl_ix_rg[1] = sub_m->buf_sz[0] + fc_gx_rg[1] - sub_m->gx[0];
+      sub->vl_ix_rg[2] = sub_m->buf_sz[2] + fc_gx_rg[2] - sub_m->gx[1];
+      sub->vl_ix_rg[3] = sub_m->buf_sz[2] + fc_gx_rg[3] - sub_m->gx[1];
+      sub->vl_ix_rg[4] = sub_m->buf_sz[4];
+      sub->vl_ix_rg[5] = sub->vl_ix_rg[4];
+      break;
+
+    case 5:
+      BFAM_ASSERT(sub_m->dim > 2);
+      sub->vl_ix_rg[0] = sub_m->buf_sz[0] + fc_gx_rg[0] - sub_m->gx[0];
+      sub->vl_ix_rg[1] = sub_m->buf_sz[0] + fc_gx_rg[1] - sub_m->gx[0];
+      sub->vl_ix_rg[2] = sub_m->buf_sz[2] + fc_gx_rg[2] - sub_m->gx[1];
+      sub->vl_ix_rg[3] = sub_m->buf_sz[2] + fc_gx_rg[3] - sub_m->gx[1];
+      sub->vl_ix_rg[4] = sub_m->buf_sz[4] + sub_m->Nl[2];
+      sub->vl_ix_rg[5] = sub->vl_ix_rg[4];
+      break;
+
+    default:
+      BFAM_ABORT("Not implemented for dim > 3");
+  }
 }
 
 void
@@ -1148,5 +1316,6 @@ bfam_subdomain_sbp_inter_glue_free(bfam_subdomain_t *thisSubdomain)
 
   bfam_subdomain_free(thisSubdomain);
 
-  bfam_free(sub->ix);
+  bfam_free(sub->fc_gx_rg);
+  bfam_free(sub->vl_ix_rg);
 }
