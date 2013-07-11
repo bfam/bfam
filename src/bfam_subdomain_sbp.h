@@ -53,7 +53,7 @@ typedef struct bfam_subdomain_sbp
   int              p;   /**< 1D SBP finite difference order */
   int            dim;   /**< number of dimensions */
   bfam_locidx_t* sub_ix;  /**< local subdomain indices */
-  bfam_locidx_t* sub_N;   /**< number pieces this subdomain is split in each dim */
+  bfam_locidx_t* patch_dist;  /**< number of patches in each dimension */
   bfam_locidx_t  patch_id;
   bfam_locidx_t  num_id;
 
@@ -61,7 +61,8 @@ typedef struct bfam_subdomain_sbp
 
   bfam_locidx_t   *Nl;  /**< "local"  subdomain grid size (size Nl+1) */
   bfam_locidx_t   *buf_sz;  /**< buffer size in each dimension (+/-) */
-  /* total grid size for malloc is Prod_{i}(Nl[i] + 1 + buf_sz[2*i] + buf_sz[2*i+1]) */
+  /* total grid size for malloc is
+   * Prod_{i}(Nl[i] + 1 + buf_sz[2*i] + buf_sz[2*i+1]) */
 
   bfam_gloidx_t   *gx;  /**< my global starting indices
                              (corresponds to my data not ghost cells) */
@@ -71,7 +72,7 @@ typedef struct bfam_subdomain_sbp
  *
  * \param [in] id    unique id number for this subdomain
  * \param [in] sub_ix local id in each dimension
- * \param [in] sub_N number of pieces in each dimension
+ * \param [in] patch_dist number of patches in each dimension
  * \param [in] name  name of this subdomain
  * \param [in] dim   dimension of the problem
  * \param [in] N     global grid top indices (size dim)
@@ -90,7 +91,7 @@ typedef struct bfam_subdomain_sbp
 bfam_subdomain_sbp_t*
 bfam_subdomain_sbp_new(const bfam_locidx_t     id,
                             const bfam_locidx_t *sub_ix,
-                            const bfam_locidx_t *sub_N,
+                            const bfam_locidx_t *patch_dist,
                             const char             *name,
                             const int               dim,
                             const bfam_gloidx_t    *N,
@@ -106,7 +107,7 @@ bfam_subdomain_sbp_new(const bfam_locidx_t     id,
  * \param [in,out]   subdomain pointer to the subdomain to initialize
  * \param [in] id    unique id number for this subdomain
  * \param [in] sub_ix local id in each dimension
- * \param [in] sub_N number of pieces in each dimension
+ * \param [in] patch_dist number of patches in each dimension
  * \param [in] name  name of this subdomain
  * \param [in] dim   dimension of the problem
  * \param [in] N     global grid top indices (size dim)
@@ -124,7 +125,7 @@ void
 bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
                             const bfam_locidx_t     id,
                             const bfam_locidx_t* sub_ix,
-                            const bfam_locidx_t* sub_N,
+                            const bfam_locidx_t* patch_dist,
                             const char             *name,
                             const int               dim,
                             const bfam_gloidx_t    *N,
@@ -259,7 +260,7 @@ typedef struct bfam_subdomain_sbp_inter_glue
  * \param [in]     rank_m      minus side processor rank
  * \param [in]     rank_p      plus  side processor rank
  * \param [in]     subdomain_m minus side subdomain pointer
- * \param [in]     fc_gx_rg          global face indices being handled by this glue
+ * \param [in]     fc_gx_rg    global face indices being handled by this glue
  * \param [in]     face        face being handled
  * \param [in]     orient      orientation code for neigh (see bfam_base.h)
  * \param [in]     id_p        plus sides id
@@ -290,7 +291,7 @@ bfam_subdomain_sbp_inter_glue_new(const bfam_locidx_t              id,
  * \param [in]     rank_m       minus side processor rank
  * \param [in]     rank_p       plus  side processor rank
  * \param [in]     subdomain_m  minus side subdomain pointer
- * \param [in]     fc_gx_rg           global face indices being handled by this glue
+ * \param [in]     fc_gx_rg     global face indices being handled by this glue
  * \param [in]     face         face being handled
  * \param [in]     orient       orientation code for neigh (see bfam_base.h)
  * \param [in]     id_p        plus sides id
