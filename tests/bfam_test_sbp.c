@@ -534,8 +534,8 @@ test_2d(int rank, int mpi_size,MPI_Comm mpicomm)
                             0,1,1,2,
                             0,2,1,2};
   int8_t          EToF[] = {0,0,2,0+4,
-                            1,1,2,2+4,
-                            3+4,1,3+4,3};
+                            1,1,2,2,
+                            3+4,1,3,3};
   bfam_gloidx_t      N[] = {100,110,
                             120,110,
                             120,100};
@@ -569,11 +569,12 @@ test_2d(int rank, int mpi_size,MPI_Comm mpicomm)
   bfam_domain_add_plus_field(&domain, BFAM_DOMAIN_OR, intra_glue, "p2");
 
   const char *inter_glue[] = {"_inter_glue", NULL};
-  bfam_domain_add_minus_field(&domain, BFAM_DOMAIN_OR, inter_glue, "p1");
-  bfam_domain_add_minus_field(&domain, BFAM_DOMAIN_OR, inter_glue, "p2");
-
-  bfam_domain_add_plus_field(&domain, BFAM_DOMAIN_OR, inter_glue, "p1");
-  bfam_domain_add_plus_field(&domain, BFAM_DOMAIN_OR, inter_glue, "p2");
+  const char *fields[] = {"p1","p2","_grid_x","_grid_y",NULL};
+  for(int f = 0;fields[f];f++)
+  {
+    bfam_domain_add_minus_field(&domain, BFAM_DOMAIN_OR, inter_glue, fields[f]);
+    bfam_domain_add_plus_field(&domain, BFAM_DOMAIN_OR, inter_glue, fields[f]);
+  }
 
   const char *glue[] = {"_inter_glue","_intra_glue", NULL};
 
@@ -593,6 +594,30 @@ test_2d(int rank, int mpi_size,MPI_Comm mpicomm)
   bfam_domain_init_field(&domain, BFAM_DOMAIN_OR, volume, "p2",
       0, poly2_field_check, NULL);
 
+
+  bfam_subdomain_sbp_inter_glue_t *subs[domain.numSubdomains];
+  bfam_locidx_t numSubs;
+  bfam_domain_get_subdomains(&domain,BFAM_DOMAIN_OR,inter_glue,
+      domain.numSubdomains,(bfam_subdomain_t**) subs,&numSubs);
+  for(int s = 0; s < numSubs;s++)
+  {
+    for(int f = 0;fields[f];f++)
+    {
+      bfam_real_t * f_m =
+        bfam_dictionary_get_value_ptr(&subs[s]->base.fields_m, fields[f]);
+      bfam_real_t * f_p =
+        bfam_dictionary_get_value_ptr(&subs[s]->base.fields_p, fields[f]);
+      for(int i = 0; i < (int)subs[s]->field_size_m;i++)
+        /* for some reason valgrind does something to values that they are not
+         * exactly the same, would prefer f_p[i] == f_m[i] */
+        /* BFAM_ABORT_IF_NOT(f_p[i] == f_m[i],*/
+        BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(f_p[i],f_m[i],10),
+            "inter check: sub: %d face: %d field %s"
+            " failed on %d got %f expected %f",
+            subs[s]->sub_m->base.id,subs[s]->face,
+            fields[f],i,f_m[i],f_p[i]);
+    }
+  }
 
   /* dump the entire mesh */
   const char *tags[] = {"_volume",NULL};
