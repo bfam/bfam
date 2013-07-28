@@ -33,7 +33,7 @@ init_mpi(exam_t *exam, MPI_Comm mpicomm)
 }
 
 static void
-split_domain_arbitrary(exam_t *exam, bfam_locidx_t num_subdomains)
+split_domain_arbitrary(exam_t *exam, int base_N, bfam_locidx_t num_subdomains)
 {
   bfam_domain_p4est_t *domain = exam->domain;
   bfam_locidx_t *subdomain_id =
@@ -53,7 +53,7 @@ split_domain_arbitrary(exam_t *exam, bfam_locidx_t num_subdomains)
       (intmax_t) num_subdomains);
   for(bfam_locidx_t id = 0; id < num_subdomains; ++id)
   {
-    N[id] = 3+id;
+    N[id] = base_N+id;
 
     p4est_gloidx_t first =
       p4est_partition_cut_gloidx(domain->p4est->global_num_quadrants,
@@ -114,7 +114,7 @@ init_domain(exam_t *exam, prefs_t *prefs)
 
   p4est_vtk_write_file(exam->domain->p4est, NULL, "p4est_mesh");
 
-  split_domain_arbitrary(exam, prefs->num_subdomains);
+  split_domain_arbitrary(exam, prefs->N, prefs->num_subdomains);
 }
 
 static void
