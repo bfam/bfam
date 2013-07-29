@@ -59,7 +59,7 @@ typedef struct bfam_communicator
 
 /** create a communicator
  *
- * \param [in] domain     domain to output to vtk files
+ * \param [in] domain     domain to output to communicate
  * \param [in] match      type of match, \c BFAM_DOMAIN_OR will
  *                        match subdomains with any of the tags
  *                        and \c BFAM_DOMAIN_AND will match subdomains
@@ -77,7 +77,7 @@ bfam_communicator_new(bfam_domain_t *domain, bfam_domain_match_t match,
 /** initializes a communicator
  *
  * \param [in,out] communicator pointer to the communicator
- * \param [in]     domain       domain to output to vtk files
+ * \param [in]     domain       domain to output to communicate
  * \param [in]     match        type of match, \c BFAM_DOMAIN_OR will
  *                              match subdomains with any of the tags
  *                              and \c BFAM_DOMAIN_AND will match subdomains
