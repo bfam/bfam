@@ -24,6 +24,24 @@ typedef struct bfam_ts_lsrk
   bfam_long_real_t  t;       /**< domain time */
   bfam_communicator_t *comm; /**< communicator I handle */
   bfam_dictionary_t elems;   /**< dictionary of subdomains I step */
+
+  /* scale the rates for this subdomain dq := a*dq */
+  void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const bfam_real_t a);
+
+  /* compute rhs that does not require communication */
+  void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const void *fields, const bfam_real_t t);
+
+  /* compute rhs that does require communication */
+  void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const char *field_prefix, const bfam_real_t t);
+
+  /* add the rates to the fields: q_lhs := q_rhs + a*dq */
+  /* NOTE: should handle case of in place addition */
+  void (*add_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *field_prefix_lhs, const char *field_prefix_rhs,
+      const char *rate_prefix, const bfam_real_t a);
 } bfam_ts_lsrk_t;
 
 typedef enum bfam_ts_lsrk_method
@@ -39,29 +57,74 @@ typedef enum bfam_ts_lsrk_method
  * \warning It is the callers responsibility to ensure that
  *          \a dom is freed after this LSRK is
  *
- * \param [in]  dom      pointer to the domain
- * \param [in]  comm     pointer to the communicator I use
- * \param [in]  method   Low storage RK tyoe we are using
+ * \param [in]  dom              pointer to the domain
+ * \param [in]  method           Low storage RK tyoe we are using
+ * \param [in]  subdom_match     match type for subdomains
+ * \param [in]  subdom_tags      tags for the subdomains to time step
+ * \param [in]  comm_match       match type for communication
+ * \param [in]  comm_tags        tags for the communication required for RHS
+ * \param [in]  mpicomm          MPI_Comm to use for communication
+ * \param [in]  mpitag           tag to use for MPI communcation
+ * \param [in]  aux_rates        create rate field with given prefix
+ * \param [in]  scale_rates      function handle to scale_rates function
+ * \param [in]  intra_rhs        function handle to intra RHS routine
+ * \param [in]  inter_rhs        function handle to inter RHS routine
+ * \param [in]  add_rates        function handle to add rates routine
  *
  * \return the newly created low storage RK time stepper
  */
 bfam_ts_lsrk_t*
-bfam_ts_lsrk_new(bfam_domain_t* dom,
-    bfam_communicator_t *comm, bfam_ts_lsrk_method_t method);
+bfam_ts_lsrk_new(bfam_domain_t* dom, bfam_ts_lsrk_method_t method,
+    bfam_domain_match_t subdom_match, const char** subdom_tags,
+    bfam_domain_match_t comm_match, const char** comm_tags,
+    MPI_Comm mpicomm, int mpitag,
+    void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
+    void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const bfam_real_t a),
+    void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const void *fields, const bfam_real_t t),
+    void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const char *field_prefix, const bfam_real_t t),
+    void (*add_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *field_prefix_lhs, const char *field_prefix_rhs,
+      const char *rate_prefix, const bfam_real_t a));
 
 /** initialize a low storage RK scheme
  *
  * \warning It is the callers responsibility to ensure that
  *          \a dom is freed after this LSRK is
  *
- * \param [in,out]  ts       pointer to time stepper to initialize
- * \param [in]      dom      pointer to the domain
- * \param [in]  comm     pointer to the communicator I use
- * \param [in]      method   Low storage RK tyoe we are using
+ * \param [in,out]  ts           pointer to time stepper to initialize
+ * \param [in]  dom              pointer to the domain
+ * \param [in]  method           Low storage RK tyoe we are using
+ * \param [in]  subdom_match     match type for subdomains
+ * \param [in]  subdom_tags      tags for the subdomains to time step
+ * \param [in]  comm_match       match type for communication
+ * \param [in]  comm_tags        tags for the communication required for RHS
+ * \param [in]  mpicomm          MPI_Comm to use for communication
+ * \param [in]  mpitag           tag to use for MPI communcation
+ * \param [in]  aux_rates        create rate field with given prefix
+ * \param [in]  scale_rates      function handle to scale_rates function
+ * \param [in]  intra_rhs        function handle to intra RHS routine
+ * \param [in]  inter_rhs        function handle to inter RHS routine
+ * \param [in]  add_rates        function handle to add rates routine
  */
 void
-bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts, bfam_domain_t* dom,
-    bfam_communicator_t *comm, bfam_ts_lsrk_method_t method);
+bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts,
+    bfam_domain_t* dom, bfam_ts_lsrk_method_t method,
+    bfam_domain_match_t subdom_match, const char** subdom_tags,
+    bfam_domain_match_t comm_match, const char** comm_tags,
+    MPI_Comm mpicomm, int mpitag,
+    void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
+    void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const bfam_real_t a),
+    void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const void *fields, const bfam_real_t t),
+    void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const char *field_prefix, const bfam_real_t t),
+    void (*add_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *field_prefix_lhs, const char *field_prefix_rhs,
+      const char *rate_prefix, const bfam_real_t a));
 
 /** free a low storage RK scheme
  *
@@ -85,35 +148,5 @@ bfam_ts_lsrk_set_time(bfam_ts_lsrk_t* ts,bfam_long_real_t time);
  */
 bfam_long_real_t
 bfam_ts_lsrk_get_time(bfam_ts_lsrk_t* ts);
-
-
-/** add subdomains to this time stepper
- *
- * \param [in,out] ts            pointer to time stepper
- * \param [in]     matchType     type of match, \c BFAM_DOMAIN_OR will
- *                               match subdomains with any of the tags
- *                               and \c BFAM_DOMAIN_AND will match subdomains
- *                               with all of the tags.
- * \param [in]     tags          \c NULL terminated array of the tags to match
- * \param [in]     fields        \c NULL terminated array of fields names
- * \param [in]     scale_rates   function handle to use to scale rates
- * \param [in]     intra_rhs     function handle to use to function to use to
- *                               updae rhs function for non-communication work
- * \param [in]     inter_rhs     function handle to use to function to use to
- *                               updae rhs function for communication work
- * \param [in]     add_rates     function pointer to add rates back into
- *                               solution
- */
-void
-bfam_ts_lsrk_add_subdomains(bfam_ts_lsrk_t *ts, bfam_domain_match_t match,
-                            const char *tags[], const char *fields[],
-  void (*scale_rates) (bfam_subdomain_t *thisSubdomain, void *rates,
-      const bfam_real_t a),
-  void (*intra_rhs) (bfam_subdomain_t *thisSubdomain, void *rates,
-      const void *fields, const bfam_real_t t),
-  void (*inter_rhs) (bfam_subdomain_t *thisSubdomain, void *rates,
-      const void *fields, const bfam_real_t t),
-  void (*add_rates) (bfam_subdomain_t *thisSubdomain, void *fields,
-      const void *rates, const bfam_real_t a));
 
 #endif

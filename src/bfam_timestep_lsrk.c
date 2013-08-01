@@ -1,47 +1,84 @@
 #include <bfam_timestep_lsrk.h>
+#include <bfam_log.h>
 
-typedef struct bfam_ts_lsrk_sd
-{
-  bfam_subdomain_t *subdomain; /**< subdomain this guy updates */
-  void *fields; /**< pointer to the fields I update */
-  void *rates;  /**< pointer to the rates I use */
-
-  /**< scale the rates */
-  void (*scale_rates) (bfam_subdomain_t *thisSubdomain, void *rates,
-      const bfam_real_t a);
-
-  /**< Do the intra work for this subdomain: dq += RHS(q,t) */
-  void (*intra_rhs) (bfam_subdomain_t *thisSubdomain, void *rates,
-      const void *fields, const bfam_real_t t);
-
-  /**< Do the inter work for this subdomain: dq += RHS(q,t) */
-  void (*inter_rhs) (bfam_subdomain_t *thisSubdomain, void *rates,
-      const void *fields, const bfam_real_t t);
-
-  /**< add rates to fields: q += b*dq */
-  void (*add_rates) (bfam_subdomain_t *thisSubdomain, void *fields,
-      const void *rates, const bfam_real_t a);
-
-} bfam_ts_lsrk_sd_t;
+#define BFAM_LSKR_PREFIX ("_lsrk_rate")
 
 bfam_ts_lsrk_t*
-bfam_ts_lsrk_new(bfam_domain_t* dom, bfam_communicator_t *comm,
-    bfam_ts_lsrk_method_t method)
+bfam_ts_lsrk_new(bfam_domain_t* dom, bfam_ts_lsrk_method_t method,
+    bfam_domain_match_t subdom_match, const char** subdom_tags,
+    bfam_domain_match_t comm_match, const char** comm_tags,
+    MPI_Comm mpicomm, int mpitag,
+    void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
+    void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const bfam_real_t a),
+    void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const void *fields, const bfam_real_t t),
+    void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const char *field_prefix, const bfam_real_t t),
+    void (*add_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *field_prefix_lhs, const char *field_prefix_rhs,
+      const char *rate_prefix, const bfam_real_t a))
 {
   bfam_ts_lsrk_t* newTS = bfam_malloc(sizeof(bfam_ts_lsrk_t));
-  bfam_ts_lsrk_init(newTS, dom, comm, method);
+  bfam_ts_lsrk_init(newTS, dom, method, subdom_match, subdom_tags,
+      comm_match, comm_tags, mpicomm, mpitag, aux_rates,
+      scale_rates,intra_rhs,inter_rhs,add_rates);
   return newTS;
 }
 
 
 void
-bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts, bfam_domain_t* dom,
-    bfam_communicator_t *comm, bfam_ts_lsrk_method_t method)
+bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts,
+    bfam_domain_t* dom, bfam_ts_lsrk_method_t method,
+    bfam_domain_match_t subdom_match, const char** subdom_tags,
+    bfam_domain_match_t comm_match, const char** comm_tags,
+    MPI_Comm mpicomm, int mpitag,
+    void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
+    void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const bfam_real_t a),
+    void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const void *fields, const bfam_real_t t),
+    void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const char *field_prefix, const bfam_real_t t),
+    void (*add_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *field_prefix_lhs, const char *field_prefix_rhs,
+      const char *rate_prefix, const bfam_real_t a))
 {
+  /*
+   * set up some preliminaries
+   */
   bfam_ts_init(&ts->base, dom);
   bfam_dictionary_init(&ts->elems);
   ts->t  = 0.0;
-  ts->comm = comm;
+
+  /*
+   * store the function calls
+   */
+  ts->scale_rates = scale_rates;
+  ts->intra_rhs   = intra_rhs;
+  ts->inter_rhs   = inter_rhs;
+  ts->add_rates   = add_rates;
+
+  /*
+   * get the subdomains and create rates we will need
+   */
+   bfam_subdomain_t *subs[dom->numSubdomains+1];
+   bfam_locidx_t numSubs = 0;
+   bfam_domain_get_subdomains(dom,subdom_match,subdom_tags,
+       dom->numSubdomains,subs,&numSubs);
+   for(int s = 0; s < numSubs;s++)
+   {
+     int rval = bfam_dictionary_insert_ptr(&ts->elems,subs[s]->name,subs[s]);
+     BFAM_ASSERT(rval != 1);
+
+     aux_rates(subs[s],BFAM_LSKR_PREFIX);
+   }
+
+  /*
+   * Set up the communicator we will use
+   */
+   ts->comm = bfam_communicator_new(dom,comm_match,comm_tags,mpicomm,mpitag);
+
   switch(method)
   {
     case BFAM_TS_LSRK_KC54:
@@ -123,10 +160,15 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts, bfam_domain_t* dom,
 void
 bfam_ts_lsrk_free(bfam_ts_lsrk_t* ts)
 {
+  bfam_communicator_free(ts->comm);
+  ts->comm = NULL;
   bfam_dictionary_clear(&ts->elems);
   bfam_free_aligned(ts->A);
+  ts->A = NULL;
   bfam_free_aligned(ts->B);
+  ts->B = NULL;
   bfam_free_aligned(ts->C);
+  ts->C = NULL;
   ts->nStages = 0;
   ts->t  = NAN;
   bfam_ts_free(&ts->base);
@@ -142,18 +184,4 @@ bfam_long_real_t
 bfam_ts_lsrk_get_time(bfam_ts_lsrk_t* ts)
 {
   return ts->t;
-}
-
-void
-bfam_ts_lsrk_add_subdomains(bfam_ts_lsrk_t *ts, bfam_domain_match_t match,
-                            const char *tags[], const char *fields[],
-  void (*scale_rates) (bfam_subdomain_t *thisSubdomain, void *rates,
-      const bfam_real_t a),
-  void (*intra_rhs) (bfam_subdomain_t *thisSubdomain, void *rates,
-      const void *fields, const bfam_real_t t),
-  void (*inter_rhs) (bfam_subdomain_t *thisSubdomain, void *rates,
-      const void *fields, const bfam_real_t t),
-  void (*add_rates) (bfam_subdomain_t *thisSubdomain, void *fields,
-      const void *rates, const bfam_real_t a))
-{
 }

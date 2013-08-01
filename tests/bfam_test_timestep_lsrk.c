@@ -1,6 +1,20 @@
 #include <bfam.h>
 #include <bfam_subdomain_dummy.h>
 
+static void
+test_lsrk_aux_rates(bfam_subdomain_t *sub, const char *prefix)
+{
+  char f1[BFAM_BUFSIZ];
+  snprintf(f1,BFAM_BUFSIZ,"%s_f1",prefix);
+  int rval = sub->field_add(sub,f1);
+  BFAM_ASSERT(rval != 1);
+
+  char f3[BFAM_BUFSIZ];
+  snprintf(f3,BFAM_BUFSIZ,"%s_f3",prefix);
+  rval = sub->field_add(sub,f3);
+  BFAM_ASSERT(rval != 1);
+}
+
 void
 test_lsrk(bfam_ts_lsrk_method_t type,int N,MPI_Comm mpicomm, int commtag)
 {
@@ -32,19 +46,24 @@ test_lsrk(bfam_ts_lsrk_method_t type,int N,MPI_Comm mpicomm, int commtag)
   bfam_subdomain_add_tag((bfam_subdomain_t*)subDom,"random");
   bfam_domain_add_subdomain(dom, (bfam_subdomain_t*) subDom);
 
-  const char *tags[] = {NULL};
-  bfam_communicator_t *comm =
-    bfam_communicator_new(dom,BFAM_DOMAIN_AND,tags,mpicomm,commtag);
 
+  const char *ts_tags[] = {NULL};
+  const char *comm_tags[] = {"NOOP",NULL};
 
-  ts = bfam_ts_lsrk_new(dom,comm,type);
+  bfam_domain_add_field(dom, BFAM_DOMAIN_AND, ts_tags, "f1");
+  bfam_domain_add_field(dom, BFAM_DOMAIN_AND, ts_tags, "f2");
+  bfam_domain_add_field(dom, BFAM_DOMAIN_AND, ts_tags, "f3");
+
+  ts = bfam_ts_lsrk_new(dom,type,
+      BFAM_DOMAIN_AND,ts_tags,
+      BFAM_DOMAIN_AND,comm_tags,
+      mpicomm,commtag,
+      &test_lsrk_aux_rates,
+      NULL,NULL,NULL,NULL);
 
   // free
   bfam_ts_lsrk_free(ts);
   bfam_free(ts);
-
-  bfam_communicator_free(comm);
-  bfam_free(comm);
 
   bfam_domain_free(dom);
   bfam_free(dom);
