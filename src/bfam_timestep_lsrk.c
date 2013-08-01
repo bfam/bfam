@@ -3,6 +3,103 @@
 
 #define BFAM_LSKR_PREFIX ("_lsrk_rate")
 
+typedef struct bfam_ts_allprefix
+{
+  bfam_ts_lsrk_t *ts;
+  bfam_long_real_t arg;
+} bfam_ts_lsrk_allprefix_t;
+
+static int
+bfam_ts_lsrk_scale_rates(const char * key, void *val, void *arg)
+{
+  bfam_ts_lsrk_allprefix_t *data = (bfam_ts_lsrk_allprefix_t *) arg;
+  bfam_subdomain_t* sub = (bfam_subdomain_t*) val;
+  data->ts->scale_rates(sub, BFAM_LSKR_PREFIX, data->arg);
+  return 1;
+}
+
+static int
+bfam_ts_lsrk_intra_rhs(const char * key, void *val, void *arg)
+{
+  bfam_ts_lsrk_allprefix_t *data = (bfam_ts_lsrk_allprefix_t *) arg;
+  bfam_subdomain_t* sub = (bfam_subdomain_t*) val;
+  data->ts->intra_rhs(sub, BFAM_LSKR_PREFIX, "", data->arg);
+  return 1;
+}
+
+static int
+bfam_ts_lsrk_inter_rhs(const char * key, void *val, void *arg)
+{
+  bfam_ts_lsrk_allprefix_t *data = (bfam_ts_lsrk_allprefix_t *) arg;
+  bfam_subdomain_t* sub = (bfam_subdomain_t*) val;
+  data->ts->inter_rhs(sub, BFAM_LSKR_PREFIX, "", data->arg);
+  return 1;
+}
+
+static int
+bfam_ts_lsrk_add_rates(const char * key, void *val, void *arg)
+{
+  bfam_ts_lsrk_allprefix_t *data = (bfam_ts_lsrk_allprefix_t *) arg;
+  bfam_subdomain_t* sub = (bfam_subdomain_t*) val;
+  data->ts->add_rates(sub, "", "", BFAM_LSKR_PREFIX, data->arg);
+  return 1;
+}
+
+
+
+void
+bfam_ts_lsrk_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
+{
+  bfam_ts_lsrk_t *ts = (bfam_ts_lsrk_t*) a_ts;
+  bfam_ts_lsrk_allprefix_t data;
+  data.ts = ts;
+
+  for(int s = 0; s < ts->nStages;s++)
+  {
+    /* set the stage time */
+    bfam_long_real_t t = ts->t + ts->C[s]*dt;
+
+    /*
+     * start the communication
+     */
+    bfam_communicator_start(ts->comm);
+
+    /*
+     * scale the rate
+     */
+    data.arg = ts->A[s];
+    bfam_dictionary_allprefixed_ptr(&ts->elems,
+        "",&bfam_ts_lsrk_scale_rates,&data);
+
+    /*
+     * do the intra work
+     */
+    data.arg = t;
+    bfam_dictionary_allprefixed_ptr(&ts->elems,
+        "",&bfam_ts_lsrk_intra_rhs,&data);
+
+    /*
+     * finish the communication
+     */
+    bfam_communicator_finish(ts->comm);
+
+    /*
+     * do the inter work
+     */
+    data.arg = t;
+    bfam_dictionary_allprefixed_ptr(&ts->elems,
+        "",&bfam_ts_lsrk_inter_rhs,&data);
+
+    /*
+     * add the rate
+     */
+    data.arg = ts->B[s]*dt;
+    bfam_dictionary_allprefixed_ptr(&ts->elems,
+        "",&bfam_ts_lsrk_add_rates,&data);
+  }
+  ts->t += ts->C[ts->nStages]*dt;
+}
+
 bfam_ts_lsrk_t*
 bfam_ts_lsrk_new(bfam_domain_t* dom, bfam_ts_lsrk_method_t method,
     bfam_domain_match_t subdom_match, const char** subdom_tags,
@@ -10,14 +107,15 @@ bfam_ts_lsrk_new(bfam_domain_t* dom, bfam_ts_lsrk_method_t method,
     MPI_Comm mpicomm, int mpitag,
     void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
     void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const bfam_real_t a),
+      const char *rate_prefix, const bfam_long_real_t a),
     void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const void *fields, const bfam_real_t t),
+      const char *rate_prefix, const void *fields, const bfam_long_real_t t),
     void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix, const bfam_real_t t),
+      const char *rate_prefix, const char *field_prefix,
+      const bfam_long_real_t t),
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
-      const char *rate_prefix, const bfam_real_t a))
+      const char *rate_prefix, const bfam_long_real_t a))
 {
   bfam_ts_lsrk_t* newTS = bfam_malloc(sizeof(bfam_ts_lsrk_t));
   bfam_ts_lsrk_init(newTS, dom, method, subdom_match, subdom_tags,
@@ -35,14 +133,15 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts,
     MPI_Comm mpicomm, int mpitag,
     void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
     void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const bfam_real_t a),
+      const char *rate_prefix, const bfam_long_real_t a),
     void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const void *fields, const bfam_real_t t),
+      const char *rate_prefix, const void *fields, const bfam_long_real_t t),
     void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix, const bfam_real_t t),
+      const char *rate_prefix, const char *field_prefix,
+      const bfam_long_real_t t),
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
-      const char *rate_prefix, const bfam_real_t a))
+      const char *rate_prefix, const bfam_long_real_t a))
 {
   /*
    * set up some preliminaries
@@ -50,6 +149,7 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts,
   bfam_ts_init(&ts->base, dom);
   bfam_dictionary_init(&ts->elems);
   ts->t  = 0.0;
+  ts->base.step = &bfam_ts_lsrk_step;
 
   /*
    * store the function calls

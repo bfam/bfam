@@ -27,21 +27,22 @@ typedef struct bfam_ts_lsrk
 
   /* scale the rates for this subdomain dq := a*dq */
   void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const bfam_real_t a);
+      const char *rate_prefix, const bfam_long_real_t a);
 
   /* compute rhs that does not require communication */
   void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const void *fields, const bfam_real_t t);
+      const char *rate_prefix, const void *fields, const bfam_long_real_t t);
 
   /* compute rhs that does require communication */
   void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix, const bfam_real_t t);
+      const char *rate_prefix, const char *field_prefix,
+      const bfam_long_real_t t);
 
   /* add the rates to the fields: q_lhs := q_rhs + a*dq */
   /* NOTE: should handle case of in place addition */
   void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
-      const char *rate_prefix, const bfam_real_t a);
+      const char *rate_prefix, const bfam_long_real_t a);
 } bfam_ts_lsrk_t;
 
 typedef enum bfam_ts_lsrk_method
@@ -80,14 +81,15 @@ bfam_ts_lsrk_new(bfam_domain_t* dom, bfam_ts_lsrk_method_t method,
     MPI_Comm mpicomm, int mpitag,
     void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
     void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const bfam_real_t a),
+      const char *rate_prefix, const bfam_long_real_t a),
     void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const void *fields, const bfam_real_t t),
+      const char *rate_prefix, const void *fields, const bfam_long_real_t t),
     void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix, const bfam_real_t t),
+      const char *rate_prefix, const char *field_prefix,
+      const bfam_long_real_t t),
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
-      const char *rate_prefix, const bfam_real_t a));
+      const char *rate_prefix, const bfam_long_real_t a));
 
 /** initialize a low storage RK scheme
  *
@@ -117,14 +119,15 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts,
     MPI_Comm mpicomm, int mpitag,
     void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
     void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const bfam_real_t a),
+      const char *rate_prefix, const bfam_long_real_t a),
     void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const void *fields, const bfam_real_t t),
+      const char *rate_prefix, const void *fields, const bfam_long_real_t t),
     void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix, const bfam_real_t t),
+      const char *rate_prefix, const char *field_prefix,
+      const bfam_long_real_t t),
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
-      const char *rate_prefix, const bfam_real_t a));
+      const char *rate_prefix, const bfam_long_real_t a));
 
 /** free a low storage RK scheme
  *
@@ -139,7 +142,7 @@ bfam_ts_lsrk_free(bfam_ts_lsrk_t* ts);
  * \param [in]      time     time to set
  */
 void
-bfam_ts_lsrk_set_time(bfam_ts_lsrk_t* ts,bfam_long_real_t time);
+bfam_ts_lsrk_set_time(bfam_ts_lsrk_t* ts, bfam_long_real_t time);
 
 
 /** get the time of the scheme
