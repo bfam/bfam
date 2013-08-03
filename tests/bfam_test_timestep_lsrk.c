@@ -1,6 +1,78 @@
 #include <bfam.h>
-#include <bfam_subdomain_dummy.h>
 
+/**
+ * TEST SUBDOMAIN TYPE
+ */
+typedef struct bfam_subdomain_lsrk_test
+{
+  bfam_subdomain_t base;
+  bfam_locidx_t  rank; /* my rank */
+  int               N; /* order of scheme to test */
+} bfam_subdomain_lsrk_test_t;
+
+static int
+bfam_subdomain_lsrk_test_field_add(bfam_subdomain_t *subdomain, const char *name)
+{
+  bfam_subdomain_lsrk_test_t *s = (bfam_subdomain_lsrk_test_t*) subdomain;
+
+  if(bfam_dictionary_get_value_ptr(&s->base.fields,name))
+    return 1;
+
+  bfam_real_t *field = bfam_malloc_aligned(sizeof(bfam_real_t));
+
+  int rval = bfam_dictionary_insert_ptr(&s->base.fields, name, field);
+
+  BFAM_ASSERT(rval != 1);
+
+  if(rval == 0)
+    bfam_free_aligned(field);
+
+  return rval;
+}
+
+void
+bfam_subdomain_lsrk_test_free(bfam_subdomain_t *thisSubdomain)
+{
+  bfam_subdomain_free(thisSubdomain);
+}
+
+bfam_long_real_t
+bfam_subdomain_lsrk_test_exact(bfam_subdomain_lsrk_test_t *subdom, bfam_long_real_t t)
+{
+  return pow(t,(bfam_long_real_t) subdom->N);
+}
+
+void
+bfam_subdomain_lsrk_test_init(bfam_subdomain_lsrk_test_t       *subdomain,
+                             const bfam_locidx_t        id,
+                             const char                *name,
+                             const int                  N)
+{
+  bfam_subdomain_init(&subdomain->base, id, name);
+  bfam_subdomain_add_tag(&subdomain->base, "_subdomain_lsrk_test");
+  subdomain->base.field_add = bfam_subdomain_lsrk_test_field_add;
+  subdomain->base.free = bfam_subdomain_lsrk_test_free;
+  subdomain->N = N;
+}
+
+
+bfam_subdomain_lsrk_test_t*
+bfam_subdomain_lsrk_test_new(const bfam_locidx_t     id,
+                         const char             *name,
+                         const int               N)
+{
+  bfam_subdomain_lsrk_test_t* newSubdomain =
+    bfam_malloc(sizeof(bfam_subdomain_lsrk_test_t));
+
+  bfam_subdomain_lsrk_test_init(newSubdomain, id, name, N);
+
+  return newSubdomain;
+}
+
+
+/**
+ * routine to create the rates
+ */
 static void
 test_lsrk_aux_rates(bfam_subdomain_t *sub, const char *prefix)
 {
@@ -21,26 +93,26 @@ test_lsrk(bfam_ts_lsrk_method_t type,int N,MPI_Comm mpicomm, int commtag)
   bfam_ts_lsrk_t* ts;
 
   bfam_domain_t* dom = bfam_domain_new(mpicomm);
-  bfam_subdomain_dummy_t* subDom = NULL;
+  bfam_subdomain_lsrk_test_t* subDom = NULL;
 
-  subDom = bfam_subdomain_dummy_new(1,"a",N);
+  subDom = bfam_subdomain_lsrk_test_new(1,"a",N);
   bfam_subdomain_add_tag((bfam_subdomain_t*)subDom,"yes");
   bfam_subdomain_add_tag((bfam_subdomain_t*)subDom,"other");
-  bfam_subdomain_add_tag((bfam_subdomain_t*)subDom,"dummy");
+  bfam_subdomain_add_tag((bfam_subdomain_t*)subDom,"lsrk_test");
   bfam_domain_add_subdomain(dom, (bfam_subdomain_t*) subDom);
 
-  subDom = bfam_subdomain_dummy_new(2,"b",N);
+  subDom = bfam_subdomain_lsrk_test_new(2,"b",N);
   bfam_subdomain_add_tag((bfam_subdomain_t*)subDom,"no");
   bfam_subdomain_add_tag((bfam_subdomain_t*)subDom,"other");
   bfam_domain_add_subdomain(dom, (bfam_subdomain_t*) subDom);
 
-  subDom = bfam_subdomain_dummy_new(3,"c",N);
-  bfam_subdomain_add_tag((bfam_subdomain_t*)subDom,"dummy");
+  subDom = bfam_subdomain_lsrk_test_new(3,"c",N);
+  bfam_subdomain_add_tag((bfam_subdomain_t*)subDom,"lsrk_test");
   bfam_subdomain_add_tag((bfam_subdomain_t*)subDom,"yes");
   bfam_subdomain_add_tag((bfam_subdomain_t*)subDom,"random");
   bfam_domain_add_subdomain(dom, (bfam_subdomain_t*) subDom);
 
-  subDom = bfam_subdomain_dummy_new(4,"d",N);
+  subDom = bfam_subdomain_lsrk_test_new(4,"d",N);
   bfam_subdomain_add_tag((bfam_subdomain_t*)subDom,"other");
   bfam_subdomain_add_tag((bfam_subdomain_t*)subDom,"yes");
   bfam_subdomain_add_tag((bfam_subdomain_t*)subDom,"random");
