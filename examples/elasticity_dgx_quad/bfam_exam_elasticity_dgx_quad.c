@@ -104,7 +104,7 @@ split_domain_arbitrary(exam_t *exam, int base_N, bfam_locidx_t num_subdomains)
 static void
 init_domain(exam_t *exam, prefs_t *prefs)
 {
-  exam->conn = p4est_connectivity_new_corner();
+  exam->conn = prefs->conn_fn();
 
   exam->domain = bfam_domain_p4est_new(exam->mpicomm, exam->conn);
 
