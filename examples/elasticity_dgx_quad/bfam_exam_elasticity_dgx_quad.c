@@ -1,6 +1,25 @@
 #include <bfam.h>
 #include "bfam_exam_elasticity_dgx_quad_rhs.h"
 
+static int refine_level = 0;
+
+/*
+ * Uniform refinement function
+ */
+static int
+refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
+          p4est_quadrant_t * quadrant)
+{
+  if((int)quadrant->level >= refine_level)
+  {
+    return 0;
+  }
+  else
+  {
+    return 1;
+  }
+}
+
 #define REAL_APPROX_EQ(x, y, K)                                              \
   BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, BFAM_REAL_EPS)
 
@@ -108,7 +127,7 @@ init_domain(exam_t *exam, prefs_t *prefs)
 
   exam->domain = bfam_domain_p4est_new(exam->mpicomm, exam->conn);
 
-  // p4est_refine(exam->domain->p4est, 2, refine_fn, NULL);
+  p4est_refine(exam->domain->p4est, 1, refine_fn, NULL);
   p4est_balance(exam->domain->p4est, P4EST_CONNECT_CORNER, NULL);
   p4est_partition(exam->domain->p4est, NULL);
 
