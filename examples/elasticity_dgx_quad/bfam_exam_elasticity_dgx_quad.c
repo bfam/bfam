@@ -157,7 +157,7 @@ init_domain(exam_t *exam, prefs_t *prefs)
   bfam_domain_t *domain = (bfam_domain_t*)exam->domain;
 
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "rho");
-  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "lambda");
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "lam");
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "mu");
 
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "v1");
@@ -244,6 +244,24 @@ print_order(int N)
     BFAM_LIST_OF_DGX_QUAD_NORDERS
     default:
       bfam_elasticity_dgx_quad_print_order_(N);
+      break;
+  }
+#undef X
+}
+
+static void
+intr_rhs(int N, bfam_subdomain_dgx_quad_t *sub, const char *rate_prefix, const
+    char *field_prefix)
+{
+#define X(order) \
+  case order: bfam_elasticity_dgx_quad_intra_rhs_##order(N,sub, \
+                  rate_prefix,field_prefix); break;
+
+  switch(N)
+  {
+    BFAM_LIST_OF_DGX_QUAD_NORDERS
+    default:
+      bfam_elasticity_dgx_quad_intra_rhs_(N,sub,rate_prefix,field_prefix);
       break;
   }
 #undef X
