@@ -177,6 +177,20 @@
       (y)[bfam_dot_n] += (a)[bfam_dot_n]*(x)[bfam_dot_n];          \
   } while (0)
 
+/** $y -= a \dot\times x$
+ *
+ * \param [in]  N number of elements of $a$, $x$, $y$
+ * \param [in]  a vector $a$
+ * \param [in]  x vector $x$
+ * \param [out] y vector $y$
+ */
+#define BFAM_DOT_AX_ME(N, a, x, y)                                 \
+  do                                                               \
+  {                                                                \
+    for(int bfam_dot_n = 0; bfam_dot_n < (N); ++bfam_dot_n)        \
+      (y)[bfam_dot_n] -= (a)[bfam_dot_n]*(x)[bfam_dot_n];          \
+  } while (0)
+
 /** $y += a \dot\times b \dot\times x$
  *
  * \param [in]  N number of elements of $a$, $b$, $x$, $y$
