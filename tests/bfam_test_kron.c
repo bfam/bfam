@@ -195,6 +195,46 @@ BFAM_ALIGN(32) int ATXI_x[] = {
         2040,
 };
 
+
+BFAM_ALIGN(32) int Ax[] = {
+    35,
+     6,
+    93,
+    32,
+   150,
+    24,
+     7,
+   256,
+    81,
+   280,
+    55,
+   432,
+    78,
+    98,
+    30,
+   528,
+   578,
+   522,
+   494,
+   420,
+   462,
+   374,
+   276,
+   312,
+   475,
+   598,
+   729,
+   280,
+   406,
+   540,
+   744,
+   800,
+   660,
+   510,
+   560,
+   396,
+   };
+
 int
 check(int N, int *x, int *y)
 {
@@ -230,6 +270,9 @@ main(int argc, char *argv[])
 
   BFAM_KRON_ATXI(N, A, x, y);
   failures += check(N, y, ATXI_x);
+
+  BFAM_DOT_AX(N, A, x, y);
+  failures += check(N, y, Ax);
 
   bfam_free_aligned(x);
   bfam_free_aligned(y);
