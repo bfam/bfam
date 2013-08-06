@@ -170,11 +170,11 @@
  * \param [in]  x vector $x$
  * \param [out] y vector $y$
  */
-#define BFAM_DOT_AX_PE(N, a, x, y)                                    \
+#define BFAM_DOT_AX_PE(N, a, x, y)                                 \
   do                                                               \
   {                                                                \
     for(int bfam_dot_n = 0; bfam_dot_n < (N); ++bfam_dot_n)        \
-      (y)[bfam_dot_n] += (a)[bfam_dot_n]*(x)[bfam_dot_n];           \
+      (y)[bfam_dot_n] += (a)[bfam_dot_n]*(x)[bfam_dot_n];          \
   } while (0)
 
 /** $y = a \dot\times b \dot\times x$
@@ -185,11 +185,11 @@
  * \param [in]  x vector $x$
  * \param [out] y vector $y$
  */
-#define BFAM_DOT_ABX_PE(N, a, b, x, y)                                \
+#define BFAM_DOT_ABX_PE(N, a, b, x, y)                             \
   do                                                               \
   {                                                                \
     for(int bfam_dot_n = 0; bfam_dot_n < (N); ++bfam_dot_n)        \
-      (y)[bfam_dot_n] +=                                            \
+      (y)[bfam_dot_n] +=                                           \
         (a)[bfam_dot_n]*(b)[bfam_dot_n]*(x)[bfam_dot_n];           \
   } while (0)
 
@@ -201,13 +201,14 @@
  * \param [in]  x vector $x$
  * \param [out] y vector $y$
  */
-#define BFAM_KRON_AB_DOT_PE(N, a, b, x, y)                                \
+#define BFAM_KRON_AB_DOT_C_PE(N, a, b, c, x, y)                           \
   do                                                                      \
   {                                                                       \
     for(int bfam_kron_i = 0; bfam_kron_i < (N); ++bfam_kron_i)            \
       for(int bfam_kron_j = 0; bfam_kron_j < (N); ++bfam_kron_j)          \
         (y)[(N) * bfam_kron_i + bfam_kron_j] +=                           \
           (a)[bfam_kron_i] * (b)[bfam_kron_j] *                           \
+          (c)[(N) * bfam_kron_i + bfam_kron_j] *                          \
           (x)[(N) * bfam_kron_i + bfam_kron_j];                           \
   } while (0)
 
