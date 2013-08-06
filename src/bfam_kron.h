@@ -163,7 +163,7 @@
         (a)[bfam_dot_n]*(b)[bfam_dot_n]*(x)[bfam_dot_n];           \
   } while (0)
 
-/** $y = a \dot\times x$
+/** $y += a \dot\times x$
  *
  * \param [in]  N number of elements of $a$, $x$, $y$
  * \param [in]  a vector $a$
@@ -177,7 +177,7 @@
       (y)[bfam_dot_n] += (a)[bfam_dot_n]*(x)[bfam_dot_n];          \
   } while (0)
 
-/** $y = a \dot\times b \dot\times x$
+/** $y += a \dot\times b \dot\times x$
  *
  * \param [in]  N number of elements of $a$, $b$, $x$, $y$
  * \param [in]  a vector $a$
@@ -193,7 +193,7 @@
         (a)[bfam_dot_n]*(b)[bfam_dot_n]*(x)[bfam_dot_n];           \
   } while (0)
 
-/** $y = (A \otimes B) \dot\times x$
+/** $y += (A \otimes B) \dot\times x$
  *
  * \param [in]  N number of elements of $a$ and $b$
  * \param [in]  a vector $a$
@@ -207,6 +207,25 @@
     for(int bfam_kron_i = 0; bfam_kron_i < (N); ++bfam_kron_i)            \
       for(int bfam_kron_j = 0; bfam_kron_j < (N); ++bfam_kron_j)          \
         (y)[(N) * bfam_kron_i + bfam_kron_j] +=                           \
+          (a)[bfam_kron_i] * (b)[bfam_kron_j] *                           \
+          (c)[(N) * bfam_kron_i + bfam_kron_j] *                          \
+          (x)[(N) * bfam_kron_i + bfam_kron_j];                           \
+  } while (0)
+
+/** $y = (A \otimes B) \dot\times x$
+ *
+ * \param [in]  N number of elements of $a$ and $b$
+ * \param [in]  a vector $a$
+ * \param [in]  b vector $b$
+ * \param [in]  x vector $x$
+ * \param [out] y vector $y$
+ */
+#define BFAM_KRON_AB_DOT_C(N, a, b, c, x, y)                              \
+  do                                                                      \
+  {                                                                       \
+    for(int bfam_kron_i = 0; bfam_kron_i < (N); ++bfam_kron_i)            \
+      for(int bfam_kron_j = 0; bfam_kron_j < (N); ++bfam_kron_j)          \
+        (y)[(N) * bfam_kron_i + bfam_kron_j] =                            \
           (a)[bfam_kron_i] * (b)[bfam_kron_j] *                           \
           (c)[(N) * bfam_kron_i + bfam_kron_j] *                          \
           (x)[(N) * bfam_kron_i + bfam_kron_j];                           \
