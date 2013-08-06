@@ -121,6 +121,22 @@ split_domain_arbitrary(exam_t *exam, int base_N, bfam_locidx_t num_subdomains)
 }
 
 static void
+zero_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
+    bfam_real_t *restrict y, bfam_real_t *restrict z, struct bfam_subdomain *s,
+    void *arg, bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(field, 32);
+
+  for(bfam_locidx_t n=0; n < npoints; ++n)
+    field[n] = 0;
+}
+
+
+
+static void
 init_domain(exam_t *exam, prefs_t *prefs)
 {
   exam->conn = prefs->conn_fn();
@@ -134,6 +150,67 @@ init_domain(exam_t *exam, prefs_t *prefs)
   p4est_vtk_write_file(exam->domain->p4est, NULL, "p4est_mesh");
 
   split_domain_arbitrary(exam, prefs->N, prefs->num_subdomains);
+
+  const char *volume[] = {"_volume", NULL};
+  const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
+
+  bfam_domain_t *domain = (bfam_domain_t*)exam->domain;
+
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "rho");
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "lambda");
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "mu");
+
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "v1");
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "v2");
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "v3");
+
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "S11");
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "S22");
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "S33");
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "S12");
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "S13");
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "S23");
+
+  bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, "v1");
+  bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, "v2");
+  bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, "v3");
+
+  bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "v1");
+  bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "v2");
+  bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "v3");
+
+  bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, "S11");
+  bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, "S22");
+  bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, "S33");
+  bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, "S12");
+  bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, "S13");
+  bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, "S23");
+
+  bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "S11");
+  bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "S22");
+  bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "S33");
+  bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "S12");
+  bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "S13");
+  bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "S23");
+
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v1", 0, zero_field,
+      NULL);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v2", 0, zero_field,
+      NULL);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v3", 0, zero_field,
+      NULL);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S11", 0, zero_field,
+      NULL);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S22", 0, zero_field,
+      NULL);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S33", 0, zero_field,
+      NULL);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S12", 0, zero_field,
+      NULL);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S13", 0, zero_field,
+      NULL);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S23", 0, zero_field,
+      NULL);
 }
 
 static void
