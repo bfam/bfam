@@ -384,10 +384,10 @@ bfam_subdomain_dgx_quad_geo2D(int N, bfam_locidx_t K, int **fmask,
                               const bfam_long_real_t *restrict x,
                               const bfam_long_real_t *restrict y,
                               const bfam_long_real_t *restrict Dr,
-                                    bfam_long_real_t *restrict rx,
-                                    bfam_long_real_t *restrict sx,
-                                    bfam_long_real_t *restrict ry,
-                                    bfam_long_real_t *restrict sy,
+                                    bfam_long_real_t *restrict Jrx,
+                                    bfam_long_real_t *restrict Jsx,
+                                    bfam_long_real_t *restrict Jry,
+                                    bfam_long_real_t *restrict Jsy,
                                     bfam_long_real_t *restrict J,
                                     bfam_long_real_t *restrict nx,
                                     bfam_long_real_t *restrict ny,
@@ -398,19 +398,19 @@ bfam_subdomain_dgx_quad_geo2D(int N, bfam_locidx_t K, int **fmask,
   BFAM_ASSUME_ALIGNED( x, 32);
   BFAM_ASSUME_ALIGNED( y, 32);
   BFAM_ASSUME_ALIGNED(Dr, 32);
-  BFAM_ASSUME_ALIGNED(rx, 32);
-  BFAM_ASSUME_ALIGNED(sx, 32);
-  BFAM_ASSUME_ALIGNED(ry, 32);
-  BFAM_ASSUME_ALIGNED(sy, 32);
+  BFAM_ASSUME_ALIGNED(Jrx, 32);
+  BFAM_ASSUME_ALIGNED(Jsx, 32);
+  BFAM_ASSUME_ALIGNED(Jry, 32);
+  BFAM_ASSUME_ALIGNED(Jsy, 32);
   BFAM_ASSUME_ALIGNED( J, 32);
 
   for(bfam_locidx_t k = 0, vsk = 0, fsk = 0; k < K; ++k)
   {
-    BFAM_KRON_IXA(Nrp, Dr, x + vsk, sy + vsk); /* xr */
-    BFAM_KRON_IXA(Nrp, Dr, y + vsk, sx + vsk); /* yr */
+    BFAM_KRON_IXA(Nrp, Dr, x + vsk, Jsy + vsk); /* xr */
+    BFAM_KRON_IXA(Nrp, Dr, y + vsk, Jsx + vsk); /* yr */
 
-    BFAM_KRON_AXI(Nrp, Dr, x + vsk, ry + vsk); /* xs */
-    BFAM_KRON_AXI(Nrp, Dr, y + vsk, rx + vsk); /* ys */
+    BFAM_KRON_AXI(Nrp, Dr, x + vsk, Jry + vsk); /* xs */
+    BFAM_KRON_AXI(Nrp, Dr, y + vsk, Jrx + vsk); /* ys */
 
     for(int n = 0; n < Nrp; ++n)
     {
@@ -425,20 +425,20 @@ bfam_subdomain_dgx_quad_geo2D(int N, bfam_locidx_t K, int **fmask,
       const bfam_locidx_t vidx3 = vsk + fmask[3][n];
 
       /* face 0 */
-      nx[fidx0] = -rx[vidx0];
-      ny[fidx0] =  ry[vidx0];
+      nx[fidx0] = -Jrx[vidx0];
+      ny[fidx0] =  Jry[vidx0];
 
       /* face 1 */
-      nx[fidx1] =  rx[vidx1];
-      ny[fidx1] = -ry[vidx1];
+      nx[fidx1] =  Jrx[vidx1];
+      ny[fidx1] = -Jry[vidx1];
 
       /* face 2 */
-      nx[fidx2] =  sx[vidx2];
-      ny[fidx2] = -sy[vidx2];
+      nx[fidx2] =  Jsx[vidx2];
+      ny[fidx2] = -Jsy[vidx2];
 
       /* face 3 */
-      nx[fidx3] = -sx[vidx3];
-      ny[fidx3] =  sy[vidx3];
+      nx[fidx3] = -Jsx[vidx3];
+      ny[fidx3] =  Jsy[vidx3];
 
       sJ[fidx0] = BFAM_LONG_REAL_HYPOT(nx[fidx0],ny[fidx0]);
       sJ[fidx1] = BFAM_LONG_REAL_HYPOT(nx[fidx1],ny[fidx1]);
@@ -459,13 +459,13 @@ bfam_subdomain_dgx_quad_geo2D(int N, bfam_locidx_t K, int **fmask,
     {
       bfam_locidx_t idx = n + vsk;
 
-      J[idx] = sy[idx]*rx[idx] - ry[idx]*sx[idx];
+      J[idx] = Jsy[idx]*Jrx[idx] - Jry[idx]*Jsx[idx];
 
-      rx[idx] =  rx[idx]/J[idx];
-      ry[idx] = -ry[idx]/J[idx];
+      Jrx[idx] =  Jrx[idx];
+      Jry[idx] = -Jry[idx];
 
-      sx[idx] = -sx[idx]/J[idx];
-      sy[idx] =  sy[idx]/J[idx];
+      Jsx[idx] = -Jsx[idx];
+      Jsy[idx] =  Jsy[idx];
     }
 
     vsk += Nrp*Nrp;
@@ -642,12 +642,12 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
 
   bfam_jacobi_p_differentiation(0, 0, N, Nrp, lr, V, D);
 
-  bfam_long_real_t *lrx, *lsx, *lry, *lsy, *lJ;
+  bfam_long_real_t *lJrx, *lJsx, *lJry, *lJsy, *lJ;
 
-  lrx = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
-  lsx = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
-  lry = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
-  lsy = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
+  lJrx = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
+  lJsx = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
+  lJry = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
+  lJsy = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
   lJ  = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
 
   bfam_long_real_t *lnx, *lny, *lsJ;
@@ -656,8 +656,8 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   lny = bfam_malloc_aligned(K*Nfaces*Nfp*sizeof(bfam_long_real_t));
   lsJ = bfam_malloc_aligned(K*Nfaces*Nfp*sizeof(bfam_long_real_t));
 
-  bfam_subdomain_dgx_quad_geo2D(N, K, subdomain->fmask, lx, ly, D, lrx, lsx,
-      lry, lsy, lJ, lnx, lny, lsJ);
+  bfam_subdomain_dgx_quad_geo2D(N, K, subdomain->fmask, lx, ly, D, lJrx, lJsx,
+      lJry, lJsy, lJ, lnx, lny, lsJ);
 
   /*
    * Set subdomain values
@@ -688,14 +688,14 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_z");
   BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_z");
 
-  rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_rx");
-  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_rx");
-  rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_ry");
-  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_ry");
-  rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_sx");
-  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_sx");
-  rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_sy");
-  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_sy");
+  rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_Jrx");
+  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_Jrx");
+  rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_Jry");
+  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_Jry");
+  rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_Jsx");
+  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_Jsx");
+  rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_Jsy");
+  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_Jsy");
 
   rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_J");
   BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_J");
@@ -707,14 +707,14 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   bfam_real_t *restrict z =
     bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_z");
 
-  bfam_real_t *restrict rx =
-    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_rx");
-  bfam_real_t *restrict ry =
-    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_ry");
-  bfam_real_t *restrict sx =
-    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_sx");
-  bfam_real_t *restrict sy =
-    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_sy");
+  bfam_real_t *restrict Jrx =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_Jrx");
+  bfam_real_t *restrict Jry =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_Jry");
+  bfam_real_t *restrict Jsx =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_Jsx");
+  bfam_real_t *restrict Jsy =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_Jsy");
 
   bfam_real_t *restrict J =
     bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_J");
@@ -725,10 +725,10 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
     y[n] = (bfam_real_t) ly[n];
     z[n] = (bfam_real_t) lz[n];
 
-    rx[n] = (bfam_real_t) lrx[n];
-    ry[n] = (bfam_real_t) lry[n];
-    sx[n] = (bfam_real_t) lsx[n];
-    sy[n] = (bfam_real_t) lsy[n];
+    Jrx[n] = (bfam_real_t) lJrx[n];
+    Jry[n] = (bfam_real_t) lJry[n];
+    Jsx[n] = (bfam_real_t) lJsx[n];
+    Jsy[n] = (bfam_real_t) lJsy[n];
 
     J[n] = (bfam_real_t) lJ[n];
   }
@@ -772,10 +772,10 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   bfam_free_aligned(lny);
   bfam_free_aligned(lsJ);
 
-  bfam_free_aligned(lrx);
-  bfam_free_aligned(lsx);
-  bfam_free_aligned(lry);
-  bfam_free_aligned(lsy);
+  bfam_free_aligned(lJrx);
+  bfam_free_aligned(lJsx);
+  bfam_free_aligned(lJry);
+  bfam_free_aligned(lJsy);
   bfam_free_aligned(lJ );
 
   bfam_free_aligned(D);
@@ -785,8 +785,7 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   bfam_free_aligned(lw);
 
   bfam_free_aligned(lx);
-  bfam_free_aligned(ly);
-  bfam_free_aligned(lz);
+  bfam_free_aligned(ly); bfam_free_aligned(lz);
 }
 
 static int
