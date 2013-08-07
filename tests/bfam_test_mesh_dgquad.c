@@ -31,9 +31,10 @@ refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
 }
 
 static void
-poly1_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
-    bfam_real_t *restrict y, bfam_real_t *restrict z,
-    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+poly1_field(bfam_locidx_t npoints, const char* name,
+    bfam_real_t time, bfam_real_t *restrict x, bfam_real_t *restrict y,
+    bfam_real_t *restrict z, struct bfam_subdomain *s, void *arg,
+    bfam_real_t *restrict field)
 {
   BFAM_ASSUME_ALIGNED(x, 32);
   BFAM_ASSUME_ALIGNED(y, 32);
@@ -45,9 +46,10 @@ poly1_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
 }
 
 static void
-poly2_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
-    bfam_real_t *restrict y, bfam_real_t *restrict z,
-    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+poly2_field(bfam_locidx_t npoints, const char* name,
+    bfam_real_t time, bfam_real_t *restrict x, bfam_real_t *restrict y,
+    bfam_real_t *restrict z, struct bfam_subdomain *s, void *arg,
+    bfam_real_t *restrict field)
 {
   BFAM_ASSUME_ALIGNED(x, 32);
   BFAM_ASSUME_ALIGNED(y, 32);

@@ -395,7 +395,7 @@ bfam_subdomain_sbp_field_init(bfam_subdomain_t *subdomain,
   bfam_real_t *restrict z =
     bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_z");
 
-  init_field(fieldSize, time, x, y, z, subdomain, arg, field);
+  init_field(fieldSize, name, time, x, y, z, subdomain, arg, field);
 }
 
 void

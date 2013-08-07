@@ -53,6 +53,7 @@ struct bfam_subdomain;
  *
  */
 typedef void (*bfam_subdomain_init_field_t) (bfam_locidx_t npoints,
+    const char *name,
     bfam_real_t time, bfam_real_t *restrict x, bfam_real_t *restrict y,
     bfam_real_t *restrict z, struct bfam_subdomain *s, void *arg,
     bfam_real_t *restrict field);

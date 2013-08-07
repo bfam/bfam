@@ -34,9 +34,10 @@ zero_buffer(bfam_real_t* field,bfam_subdomain_sbp_t *sub)
 
 
 static void
-poly1_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
-    bfam_real_t *restrict y, bfam_real_t *restrict z,
-    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+poly1_field(bfam_locidx_t npoints, const char *name,
+    bfam_real_t time, bfam_real_t *restrict x, bfam_real_t *restrict y,
+    bfam_real_t *restrict z, struct bfam_subdomain *s, void *arg,
+    bfam_real_t *restrict field)
 {
   BFAM_ASSUME_ALIGNED(x, 32);
   BFAM_ASSUME_ALIGNED(y, 32);
@@ -54,9 +55,10 @@ poly1_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
 }
 
 static void
-poly1_field_check(bfam_locidx_t npoints, bfam_real_t time,
-    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
-    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+poly1_field_check(bfam_locidx_t npoints, const char *name,
+    bfam_real_t time, bfam_real_t *restrict x, bfam_real_t *restrict y,
+    bfam_real_t *restrict z, struct bfam_subdomain *s, void *arg,
+    bfam_real_t *restrict field)
 {
   BFAM_ASSUME_ALIGNED(x, 32);
   BFAM_ASSUME_ALIGNED(y, 32);
@@ -77,9 +79,10 @@ poly1_field_check(bfam_locidx_t npoints, bfam_real_t time,
 }
 
 static void
-poly2_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
-    bfam_real_t *restrict y, bfam_real_t *restrict z,
-    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+poly2_field(bfam_locidx_t npoints, const char *name,
+    bfam_real_t time, bfam_real_t *restrict x, bfam_real_t *restrict y,
+    bfam_real_t *restrict z, struct bfam_subdomain *s, void *arg,
+    bfam_real_t *restrict field)
 {
   BFAM_ASSUME_ALIGNED(x, 32);
   BFAM_ASSUME_ALIGNED(y, 32);
@@ -97,9 +100,10 @@ poly2_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
 }
 
 static void
-poly2_field_check(bfam_locidx_t npoints, bfam_real_t time,
-    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
-    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+poly2_field_check(bfam_locidx_t npoints, const char *name,
+    bfam_real_t time, bfam_real_t *restrict x, bfam_real_t *restrict y,
+    bfam_real_t *restrict z, struct bfam_subdomain *s, void *arg,
+    bfam_real_t *restrict field)
 {
   BFAM_ASSUME_ALIGNED(x, 32);
   BFAM_ASSUME_ALIGNED(y, 32);
@@ -121,9 +125,10 @@ poly2_field_check(bfam_locidx_t npoints, bfam_real_t time,
 }
 
 static void
-poly3_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
-    bfam_real_t *restrict y, bfam_real_t *restrict z,
-    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+poly3_field(bfam_locidx_t npoints, const char *name,
+    bfam_real_t time, bfam_real_t *restrict x, bfam_real_t *restrict y,
+    bfam_real_t *restrict z, struct bfam_subdomain *s, void *arg,
+    bfam_real_t *restrict field)
 {
   BFAM_ASSUME_ALIGNED(x, 32);
   BFAM_ASSUME_ALIGNED(y, 32);
@@ -139,9 +144,10 @@ poly3_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
 
 
 static void
-poly3_field_check(bfam_locidx_t npoints, bfam_real_t time,
-    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
-    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+poly3_field_check(bfam_locidx_t npoints, const char *name,
+    bfam_real_t time, bfam_real_t *restrict x, bfam_real_t *restrict y,
+    bfam_real_t *restrict z, struct bfam_subdomain *s, void *arg,
+    bfam_real_t *restrict field)
 {
   BFAM_ASSUME_ALIGNED(x, 32);
   BFAM_ASSUME_ALIGNED(y, 32);

@@ -123,10 +123,36 @@ split_domain_arbitrary(exam_t *exam, int base_N, bfam_locidx_t num_subdomains)
   bfam_free(N);
 }
 
+typedef struct stress_free_box_params
+{
+  char *field;
+  bfam_real_t A;
+  bfam_real_t rho;
+  bfam_real_t mu;
+  int n_ap;
+  int m_ap;
+} stress_free_box_params_t;
+
 static void
-zero_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
-    bfam_real_t *restrict y, bfam_real_t *restrict z, struct bfam_subdomain *s,
-    void *arg, bfam_real_t *restrict field)
+stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  stress_free_box_params_t *params = (stress_free_box_params_t *) arg;
+  bfam_real_t A = params->A;
+  bfam_real_t rho = params->rho;
+  bfam_real_t mu = params->mu;
+  int n_ap = params->n_ap;
+  int m_ap = params->m_ap;
+  if(strcmp(params->field,"v3")==0)
+  {
+  }
+}
+
+static void
+zero_field(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
 {
   BFAM_ASSUME_ALIGNED(x, 32);
   BFAM_ASSUME_ALIGNED(y, 32);
