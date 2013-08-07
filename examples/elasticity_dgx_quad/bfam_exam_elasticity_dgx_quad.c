@@ -137,7 +137,6 @@ zero_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
     field[n] = 0;
 }
 
-
 void aux_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
 {
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
@@ -159,6 +158,7 @@ void aux_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
 void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     const bfam_long_real_t a)
 {
+  BFAM_INFO("SCALE RATES");
 }
 
 static void
@@ -195,12 +195,14 @@ void intra_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
 void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t)
 {
+  BFAM_INFO("INTER RHS");
 }
 
 void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
     const bfam_long_real_t a)
 {
+  BFAM_INFO("ADD RATES");
 }
 
 static void
@@ -311,6 +313,8 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   init_domain(&exam, prefs);
 
   init_lsrk(&exam, prefs);
+
+  exam.lsrk->base.step((bfam_ts_t*) exam.lsrk,1);
 
   free_exam(&exam);
 }
