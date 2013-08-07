@@ -1,7 +1,7 @@
 #include <bfam_timestep_lsrk.h>
 #include <bfam_log.h>
 
-#define BFAM_LSKR_PREFIX ("_lsrk_rate")
+#define BFAM_LSKR_PREFIX ("_lsrk_rate_")
 
 typedef struct bfam_ts_allprefix
 {

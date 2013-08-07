@@ -140,6 +140,20 @@ zero_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
 
 void aux_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
 {
+  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+  {
+    const char *fields[] =
+      {"v1","v2","v3","S11","S22","S33","S12","S13","S23",NULL};
+
+    char field[BFAM_BUFSIZ];
+    for(int f = 0; fields[f]!=NULL; ++f)
+    {
+      snprintf(field,BFAM_BUFSIZ,"%s%s",prefix,fields[f]);
+      thisSubdomain->field_add(thisSubdomain,field);
+    }
+  }
+
+
 }
 
 void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
