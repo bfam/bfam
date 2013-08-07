@@ -281,6 +281,7 @@ static void
 free_exam(exam_t *exam)
 {
   bfam_ts_lsrk_free(exam->lsrk);
+  bfam_free(exam->lsrk);
   bfam_domain_p4est_free(exam->domain);
   bfam_free(exam->domain);
   p4est_connectivity_destroy(exam->conn);
