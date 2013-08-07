@@ -280,6 +280,7 @@ init_domain(exam_t *exam, prefs_t *prefs)
 static void
 free_exam(exam_t *exam)
 {
+  bfam_ts_lsrk_free(exam->lsrk);
   bfam_domain_p4est_free(exam->domain);
   bfam_free(exam->domain);
   p4est_connectivity_destroy(exam->conn);
@@ -330,7 +331,7 @@ struct conn_table {
 
 struct lsrk_table {
   const char *name;
-  bfam_ts_lsrk_method_t ts;
+  bfam_ts_lsrk_method_t lsrk_method;
 } lsrk_table[] = {
   {"KC54", BFAM_TS_LSRK_KC54},
   {"FE",   BFAM_TS_LSRK_FE},
@@ -397,8 +398,8 @@ new_prefs(const char *prefs_filename)
   BFAM_ASSERT(prefs->conn_fn != NULL);
   lua_pop(L, 1);
 
-  lua_getglobal(L, "lskr_method");
-  prefs->lsrk_method = lsrk_table[0].ts;
+  lua_getglobal(L, "lsrk_method");
+  prefs->lsrk_method = lsrk_table[0].lsrk_method;
   if(lua_isstring(L, -1))
   {
     int i;
@@ -413,7 +414,7 @@ new_prefs(const char *prefs_filename)
       BFAM_LERROR("invalid lsrk method name: `%s'; using default", lsrk_name);
     else
     {
-      prefs->lsrk_method = lsrk_table[i].ts;
+      prefs->lsrk_method = lsrk_table[i].lsrk_method;
     }
   }
   else
@@ -438,6 +439,9 @@ print_prefs(prefs_t *prefs)
   for(int i=0; conn_table[i].name!=NULL; ++i)
     if(conn_table[i].conn_fn == prefs->conn_fn)
       BFAM_ROOT_INFO("conn_fn=`%s'", conn_table[i].name);
+  for(int i=0; lsrk_table[i].name!=NULL; ++i)
+    if(lsrk_table[i].lsrk_method == prefs->lsrk_method)
+      BFAM_ROOT_INFO("lsrk_method=`%s'", lsrk_table[i].name);
   BFAM_ROOT_INFO("-------------------------------");
 }
 

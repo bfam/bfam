@@ -183,6 +183,8 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts,
 
   switch(method)
   {
+    default:
+      BFAM_WARNING("Invalid LSRK scheme, using KC54");
     case BFAM_TS_LSRK_KC54:
       ts->nStages = 5;
       ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
