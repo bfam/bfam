@@ -145,6 +145,8 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
       const char *rate_prefix, const bfam_long_real_t a))
 {
+  BFAM_LDEBUG("LSRK INIT");
+
   /*
    * set up some preliminaries
    */
@@ -264,7 +266,9 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts,
 void
 bfam_ts_lsrk_free(bfam_ts_lsrk_t* ts)
 {
+  BFAM_LDEBUG("LSRK FREE");
   bfam_communicator_free(ts->comm);
+  bfam_free(ts->comm);
   ts->comm = NULL;
   bfam_dictionary_clear(&ts->elems);
   bfam_free_aligned(ts->A);

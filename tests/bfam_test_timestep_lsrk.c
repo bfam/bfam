@@ -30,9 +30,28 @@ bfam_subdomain_lsrk_test_field_add(bfam_subdomain_t *subdomain, const char *name
   return rval;
 }
 
+static int
+bfam_subdomain_lsrk_test_free_fields(const char * key, void *val,
+    void *arg)
+{
+  bfam_free_aligned(val);
+
+  return 1;
+}
+
 void
 bfam_subdomain_lsrk_test_free(bfam_subdomain_t *thisSubdomain)
 {
+  bfam_subdomain_lsrk_test_t *sub = (bfam_subdomain_lsrk_test_t*) thisSubdomain;
+
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields,"",
+      &bfam_subdomain_lsrk_test_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_p,"",
+      &bfam_subdomain_lsrk_test_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_m,"",
+      &bfam_subdomain_lsrk_test_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_face,"",
+      &bfam_subdomain_lsrk_test_free_fields,NULL);
   bfam_subdomain_free(thisSubdomain);
 }
 
@@ -146,9 +165,9 @@ main (int argc, char *argv[])
 {
   BFAM_MPI_CHECK(MPI_Init(&argc,&argv));
   test_lsrk(BFAM_TS_LSRK_KC54,4,MPI_COMM_WORLD,10);
-  test_lsrk(BFAM_TS_LSRK_W33 ,3,MPI_COMM_WORLD,10);
-  test_lsrk(BFAM_TS_LSRK_HEUN,2,MPI_COMM_WORLD,10);
-  test_lsrk(BFAM_TS_LSRK_FE  ,1,MPI_COMM_WORLD,10);
+  // test_lsrk(BFAM_TS_LSRK_W33 ,3,MPI_COMM_WORLD,10);
+  // test_lsrk(BFAM_TS_LSRK_HEUN,2,MPI_COMM_WORLD,10);
+  // test_lsrk(BFAM_TS_LSRK_FE  ,1,MPI_COMM_WORLD,10);
   BFAM_MPI_CHECK(MPI_Finalize());
 
   return EXIT_SUCCESS;
