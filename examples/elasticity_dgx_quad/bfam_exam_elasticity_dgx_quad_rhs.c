@@ -20,9 +20,9 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_print_order_,NORDER)(int inN)
   BFAM_INFO("N = %d", N);
 }
 
-void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_,NORDER)(int inN,
-    bfam_subdomain_dgx_quad_t *sub, const char *rate_prefix,
-    const char *field_prefix)
+void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
+    int inN, bfam_subdomain_dgx_quad_t *sub, const char *rate_prefix,
+    const char *field_prefix, const bfam_long_real_t t)
 {
 
 #ifdef USE_GENERIC

@@ -31,6 +31,8 @@ typedef struct prefs
   bfam_locidx_t num_subdomains;
 
   p4est_connectivity_t * (*conn_fn) (void);
+
+  bfam_ts_lsrk_method_t lsrk_method;
 } prefs_t;
 
 typedef struct exam
@@ -41,6 +43,7 @@ typedef struct exam
 
   p4est_connectivity_t *conn;
   bfam_domain_p4est_t  *domain;
+  bfam_ts_lsrk_t       *lsrk;
 } exam_t;
 
 static void
@@ -134,6 +137,67 @@ zero_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
     field[n] = 0;
 }
 
+
+void aux_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
+{
+}
+
+void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
+    const bfam_long_real_t a)
+{
+}
+
+static void
+intra_rhs_elastic(int N, bfam_subdomain_dgx_quad_t *sub,
+    const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t)
+{
+#define X(order) \
+  case order: bfam_elasticity_dgx_quad_intra_rhs_elastic_##order(N,sub, \
+                  rate_prefix,field_prefix,t); break;
+
+  switch(N)
+  {
+    BFAM_LIST_OF_DGX_QUAD_NORDERS
+    default:
+      bfam_elasticity_dgx_quad_intra_rhs_elastic_(N,sub,rate_prefix,
+          field_prefix,t);
+      break;
+  }
+#undef X
+}
+
+void intra_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
+    const char *field_prefix, const bfam_long_real_t t)
+{
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx_quad"));
+
+  bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*) thisSubdomain;
+  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+  {
+    intra_rhs_elastic(sub->N,sub,rate_prefix,field_prefix,t);
+  }
+}
+
+void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
+    const char *field_prefix, const bfam_long_real_t t)
+{
+}
+
+void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
+    const char *field_prefix_rhs, const char *rate_prefix,
+    const bfam_long_real_t a)
+{
+}
+
+static void
+init_lsrk(exam_t *exam, prefs_t *prefs)
+{
+  const char *volume[] = {"_volume", NULL};
+  const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
+  exam->lsrk = bfam_ts_lsrk_new((bfam_domain_t*) exam->domain,prefs->lsrk_method,
+      BFAM_DOMAIN_AND,volume, BFAM_DOMAIN_AND,glue, exam->mpicomm,0,
+      &aux_rates,&scale_rates,&intra_rhs,&inter_rhs,&add_rates);
+}
 
 
 static void
@@ -230,6 +294,8 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
 
   init_domain(&exam, prefs);
 
+  init_lsrk(&exam, prefs);
+
   free_exam(&exam);
 }
 
@@ -249,24 +315,6 @@ print_order(int N)
 #undef X
 }
 
-static void
-intr_rhs(int N, bfam_subdomain_dgx_quad_t *sub, const char *rate_prefix, const
-    char *field_prefix)
-{
-#define X(order) \
-  case order: bfam_elasticity_dgx_quad_intra_rhs_##order(N,sub, \
-                  rate_prefix,field_prefix); break;
-
-  switch(N)
-  {
-    BFAM_LIST_OF_DGX_QUAD_NORDERS
-    default:
-      bfam_elasticity_dgx_quad_intra_rhs_(N,sub,rate_prefix,field_prefix);
-      break;
-  }
-#undef X
-}
-
 struct conn_table {
   const char *name;
   p4est_connectivity_t * (*conn_fn) (void);
@@ -278,6 +326,17 @@ struct conn_table {
   {"moebius",    &p4est_connectivity_new_moebius},
   {"star",       &p4est_connectivity_new_star},
   {NULL,         NULL}
+};
+
+struct lsrk_table {
+  const char *name;
+  bfam_ts_lsrk_method_t ts;
+} lsrk_table[] = {
+  {"KC54", BFAM_TS_LSRK_KC54},
+  {"FE",   BFAM_TS_LSRK_FE},
+  {"HEUN", BFAM_TS_LSRK_HEUN},
+  {"W33",  BFAM_TS_LSRK_W33},
+  {NULL,   BFAM_TS_LSRK_NOOP},
 };
 
 static int
@@ -337,6 +396,33 @@ new_prefs(const char *prefs_filename)
   }
   BFAM_ASSERT(prefs->conn_fn != NULL);
   lua_pop(L, 1);
+
+  lua_getglobal(L, "lskr_method");
+  prefs->lsrk_method = lsrk_table[0].ts;
+  if(lua_isstring(L, -1))
+  {
+    int i;
+    const char *lsrk_name = lua_tostring(L, -1);
+    for(i = 0; lsrk_table[i].name != NULL; ++i)
+    {
+      if(strcmp(lsrk_name, lsrk_table[i].name) == 0)
+        break;
+    }
+
+    if(lsrk_table[i].name == NULL)
+      BFAM_LERROR("invalid lsrk method name: `%s'; using default", lsrk_name);
+    else
+    {
+      prefs->lsrk_method = lsrk_table[i].ts;
+    }
+  }
+  else
+  {
+    BFAM_ROOT_WARNING("`lsrk method' not found, using default");
+  }
+  BFAM_ASSERT(prefs->lsrk_method != BFAM_TS_LSRK_NOOP);
+  lua_pop(L, 1);
+
 
   BFAM_ASSERT(lua_gettop(L)==0);
 

@@ -51,7 +51,8 @@ typedef enum bfam_ts_lsrk_method
   BFAM_TS_LSRK_KC54,
   BFAM_TS_LSRK_FE,
   BFAM_TS_LSRK_HEUN,
-  BFAM_TS_LSRK_W33
+  BFAM_TS_LSRK_W33,
+  BFAM_TS_LSRK_NOOP,
 } bfam_ts_lsrk_method_t;
 
 /** create a low storage RK scheme
