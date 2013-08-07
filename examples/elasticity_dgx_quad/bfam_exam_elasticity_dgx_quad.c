@@ -32,6 +32,10 @@ typedef struct prefs
 
   p4est_connectivity_t * (*conn_fn) (void);
 
+  bfam_real_t rho;
+  bfam_real_t mu;
+  bfam_real_t lam;
+
   bfam_ts_lsrk_method_t lsrk_method;
 } prefs_t;
 
@@ -125,7 +129,6 @@ split_domain_arbitrary(exam_t *exam, int base_N, bfam_locidx_t num_subdomains)
 
 typedef struct stress_free_box_params
 {
-  char *field;
   bfam_real_t A;
   bfam_real_t rho;
   bfam_real_t mu;
@@ -134,7 +137,7 @@ typedef struct stress_free_box_params
 } stress_free_box_params_t;
 
 static void
-stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t time,
+stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
     bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
     struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
 {
@@ -144,13 +147,39 @@ stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t time,
   bfam_real_t mu = params->mu;
   int n_ap = params->n_ap;
   int m_ap = params->m_ap;
-  if(strcmp(params->field,"v3")==0)
+  bfam_long_real_t pi = 4*atanl(1);
+  if(strcmp(name,"v3")==0)
   {
+    bfam_long_real_t kx = n_ap*pi;
+    bfam_long_real_t ky = m_ap*pi;
+    bfam_long_real_t w = -sqrt((mu/rho)*(kx*kx+ky*ky));
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      field[n] = -(A*w/mu)*sin(kx*x[n])*sin(ky*y[n])*sin(w*t);
+  }
+  else if(strcmp(name,"S13")==0)
+  {
+    bfam_long_real_t kx = n_ap*pi;
+    bfam_long_real_t ky = m_ap*pi;
+    bfam_long_real_t w = -sqrt((mu/rho)*(kx*kx+ky*ky));
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      field[n] = A*kx*cos(kx*x[n])*sin(ky*y[n])*sin(w*t);
+  }
+  else if(strcmp(name,"S23")==0)
+  {
+    bfam_long_real_t kx = n_ap*pi;
+    bfam_long_real_t ky = m_ap*pi;
+    bfam_long_real_t w = -sqrt((mu/rho)*(kx*kx+ky*ky));
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      field[n] = A*ky*sin(kx*x[n])*cos(ky*y[n])*sin(w*t);
+  }
+  else
+  {
+    BFAM_ABORT("no stress_free_box for field %s",name);
   }
 }
 
 static void
-zero_field(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t time,
     bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
     struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
 {
@@ -158,9 +187,11 @@ zero_field(bfam_locidx_t npoints, const char *name, bfam_real_t time,
   BFAM_ASSUME_ALIGNED(y, 32);
   BFAM_ASSUME_ALIGNED(z, 32);
   BFAM_ASSUME_ALIGNED(field, 32);
+  bfam_real_t val = 0;
+  if(arg != NULL) val = *((bfam_real_t*)arg);
 
   for(bfam_locidx_t n=0; n < npoints; ++n)
-    field[n] = 0;
+    field[n] = val;
 }
 
 void aux_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
@@ -266,6 +297,14 @@ init_domain(exam_t *exam, prefs_t *prefs)
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "lam");
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "mu");
 
+  /* set material properties */
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "rho", 0,
+      field_set_val, &prefs->rho);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "mu", 0,
+      field_set_val, &prefs->mu);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "lam", 0,
+      field_set_val, &prefs->lam);
+
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "v1");
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "v2");
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "v3");
@@ -299,24 +338,40 @@ init_domain(exam_t *exam, prefs_t *prefs)
   bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "S13");
   bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "S23");
 
-  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v1", 0, zero_field,
-      NULL);
-  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v2", 0, zero_field,
-      NULL);
-  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v3", 0, zero_field,
-      NULL);
-  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S11", 0, zero_field,
-      NULL);
-  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S22", 0, zero_field,
-      NULL);
-  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S33", 0, zero_field,
-      NULL);
-  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S12", 0, zero_field,
-      NULL);
-  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S13", 0, zero_field,
-      NULL);
-  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S23", 0, zero_field,
-      NULL);
+  /* zero out fields */
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v1", 0,
+      field_set_val, NULL);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v2", 0,
+      field_set_val, NULL);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v3", 0,
+      field_set_val, NULL);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S11", 0,
+      field_set_val, NULL);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S22", 0,
+      field_set_val, NULL);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S33", 0,
+      field_set_val, NULL);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S12", 0,
+      field_set_val, NULL);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S13", 0,
+      field_set_val, NULL);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S23", 0,
+      field_set_val, NULL);
+
+
+  stress_free_box_params_t field_params;
+  field_params.A    = 1;
+  field_params.rho  = prefs->rho;
+  field_params.mu   = prefs->mu;
+  field_params.n_ap = 1;
+  field_params.m_ap = 1;
+
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v3", 0,
+      stress_free_box, &field_params);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S13", 0,
+      stress_free_box, &field_params);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S23", 0,
+      stress_free_box, &field_params);
 }
 
 static void
@@ -398,6 +453,19 @@ get_global_int(lua_State *L, const char *name, int def)
   return result;
 }
 
+static bfam_real_t
+get_global_real(lua_State *L, const char *name, bfam_real_t def)
+{
+  lua_getglobal(L, name);
+  bfam_real_t result = def;
+  if(!lua_isnumber(L, -1))
+    BFAM_ROOT_WARNING("`%s' not found, using default", name);
+  else
+    result = (bfam_real_t)lua_tonumber(L, -1);
+  lua_pop(L, 1);
+  return result;
+}
+
 static prefs_t *
 new_prefs(const char *prefs_filename)
 {
@@ -415,6 +483,9 @@ new_prefs(const char *prefs_filename)
 
   prefs->N = get_global_int(L, "N", 5);
   prefs->num_subdomains = get_global_int(L, "num_subdomains", 1);
+  prefs->rho = get_global_real(L, "rho", 1);
+  prefs->mu  = get_global_real(L, "mu" , 1);
+  prefs->lam = get_global_real(L, "lam", 1);
   BFAM_ASSERT(lua_gettop(L)==0);
 
   lua_getglobal(L, "connectivity");
@@ -487,6 +558,9 @@ print_prefs(prefs_t *prefs)
   for(int i=0; lsrk_table[i].name!=NULL; ++i)
     if(lsrk_table[i].lsrk_method == prefs->lsrk_method)
       BFAM_ROOT_INFO("lsrk_method=`%s'", lsrk_table[i].name);
+  BFAM_ROOT_INFO("rho=%f", prefs->rho);
+  BFAM_ROOT_INFO("lam=%f", prefs->lam);
+  BFAM_ROOT_INFO("mu =%f", prefs->mu );
   BFAM_ROOT_INFO("-------------------------------");
 }
 
