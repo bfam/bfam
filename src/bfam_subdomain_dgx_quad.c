@@ -501,38 +501,6 @@ bfam_subdomain_dgx_quad_buildmaps(bfam_locidx_t K, int Np, int Nfp, int Nfaces,
   }
 }
 
-#ifdef BFAM_DEBUG
-static void
-bfam_subdomain_dgx_quad_check(bfam_subdomain_dgx_quad_t* subdomain)
-{
-  const int K = subdomain->K;
-  const int Nfp = subdomain->Nfp;
-  const int Nfaces = subdomain->Nfaces;
-
-  /*
-   * Check to see if the subdomain is connected.
-   */
-  bfam_real_t *restrict x =
-    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_x");
-  bfam_real_t *restrict y =
-    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_y");
-  bfam_real_t *restrict z =
-    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_z");
-
-  for(bfam_locidx_t n = 0; n < K*Nfp*Nfaces; ++n)
-    BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(x[subdomain->vmapP[n]],
-          x[subdomain->vmapM[n]], 10), "Mapping not correct x");
-
-  for(bfam_locidx_t n = 0; n < K*Nfp*Nfaces; ++n)
-    BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(y[subdomain->vmapP[n]],
-          y[subdomain->vmapM[n]], 10), "Mapping not correct y");
-
-  for(bfam_locidx_t n = 0; n < K*Nfp*Nfaces; ++n)
-    BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(z[subdomain->vmapP[n]],
-          z[subdomain->vmapM[n]], 10), "Mapping not correct z");
-}
-#endif
-
 void
 bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
                              const bfam_locidx_t              id,
@@ -763,10 +731,6 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
 
   bfam_subdomain_dgx_quad_buildmaps(K, Np, Nfp, Nfaces, EToE, EToF,
       subdomain->fmask, subdomain->vmapP, subdomain->vmapM);
-
-#ifdef BFAM_DEBUG
-  bfam_subdomain_dgx_quad_check(subdomain);
-#endif
 
   bfam_free_aligned(lnx);
   bfam_free_aligned(lny);
