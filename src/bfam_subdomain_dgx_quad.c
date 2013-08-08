@@ -640,10 +640,12 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
 
   subdomain->r = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
   subdomain->w = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
+  subdomain->wi = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
   for(int n = 0; n<Nrp; ++n)
   {
     subdomain->r[n] = (bfam_real_t) lr[n];
     subdomain->w[n] = (bfam_real_t) lw[n];
+    subdomain->wi[n] = 1.0/subdomain->w[n];
   }
 
   subdomain->K = K;
@@ -667,6 +669,8 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
 
   rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_J");
   BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_J");
+  rval = bfam_subdomain_dgx_quad_field_add(&subdomain->base, "_grid_JI");
+  BFAM_ABORT_IF_NOT(rval == 2, "Error adding _grid_JI");
 
   bfam_real_t *restrict x =
     bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_x");
@@ -686,6 +690,8 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
 
   bfam_real_t *restrict J =
     bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_J");
+  bfam_real_t *restrict JI =
+    bfam_dictionary_get_value_ptr(&subdomain->base.fields, "_grid_JI");
 
   for(int n = 0; n < K*Np; ++n)
   {
@@ -699,6 +705,7 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
     Jsy[n] = (bfam_real_t) lJsy[n];
 
     J[n] = (bfam_real_t) lJ[n];
+    JI[n] = 1.0/J[n];
   }
 
   rval = bfam_subdomain_dgx_quad_field_face_add(&subdomain->base, "_grid_nx");
@@ -782,6 +789,7 @@ bfam_subdomain_dgx_quad_free(bfam_subdomain_t *thisSubdomain)
 
   bfam_free_aligned(sub->r);
   bfam_free_aligned(sub->w);
+  bfam_free_aligned(sub->wi);
 
   for(int f = 0; f < sub->Nfaces; ++f)
     bfam_free_aligned(sub->fmask[f]);
@@ -1163,10 +1171,12 @@ bfam_subdomain_dgx_quad_glue_init(bfam_subdomain_dgx_quad_glue_t  *subdomain,
 
   subdomain->r = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
   subdomain->w = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
+  subdomain->wi = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
   for(int n = 0; n < Nrp; ++n)
   {
     subdomain->r[n] = (bfam_real_t) lr[0][n];
     subdomain->w[n] = (bfam_real_t) lw[n];
+    subdomain->wi[n] = 1.0/subdomain->w[n];
   }
 
   subdomain->K = K;
@@ -1258,6 +1268,7 @@ bfam_subdomain_dgx_quad_glue_free(bfam_subdomain_t *subdomain)
 
   bfam_free_aligned(sub->r);
   bfam_free_aligned(sub->w);
+  bfam_free_aligned(sub->wi);
 
   for(int i = 0; i < sub->num_interp; ++i)
     if(sub->interpolation[i])
