@@ -9,14 +9,14 @@
  * \param [in,out] y vector $y$
  */
 #define BFAM_KRON_IXA_PE(N, A, x, y)                                  \
-  do                                                               \
-  {                                                                \
-    for(int bfam_kron_k = 0; bfam_kron_k < (N); ++bfam_kron_k)     \
-      for(int bfam_kron_i = 0; bfam_kron_i < (N); ++bfam_kron_i)   \
-        for(int bfam_kron_j = 0; bfam_kron_j < (N); ++bfam_kron_j) \
-          (y)[(N) * bfam_kron_k + bfam_kron_j] +=                  \
-            (A)[(N) * bfam_kron_i + bfam_kron_j] *                 \
-            (x)[(N) * bfam_kron_k + bfam_kron_i];                  \
+  do                                                                  \
+  {                                                                   \
+    for(int bfam_kron_k = 0; bfam_kron_k < (N); ++bfam_kron_k)        \
+      for(int bfam_kron_i = 0; bfam_kron_i < (N); ++bfam_kron_i)      \
+        for(int bfam_kron_j = 0; bfam_kron_j < (N); ++bfam_kron_j)    \
+          (y)[(N) * bfam_kron_k + bfam_kron_j] +=                     \
+            (A)[(N) * bfam_kron_i + bfam_kron_j] *                    \
+            (x)[(N) * bfam_kron_k + bfam_kron_i];                     \
   } while (0)
 
 /** $y += (I \otimes A^T) x$.
@@ -243,6 +243,19 @@
           (a)[bfam_kron_i] * (b)[bfam_kron_j] *                           \
           (c)[(N) * bfam_kron_i + bfam_kron_j] *                          \
           (x)[(N) * bfam_kron_i + bfam_kron_j];                           \
+  } while (0)
+
+#define BFAM_KRON_A_BC_DOT_D_PE(N, a, b, c, d, x, y, z)                   \
+  do                                                                      \
+  {                                                                       \
+    for(int bfam_kron_i = 0; bfam_kron_i < (N); ++bfam_kron_i)            \
+      for(int bfam_kron_j = 0; bfam_kron_j < (N); ++bfam_kron_j)          \
+        (z)[(N) * bfam_kron_i + bfam_kron_j] =                            \
+          (x)[(N) * bfam_kron_i + bfam_kron_j] +                          \
+           a *                                                            \
+          (b)[bfam_kron_i] * (c)[bfam_kron_j] *                           \
+          (d)[(N) * bfam_kron_i + bfam_kron_j] *                          \
+          (y)[(N) * bfam_kron_i + bfam_kron_j];                           \
   } while (0)
 
 #endif

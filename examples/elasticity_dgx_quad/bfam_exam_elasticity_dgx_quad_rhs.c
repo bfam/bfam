@@ -405,10 +405,30 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_add_rates_elastic_,NORDER)(
 
   /* get the material properties and metric terms */
   bfam_real_t *restrict rhoi = bfam_dictionary_get_value_ptr(fields,"rho_inv");
-  bfam_real_t *restrict JI  = bfam_dictionary_get_value_ptr(fields,"_grid_JI");
+  bfam_real_t *restrict JI   = bfam_dictionary_get_value_ptr(fields,"_grid_JI");
   BFAM_ASSUME_ALIGNED(rhoi,32);
   BFAM_ASSUME_ALIGNED(JI,32);
 
   bfam_real_t *wi = sub->wi;
   BFAM_ASSUME_ALIGNED(wi,32);
+
+  BFAM_ALIGN(32) bfam_real_t aux[Np];
+
+  /* loop through all the elements */
+  bfam_locidx_t K  = sub->K;
+  for(bfam_locidx_t e = 0; e < K;e++)
+  {
+    bfam_locidx_t off = e*Np;
+
+    BFAM_DOT_AX(Np,JI+off,rhoi+off,aux);
+    BFAM_KRON_A_BC_DOT_D_PE(N+1,a,wi,wi,aux   ,rv1 +off,dv1 +off,lv1 +off);
+    BFAM_KRON_A_BC_DOT_D_PE(N+1,a,wi,wi,aux   ,rv2 +off,dv2 +off,lv2 +off);
+    BFAM_KRON_A_BC_DOT_D_PE(N+1,a,wi,wi,aux   ,rv3 +off,dv3 +off,lv3 +off);
+    BFAM_KRON_A_BC_DOT_D_PE(N+1,a,wi,wi,JI+off,rS11+off,dS11+off,lS11+off);
+    BFAM_KRON_A_BC_DOT_D_PE(N+1,a,wi,wi,JI+off,rS22+off,dS22+off,lS22+off);
+    BFAM_KRON_A_BC_DOT_D_PE(N+1,a,wi,wi,JI+off,rS33+off,dS33+off,lS33+off);
+    BFAM_KRON_A_BC_DOT_D_PE(N+1,a,wi,wi,JI+off,rS12+off,dS12+off,lS12+off);
+    BFAM_KRON_A_BC_DOT_D_PE(N+1,a,wi,wi,JI+off,rS13+off,dS13+off,lS13+off);
+    BFAM_KRON_A_BC_DOT_D_PE(N+1,a,wi,wi,JI+off,rS23+off,dS23+off,lS23+off);
+  }
 }
