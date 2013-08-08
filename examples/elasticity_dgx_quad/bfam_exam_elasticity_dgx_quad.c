@@ -318,18 +318,35 @@ init_domain(exam_t *exam, prefs_t *prefs)
 
   bfam_domain_t *domain = (bfam_domain_t*)exam->domain;
 
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "rho");
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "rho_inv");
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "lam");
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "mu");
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "Zs");
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "Zp");
 
   /* set material properties */
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "rho", 0,
+      field_set_val, &prefs->rho);
+
   bfam_real_t rho_inv = 1.0/prefs->rho;
   bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "rho_inv", 0,
       field_set_val, &rho_inv);
+
   bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "mu", 0,
       field_set_val, &prefs->mu);
+
   bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "lam", 0,
       field_set_val, &prefs->lam);
+
+  bfam_real_t Zs = sqrt(prefs->rho*prefs->mu);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "Zs", 0,
+      field_set_val, &Zs);
+
+  bfam_real_t Zp = sqrt(prefs->rho*(prefs->lam+2*prefs->mu));
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "Zp", 0,
+      field_set_val, &Zp);
+
 
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "v1");
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "v2");
