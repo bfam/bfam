@@ -28,9 +28,9 @@ refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
 }
 
 static void
-zero_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *x,
-    bfam_real_t *y, bfam_real_t *z, struct bfam_subdomain *s, void *arg,
-    bfam_real_t *field)
+zero_field(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
 {
   BFAM_ASSUME_ALIGNED(x, 32);
   BFAM_ASSUME_ALIGNED(y, 32);
@@ -42,8 +42,8 @@ zero_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *x,
 }
 
 static void
-x2_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
-    bfam_real_t *restrict y, bfam_real_t *restrict z,
+x2_field(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
     struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
 {
   BFAM_ASSUME_ALIGNED(x, 32);
@@ -56,8 +56,8 @@ x2_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
 }
 
 static void
-y2_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
-    bfam_real_t *restrict y, bfam_real_t *restrict z,
+y2_field(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
     struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
 {
   BFAM_ASSUME_ALIGNED(x, 32);
@@ -70,8 +70,8 @@ y2_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
 }
 
 static void
-z2_field(bfam_locidx_t npoints, bfam_real_t time, bfam_real_t *restrict x,
-    bfam_real_t *restrict y, bfam_real_t *restrict z,
+z2_field(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
     struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
 {
   BFAM_ASSUME_ALIGNED(x, 32);
