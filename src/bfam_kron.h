@@ -245,6 +245,18 @@
           (x)[(N) * bfam_kron_i + bfam_kron_j];                           \
   } while (0)
 
+/** $z = x +  a(B \otimes C) \dot\times D \dot\times y$
+ *
+ * \param [in]  N number of elements of $b$ and $c$
+ * \param [in]  a scalara
+ * \param [in]  a vector $a$
+ * \param [in]  b vector $b$
+ * \param [in]  c vector $c$
+ * \param [in]  d vector $d$
+ * \param [in]  x vector $x$
+ * \param [in]  y vector $y$
+ * \param [out] z vector $z$
+ */
 #define BFAM_KRON_A_BC_DOT_D_PE(N, a, b, c, d, x, y, z)                   \
   do                                                                      \
   {                                                                       \
