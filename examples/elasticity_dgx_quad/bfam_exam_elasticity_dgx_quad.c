@@ -208,14 +208,25 @@ void aux_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
       thisSubdomain->field_add(thisSubdomain,field);
     }
   }
-
-
 }
 
 void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     const bfam_long_real_t a)
 {
-  BFAM_INFO("SCALE RATES");
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx_quad"));
+  bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*)thisSubdomain;
+#define X(order) \
+  case order: bfam_elasticity_dgx_quad_scale_rates_elastic_##order(sub->N,sub, \
+                  rate_prefix,a); break;
+
+  switch(sub->N)
+  {
+    BFAM_LIST_OF_DGX_QUAD_NORDERS
+    default:
+      bfam_elasticity_dgx_quad_scale_rates_elastic_(sub->N,sub,rate_prefix,a);
+      break;
+  }
+#undef X
 }
 
 static void
@@ -259,7 +270,21 @@ void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
     const bfam_long_real_t a)
 {
-  BFAM_INFO("ADD RATES");
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx_quad"));
+  bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*)thisSubdomain;
+#define X(order) \
+  case order: bfam_elasticity_dgx_quad_add_rates_elastic_##order(sub->N,sub, \
+                  field_prefix_lhs,field_prefix_rhs,rate_prefix,a); break;
+
+  switch(sub->N)
+  {
+    BFAM_LIST_OF_DGX_QUAD_NORDERS
+    default:
+      bfam_elasticity_dgx_quad_add_rates_elastic_(sub->N,sub,field_prefix_lhs,
+          field_prefix_rhs,rate_prefix,a);
+      break;
+  }
+#undef X
 }
 
 static void
@@ -293,13 +318,14 @@ init_domain(exam_t *exam, prefs_t *prefs)
 
   bfam_domain_t *domain = (bfam_domain_t*)exam->domain;
 
-  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "rho");
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "rho_inv");
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "lam");
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "mu");
 
   /* set material properties */
-  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "rho", 0,
-      field_set_val, &prefs->rho);
+  bfam_real_t rho_inv = 1.0/prefs->rho;
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "rho_inv", 0,
+      field_set_val, &rho_inv);
   bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "mu", 0,
       field_set_val, &prefs->mu);
   bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "lam", 0,
