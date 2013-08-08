@@ -162,7 +162,7 @@ stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
     bfam_long_real_t ky = m_ap*pi;
     bfam_long_real_t w = -sqrt((mu/rho)*(kx*kx+ky*ky));
     for(bfam_locidx_t n=0; n < npoints; ++n)
-      field[n] = A*kx*cos(kx*x[n])*sin(ky*y[n])*sin(w*t);
+      field[n] = A*kx*cos(kx*x[n])*sin(ky*y[n])*cos(w*t);
   }
   else if(strcmp(name,"S23")==0)
   {
@@ -170,7 +170,7 @@ stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
     bfam_long_real_t ky = m_ap*pi;
     bfam_long_real_t w = -sqrt((mu/rho)*(kx*kx+ky*ky));
     for(bfam_locidx_t n=0; n < npoints; ++n)
-      field[n] = A*ky*sin(kx*x[n])*cos(ky*y[n])*sin(w*t);
+      field[n] = A*ky*sin(kx*x[n])*cos(ky*y[n])*cos(w*t);
   }
   else
   {
@@ -263,7 +263,7 @@ void intra_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
 void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t)
 {
-  BFAM_INFO("INTER RHS");
+  /* BFAM_INFO("INTER RHS"); */
 }
 
 void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
@@ -305,7 +305,7 @@ init_domain(exam_t *exam, prefs_t *prefs)
 
   exam->domain = bfam_domain_p4est_new(exam->mpicomm, exam->conn);
 
-  p4est_refine(exam->domain->p4est, 1, refine_fn, NULL);
+  p4est_refine(exam->domain->p4est, 2, refine_fn, NULL);
   p4est_balance(exam->domain->p4est, P4EST_CONNECT_CORNER, NULL);
   p4est_partition(exam->domain->p4est, NULL);
 

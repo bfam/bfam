@@ -157,7 +157,6 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
   BFAM_ASSUME_ALIGNED(Dr,32);
   BFAM_ASSUME_ALIGNED(w ,32);
 
-  bfam_locidx_t num_fp = 4*Nfp;
   bfam_locidx_t *vmapM = sub->vmapM;
   bfam_locidx_t *vmapP = sub->vmapP;
 
@@ -173,33 +172,33 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
     /* M*J*rho*v1 += M*(Dr*(Jrx*S11+Jry*S12)) +  M*(Ds*(Jsx*S11+Jsy*S12));*/
     BFAM_DOT_AX    (Np , Jrx+off, S11+off, aux1);
     BFAM_DOT_AX_PE (Np , Jry+off, S12+off, aux1);
-    BFAM_KRON_AXI   (N+1, Dr   , aux1  , rate);
+    BFAM_KRON_IXA  (N+1, Dr     , aux1   , rate);
 
-    BFAM_DOT_AX    (Np , Jsx+off, S11+off, aux1);
-    BFAM_DOT_AX_PE (Np , Jsy+off, S12+off, aux1);
-    BFAM_KRON_IXA_PE(N+1, Dr   , aux1  , rate);
+    BFAM_DOT_AX     (Np , Jsx+off, S11+off, aux1);
+    BFAM_DOT_AX_PE  (Np , Jsy+off, S12+off, aux1);
+    BFAM_KRON_AXI_PE(N+1, Dr     , aux1   , rate);
 
     BFAM_KRON_AB_DOT_C_PE(N+1,w,w,J+off,rate,dv1+off);
 
     /* M*J*rho*v2 += M*(Dr*(Jrx*S12+Jry*S22)) +  M*(Ds*(Jsx*S12+Jsy*S22));*/
-    BFAM_DOT_AX    (Np , Jrx+off, S12+off, aux1);
-    BFAM_DOT_AX_PE (Np , Jry+off, S22+off, aux1);
-    BFAM_KRON_AXI   (N+1, Dr   , aux1  , rate);
+    BFAM_DOT_AX     (Np , Jrx+off, S12+off, aux1);
+    BFAM_DOT_AX_PE  (Np , Jry+off, S22+off, aux1);
+    BFAM_KRON_IXA   (N+1, Dr     , aux1   , rate);
 
-    BFAM_DOT_AX    (Np , Jsx+off, S12+off, aux1);
-    BFAM_DOT_AX_PE (Np , Jsy+off, S22+off, aux1);
-    BFAM_KRON_IXA_PE(N+1, Dr   , aux1  , rate);
+    BFAM_DOT_AX     (Np , Jsx+off, S12+off, aux1);
+    BFAM_DOT_AX_PE  (Np , Jsy+off, S22+off, aux1);
+    BFAM_KRON_AXI_PE(N+1, Dr     , aux1   , rate);
 
     BFAM_KRON_AB_DOT_C_PE(N+1,w,w,J+off,rate,dv2+off);
 
     /* M*J*rho*v3 += M*(Dr*(Jrx*S13+Jry*S23)) +  M*(Ds*(Jsx*S13+Jsy*S23));*/
-    BFAM_DOT_AX    (Np , Jrx+off, S13+off, aux1);
-    BFAM_DOT_AX_PE (Np , Jry+off, S23+off, aux1);
-    BFAM_KRON_AXI   (N+1, Dr   , aux1  , rate);
+    BFAM_DOT_AX     (Np , Jrx+off, S13+off, aux1);
+    BFAM_DOT_AX_PE  (Np , Jry+off, S23+off, aux1);
+    BFAM_KRON_IXA   (N+1, Dr     , aux1   , rate);
 
-    BFAM_DOT_AX    (Np , Jsx+off, S13+off, aux1);
-    BFAM_DOT_AX_PE (Np , Jsy+off, S23+off, aux1);
-    BFAM_KRON_IXA_PE(N+1, Dr   , aux1  , rate);
+    BFAM_DOT_AX     (Np , Jsx+off, S13+off, aux1);
+    BFAM_DOT_AX_PE  (Np , Jsy+off, S23+off, aux1);
+    BFAM_KRON_AXI_PE(N+1, Dr     , aux1   , rate);
 
     BFAM_KRON_AB_DOT_C_PE(N+1,w,w,J+off,rate,dv3+off);
 
@@ -212,50 +211,50 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
     /* M*J*S22 += -lam*(Jrx*Dr'+Jsx*Ds')*v1 - (lam+mu)*(Jry*Dr'+Jsy*Ds')*v2 */
     /* M*J*S33 += -lam*(Jrx*Dr'+Jsx*Ds')*v1 - lam*(Jry*Dr'+Jsy*Ds')*v2 */
 
-    BFAM_KRON_ATXI(N+1, Dr     , MJv1, aux1); /* a1=Dr'*v1 */
+    BFAM_KRON_IXAT(N+1, Dr     , MJv1, aux1); /* a1=Dr'*v1 */
     BFAM_DOT_AX   (Np , Jrx+off, aux1, aux2); /* a2=Jrx*Dr'*v1 */
-    BFAM_KRON_IXAT(N+1, Dr     , MJv1, aux1); /* a1=Ds'v1 */
+    BFAM_KRON_ATXI(N+1, Dr     , MJv1, aux1); /* a1=Ds'v1 */
     BFAM_DOT_AX_PE(Np , Jsx+off, aux1, aux2); /* a2=Jrx*Dr'*v1+Jsx*Ds'*v1 */
     /* once computed aux2 can be used for all diagonal components of S */
     BFAM_DOT_2AX_ME(Np , mu +off, aux2, dS11);
-    BFAM_DOT_AX_ME(Np , lam+off, aux2, dS11);
-    BFAM_DOT_AX_ME(Np , lam+off, aux2, dS22);
-    BFAM_DOT_AX_ME(Np , lam+off, aux2, dS33);
+    BFAM_DOT_AX_ME (Np , lam+off, aux2, dS11);
+    BFAM_DOT_AX_ME (Np , lam+off, aux2, dS22);
+    BFAM_DOT_AX_ME (Np , lam+off, aux2, dS33);
 
-    BFAM_KRON_ATXI(N+1, Dr     , MJv2, aux1); /* a1=Dr'*v2 */
+    BFAM_KRON_IXAT(N+1, Dr     , MJv2, aux1); /* a1=Dr'*v2 */
     BFAM_DOT_AX   (Np , Jry+off, aux1, aux2); /* a2= (..)*v1 + Jry*Dr'*v2 */
-    BFAM_KRON_IXAT(N+1, Dr     , MJv2, aux1); /* a1=Ds'*v2 */
+    BFAM_KRON_ATXI(N+1, Dr     , MJv2, aux1); /* a1=Ds'*v2 */
     BFAM_DOT_AX_PE(Np , Jsy+off, aux1, aux2); /* a2= (..)*v1 + (..)v2 */
     /* once computed aux2 can be used for all diagonal components of S */
     BFAM_DOT_2AX_ME(Np , mu +off, aux2, dS22);
-    BFAM_DOT_AX_ME(Np , lam+off, aux2, dS11);
-    BFAM_DOT_AX_ME(Np , lam+off, aux2, dS22);
-    BFAM_DOT_AX_ME(Np , lam+off, aux2, dS33);
+    BFAM_DOT_AX_ME (Np , lam+off, aux2, dS11);
+    BFAM_DOT_AX_ME (Np , lam+off, aux2, dS22);
+    BFAM_DOT_AX_ME (Np , lam+off, aux2, dS33);
 
     /* M*J*S12 += -mu*((Jrx*Dr'+Jsx*Ds')*v2 -mu*((Jry*Dr'+Jsy*Ds')*v1 */
-    BFAM_KRON_ATXI(N+1, Dr     , MJv2, aux1); /* a1=Dr'*v2 */
+    BFAM_KRON_IXAT(N+1, Dr     , MJv2, aux1); /* a1=Dr'*v2 */
     BFAM_DOT_AX   (Np , Jrx+off, aux2, aux2); /* a2=Jrx*Dr'*v2 */
-    BFAM_KRON_IXAT(N+1, Dr     , MJv2, aux1); /* a1=Ds'v2 */
+    BFAM_KRON_ATXI(N+1, Dr     , MJv2, aux1); /* a1=Ds'v2 */
     BFAM_DOT_AX_PE(Np , Jsx+off, aux2, aux2); /* a2=Jrx*Dr'*v2+Jsx*Ds'*v2 */
     BFAM_DOT_AX_ME(Np , mu +off, aux2, dS12);
 
-    BFAM_KRON_ATXI(N+1, Dr     , MJv1, aux1); /* a1=Dr'*v1 */
+    BFAM_KRON_IXAT(N+1, Dr     , MJv1, aux1); /* a1=Dr'*v1 */
     BFAM_DOT_AX   (Np , Jry+off, aux2, aux2); /* a2=Jry*Dr'*v1 */
-    BFAM_KRON_IXAT(N+1, Dr     , MJv1, aux1); /* a1=Ds'v1 */
+    BFAM_KRON_ATXI(N+1, Dr     , MJv1, aux1); /* a1=Ds'v1 */
     BFAM_DOT_AX_PE(Np , Jsy+off, aux2, aux2); /* a2=Jry*Dr'*v1+Jsy*Ds'*v1 */
     BFAM_DOT_AX_ME(Np , mu +off, aux2, dS12);
 
     /* M*J*S13 += -mu*((Jrx*Dr'+Jsx*Ds')*v3 */
-    BFAM_KRON_ATXI(N+1, Dr     , MJv3, aux1); /* a1=Dr'*v3 */
+    BFAM_KRON_IXAT(N+1, Dr     , MJv3, aux1); /* a1=Dr'*v3 */
     BFAM_DOT_AX   (Np , Jrx+off, aux2, aux2); /* a2=Jrx*Dr'*v3 */
-    BFAM_KRON_IXAT(N+1, Dr     , MJv3, aux1); /* a1=Ds'v3 */
+    BFAM_KRON_ATXI(N+1, Dr     , MJv3, aux1); /* a1=Ds'v3 */
     BFAM_DOT_AX_PE(Np , Jsx+off, aux2, aux2); /* a2=Jrx*Dr'*v3+Jsx*Ds'*v3 */
     BFAM_DOT_AX_ME(Np , mu +off, aux2, dS13);
 
     /* M*J*S23 += -mu*(Jry*Dr'+Jsy*Ds')*v3 */
-    BFAM_KRON_ATXI(N+1, Dr     , MJv3, aux1); /* a1=Dr'*v3 */
+    BFAM_KRON_IXAT(N+1, Dr     , MJv3, aux1); /* a1=Dr'*v3 */
     BFAM_DOT_AX   (Np , Jry+off, aux2, aux2); /* a2=Jry*Dr'*v3 */
-    BFAM_KRON_IXAT(N+1, Dr     , MJv3, aux1); /* a1=Ds'v3 */
+    BFAM_KRON_ATXI(N+1, Dr     , MJv3, aux1); /* a1=Ds'v3 */
     BFAM_DOT_AX_PE(Np , Jsy+off, aux2, aux2); /* a2=Jry*Dr'*v3+Jsy*Ds'*v3 */
     BFAM_DOT_AX_ME(Np , mu +off, aux2, dS23);
 
@@ -264,7 +263,7 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
     {
       for(bfam_locidx_t pnt = 0; pnt < Nfp; pnt++)
       {
-        bfam_locidx_t f = e*num_fp + face*Nfp + pnt;
+        bfam_locidx_t f = pnt + Nfp*(face + 4*e);
         bfam_locidx_t iM = vmapM[f];
         bfam_locidx_t iP = vmapP[f];
 
