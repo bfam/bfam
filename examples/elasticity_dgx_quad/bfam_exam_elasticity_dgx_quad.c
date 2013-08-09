@@ -1,7 +1,7 @@
 #include <bfam.h>
 #include "bfam_exam_elasticity_dgx_quad_rhs.h"
 
-static int refine_level = 0;
+static int refine_level = 1;
 
 /*
  * Uniform refinement function
@@ -148,6 +148,11 @@ stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
   int n_ap = params->n_ap;
   int m_ap = params->m_ap;
   bfam_long_real_t pi = 4*atanl(1);
+  /*
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      field[n] = 1;
+    return;
+    */
   if(strcmp(name,"v3")==0)
   {
     bfam_long_real_t kx = n_ap*pi;
@@ -406,8 +411,8 @@ init_domain(exam_t *exam, prefs_t *prefs)
   field_params.A    = 1;
   field_params.rho  = prefs->rho;
   field_params.mu   = prefs->mu;
-  field_params.n_ap = 1;
-  field_params.m_ap = 1;
+  field_params.n_ap = 2;
+  field_params.m_ap = 2;
 
   bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v3", 0,
       stress_free_box, &field_params);
@@ -430,6 +435,11 @@ free_exam(exam_t *exam)
 static void
 run(MPI_Comm mpicomm, prefs_t *prefs)
 {
+  const char *fields[] = {"v1", "v2", "v3",
+    "S11", "S22", "S33", "S12", "S13", "S23", NULL};
+  // const char *fields[] = {"v1", NULL};
+  const char *volume[] = {"_volume", NULL};
+
   exam_t exam;
 
   init_mpi(&exam, mpicomm);
@@ -438,7 +448,20 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
 
   init_lsrk(&exam, prefs);
 
-  exam.lsrk->base.step((bfam_ts_t*) exam.lsrk,1);
+  char output[BFAM_BUFSIZ];
+
+  snprintf(output,BFAM_BUFSIZ,"fields_%05d",0);
+  bfam_vtk_write_file((bfam_domain_t*) exam.domain, BFAM_DOMAIN_OR, volume,
+      output, fields, NULL, NULL, 0, 0);
+  bfam_real_t dt = 0.005;
+  int nsteps = 10/dt;
+  for(int s = 0; s < nsteps; s++)
+  {
+    exam.lsrk->base.step((bfam_ts_t*) exam.lsrk,dt);
+    snprintf(output,BFAM_BUFSIZ,"fields_%05d",s+1);
+    bfam_vtk_write_file((bfam_domain_t*) exam.domain, BFAM_DOMAIN_OR, volume,
+        output, fields, NULL, NULL, 0, 0);
+  }
 
   free_exam(&exam);
 }

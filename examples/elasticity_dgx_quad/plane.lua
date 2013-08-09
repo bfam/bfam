@@ -3,6 +3,6 @@ num_subdomains = 1
 connectivity = "periodic"
 lsrk_method = "KC54"
 
-mu  = 30
-rho = 10
-lam = 40
+mu  = 1
+rho = 1
+lam = 1
