@@ -20,6 +20,35 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_print_order_,NORDER)(int inN)
   BFAM_INFO("N = %d", N);
 }
 
+static inline void
+bfam_elasticity_dgx_quad_state_m(
+          bfam_real_t *Tns,       bfam_real_t *Tps,
+          bfam_real_t *vns,       bfam_real_t *vps,
+          bfam_real_t  Tnm,       bfam_real_t  Tnp,
+    const bfam_real_t *Tpm, const bfam_real_t *Tpp,
+    const bfam_real_t  vnm, const bfam_real_t  vnp,
+    const bfam_real_t *vpm, const bfam_real_t *vpp,
+    const bfam_real_t  Zpm, const bfam_real_t  Zpp,
+    const bfam_real_t  Zsm, const bfam_real_t  Zsp)
+{
+  /* upwind perpendicular tractions */
+  Tps[0] = 0.5*( (Tpm[0]-Zsm*vpm[0]) + (-Tpp[0]+Zsp*vpp[0]));
+  Tps[1] = 0.5*( (Tpm[1]-Zsm*vpm[1]) + (-Tpp[1]+Zsp*vpp[1]));
+  Tps[2] = 0.5*( (Tpm[2]-Zsm*vpm[2]) + (-Tpp[2]+Zsp*vpp[2]));
+
+  /* upwind normal tractions */
+  Tns[0] = 0.5*((Tnm   -Zpm*vnm   ) + ( Tnp   -Zpp*vnp   ));
+
+  /* upwind perpendicular velocity */
+  vps[0] = 0.5*(-(Tpm[0]-Zsm*vpm[0]) + (-Tpp[0]+Zsp*vpp[0]))/Zsm;
+  vps[1] = 0.5*(-(Tpm[1]-Zsm*vpm[1]) + (-Tpp[1]+Zsp*vpp[1]))/Zsm;
+  vps[2] = 0.5*(-(Tpm[2]-Zsm*vpm[2]) + (-Tpp[2]+Zsp*vpp[2]))/Zsm;
+
+  /* upwind normal velocity */
+  Tns[0] = 0.5*(-(Tnm   -Zpm*vnm   ) + ( Tnp   -Zpp*vnp   ))/Zpm;
+}
+
+
 void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
     int inN, bfam_subdomain_dgx_quad_t *sub, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t)
@@ -234,63 +263,58 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
         bfam_locidx_t iM = vmapM[f];
         bfam_locidx_t iP = vmapP[f];
 
-        bfam_real_t ZsM = Zs[iM];
-        bfam_real_t ZsP = Zs[iP];
+        /* Setup stuff for the minus side */
+        bfam_real_t Zsm = Zs[iM];
+        bfam_real_t Zpm = Zp[iM];
 
-        bfam_real_t ZpM = Zp[iM];
-        bfam_real_t ZpP = Zp[iP];
+        bfam_real_t n1m = n1[f];
+        bfam_real_t n2m = n2[f];
 
-        /* we can let for this time the normals be negative of one another */
-        bfam_real_t n1M = n1[f];
-        bfam_real_t n1P = -n1M;
-
-        bfam_real_t n2M = n2[f];
-        bfam_real_t n2P = -n2M;
-
-        bfam_real_t TM[] = {
-          n1M*S11[iM]+n2M*S12[iM],
-          n1M*S12[iM]+n2M*S22[iM],
-          n1M*S13[iM]+n2M*S23[iM],
+        bfam_real_t Tpm[] = {
+          n1m*S11[iM]+n2m*S12[iM],
+          n1m*S12[iM]+n2m*S22[iM],
+          n1m*S13[iM]+n2m*S23[iM],
         };
-        bfam_real_t TP[] = {
-          n1P*S11[iP]+n2P*S12[iP],
-          n1P*S12[iP]+n2P*S22[iP],
-          n1P*S13[iP]+n2P*S23[iP],
+        bfam_real_t Tnm = Tpm[0]*n1m+Tpm[1]*n2m;
+        Tpm[0] = Tpm[0]-Tnm*n1m;
+        Tpm[1] = Tpm[1]-Tnm*n2m;
+
+        bfam_real_t vpm[] = {v1[iM],v2[iM],v3[iM]};
+        bfam_real_t vnm = n1m*vpm[0]+n2m*vpm[1];
+        vpm[0] = vpm[0]-vnm*n1m;
+        vpm[1] = vpm[1]-vnm*n2m;
+
+        /* Setup stuff for the plus side */
+        bfam_real_t Zsp = Zs[iP];
+        bfam_real_t Zpp = Zp[iP];
+
+        bfam_real_t n1p = -n1m;
+        bfam_real_t n2p = -n2m;
+
+        bfam_real_t Tpp[] = {
+          n1p*S11[iP]+n2p*S12[iP],
+          n1p*S12[iP]+n2p*S22[iP],
+          n1p*S13[iP]+n2p*S23[iP],
         };
-        bfam_real_t vM[] = {v1[iM],v2[iM],v3[iM]};
-        bfam_real_t vP[] = {v1[iP],v2[iP],v3[iP]};
+        bfam_real_t Tnp = Tpp[0]*n1p+Tpp[1]*n2p;
+        Tpp[0] = Tpp[0]-Tnp*n1p;
+        Tpp[1] = Tpp[1]-Tnp*n2p;
 
-        /* compute the orthogonal tractions */
-        bfam_real_t tau[] = {
-          (TM[0]-TP[0]+ZsP*vP[0]-ZsM*vM[0])/2,
-          (TM[1]-TP[1]+ZsP*vP[1]-ZsM*vM[1])/2,
-          (TM[2]-TP[2]+ZsP*vP[2]-ZsM*vM[2])/2,
-        };
+        bfam_real_t vpp[] = {v1[iP],v2[iP],v3[iP]};
+        bfam_real_t vnp = n1p*vpp[0]+n2p*vpp[1];
+        vpp[0] = vpp[0]-vnp*n1p;
+        vpp[1] = vpp[1]-vnp*n2p;
 
-        bfam_real_t tau_n = tau[0]*n1M+tau[1]*n2[1];
-        bfam_real_t sig_n =
-          n1M*(TM[0]-TP[0]+ZpP*vP[0]-ZpM*vM[0])/2 +
-          n2M*(TM[1]-TP[1]+ZpP*vP[1]-ZpM*vM[1])/2;
+        bfam_real_t TnS;
+        bfam_real_t TpS[3];
+        bfam_real_t vnS;
+        bfam_real_t vpS[3];
 
-        /* traction for the flux T* */
-        bfam_real_t TS[] = {
-          tau[0] + n1M*(sig_n-tau_n),
-          tau[1] + n2M*(sig_n-tau_n),
-          tau[2]
-        };
-
-        /* velocity */
-        bfam_real_t v[]  = {
-          (TS[0]-TM[0])/ZsM + vM[0],
-          (TS[1]-TM[1])/ZsM + vM[1],
-          (TS[2]-TM[2])/ZsM + vM[2],
-        };
-
-        bfam_real_t vn = (sig_n-(TM[0]*n1M+TM[1]*n2M))/ZpM
-          +(vM[0]-v[0])*n1M+(vM[1]-v[1])*n2M;
+        bfam_elasticity_dgx_quad_state_m(&TnS,TpS,&vnS,vpS,
+            Tnm, Tnm, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
         /* velocities for the flux */
-        bfam_real_t vS[] = {v[0] + n1M*vn,v[1] + n2M*vn,v[2]};
+        bfam_real_t vS[] = {vpS[0] + n1m*vnS,vpS[1] + n2m*vnS,vpS[2]};
 
         /* add the flux back in */
         bfam_real_t JI_wi_sJ = wi[0] * sJ[f] * JI[iM];
@@ -299,26 +323,16 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
         bfam_real_t   muM =  mu[iM];
         bfam_real_t rhoiM = rhoi[iM];
 
-        /*
-        TS[0] = (TM[0]-TP[0])/2;
-        TS[1] = (TM[1]-TP[1])/2;
-        TS[2] = (TM[2]-TP[2])/2;
+        // dv1[iM] += rhoiM*JI_wi_sJ*(TpS[0]-Tpm[0]+(TnS-Tnm)*n1m);
+        // dv2[iM] += rhoiM*JI_wi_sJ*(TpS[1]-Tpm[1]+(TnS-Tnm)*n2m);
+        dv3[iM] += rhoiM*JI_wi_sJ*(TpS[2]-Tpm[2]);
 
-        vS[0] = (vM[0]+vP[0])/2;
-        vS[1] = (vM[1]+vP[1])/2;
-        vS[2] = (vM[2]+vP[2])/2;
-        */
-
-        // dv1[iM] += rhoiM*JI_wi_sJ*(TS[0]-TM[0]);
-        // dv2[iM] += rhoiM*JI_wi_sJ*(TS[1]-TM[1]);
-        dv3[iM] += rhoiM*JI_wi_sJ*(TS[2]-TM[2]);
-
-        // dS11[iM] += JI_wi_sJ*((lamM+2*muM)*vS[0]*n1M +  lamM       *vS[1]*n2M);
-        // dS22[iM] += JI_wi_sJ*( lamM       *vS[0]*n1M + (lamM+2*muM)*vS[1]*n2M);
-        // dS33[iM] += JI_wi_sJ*( lamM       *vS[0]*n1M +  lamM       *vS[1]*n2M);
-        // dS12[iM] += JI_wi_sJ*muM*(vS[0]*n2M + vS[1]*n1M);
-        dS13[iM] += JI_wi_sJ*muM*vS[2]*n1M;
-        dS23[iM] += JI_wi_sJ*muM*vS[2]*n2M;
+        // dS11[iM] += JI_wi_sJ*((lamM+2*muM)*vS[0]*n1m +  lamM       *vS[1]*n2m);
+        // dS22[iM] += JI_wi_sJ*( lamM       *vS[0]*n1m + (lamM+2*muM)*vS[1]*n2m);
+        // dS33[iM] += JI_wi_sJ*( lamM       *vS[0]*n1m +  lamM       *vS[1]*n2m);
+        // dS12[iM] += JI_wi_sJ*muM*(vS[0]*n2m + vS[1]*n1m);
+        dS13[iM] += JI_wi_sJ*muM*vS[2]*n1m;
+        dS23[iM] += JI_wi_sJ*muM*vS[2]*n2m;
       }
     }
   }
@@ -382,15 +396,25 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_add_rates_elastic_,NORDER)(
 }
 
 void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_boundary_,NORDER)(
-    int inN, bfam_subdomain_dgx_quad_t *sub, const char *rate_prefix,
+    int inN, bfam_subdomain_dgx_quad_glue_t *sub, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t)
 {
-
 #ifdef USE_GENERIC
   const int N   = inN;
   const int Np  = (inN+1)*(inN+1);
   const int Nfp = inN+1;
-  BFAM_WARNING("Using generic intra rhs function");
+  BFAM_WARNING("Using generic inter rhs function");
 #endif
+
+  for(bfam_locidx_t le = 0; le < sub->K; le++)
+  {
+    bfam_locidx_t e = sub->EToEm[le];
+    int8_t face = sub->EToFm[le];
+    for(bfam_locidx_t pnt = 0; pnt < Nfp; pnt++)
+    {
+      bfam_locidx_t f = pnt + Nfp*(face + 4*e);
+      bfam_locidx_t iM = sub->sub_m->vmapM[f];
+    }
+  }
 
 }

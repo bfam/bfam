@@ -276,7 +276,7 @@ void intra_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
 }
 
-void inter_rhs_boundary(int N, bfam_subdomain_dgx_quad_t *sub,
+void inter_rhs_boundary(int N, bfam_subdomain_dgx_quad_glue_t *sub,
     const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t)
 {
 #define X(order) \
@@ -299,7 +299,8 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
 {
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx_quad"));
 
-  bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*) thisSubdomain;
+  bfam_subdomain_dgx_quad_glue_t *sub =
+    (bfam_subdomain_dgx_quad_glue_t*) thisSubdomain;
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"));
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"))
     inter_rhs_boundary(sub->N,sub,rate_prefix,field_prefix,t);

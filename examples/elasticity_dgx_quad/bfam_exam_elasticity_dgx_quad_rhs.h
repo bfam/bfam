@@ -15,8 +15,8 @@
       bfam_subdomain_dgx_quad_t *sub, const char *field_prefix_lhs,\
       const char *field_prefix_rhs, const char *rate_prefix,       \
       const bfam_long_real_t a);                                   \
-  void bfam_elasticity_dgx_quad_inter_rhs_boundary_##order(int N,   \
-      bfam_subdomain_dgx_quad_t *sub, const char *rate_prefix,     \
+  void bfam_elasticity_dgx_quad_inter_rhs_boundary_##order(int N,  \
+      bfam_subdomain_dgx_quad_glue_t *sub, const char *rate_prefix,\
       const char *field_prefix, const bfam_long_real_t t);
 BFAM_LIST_OF_DGX_QUAD_NORDERS
 #undef X
@@ -33,7 +33,7 @@ void bfam_elasticity_dgx_quad_add_rates_elastic_(int N,
     const char *field_prefix_rhs, const char *rate_prefix,
     const bfam_long_real_t a);
 void bfam_elasticity_dgx_quad_inter_rhs_boundary_(int N,
-    bfam_subdomain_dgx_quad_t *sub, const char *rate_prefix,
+    bfam_subdomain_dgx_quad_glue_t *sub, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t);
 
 #endif
