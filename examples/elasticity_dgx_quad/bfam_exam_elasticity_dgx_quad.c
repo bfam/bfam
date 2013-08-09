@@ -215,11 +215,9 @@ void aux_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
   }
 }
 
-void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-    const bfam_long_real_t a)
+void scale_rates_elastic (bfam_subdomain_dgx_quad_t *sub, 
+    const char *rate_prefix, const bfam_long_real_t a)
 {
-  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx_quad"));
-  bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*)thisSubdomain;
 #define X(order) \
   case order: bfam_elasticity_dgx_quad_scale_rates_elastic_##order(sub->N,sub, \
                   rate_prefix,a); break;
@@ -232,6 +230,18 @@ void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
       break;
   }
 #undef X
+}
+
+void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
+    const bfam_long_real_t a)
+{
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx_quad"));
+  bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*)thisSubdomain;
+  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+    scale_rates_elastic(sub,rate_prefix,a);
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"));
+  else
+    BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
 }
 
 static void
@@ -260,23 +270,47 @@ void intra_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
 
   bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*) thisSubdomain;
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
-  {
     intra_rhs_elastic(sub->N,sub,rate_prefix,field_prefix,t);
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"));
+  else
+    BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
+}
+
+void inter_rhs_boundary(int N, bfam_subdomain_dgx_quad_t *sub,
+    const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t)
+{
+#define X(order) \
+  case order: bfam_elasticity_dgx_quad_inter_rhs_boundary_##order(N,sub, \
+                  rate_prefix,field_prefix,t); break;
+
+  switch(N)
+  {
+    BFAM_LIST_OF_DGX_QUAD_NORDERS
+    default:
+      bfam_elasticity_dgx_quad_inter_rhs_boundary_(N,sub,rate_prefix,
+          field_prefix,t);
+      break;
   }
+#undef X
 }
 
 void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t)
 {
-  /* BFAM_INFO("INTER RHS"); */
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx_quad"));
+
+  bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*) thisSubdomain;
+  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"));
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"))
+    inter_rhs_boundary(sub->N,sub,rate_prefix,field_prefix,t);
+  else
+    BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
 }
 
-void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
-    const char *field_prefix_rhs, const char *rate_prefix,
-    const bfam_long_real_t a)
+void add_rates_elastic (bfam_subdomain_dgx_quad_t *sub,
+    const char *field_prefix_lhs, const char *field_prefix_rhs,
+    const char *rate_prefix, const bfam_long_real_t a)
 {
-  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx_quad"));
-  bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*)thisSubdomain;
 #define X(order) \
   case order: bfam_elasticity_dgx_quad_add_rates_elastic_##order(sub->N,sub, \
                   field_prefix_lhs,field_prefix_rhs,rate_prefix,a); break;
@@ -292,13 +326,27 @@ void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
 #undef X
 }
 
+void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
+    const char *field_prefix_rhs, const char *rate_prefix,
+    const bfam_long_real_t a)
+{
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx_quad"));
+  bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*)thisSubdomain;
+  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+    add_rates_elastic(sub,field_prefix_lhs,field_prefix_rhs,rate_prefix,a);
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"));
+  else
+    BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
+}
+
 static void
 init_lsrk(exam_t *exam, prefs_t *prefs)
 {
-  const char *volume[] = {"_volume", NULL};
+  const char *timestep_tags[] = {"_volume","_glue_parallel","_glue_local",
+    "_glue_boundary", NULL};
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
   exam->lsrk = bfam_ts_lsrk_new((bfam_domain_t*) exam->domain,prefs->lsrk_method,
-      BFAM_DOMAIN_AND,volume, BFAM_DOMAIN_AND,glue, exam->mpicomm,0,
+      BFAM_DOMAIN_OR,timestep_tags, BFAM_DOMAIN_OR,glue, exam->mpicomm,0,
       &aux_rates,&scale_rates,&intra_rhs,&inter_rhs,&add_rates);
 }
 

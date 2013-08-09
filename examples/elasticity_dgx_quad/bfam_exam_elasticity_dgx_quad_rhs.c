@@ -78,59 +78,75 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
   /* BFAM_ASSUME_ALIGNED(S33,32); */
 
   /* get the rates we will need */
+  /*
   snprintf(tmp_name,BFAM_BUFSIZ,"%sv1",rate_prefix);
   bfam_real_t *restrict dv1 = bfam_dictionary_get_value_ptr(fields, tmp_name);
 
   snprintf(tmp_name,BFAM_BUFSIZ,"%sv2",rate_prefix);
   bfam_real_t *restrict dv2 = bfam_dictionary_get_value_ptr(fields, tmp_name);
+  */
 
   snprintf(tmp_name,BFAM_BUFSIZ,"%sv3",rate_prefix);
   bfam_real_t *restrict dv3 = bfam_dictionary_get_value_ptr(fields, tmp_name);
 
+  /*
   snprintf(tmp_name,BFAM_BUFSIZ,"%sS11",rate_prefix);
   bfam_real_t *restrict dS11 = bfam_dictionary_get_value_ptr(fields, tmp_name);
 
   snprintf(tmp_name,BFAM_BUFSIZ,"%sS12",rate_prefix);
   bfam_real_t *restrict dS12 = bfam_dictionary_get_value_ptr(fields, tmp_name);
+  */
 
   snprintf(tmp_name,BFAM_BUFSIZ,"%sS13",rate_prefix);
   bfam_real_t *restrict dS13 = bfam_dictionary_get_value_ptr(fields, tmp_name);
 
+  /*
   snprintf(tmp_name,BFAM_BUFSIZ,"%sS22",rate_prefix);
   bfam_real_t *restrict dS22 = bfam_dictionary_get_value_ptr(fields, tmp_name);
+  */
 
   snprintf(tmp_name,BFAM_BUFSIZ,"%sS23",rate_prefix);
   bfam_real_t *restrict dS23 = bfam_dictionary_get_value_ptr(fields, tmp_name);
 
+  /*
   snprintf(tmp_name,BFAM_BUFSIZ,"%sS33",rate_prefix);
   bfam_real_t *restrict dS33 = bfam_dictionary_get_value_ptr(fields, tmp_name);
+  */
 
+  /*
   BFAM_ASSUME_ALIGNED(dv1,32);
   BFAM_ASSUME_ALIGNED(dv2,32);
+  */
   BFAM_ASSUME_ALIGNED(dv3,32);
+  /*
   BFAM_ASSUME_ALIGNED(dS11,32);
   BFAM_ASSUME_ALIGNED(dS12,32);
+  */
   BFAM_ASSUME_ALIGNED(dS13,32);
+  /*
   BFAM_ASSUME_ALIGNED(dS22,32);
+  */
   BFAM_ASSUME_ALIGNED(dS23,32);
+  /*
   BFAM_ASSUME_ALIGNED(dS33,32);
+  */
 
   /* get the material properties and metric terms */
   bfam_real_t *restrict rhoi = bfam_dictionary_get_value_ptr(fields,"rho_inv");
-  bfam_real_t *restrict lam = bfam_dictionary_get_value_ptr(fields,"lam");
+  /* bfam_real_t *restrict lam = bfam_dictionary_get_value_ptr(fields,"lam");*/
   bfam_real_t *restrict mu  = bfam_dictionary_get_value_ptr(fields,"mu" );
   bfam_real_t *restrict Zs  = bfam_dictionary_get_value_ptr(fields,"Zs" );
   bfam_real_t *restrict Zp  = bfam_dictionary_get_value_ptr(fields,"Zp" );
-  bfam_real_t *restrict J   = bfam_dictionary_get_value_ptr(fields,"_grid_J");
+  /* bfam_real_t *restrict J   = bfam_dictionary_get_value_ptr(fields,"_grid_J"); */
   bfam_real_t *restrict JI  = bfam_dictionary_get_value_ptr(fields,"_grid_JI");
   bfam_real_t *restrict Jrx = bfam_dictionary_get_value_ptr(fields,"_grid_Jrx");
   bfam_real_t *restrict Jry = bfam_dictionary_get_value_ptr(fields,"_grid_Jry");
   bfam_real_t *restrict Jsx = bfam_dictionary_get_value_ptr(fields,"_grid_Jsx");
   bfam_real_t *restrict Jsy = bfam_dictionary_get_value_ptr(fields,"_grid_Jsy");
   BFAM_ASSUME_ALIGNED(rhoi,32);
-  BFAM_ASSUME_ALIGNED(lam,32);
+  /*BFAM_ASSUME_ALIGNED(lam,32);*/
   BFAM_ASSUME_ALIGNED(mu ,32);
-  BFAM_ASSUME_ALIGNED(J  ,32);
+  /*BFAM_ASSUME_ALIGNED(J  ,32);*/
   BFAM_ASSUME_ALIGNED(Jrx,32);
   BFAM_ASSUME_ALIGNED(Jry,32);
   BFAM_ASSUME_ALIGNED(Jsx,32);
@@ -151,8 +167,10 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
   BFAM_ALIGN(32) bfam_real_t aux2[Np];
   BFAM_ALIGN(32) bfam_real_t rate[Np];
 
+  /*
   BFAM_ALIGN(32) bfam_real_t MJv1[Np];
   BFAM_ALIGN(32) bfam_real_t MJv2[Np];
+  */
   BFAM_ALIGN(32) bfam_real_t MJv3[Np];
 
   bfam_real_t *Dr = sub->Dr;
@@ -215,7 +233,6 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
         bfam_locidx_t f = pnt + Nfp*(face + 4*e);
         bfam_locidx_t iM = vmapM[f];
         bfam_locidx_t iP = vmapP[f];
-        BFAM_ASSERT(iM != iP);
 
         bfam_real_t ZsM = Zs[iM];
         bfam_real_t ZsP = Zs[iP];
@@ -278,7 +295,7 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
         /* add the flux back in */
         bfam_real_t JI_wi_sJ = wi[0] * sJ[f] * JI[iM];
 
-        bfam_real_t  lamM = lam[iM];
+        /* bfam_real_t  lamM = lam[iM]; */
         bfam_real_t   muM =  mu[iM];
         bfam_real_t rhoiM = rhoi[iM];
 
@@ -335,7 +352,6 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_add_rates_elastic_,NORDER)(
     const bfam_long_real_t a)
 {
 #ifdef USE_GENERIC
-  const int N   = inN;
   const int Np  = (inN+1)*(inN+1);
   BFAM_WARNING("Using generic intra rhs function");
 #endif
@@ -363,4 +379,18 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_add_rates_elastic_,NORDER)(
 
     for(int p = 0; p < sub->K*Np; p++) lhs[p] = rhs[p] + a*rate[p];
   }
+}
+
+void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_boundary_,NORDER)(
+    int inN, bfam_subdomain_dgx_quad_t *sub, const char *rate_prefix,
+    const char *field_prefix, const bfam_long_real_t t)
+{
+
+#ifdef USE_GENERIC
+  const int N   = inN;
+  const int Np  = (inN+1)*(inN+1);
+  const int Nfp = inN+1;
+  BFAM_WARNING("Using generic intra rhs function");
+#endif
+
 }
