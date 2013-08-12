@@ -31,21 +31,25 @@ bfam_elasticity_dgx_quad_state_m(
     const bfam_real_t  Zpm, const bfam_real_t  Zpp,
     const bfam_real_t  Zsm, const bfam_real_t  Zsp)
 {
-  /* upwind perpendicular tractions */
-  Tps[0] = 0.5*( (Tpm[0]-Zsm*vpm[0]) + (-Tpp[0]+Zsp*vpp[0]));
-  Tps[1] = 0.5*( (Tpm[1]-Zsm*vpm[1]) + (-Tpp[1]+Zsp*vpp[1]));
-  Tps[2] = 0.5*( (Tpm[2]-Zsm*vpm[2]) + (-Tpp[2]+Zsp*vpp[2]));
+  /* upwind normal velocity and traction */
+  /* wnm = Tnm - Zpm*vnm = TnS - Zpm*vnS */
+  /* wnp = Tnp - Zpp*vnm = TnS + Zpp*vnS */
+  bfam_real_t wnm = Tnm - Zpm*vnm;
+  bfam_real_t wnp = Tnp - Zpp*vnp;
+  vns[0] = (wnp-wnm)/(Zpm+Zpp);
+  Tns[0] = (wnp*Zpm+wnm*Zpp)/(Zpm+Zpp);
 
-  /* upwind normal tractions */
-  Tns[0] = 0.5*((Tnm   -Zpm*vnm   ) + ( Tnp   -Zpp*vnp   ));
+  /* upwind perpendiculat velocitie and tractions */
+  /* wpm = Tpm - Zsm*vpm = TpS - Zsm*vpS */
+  /* wpp = Tpp - Zsp*vpp =-TpS - Zsp*vpS */
+  for(int i = 0; i < 3; i++)
+  {
+    bfam_real_t wpm = Tpm[i] - Zsm*vpm[i];
+    bfam_real_t wpp = Tpp[i] - Zsp*vpp[i];
+    vps[i] =-(wpm    +wpp    )/(Zsp+Zsm);
+    Tps[i] = (wpm*Zsp-wpp*Zsm)/(Zsp+Zsm);
+  }
 
-  /* upwind perpendicular velocity */
-  vps[0] = 0.5*(-(Tpm[0]-Zsm*vpm[0]) + (-Tpp[0]+Zsp*vpp[0]))/Zsm;
-  vps[1] = 0.5*(-(Tpm[1]-Zsm*vpm[1]) + (-Tpp[1]+Zsp*vpp[1]))/Zsm;
-  vps[2] = 0.5*(-(Tpm[2]-Zsm*vpm[2]) + (-Tpp[2]+Zsp*vpp[2]))/Zsm;
-
-  /* upwind normal velocity */
-  Tns[0] = 0.5*(-(Tnm   -Zpm*vnm   ) + ( Tnp   -Zpp*vnp   ))/Zpm;
 }
 
 
