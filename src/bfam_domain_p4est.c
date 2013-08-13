@@ -16,7 +16,7 @@ void
 bfam_domain_p4est_init(bfam_domain_p4est_t *domain, MPI_Comm domComm,
                        p4est_connectivity_t *conn)
 {
-  bfam_domain_init(&domain->d,domComm);
+  bfam_domain_init(&domain->base,domComm);
 
   domain->conn = conn;
   domain->p4est = p4est_new_ext(domComm,conn,0,0,0,0,NULL,NULL);
@@ -32,7 +32,7 @@ bfam_domain_p4est_free(bfam_domain_p4est_t *domain)
   p4est_destroy(domain->p4est);
   domain->p4est = NULL;
 
-  bfam_domain_free(&domain->d);
+  bfam_domain_free(&domain->base);
 }
 
 static bfam_locidx_t

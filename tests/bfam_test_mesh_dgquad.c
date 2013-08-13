@@ -218,12 +218,12 @@ build_mesh(MPI_Comm mpicomm)
    */
   {
     bfam_subdomain_t **subdomains =
-      bfam_malloc(domain->d.numSubdomains*sizeof(bfam_subdomain_t**));
+      bfam_malloc(domain->base.numSubdomains*sizeof(bfam_subdomain_t**));
 
     bfam_locidx_t numSubdomains = 0;
 
     bfam_domain_get_subdomains((bfam_domain_t*)domain, BFAM_DOMAIN_OR,
-        glue, domain->d.numSubdomains, subdomains, &numSubdomains);
+        glue, domain->base.numSubdomains, subdomains, &numSubdomains);
 
     BFAM_LDEBUG("Number of local and parallel glue grids %jd",
         (intmax_t) numSubdomains);

@@ -9,7 +9,7 @@
  */
 typedef struct bfam_domain_p4est
 {
-  bfam_domain_t         d;     /** parent domain */
+  bfam_domain_t         base;     /** parent domain */
   p4est_connectivity_t *conn;  /** connectivity for p4est */
   p4est_t              *p4est; /** forest of quadtrees */
 } bfam_domain_p4est_t;

@@ -434,11 +434,11 @@ test_geo(MPI_Comm mpicomm)
       subdomainID, &N);
 
   bfam_subdomain_t **subdomains =
-    bfam_malloc(domain->d.numSubdomains*sizeof(bfam_subdomain_t**));
+    bfam_malloc(domain->base.numSubdomains*sizeof(bfam_subdomain_t**));
 
   const char* volume[] = {"_volume", NULL};
   bfam_domain_get_subdomains((bfam_domain_t*)domain, BFAM_DOMAIN_OR,
-      volume, domain->d.numSubdomains, subdomains, &numSubdomains);
+      volume, domain->base.numSubdomains, subdomains, &numSubdomains);
 
   BFAM_ABORT_IF_NOT(numSubdomains==1, "We should only have one subdomain");
 
