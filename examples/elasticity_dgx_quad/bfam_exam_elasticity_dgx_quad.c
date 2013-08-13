@@ -167,7 +167,7 @@ stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
     bfam_long_real_t ky = m_ap*pi;
     bfam_long_real_t w = -sqrt((mu/rho)*(kx*kx+ky*ky));
     for(bfam_locidx_t n=0; n < npoints; ++n)
-      field[n] = A*kx*cos(kx*x[n])*sin(ky*y[n])*cos(w*t);
+      field[n] = A*ky*sin(kx*x[n])*cos(ky*y[n])*cos(w*t);
   }
   else if(strcmp(name,"S23")==0)
   {
@@ -175,7 +175,7 @@ stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
     bfam_long_real_t ky = m_ap*pi;
     bfam_long_real_t w = -sqrt((mu/rho)*(kx*kx+ky*ky));
     for(bfam_locidx_t n=0; n < npoints; ++n)
-      field[n] = A*ky*sin(kx*x[n])*cos(ky*y[n])*cos(w*t);
+      field[n] = A*kx*cos(kx*x[n])*sin(ky*y[n])*cos(w*t);
   }
   else
   {
