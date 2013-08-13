@@ -17,7 +17,7 @@
       const bfam_long_real_t a);                                   \
   void bfam_elasticity_dgx_quad_inter_rhs_boundary_##order(int N,  \
       bfam_subdomain_dgx_quad_glue_t *sub, const char *rate_prefix,\
-      const char *field_prefix, const bfam_long_real_t t);
+      const char *field_prefix, const bfam_long_real_t t, const bfam_real_t R);
 BFAM_LIST_OF_DGX_QUAD_NORDERS
 #undef X
 
@@ -34,6 +34,6 @@ void bfam_elasticity_dgx_quad_add_rates_elastic_(int N,
     const bfam_long_real_t a);
 void bfam_elasticity_dgx_quad_inter_rhs_boundary_(int N,
     bfam_subdomain_dgx_quad_glue_t *sub, const char *rate_prefix,
-    const char *field_prefix, const bfam_long_real_t t);
+    const char *field_prefix, const bfam_long_real_t t, const bfam_real_t R);
 
 #endif

@@ -281,14 +281,14 @@ void inter_rhs_boundary(int N, bfam_subdomain_dgx_quad_glue_t *sub,
 {
 #define X(order) \
   case order: bfam_elasticity_dgx_quad_inter_rhs_boundary_##order(N,sub, \
-                  rate_prefix,field_prefix,t); break;
+                  rate_prefix,field_prefix,t, 1); break;
 
   switch(N)
   {
     BFAM_LIST_OF_DGX_QUAD_NORDERS
     default:
       bfam_elasticity_dgx_quad_inter_rhs_boundary_(N,sub,rate_prefix,
-          field_prefix,t);
+          field_prefix,t, 1);
       break;
   }
 #undef X
