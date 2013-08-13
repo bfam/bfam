@@ -1,7 +1,7 @@
 #include <bfam.h>
 #include "bfam_exam_elasticity_dgx_quad_rhs.h"
 
-static int refine_level = 1;
+static int refine_level = 4;
 
 /*
  * Uniform refinement function
@@ -502,14 +502,18 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   snprintf(output,BFAM_BUFSIZ,"fields_%05d",0);
   bfam_vtk_write_file((bfam_domain_t*) exam.domain, BFAM_DOMAIN_OR, volume,
       output, fields, NULL, NULL, 0, 0);
-  bfam_real_t dt = 0.005;
+  bfam_real_t dt = 0.01/pow(2,refine_level);
   int nsteps = 10/dt;
+  int ndisp  = 0.1 / dt;
   for(int s = 0; s < nsteps; s++)
   {
+    if(s%ndisp == 0)
+    {
+      snprintf(output,BFAM_BUFSIZ,"fields_%05d",s+1);
+      bfam_vtk_write_file((bfam_domain_t*) exam.domain, BFAM_DOMAIN_OR, volume,
+          output, fields, NULL, NULL, 0, 0);
+    }
     exam.lsrk->base.step((bfam_ts_t*) exam.lsrk,dt);
-    snprintf(output,BFAM_BUFSIZ,"fields_%05d",s+1);
-    bfam_vtk_write_file((bfam_domain_t*) exam.domain, BFAM_DOMAIN_OR, volume,
-        output, fields, NULL, NULL, 0, 0);
   }
 
   free_exam(&exam);
