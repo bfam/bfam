@@ -1,6 +1,6 @@
 N = 5
 num_subdomains = 1
-connectivity = "periodic"
+connectivity = "unitsquare"
 lsrk_method = "KC54"
 
 mu  = 2

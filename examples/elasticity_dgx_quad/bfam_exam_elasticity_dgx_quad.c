@@ -179,7 +179,9 @@ stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
   }
   else
   {
-    BFAM_ABORT("no stress_free_box for field %s",name);
+    /* BFAM_ABORT("no stress_free_box for field %s",name);*/
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      field[n] = exp(-(pow(x[n]-0.5,2) + pow(y[n]-0.5,2))*50);
   }
 }
 
@@ -469,6 +471,10 @@ init_domain(exam_t *exam, prefs_t *prefs)
       stress_free_box, &field_params);
   bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S23", 0,
       stress_free_box, &field_params);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v1", 0,
+      stress_free_box, &field_params);
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v2", 0,
+      stress_free_box, &field_params);
 }
 
 static void
@@ -505,6 +511,8 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   bfam_real_t dt = 0.01/pow(2,refine_level);
   int nsteps = 10/dt;
   int ndisp  = 0.1 / dt;
+  // nsteps = 1/dt;
+  // ndisp  = 1;
   for(int s = 0; s < nsteps; s++)
   {
     if(s%ndisp == 0)
