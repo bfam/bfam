@@ -42,7 +42,7 @@ bfam_elasticity_dgx_quad_upwind_state_m(
   /* upwind perpendiculat velocitie and tractions */
   /* wpm = Tpm - Zsm*vpm = TpS - Zsm*vpS */
   /* wpp = Tpp - Zsp*vpp =-TpS - Zsp*vpS */
-  for(int i = 0; i < 3; i++)
+  for(bfam_locidx_t i = 0; i < 3; i++)
   {
     bfam_real_t wpm = Tpm[i] - Zsm*vpm[i];
     bfam_real_t wpp = Tpp[i] - Zsp*vpp[i];
@@ -213,7 +213,7 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
     /* Note: Matrices on the LHS will be handled in add rates routine */
 
     /* v1 += JI*rhoi*(Dr*(Jrx*S11+Jry*S12)) + JI*rhoi*(Ds*(Jsx*S11+Jsy*S12));*/
-    for(int i = 0; i < Np; i++)
+    for(bfam_locidx_t i = 0; i < Np; i++)
     {
       aux1[i] = Jrx[off+i] * S11[off+i] + Jry[off+i] * S12[off+i];
       aux2[i] = Jsx[off+i] * S11[off+i] + Jsy[off+i] * S12[off+i];
@@ -221,11 +221,11 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
     BFAM_KRON_IXA   (N+1, Dr     , aux1   , rate); /* Dr */
     BFAM_KRON_AXI_PE(N+1, Dr     , aux2   , rate); /* Ds */
 
-    for(int i = 0; i < Np; i++)
+    for(bfam_locidx_t i = 0; i < Np; i++)
       dv1[off+i] += JI[off+i]*rhoi[off+i]*rate[i];
 
     /* v2 += JI*rhoi*(Dr*(Jrx*S12+Jry*S22)) + JI*rhoi*(Ds*(Jsx*S12+Jsy*S22));*/
-    for(int i = 0; i < Np; i++)
+    for(bfam_locidx_t i = 0; i < Np; i++)
     {
       aux1[i] = Jrx[off+i] * S12[off+i] + Jry[off+i] * S22[off+i];
       aux2[i] = Jsx[off+i] * S12[off+i] + Jsy[off+i] * S22[off+i];
@@ -233,11 +233,11 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
     BFAM_KRON_IXA   (N+1, Dr     , aux1   , rate); /* Dr */
     BFAM_KRON_AXI_PE(N+1, Dr     , aux2   , rate); /* Ds */
 
-    for(int i = 0; i < Np; i++)
+    for(bfam_locidx_t i = 0; i < Np; i++)
       dv2[off+i] += JI[off+i]*rhoi[off+i]*rate[i];
 
     /* rho*v3 += JI*rhoi*(Dr*(Jrx*S13+Jry*S23)) +  JI*rhoi*(Ds*(Jsx*S13+Jsy*S23));*/
-    for(int i = 0; i < Np; i++)
+    for(bfam_locidx_t i = 0; i < Np; i++)
     {
       aux1[i] = Jrx[off+i] * S13[off+i] + Jry[off+i] * S23[off+i];
       aux2[i] = Jsx[off+i] * S13[off+i] + Jsy[off+i] * S23[off+i];
@@ -245,14 +245,14 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
     BFAM_KRON_IXA   (N+1, Dr     , aux1   , rate); /* Dr */
     BFAM_KRON_AXI_PE(N+1, Dr     , aux2   , rate); /* Ds */
 
-    for(int i = 0; i < Np; i++)
+    for(bfam_locidx_t i = 0; i < Np; i++)
       dv3[off+i] += JI[off+i]*rhoi[off+i]*rate[i];
 
     /* we use these a lot so store them */
-    for(int i = 0; i < N+1; i++)
-      for(int j = 0; j < N+1; j++)
+    for(bfam_locidx_t i = 0; i < N+1; i++)
+      for(bfam_locidx_t j = 0; j < N+1; j++)
       {
-        int k = i*(N+1)+j;
+        bfam_locidx_t k = i*(N+1)+j;
         MJv1[k] = w[i]*w[j]*v1[off+k];
         MJv2[k] = w[i]*w[j]*v2[off+k];
         MJv3[k] = w[i]*w[j]*v3[off+k];
@@ -281,10 +281,10 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
     BFAM_KRON_ATXI(N+1, Dr, MJv2, DsTv2);
     BFAM_KRON_IXAT(N+1, Dr, MJv3, DrTv3);
     BFAM_KRON_ATXI(N+1, Dr, MJv3, DsTv3);
-    for(int i = 0; i < N+1; i++)
-      for(int j = 0; j < N+1; j++)
+    for(bfam_locidx_t i = 0; i < N+1; i++)
+      for(bfam_locidx_t j = 0; j < N+1; j++)
       {
-        int k = i*(N+1)+j;
+        bfam_locidx_t k = i*(N+1)+j;
 
         dS11[off+k] -= wi[i]*wi[j]*JI[off+k]*(
             (lam[off+k]+2*mu[off+k])*(Jrx[off+k]*DrTv1[k]+Jsx[off+k]*DsTv1[k])
@@ -405,7 +405,7 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_scale_rates_elastic_,NORDER)(
   const char *f_names[] =
     {"v1","v2","v3","S11","S22","S33","S12","S13","S23",NULL};
   char name[BFAM_BUFSIZ];
-  for(int f = 0; f_names[f]!=NULL; ++f)
+  for(bfam_locidx_t f = 0; f_names[f]!=NULL; ++f)
   {
     snprintf(name,BFAM_BUFSIZ,"%s%s",rate_prefix,f_names[f]);
     bfam_real_t *restrict rate = bfam_dictionary_get_value_ptr(fields, name);
@@ -431,7 +431,7 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_add_rates_elastic_,NORDER)(
   /* get the fields we will need */
   bfam_dictionary_t *fields = &sub->base.fields;
 
-  for(int f = 0; field_names[f] != NULL; f++)
+  for(bfam_locidx_t f = 0; field_names[f] != NULL; f++)
   {
     snprintf(tmp_name,BFAM_BUFSIZ,"%s%s",field_prefix_lhs,field_names[f]);
     bfam_real_t *lhs = bfam_dictionary_get_value_ptr(fields, tmp_name);
@@ -445,7 +445,7 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_add_rates_elastic_,NORDER)(
     bfam_real_t *rate = bfam_dictionary_get_value_ptr(fields, tmp_name);
     BFAM_ASSUME_ALIGNED(rate,32);
 
-    for(int p = 0; p < sub->K*Np; p++) lhs[p] = rhs[p] + a*rate[p];
+    for(bfam_locidx_t p = 0; p < sub->K*Np; p++) lhs[p] = rhs[p] + a*rate[p];
   }
 }
 
@@ -690,5 +690,103 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_boundary_,NORDER)(
       dS13[iM] += JI_wi_sJ*muM *vS[2]*nm[0];
       dS23[iM] += JI_wi_sJ*muM *vS[2]*nm[1];
     }
+  }
+}
+
+void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_energy_,NORDER)(
+    int inN, bfam_real_t *energy_sq, 
+    bfam_subdomain_dgx_quad_t *sub, const char *field_prefix)
+{
+#ifdef USE_GENERIC
+  const int N   = inN;
+  const int Np  = (inN+1)*(inN+1);
+  BFAM_WARNING("Using generic inter rhs function");
+#endif
+
+  char tmp_name[BFAM_BUFSIZ];
+
+  /* get the fields we will need */
+  bfam_dictionary_t *fields = &sub->base.fields;
+
+  snprintf(tmp_name,BFAM_BUFSIZ,"%sv1",field_prefix);
+  bfam_real_t *restrict v1 = bfam_dictionary_get_value_ptr(fields, tmp_name);
+
+  snprintf(tmp_name,BFAM_BUFSIZ,"%sv2",field_prefix);
+  bfam_real_t *restrict v2 = bfam_dictionary_get_value_ptr(fields, tmp_name);
+
+  snprintf(tmp_name,BFAM_BUFSIZ,"%sv3",field_prefix);
+  bfam_real_t *restrict v3 = bfam_dictionary_get_value_ptr(fields, tmp_name);
+
+  snprintf(tmp_name,BFAM_BUFSIZ,"%sS11",field_prefix);
+  bfam_real_t *restrict S11 = bfam_dictionary_get_value_ptr(fields, tmp_name);
+
+  snprintf(tmp_name,BFAM_BUFSIZ,"%sS12",field_prefix);
+  bfam_real_t *restrict S12 = bfam_dictionary_get_value_ptr(fields, tmp_name);
+
+  snprintf(tmp_name,BFAM_BUFSIZ,"%sS13",field_prefix);
+  bfam_real_t *restrict S13 = bfam_dictionary_get_value_ptr(fields, tmp_name);
+
+  snprintf(tmp_name,BFAM_BUFSIZ,"%sS22",field_prefix);
+  bfam_real_t *restrict S22 = bfam_dictionary_get_value_ptr(fields, tmp_name);
+
+  snprintf(tmp_name,BFAM_BUFSIZ,"%sS23",field_prefix);
+  bfam_real_t *restrict S23 = bfam_dictionary_get_value_ptr(fields, tmp_name);
+
+  snprintf(tmp_name,BFAM_BUFSIZ,"%sS33",field_prefix);
+  bfam_real_t *restrict S33 = bfam_dictionary_get_value_ptr(fields, tmp_name);
+
+  BFAM_ASSUME_ALIGNED(v1,32);
+  BFAM_ASSUME_ALIGNED(v2,32);
+  BFAM_ASSUME_ALIGNED(v3,32);
+  BFAM_ASSUME_ALIGNED(S11,32);
+  BFAM_ASSUME_ALIGNED(S12,32);
+  BFAM_ASSUME_ALIGNED(S13,32);
+  BFAM_ASSUME_ALIGNED(S22,32);
+  BFAM_ASSUME_ALIGNED(S23,32);
+  BFAM_ASSUME_ALIGNED(S33,32);
+
+  bfam_real_t *restrict rho = bfam_dictionary_get_value_ptr(fields,"rho");
+  bfam_real_t *restrict lam = bfam_dictionary_get_value_ptr(fields,"lam");
+  bfam_real_t *restrict mu  = bfam_dictionary_get_value_ptr(fields,"mu" );
+  bfam_real_t *restrict J   = bfam_dictionary_get_value_ptr(fields,"_grid_J");
+  BFAM_ASSUME_ALIGNED(rho,32);
+  BFAM_ASSUME_ALIGNED(lam,32);
+  BFAM_ASSUME_ALIGNED(mu ,32);
+  BFAM_ASSUME_ALIGNED(J  ,32);
+
+  bfam_locidx_t K  = sub->K;
+
+  bfam_real_t *w  = sub->w;
+  BFAM_ASSUME_ALIGNED(w ,32);
+
+  /* loop through all the elements */
+  for(bfam_locidx_t e = 0; e < K;e++)
+  {
+    bfam_locidx_t off = e*Np;
+    for(bfam_locidx_t i = 0; i < N+1; i++)
+      for(bfam_locidx_t j = 0; j < N+1; j++)
+      {
+        /* node id */
+        bfam_locidx_t nid = i*(N+1)+j+off;
+
+        /* setup up deviatoric stress tensor */
+        bfam_real_t mean_stress = (S11[nid]+S22[nid]+S33[nid])/3.0;
+        bfam_real_t s11 = S11[nid] - mean_stress;
+        bfam_real_t s22 = S22[nid] - mean_stress;
+        bfam_real_t s33 = S33[nid] - mean_stress;
+        bfam_real_t s12 = S12[nid];
+        bfam_real_t s13 = S13[nid];
+        bfam_real_t s23 = S23[nid];
+
+        /* bulk modulus */
+        bfam_real_t K = lam[nid] + 2.0*mu[nid]/3.0;
+
+        energy_sq[0] += w[i]*w[j]*J[nid]*(
+            rho[nid]*(v1[nid]*v1[nid] + v2[nid]*v2[nid] + v3[nid]*v3[nid])/2
+            + (s11*s11 + s22*s22 + s33*s33
+              + 2*s12*s12 + 2*s13*s13 + 2*s23*s23)/(4*mu[nid])
+            + mean_stress*mean_stress/(2*K)
+          );
+      }
   }
 }

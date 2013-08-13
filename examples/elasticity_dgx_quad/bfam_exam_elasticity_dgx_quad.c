@@ -353,6 +353,35 @@ init_lsrk(exam_t *exam, prefs_t *prefs)
       &aux_rates,&scale_rates,&intra_rhs,&inter_rhs,&add_rates);
 }
 
+static void
+compute_energy(exam_t *exam, prefs_t *prefs)
+{
+  const char *tags[] = {"_volume",NULL};
+  bfam_subdomain_t *subs[exam->domain->base.numSubdomains];
+  bfam_locidx_t num_subs = 0;
+  bfam_domain_get_subdomains((bfam_domain_t*) exam->domain,
+      BFAM_DOMAIN_OR,tags,exam->domain->base.numSubdomains,
+      subs,&num_subs);
+  bfam_real_t energy_sq = 0;
+  for(bfam_locidx_t s = 0; s<num_subs; s++)
+  {
+    bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*) subs[s];
+#define X(order) \
+    case order: bfam_elasticity_dgx_quad_energy_##order(sub->N,&energy_sq, \
+                    sub,""); break;
+
+    switch(sub->N)
+    {
+      BFAM_LIST_OF_DGX_QUAD_NORDERS
+      default:
+        bfam_elasticity_dgx_quad_energy_(sub->N,&energy_sq,sub,"");
+        break;
+    }
+#undef X
+  }
+
+  BFAM_INFO("%f", energy_sq);
+}
 
 static void
 init_domain(exam_t *exam, prefs_t *prefs)
@@ -520,6 +549,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
       snprintf(output,BFAM_BUFSIZ,"fields_%05d",s+1);
       bfam_vtk_write_file((bfam_domain_t*) exam.domain, BFAM_DOMAIN_OR, volume,
           output, fields, NULL, NULL, 0, 0);
+      compute_energy(&exam,prefs);
     }
     exam.lsrk->base.step((bfam_ts_t*) exam.lsrk,dt);
   }
