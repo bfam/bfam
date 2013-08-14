@@ -90,7 +90,7 @@ split_domain_arbitrary(exam_t *exam, int base_N, bfam_locidx_t num_subdomains)
       (intmax_t) num_subdomains);
   for(bfam_locidx_t id = 0; id < num_subdomains; ++id)
   {
-    N[id] = base_N+id;
+    N[id] = base_N;/*+id;*/
 
     p4est_gloidx_t first =
       p4est_partition_cut_gloidx(domain->p4est->global_num_quadrants,
@@ -401,25 +401,27 @@ compute_energy(exam_t *exam, prefs_t *prefs)
       BFAM_DOMAIN_OR,tags,exam->domain->base.numSubdomains,
       subs,&num_subs);
   bfam_real_t energy_sq_old = energy_sq;
-  energy_sq = 0;
+  bfam_real_t energy_sq_local = 0;
   for(bfam_locidx_t s = 0; s<num_subs; s++)
   {
     bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*) subs[s];
 #define X(order) \
-    case order: bfam_elasticity_dgx_quad_energy_##order(sub->N,&energy_sq, \
+    case order: bfam_elasticity_dgx_quad_energy_##order(sub->N,&energy_sq_local, \
                     sub,""); break;
 
     switch(sub->N)
     {
       BFAM_LIST_OF_DGX_QUAD_NORDERS
       default:
-        bfam_elasticity_dgx_quad_energy_(sub->N,&energy_sq,sub,"");
+        bfam_elasticity_dgx_quad_energy_(sub->N,&energy_sq_local,sub,"");
         break;
     }
 #undef X
   }
+  BFAM_MPI_CHECK(MPI_Reduce(&energy_sq_local,&energy_sq,1,BFAM_REAL_MPI,
+         MPI_SUM,0,exam->mpicomm));
 
-  BFAM_INFO("energy: %e delta energy: %e", energy_sq, energy_sq-energy_sq_old);
+  BFAM_ROOT_INFO("energy: %e delta energy: %e", energy_sq, energy_sq-energy_sq_old);
 }
 
 static void

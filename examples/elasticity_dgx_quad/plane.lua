@@ -1,5 +1,5 @@
 N = 5
-num_subdomains = 1
+num_subdomains = 9
 connectivity = "brick"
 lsrk_method = "KC54"
 
