@@ -17,6 +17,14 @@ bfam_real_t *restrict field;                                                   \
   field = bfam_dictionary_get_value_ptr(dictionary, bfam_load_field_name);     \
 }                                                                              \
 BFAM_ASSUME_ALIGNED(field,32);
+#define BFAM_LOAD_FIELD_ALIGNED(field,prefix,base,dictionary)         \
+bfam_real_t *field;                                                   \
+{                                                                              \
+  char bfam_load_field_name[BFAM_BUFSIZ];                                      \
+  snprintf(bfam_load_field_name,BFAM_BUFSIZ,"%s%s",(prefix),(base));           \
+  field = bfam_dictionary_get_value_ptr(dictionary, bfam_load_field_name);     \
+}                                                                              \
+BFAM_ASSUME_ALIGNED(field,32);
 
 
 void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_print_order_,NORDER)(int inN)
@@ -369,15 +377,15 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_add_rates_elastic_,NORDER)(
 
   for(bfam_locidx_t f = 0; f_names[f] != NULL; f++)
   {
-    BFAM_LOAD_FIELD_RESTRICT_ALIGNED(lhs ,field_prefix_lhs,f_names[f],fields);
-    BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rhs ,field_prefix_rhs,f_names[f],fields);
+    BFAM_LOAD_FIELD_ALIGNED(         lhs ,field_prefix_lhs,f_names[f],fields);
+    BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,f_names[f],fields);
     BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,f_names[f],fields);
     for(bfam_locidx_t p = 0; p < sub->K*Np; p++) lhs[p] = rhs[p] + a*rate[p];
   }
 }
 
 void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_boundary_,NORDER)(
-    int inN, bfam_subdomain_dgx_quad_glue_t *sub_f, const char *rate_prefix,
+    int inN, bfam_subdomain_dgx_quad_glue_t *sub_g, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t, const bfam_real_t R)
 {
 #ifdef USE_GENERIC
@@ -387,7 +395,7 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_boundary_,NORDER)(
   BFAM_WARNING("Using generic inter rhs function");
 #endif
 
-  bfam_subdomain_dgx_quad_t* sub_m = sub_f->sub_m;
+  bfam_subdomain_dgx_quad_t* sub_m = sub_g->sub_m;
 
   /* get the fields we will need */
   bfam_dictionary_t *fields = &sub_m->base.fields;
@@ -431,10 +439,10 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_boundary_,NORDER)(
   bfam_real_t *wi  = sub_m->wi;
   BFAM_ASSUME_ALIGNED(wi ,32);
 
-  for(bfam_locidx_t le = 0; le < sub_f->K; le++)
+  for(bfam_locidx_t le = 0; le < sub_g->K; le++)
   {
-    bfam_locidx_t e = sub_f->EToEm[le];
-    int8_t face = sub_f->EToFm[le];
+    bfam_locidx_t e = sub_g->EToEm[le];
+    int8_t face = sub_g->EToFm[le];
     for(bfam_locidx_t pnt = 0; pnt < Nfp; pnt++)
     {
       bfam_locidx_t f = pnt + Nfp*(face + 4*e);
@@ -531,6 +539,187 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_boundary_,NORDER)(
       vpp[1] = R*vpm[1];
       vpp[2] = R*vpm[2];
       vnp    =-R*vnm;
+
+      bfam_elasticity_dgx_quad_upwind_state_m(&TnS,TpS,&vnS,vpS,
+          Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
+
+      vS[0] = vpS[0] + nm[0]*vnS;
+      vS[1] = vpS[1] + nm[1]*vnS;
+      vS[2] = vpS[2];
+
+      dv1[iM] += rhoiM*JI_wi_sJ*(TpS[0]-Tpm[0]+(TnS-Tnm)*nm[0]);
+      dv2[iM] += rhoiM*JI_wi_sJ*(TpS[1]-Tpm[1]+(TnS-Tnm)*nm[1]);
+      dv3[iM] += rhoiM*JI_wi_sJ*(TpS[2]-Tpm[2]);
+
+      dS11[iM] += JI_wi_sJ*((lamM+2*muM)*vS[0]*nm[0] +  lamM       *vS[1]*nm[1]);
+      dS22[iM] += JI_wi_sJ*( lamM       *vS[0]*nm[0] + (lamM+2*muM)*vS[1]*nm[1]);
+      dS33[iM] += JI_wi_sJ*( lamM       *vS[0]*nm[0] +  lamM       *vS[1]*nm[1]);
+      dS12[iM] += JI_wi_sJ*muM*(vS[0]*nm[1] + vS[1]*nm[0]);
+      dS13[iM] += JI_wi_sJ*muM *vS[2]*nm[0];
+      dS23[iM] += JI_wi_sJ*muM *vS[2]*nm[1];
+    }
+  }
+}
+
+void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_interface_,NORDER)(
+    int inN, bfam_subdomain_dgx_quad_glue_t *sub_g, const char *rate_prefix,
+    const char *field_prefix, const bfam_long_real_t t)
+{
+#ifdef USE_GENERIC
+  /*const int N   = inN;*/
+  /*const int Np  = (inN+1)*(inN+1);*/
+  const int Nfp = inN+1;
+  BFAM_WARNING("Using generic inter rhs function");
+#endif
+
+  bfam_subdomain_dgx_quad_t* sub_m = sub_g->sub_m;
+
+  /* get the fields we will need */
+  bfam_dictionary_t *fields_m    = &sub_g->base.fields_m;
+  bfam_dictionary_t *fields_p    = &sub_g->base.fields_p;
+  bfam_dictionary_t *fields      = &sub_m->base.fields;
+  bfam_dictionary_t *fields_face = &sub_m->base.fields_face;
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1_m ,field_prefix,"v1" ,fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2_m ,field_prefix,"v2" ,fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v3_m ,field_prefix,"v3" ,fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11_m,field_prefix,"S11",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22_m,field_prefix,"S22",fields_m);
+  /*
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33_m,field_prefix,"S33",fields_m);
+  */
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12_m,field_prefix,"S12",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13_m,field_prefix,"S13",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23_m,field_prefix,"S23",fields_m);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1_p ,field_prefix,"v1" ,fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2_p ,field_prefix,"v2" ,fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v3_p ,field_prefix,"v3" ,fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11_p,field_prefix,"S11",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22_p,field_prefix,"S22",fields_p);
+  /*
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33_p,field_prefix,"S33",fields_p);
+  */
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12_p,field_prefix,"S12",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13_p,field_prefix,"S13",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23_p,field_prefix,"S23",fields_p);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv1 ,rate_prefix,"v1" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv2 ,rate_prefix,"v2" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv3 ,rate_prefix,"v3" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS11,rate_prefix,"S11",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS22,rate_prefix,"S22",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS33,rate_prefix,"S33",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS12,rate_prefix,"S12",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS13,rate_prefix,"S13",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS23,rate_prefix,"S23",fields);
+
+  /* get the material properties and metric terms */
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rhoi,"","rho_inv"  ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(lam ,"","lam"      ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(mu  ,"","mu"       ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zs  ,"","Zs"       ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp  ,"","Zp"       ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(J   ,"","_grid_J"  ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(JI  ,"","_grid_JI" ,fields);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(n1  ,"","_grid_nx",fields_face);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(n2  ,"","_grid_ny",fields_face);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(sJ  ,"","_grid_sJ",fields_face);
+
+  bfam_real_t *wi  = sub_m->wi;
+  BFAM_ASSUME_ALIGNED(wi ,32);
+
+  for(bfam_locidx_t le = 0; le < sub_g->K; le++)
+  {
+    bfam_locidx_t e = sub_g->EToEm[le];
+    int8_t face = sub_g->EToFm[le];
+    for(bfam_locidx_t pnt = 0; pnt < Nfp; pnt++)
+    {
+      bfam_locidx_t f = pnt + Nfp*(face + 4*e);
+      bfam_locidx_t iM = sub_m->vmapM[f];
+      bfam_locidx_t iG = pnt+le*Nfp;
+
+      /* Setup stuff for the minus side */
+      bfam_real_t Zsm = Zs[iM];
+      bfam_real_t Zpm = Zp[iM];
+
+      bfam_real_t nm[] = {n1[f],n2[f],0};
+
+      bfam_real_t Tpm[] = {
+        nm[0]*S11_m[iG]+nm[1]*S12_m[iG],
+        nm[0]*S12_m[iG]+nm[1]*S22_m[iG],
+        nm[0]*S13_m[iG]+nm[1]*S23_m[iG],
+      };
+      bfam_real_t Tnm = Tpm[0]*nm[0]+Tpm[1]*nm[1];
+      Tpm[0] = Tpm[0]-Tnm*nm[0];
+      Tpm[1] = Tpm[1]-Tnm*nm[1];
+
+      bfam_real_t vpm[] = {v1_m[iG],v2_m[iG],v3_m[iG]};
+      bfam_real_t vnm = nm[0]*vpm[0]+nm[1]*vpm[1];
+      vpm[0] = vpm[0]-vnm*nm[0];
+      vpm[1] = vpm[1]-vnm*nm[1];
+
+      /* First remove what we already did */
+      bfam_real_t Zsp = Zsm;
+      bfam_real_t Zpp = Zpm;
+
+
+      bfam_real_t Tpp[] = {-Tpm[0],-Tpm[1],-Tpm[2]};
+      bfam_real_t Tnp   = Tnm;
+
+      bfam_real_t vpp[] = { vpm[0], vpm[1], vpm[2]};
+      bfam_real_t vnp   = -vnm;
+
+      bfam_real_t TnS;
+      bfam_real_t TpS[3];
+      bfam_real_t vnS;
+      bfam_real_t vpS[3];
+
+      bfam_elasticity_dgx_quad_upwind_state_m(&TnS,TpS,&vnS,vpS,
+          Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
+
+      /* velocities for the flux */
+      bfam_real_t vS[] = {vpS[0] + nm[0]*vnS,vpS[1] + nm[1]*vnS,vpS[2]};
+
+      /* add the flux back in */
+      bfam_real_t JI_wi_sJ = wi[0] * sJ[f] * JI[iM];
+
+      bfam_real_t  lamM =  lam[iM];
+      bfam_real_t   muM =   mu[iM];
+      bfam_real_t rhoiM = rhoi[iM];
+
+      dv1[iM]  -= rhoiM*JI_wi_sJ*(TpS[0]-Tpm[0]+(TnS-Tnm)*nm[0]);
+      dv2[iM]  -= rhoiM*JI_wi_sJ*(TpS[1]-Tpm[1]+(TnS-Tnm)*nm[1]);
+      dv3[iM]  -= rhoiM*JI_wi_sJ*(TpS[2]-Tpm[2]);
+
+      dS11[iM] -= JI_wi_sJ*((lamM+2*muM)*vS[0]*nm[0] +  lamM       *vS[1]*nm[1]);
+      dS22[iM] -= JI_wi_sJ*( lamM       *vS[0]*nm[0] + (lamM+2*muM)*vS[1]*nm[1]);
+      dS33[iM] -= JI_wi_sJ*( lamM       *vS[0]*nm[0] +  lamM       *vS[1]*nm[1]);
+      dS12[iM] -= JI_wi_sJ*muM*(vS[0]*nm[1] + vS[1]*nm[0]);
+      dS13[iM] -= JI_wi_sJ*muM *vS[2]*nm[0];
+      dS23[iM] -= JI_wi_sJ*muM *vS[2]*nm[1];
+
+      /* now add the real flux */
+      /* Setup stuff for the plus side */
+      Zsp = Zs[iM];
+      Zpp = Zp[iM];
+
+      bfam_real_t np[] = {-nm[0],-nm[1],0};
+
+      Tpp[0] = np[0]*S11_p[iG]+np[1]*S12_p[iG];
+      Tpp[1] = np[0]*S12_p[iG]+np[1]*S22_p[iG];
+      Tpp[2] = np[0]*S13_p[iG]+np[1]*S23_p[iG];
+      Tnp = Tpp[0]*np[0]+Tpp[1]*np[1];
+      Tpp[0] = Tpp[0]-Tnp*np[0];
+      Tpp[1] = Tpp[1]-Tnp*np[1];
+
+      vpp[0] = v1_p[iG];
+      vpp[1] = v2_p[iG];
+      vpp[2] = v3_p[iG];
+      vnp = np[0]*vpp[0]+np[1]*vpp[1];
+      vpp[0] = vpp[0]-vnp*np[0];
+      vpp[1] = vpp[1]-vnp*np[1];
 
       bfam_elasticity_dgx_quad_upwind_state_m(&TnS,TpS,&vnS,vpS,
           Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);

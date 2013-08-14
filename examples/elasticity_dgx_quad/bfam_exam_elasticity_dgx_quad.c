@@ -253,6 +253,8 @@ void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
     scale_rates_elastic(sub,rate_prefix,a);
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"));
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel"));
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_local"));
   else
     BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
 }
@@ -284,7 +286,9 @@ void intra_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
   bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*) thisSubdomain;
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
     intra_rhs_elastic(sub->N,sub,rate_prefix,field_prefix,t);
-  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"));
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"   ));
   else
     BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
 }
@@ -307,6 +311,24 @@ void inter_rhs_boundary(int N, bfam_subdomain_dgx_quad_glue_t *sub,
 #undef X
 }
 
+void inter_rhs_interface(int N, bfam_subdomain_dgx_quad_glue_t *sub,
+    const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t)
+{
+#define X(order) \
+  case order: bfam_elasticity_dgx_quad_inter_rhs_interface_##order(N,sub, \
+                  rate_prefix,field_prefix,t); break;
+
+  switch(N)
+  {
+    BFAM_LIST_OF_DGX_QUAD_NORDERS
+    default:
+      bfam_elasticity_dgx_quad_inter_rhs_interface_(N,sub,rate_prefix,
+          field_prefix,t);
+      break;
+  }
+#undef X
+}
+
 void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t)
 {
@@ -317,6 +339,9 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"));
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"))
     inter_rhs_boundary(sub->N,sub,rate_prefix,field_prefix,t);
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"))
+    inter_rhs_interface(sub->N,sub,rate_prefix,field_prefix,t);
   else
     BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
 }
@@ -348,7 +373,9 @@ void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
   bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*)thisSubdomain;
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
     add_rates_elastic(sub,field_prefix_lhs,field_prefix_rhs,rate_prefix,a);
-  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"));
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"   ));
   else
     BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
 }

@@ -19,6 +19,9 @@
       bfam_subdomain_dgx_quad_glue_t *sub, const char *rate_prefix,\
       const char *field_prefix, const bfam_long_real_t t,          \
       const bfam_real_t R);                                        \
+  void bfam_elasticity_dgx_quad_inter_rhs_interface_##order(int N,  \
+      bfam_subdomain_dgx_quad_glue_t *sub, const char *rate_prefix,\
+      const char *field_prefix, const bfam_long_real_t t);         \
   void bfam_elasticity_dgx_quad_energy_##order(int N,              \
       bfam_real_t* energy_sq, bfam_subdomain_dgx_quad_t *sub,      \
       const char *field_prefix);
@@ -39,6 +42,9 @@ void bfam_elasticity_dgx_quad_add_rates_elastic_(int N,
 void bfam_elasticity_dgx_quad_inter_rhs_boundary_(int N,
     bfam_subdomain_dgx_quad_glue_t *sub, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t, const bfam_real_t R);
+void bfam_elasticity_dgx_quad_inter_rhs_interface_(int N,
+    bfam_subdomain_dgx_quad_glue_t *sub, const char *rate_prefix,
+    const char *field_prefix, const bfam_long_real_t t);
 void bfam_elasticity_dgx_quad_energy_(int N, bfam_real_t *energy_sq,
     bfam_subdomain_dgx_quad_t *sub, const char *field_prefix);
 
