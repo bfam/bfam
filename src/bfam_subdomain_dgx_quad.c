@@ -1169,6 +1169,8 @@ bfam_subdomain_dgx_quad_glue_init(bfam_subdomain_dgx_quad_glue_t  *subdomain,
   subdomain->Nfaces   = 2;
   subdomain->Ncorners = 2;
 
+  subdomain->mass = NULL;
+
   subdomain->r = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
   subdomain->w = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
   subdomain->wi = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
