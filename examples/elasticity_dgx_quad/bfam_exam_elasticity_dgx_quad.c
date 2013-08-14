@@ -1,7 +1,8 @@
 #include <bfam.h>
 #include "bfam_exam_elasticity_dgx_quad_rhs.h"
 
-static int refine_level = 4;
+static int refine_level = 0;
+static bfam_real_t energy_sq = 0;
 
 /*
  * Uniform refinement function
@@ -23,6 +24,14 @@ refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
 #define REAL_APPROX_EQ(x, y, K)                                              \
   BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, BFAM_REAL_EPS)
 
+typedef struct brick_args
+{
+  int mi;
+  int ni;
+  int periodic_a;
+  int periodic_b;
+} brick_args_t;
+
 typedef struct prefs
 {
   lua_State *L;
@@ -37,6 +46,8 @@ typedef struct prefs
   bfam_real_t lam;
 
   bfam_ts_lsrk_method_t lsrk_method;
+
+  brick_args_t *brick;
 } prefs_t;
 
 typedef struct exam
@@ -181,7 +192,7 @@ stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
   {
     /* BFAM_ABORT("no stress_free_box for field %s",name);*/
     for(bfam_locidx_t n=0; n < npoints; ++n)
-      field[n] = exp(-(pow(x[n]-0.5,2) + pow(y[n]-0.5,2))*50);
+      field[n] = exp(-(pow(x[n],2) + pow(y[n],2))*50);
   }
 }
 
@@ -362,7 +373,8 @@ compute_energy(exam_t *exam, prefs_t *prefs)
   bfam_domain_get_subdomains((bfam_domain_t*) exam->domain,
       BFAM_DOMAIN_OR,tags,exam->domain->base.numSubdomains,
       subs,&num_subs);
-  bfam_real_t energy_sq = 0;
+  bfam_real_t energy_sq_old = energy_sq;
+  energy_sq = 0;
   for(bfam_locidx_t s = 0; s<num_subs; s++)
   {
     bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*) subs[s];
@@ -380,13 +392,45 @@ compute_energy(exam_t *exam, prefs_t *prefs)
 #undef X
   }
 
-  BFAM_INFO("%f", energy_sq);
+  BFAM_INFO("energy: %e delta energy: %e", energy_sq, energy_sq-energy_sq_old);
 }
 
 static void
 init_domain(exam_t *exam, prefs_t *prefs)
 {
-  exam->conn = prefs->conn_fn();
+  if(prefs->brick != NULL)
+  {
+    exam->conn = p4est_connectivity_new_brick(
+        prefs->brick->mi,prefs->brick->ni,
+        prefs->brick->periodic_a,prefs->brick->periodic_b);
+    for(int i = 0; i < exam->conn->num_vertices; i++)
+    {
+      int x = exam->conn->vertices[i*3+0];
+      if(x > 0 && x < prefs->brick->mi)
+      {
+        bfam_real_t r = rand() / (bfam_real_t) RAND_MAX;
+        exam->conn->vertices[i*3+0] = x + (r-0.5)/2;
+      }
+      exam->conn->vertices[i*3+0] -= 0.5*prefs->brick->mi;
+      exam->conn->vertices[i*3+0] /= 0.5*prefs->brick->mi;
+
+      int y = exam->conn->vertices[i*3+1];
+      if(y > 0 && y < prefs->brick->ni)
+      {
+        bfam_real_t r = rand() / (bfam_real_t) RAND_MAX;
+        exam->conn->vertices[i*3+1] = y + (r-0.5)/2;
+      }
+      exam->conn->vertices[i*3+1] -= 0.5*prefs->brick->ni;
+      exam->conn->vertices[i*3+1] /= 0.5*prefs->brick->ni;
+
+      // BFAM_INFO("%e %e %e",
+      //     exam->conn->vertices[i*3+0],
+      //     exam->conn->vertices[i*3+1],
+      //     exam->conn->vertices[i*3+2]);
+    }
+  }
+  else
+    exam->conn = prefs->conn_fn();
 
   exam->domain = bfam_domain_p4est_new(exam->mpicomm, exam->conn);
 
@@ -538,6 +582,8 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   bfam_vtk_write_file((bfam_domain_t*) exam.domain, BFAM_DOMAIN_OR, volume,
       output, fields, NULL, NULL, 0, 0);
   bfam_real_t dt = 0.01/pow(2,refine_level);
+  if(prefs->brick != NULL)
+    dt /= (bfam_real_t) BFAM_MAX(prefs->brick->mi,prefs->brick->ni);
   int nsteps = 10/dt;
   int ndisp  = 0.1 / dt;
   // nsteps = 1/dt;
@@ -647,28 +693,43 @@ new_prefs(const char *prefs_filename)
 
   lua_getglobal(L, "connectivity");
   prefs->conn_fn = conn_table[0].conn_fn;
+  prefs->brick = NULL;
   if(lua_isstring(L, -1))
   {
     int i;
     const char *conn_name = lua_tostring(L, -1);
-    for(i = 0; conn_table[i].name != NULL; ++i)
-    {
-      if(strcmp(conn_name, conn_table[i].name) == 0)
-        break;
-    }
 
-    if(conn_table[i].name == NULL)
-      BFAM_LERROR("invalid connectivity name: `%s'; using default", conn_name);
+    if(strcmp(conn_name,"brick") == 0)
+    {
+      prefs->conn_fn = NULL;
+
+      prefs->brick = bfam_malloc(sizeof(brick_args_t));
+      prefs->brick->ni = get_global_int(L,"brick_n",1);
+      prefs->brick->mi = get_global_int(L,"brick_m",1);
+      prefs->brick->periodic_a = get_global_int(L,"brick_a",0);
+      prefs->brick->periodic_b = get_global_int(L,"brick_b",0);
+    }
     else
     {
-      prefs->conn_fn = conn_table[i].conn_fn;
+      for(i = 0; conn_table[i].name != NULL; ++i)
+      {
+        if(strcmp(conn_name, conn_table[i].name) == 0)
+          break;
+      }
+
+      if(conn_table[i].name == NULL)
+        BFAM_LERROR("invalid connectivity name: `%s'; using default", conn_name);
+      else
+      {
+        prefs->conn_fn = conn_table[i].conn_fn;
+      }
     }
   }
   else
   {
     BFAM_ROOT_WARNING("`connectivity' not found, using default");
   }
-  BFAM_ASSERT(prefs->conn_fn != NULL);
+  BFAM_ASSERT(prefs->conn_fn != NULL || prefs->brick != NULL);
   lua_pop(L, 1);
 
   lua_getglobal(L, "lsrk_method");
@@ -724,6 +785,7 @@ print_prefs(prefs_t *prefs)
 static void
 free_prefs(prefs_t *prefs)
 {
+  if(prefs->brick != NULL) bfam_free(prefs->brick);
   lua_close(prefs->L);
 }
 
