@@ -17,8 +17,8 @@ bfam_real_t *restrict field;                                                   \
   field = bfam_dictionary_get_value_ptr(dictionary, bfam_load_field_name);     \
 }                                                                              \
 BFAM_ASSUME_ALIGNED(field,32);
-#define BFAM_LOAD_FIELD_ALIGNED(field,prefix,base,dictionary)         \
-bfam_real_t *field;                                                   \
+#define BFAM_LOAD_FIELD_ALIGNED(field,prefix,base,dictionary)                  \
+bfam_real_t *field;                                                            \
 {                                                                              \
   char bfam_load_field_name[BFAM_BUFSIZ];                                      \
   snprintf(bfam_load_field_name,BFAM_BUFSIZ,"%s%s",(prefix),(base));           \
@@ -67,6 +67,38 @@ bfam_elasticity_dgx_quad_upwind_state_m(
     vps[i] =-(wpm    +wpp    )/(Zsp+Zsm);
     Tps[i] = (wpm*Zsp-wpp*Zsm)/(Zsp+Zsm);
   }
+}
+
+static inline void
+bfam_elasticity_dgx_quad_add_flux(const bfam_real_t scale,
+    const bfam_real_t TnS, const bfam_real_t* TpS,
+    const bfam_real_t vnS, const bfam_real_t *vpS,
+    const bfam_real_t Tnm, const bfam_real_t *Tpm,
+    const bfam_locidx_t iM,
+    bfam_real_t *dv1,  bfam_real_t *dv2,  bfam_real_t *dv3,
+    bfam_real_t *dS11, bfam_real_t *dS22, bfam_real_t *dS33,
+    bfam_real_t *dS12, bfam_real_t *dS13, bfam_real_t *dS23,
+    const bfam_real_t lam, const bfam_real_t mu,
+    const bfam_real_t rhoi, const bfam_real_t* nm,
+    const bfam_real_t sJ, const bfam_real_t JI, const bfam_real_t wi)
+{
+
+  /* velocities for the flux */
+  bfam_real_t vS[] = {vpS[0] + nm[0]*vnS,vpS[1] + nm[1]*vnS,vpS[2]};
+
+  /* add the flux back in */
+  bfam_real_t JI_wi_sJ = scale * wi * sJ * JI;
+
+  dv1[iM] += rhoi*JI_wi_sJ*(TpS[0]-Tpm[0]+(TnS-Tnm)*nm[0]);
+  dv2[iM] += rhoi*JI_wi_sJ*(TpS[1]-Tpm[1]+(TnS-Tnm)*nm[1]);
+  dv3[iM] += rhoi*JI_wi_sJ*(TpS[2]-Tpm[2]);
+
+  dS11[iM] += JI_wi_sJ*((lam+2*mu)*vS[0]*nm[0] +  lam       *vS[1]*nm[1]);
+  dS22[iM] += JI_wi_sJ*( lam       *vS[0]*nm[0] + (lam+2*mu)*vS[1]*nm[1]);
+  dS33[iM] += JI_wi_sJ*( lam       *vS[0]*nm[0] +  lam       *vS[1]*nm[1]);
+  dS12[iM] += JI_wi_sJ*mu*(vS[0]*nm[1] + vS[1]*nm[0]);
+  dS13[iM] += JI_wi_sJ*mu *vS[2]*nm[0];
+  dS23[iM] += JI_wi_sJ*mu *vS[2]*nm[1];
 }
 
 
@@ -315,26 +347,9 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
         bfam_elasticity_dgx_quad_upwind_state_m(&TnS,TpS,&vnS,vpS,
             Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
-        /* velocities for the flux */
-        bfam_real_t vS[] = {vpS[0] + nm[0]*vnS,vpS[1] + nm[1]*vnS,vpS[2]};
-
-        /* add the flux back in */
-        bfam_real_t JI_wi_sJ = wi[0] * sJ[f] * JI[iM];
-
-        bfam_real_t  lamM =  lam[iM];
-        bfam_real_t   muM =   mu[iM];
-        bfam_real_t rhoiM = rhoi[iM];
-
-        dv1[iM] += rhoiM*JI_wi_sJ*(TpS[0]-Tpm[0]+(TnS-Tnm)*nm[0]);
-        dv2[iM] += rhoiM*JI_wi_sJ*(TpS[1]-Tpm[1]+(TnS-Tnm)*nm[1]);
-        dv3[iM] += rhoiM*JI_wi_sJ*(TpS[2]-Tpm[2]);
-
-        dS11[iM] += JI_wi_sJ*((lamM+2*muM)*vS[0]*nm[0] +  lamM       *vS[1]*nm[1]);
-        dS22[iM] += JI_wi_sJ*( lamM       *vS[0]*nm[0] + (lamM+2*muM)*vS[1]*nm[1]);
-        dS33[iM] += JI_wi_sJ*( lamM       *vS[0]*nm[0] +  lamM       *vS[1]*nm[1]);
-        dS12[iM] += JI_wi_sJ*muM*(vS[0]*nm[1] + vS[1]*nm[0]);
-        dS13[iM] += JI_wi_sJ*muM *vS[2]*nm[0];
-        dS23[iM] += JI_wi_sJ*muM *vS[2]*nm[1];
+        bfam_elasticity_dgx_quad_add_flux(1, TnS,TpS,vnS,vpS,Tnm,Tpm,iM,
+            dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
+            lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
       }
     }
   }
@@ -474,25 +489,6 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_boundary_,NORDER)(
       bfam_real_t Zsp = Zsm;
       bfam_real_t Zpp = Zpm;
 
-      /*
-      bfam_real_t np[] = {-nm[0],-nm[1],-nm[2]};
-
-      bfam_real_t Tpp[] = {
-        np[0]*S11[iM]+np[1]*S12[iM],
-        np[0]*S12[iM]+np[1]*S22[iM],
-        np[0]*S13[iM]+np[1]*S23[iM],
-      };
-      bfam_real_t Tnp = Tpp[0]*np[0]+Tpp[1]*np[1];
-      Tpp[0] = Tpp[0]-Tnp*np[0];
-      Tpp[1] = Tpp[1]-Tnp*np[1];
-
-      bfam_real_t vpp[] = {v1[iM],v2[iM],v3[iM]};
-      bfam_real_t vnp = np[0]*vpp[0]+np[1]*vpp[1];
-      vpp[0] = vpp[0]-vnp*np[0];
-      vpp[1] = vpp[1]-vnp*np[1];
-      */
-
-
       bfam_real_t Tpp[] = {-Tpm[0],-Tpm[1],-Tpm[2]};
       bfam_real_t Tnp   = Tnm;
 
@@ -507,26 +503,9 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_boundary_,NORDER)(
       bfam_elasticity_dgx_quad_upwind_state_m(&TnS,TpS,&vnS,vpS,
           Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
-      /* velocities for the flux */
-      bfam_real_t vS[] = {vpS[0] + nm[0]*vnS,vpS[1] + nm[1]*vnS,vpS[2]};
-
-      /* add the flux back in */
-      bfam_real_t JI_wi_sJ = wi[0] * sJ[f] * JI[iM];
-
-      bfam_real_t  lamM =  lam[iM];
-      bfam_real_t   muM =   mu[iM];
-      bfam_real_t rhoiM = rhoi[iM];
-
-      dv1[iM]  -= rhoiM*JI_wi_sJ*(TpS[0]-Tpm[0]+(TnS-Tnm)*nm[0]);
-      dv2[iM]  -= rhoiM*JI_wi_sJ*(TpS[1]-Tpm[1]+(TnS-Tnm)*nm[1]);
-      dv3[iM]  -= rhoiM*JI_wi_sJ*(TpS[2]-Tpm[2]);
-
-      dS11[iM] -= JI_wi_sJ*((lamM+2*muM)*vS[0]*nm[0] +  lamM       *vS[1]*nm[1]);
-      dS22[iM] -= JI_wi_sJ*( lamM       *vS[0]*nm[0] + (lamM+2*muM)*vS[1]*nm[1]);
-      dS33[iM] -= JI_wi_sJ*( lamM       *vS[0]*nm[0] +  lamM       *vS[1]*nm[1]);
-      dS12[iM] -= JI_wi_sJ*muM*(vS[0]*nm[1] + vS[1]*nm[0]);
-      dS13[iM] -= JI_wi_sJ*muM *vS[2]*nm[0];
-      dS23[iM] -= JI_wi_sJ*muM *vS[2]*nm[1];
+      bfam_elasticity_dgx_quad_add_flux(-1, TnS,TpS,vnS,vpS,Tnm,Tpm,iM,
+          dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
+          lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
 
       /* now add the real flux */
       /* Setup stuff for the plus side */
@@ -543,20 +522,9 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_boundary_,NORDER)(
       bfam_elasticity_dgx_quad_upwind_state_m(&TnS,TpS,&vnS,vpS,
           Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
-      vS[0] = vpS[0] + nm[0]*vnS;
-      vS[1] = vpS[1] + nm[1]*vnS;
-      vS[2] = vpS[2];
-
-      dv1[iM] += rhoiM*JI_wi_sJ*(TpS[0]-Tpm[0]+(TnS-Tnm)*nm[0]);
-      dv2[iM] += rhoiM*JI_wi_sJ*(TpS[1]-Tpm[1]+(TnS-Tnm)*nm[1]);
-      dv3[iM] += rhoiM*JI_wi_sJ*(TpS[2]-Tpm[2]);
-
-      dS11[iM] += JI_wi_sJ*((lamM+2*muM)*vS[0]*nm[0] +  lamM       *vS[1]*nm[1]);
-      dS22[iM] += JI_wi_sJ*( lamM       *vS[0]*nm[0] + (lamM+2*muM)*vS[1]*nm[1]);
-      dS33[iM] += JI_wi_sJ*( lamM       *vS[0]*nm[0] +  lamM       *vS[1]*nm[1]);
-      dS12[iM] += JI_wi_sJ*muM*(vS[0]*nm[1] + vS[1]*nm[0]);
-      dS13[iM] += JI_wi_sJ*muM *vS[2]*nm[0];
-      dS23[iM] += JI_wi_sJ*muM *vS[2]*nm[1];
+      bfam_elasticity_dgx_quad_add_flux(1, TnS,TpS,vnS,vpS,Tnm,Tpm,iM,
+          dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
+          lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
     }
   }
 }
@@ -679,26 +647,9 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_interface_,NORDER)(
       bfam_elasticity_dgx_quad_upwind_state_m(&TnS,TpS,&vnS,vpS,
           Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
-      /* velocities for the flux */
-      bfam_real_t vS[] = {vpS[0] + nm[0]*vnS,vpS[1] + nm[1]*vnS,vpS[2]};
-
-      /* add the flux back in */
-      bfam_real_t JI_wi_sJ = wi[0] * sJ[f] * JI[iM];
-
-      bfam_real_t  lamM =  lam[iM];
-      bfam_real_t   muM =   mu[iM];
-      bfam_real_t rhoiM = rhoi[iM];
-
-      dv1[iM]  -= rhoiM*JI_wi_sJ*(TpS[0]-Tpm[0]+(TnS-Tnm)*nm[0]);
-      dv2[iM]  -= rhoiM*JI_wi_sJ*(TpS[1]-Tpm[1]+(TnS-Tnm)*nm[1]);
-      dv3[iM]  -= rhoiM*JI_wi_sJ*(TpS[2]-Tpm[2]);
-
-      dS11[iM] -= JI_wi_sJ*((lamM+2*muM)*vS[0]*nm[0] +  lamM       *vS[1]*nm[1]);
-      dS22[iM] -= JI_wi_sJ*( lamM       *vS[0]*nm[0] + (lamM+2*muM)*vS[1]*nm[1]);
-      dS33[iM] -= JI_wi_sJ*( lamM       *vS[0]*nm[0] +  lamM       *vS[1]*nm[1]);
-      dS12[iM] -= JI_wi_sJ*muM*(vS[0]*nm[1] + vS[1]*nm[0]);
-      dS13[iM] -= JI_wi_sJ*muM *vS[2]*nm[0];
-      dS23[iM] -= JI_wi_sJ*muM *vS[2]*nm[1];
+      bfam_elasticity_dgx_quad_add_flux(-1, TnS,TpS,vnS,vpS,Tnm,Tpm,iM,
+          dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
+          lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
 
       /* now add the real flux */
       /* Setup stuff for the plus side */
@@ -724,20 +675,9 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_interface_,NORDER)(
       bfam_elasticity_dgx_quad_upwind_state_m(&TnS,TpS,&vnS,vpS,
           Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
-      vS[0] = vpS[0] + nm[0]*vnS;
-      vS[1] = vpS[1] + nm[1]*vnS;
-      vS[2] = vpS[2];
-
-      dv1[iM] += rhoiM*JI_wi_sJ*(TpS[0]-Tpm[0]+(TnS-Tnm)*nm[0]);
-      dv2[iM] += rhoiM*JI_wi_sJ*(TpS[1]-Tpm[1]+(TnS-Tnm)*nm[1]);
-      dv3[iM] += rhoiM*JI_wi_sJ*(TpS[2]-Tpm[2]);
-
-      dS11[iM] += JI_wi_sJ*((lamM+2*muM)*vS[0]*nm[0] +  lamM       *vS[1]*nm[1]);
-      dS22[iM] += JI_wi_sJ*( lamM       *vS[0]*nm[0] + (lamM+2*muM)*vS[1]*nm[1]);
-      dS33[iM] += JI_wi_sJ*( lamM       *vS[0]*nm[0] +  lamM       *vS[1]*nm[1]);
-      dS12[iM] += JI_wi_sJ*muM*(vS[0]*nm[1] + vS[1]*nm[0]);
-      dS13[iM] += JI_wi_sJ*muM *vS[2]*nm[0];
-      dS23[iM] += JI_wi_sJ*muM *vS[2]*nm[1];
+      bfam_elasticity_dgx_quad_add_flux(1, TnS,TpS,vnS,vpS,Tnm,Tpm,iM,
+          dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
+          lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
     }
   }
 }
