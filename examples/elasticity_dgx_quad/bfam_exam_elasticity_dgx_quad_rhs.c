@@ -9,6 +9,16 @@
 #define Nfp (NORDER+1)
 #endif
 
+#define BFAM_LOAD_FIELD_RESTRICT_ALIGNED(field,prefix,base,dictionary)         \
+bfam_real_t *restrict field;                                                   \
+{                                                                              \
+  char bfam_load_field_name[BFAM_BUFSIZ];                                      \
+  snprintf(bfam_load_field_name,BFAM_BUFSIZ,"%s%s",(prefix),(base));           \
+  field = bfam_dictionary_get_value_ptr(dictionary, bfam_load_field_name);     \
+}                                                                              \
+BFAM_ASSUME_ALIGNED(field,32);
+
+
 void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_print_order_,NORDER)(int inN)
 {
 
@@ -64,119 +74,49 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
   BFAM_WARNING("Using generic intra rhs function");
 #endif
 
-  char tmp_name[BFAM_BUFSIZ];
-
   /* get the fields we will need */
   bfam_dictionary_t *fields = &sub->base.fields;
   bfam_dictionary_t *fields_face = &sub->base.fields_face;
 
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sv1",field_prefix);
-  bfam_real_t *restrict v1 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sv2",field_prefix);
-  bfam_real_t *restrict v2 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sv3",field_prefix);
-  bfam_real_t *restrict v3 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS11",field_prefix);
-  bfam_real_t *restrict S11 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS12",field_prefix);
-  bfam_real_t *restrict S12 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS13",field_prefix);
-  bfam_real_t *restrict S13 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS22",field_prefix);
-  bfam_real_t *restrict S22 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS23",field_prefix);
-  bfam_real_t *restrict S23 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1 ,field_prefix,"v1" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2 ,field_prefix,"v2" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v3 ,field_prefix,"v3" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11,field_prefix,"S11",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22,field_prefix,"S22",fields);
   /*
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS33",field_prefix);
-  bfam_real_t *restrict S33 = bfam_dictionary_get_value_ptr(fields, tmp_name);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33,field_prefix,"S33",fields);
   */
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12,field_prefix,"S12",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13,field_prefix,"S13",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23,field_prefix,"S23",fields);
 
-  BFAM_ASSUME_ALIGNED(v1,32);
-  BFAM_ASSUME_ALIGNED(v2,32);
-  BFAM_ASSUME_ALIGNED(v3,32);
-  BFAM_ASSUME_ALIGNED(S11,32);
-  BFAM_ASSUME_ALIGNED(S12,32);
-  BFAM_ASSUME_ALIGNED(S13,32);
-  BFAM_ASSUME_ALIGNED(S22,32);
-  BFAM_ASSUME_ALIGNED(S23,32);
-  /* BFAM_ASSUME_ALIGNED(S33,32); */
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv1 ,rate_prefix,"v1" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv2 ,rate_prefix,"v2" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv3 ,rate_prefix,"v3" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS11,rate_prefix,"S11",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS22,rate_prefix,"S22",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS33,rate_prefix,"S33",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS12,rate_prefix,"S12",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS13,rate_prefix,"S13",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS23,rate_prefix,"S23",fields);
 
-  /* get the rates we will need */
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sv1",rate_prefix);
-  bfam_real_t *restrict dv1 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sv2",rate_prefix);
-  bfam_real_t *restrict dv2 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sv3",rate_prefix);
-  bfam_real_t *restrict dv3 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS11",rate_prefix);
-  bfam_real_t *restrict dS11 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS12",rate_prefix);
-  bfam_real_t *restrict dS12 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS13",rate_prefix);
-  bfam_real_t *restrict dS13 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS22",rate_prefix);
-  bfam_real_t *restrict dS22 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS23",rate_prefix);
-  bfam_real_t *restrict dS23 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS33",rate_prefix);
-  bfam_real_t *restrict dS33 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  BFAM_ASSUME_ALIGNED(dv1,32);
-  BFAM_ASSUME_ALIGNED(dv2,32);
-  BFAM_ASSUME_ALIGNED(dv3,32);
-  BFAM_ASSUME_ALIGNED(dS11,32);
-  BFAM_ASSUME_ALIGNED(dS12,32);
-  BFAM_ASSUME_ALIGNED(dS13,32);
-  BFAM_ASSUME_ALIGNED(dS22,32);
-  BFAM_ASSUME_ALIGNED(dS23,32);
-  BFAM_ASSUME_ALIGNED(dS33,32);
 
   /* get the material properties and metric terms */
-  bfam_real_t *restrict rhoi = bfam_dictionary_get_value_ptr(fields,"rho_inv");
-  bfam_real_t *restrict lam = bfam_dictionary_get_value_ptr(fields,"lam");
-  bfam_real_t *restrict mu  = bfam_dictionary_get_value_ptr(fields,"mu" );
-  bfam_real_t *restrict Zs  = bfam_dictionary_get_value_ptr(fields,"Zs" );
-  bfam_real_t *restrict Zp  = bfam_dictionary_get_value_ptr(fields,"Zp" );
-  bfam_real_t *restrict J   = bfam_dictionary_get_value_ptr(fields,"_grid_J");
-  bfam_real_t *restrict JI  = bfam_dictionary_get_value_ptr(fields,"_grid_JI");
-  bfam_real_t *restrict Jrx = bfam_dictionary_get_value_ptr(fields,"_grid_Jrx");
-  bfam_real_t *restrict Jry = bfam_dictionary_get_value_ptr(fields,"_grid_Jry");
-  bfam_real_t *restrict Jsx = bfam_dictionary_get_value_ptr(fields,"_grid_Jsx");
-  bfam_real_t *restrict Jsy = bfam_dictionary_get_value_ptr(fields,"_grid_Jsy");
-  BFAM_ASSUME_ALIGNED(rhoi,32);
-  BFAM_ASSUME_ALIGNED(lam,32);
-  BFAM_ASSUME_ALIGNED(mu ,32);
-  BFAM_ASSUME_ALIGNED(J  ,32);
-  BFAM_ASSUME_ALIGNED(Jrx,32);
-  BFAM_ASSUME_ALIGNED(Jry,32);
-  BFAM_ASSUME_ALIGNED(Jsx,32);
-  BFAM_ASSUME_ALIGNED(Jsy,32);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rhoi,"","rho_inv"  ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(lam ,"","lam"      ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(mu  ,"","mu"       ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zs  ,"","Zs"       ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp  ,"","Zp"       ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(J   ,"","_grid_J"  ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(JI  ,"","_grid_JI" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Jrx ,"","_grid_Jrx",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Jry ,"","_grid_Jry",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Jsx ,"","_grid_Jsx",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Jsy ,"","_grid_Jsy",fields);
 
-  bfam_real_t *restrict n1 =
-    bfam_dictionary_get_value_ptr(fields_face,"_grid_nx");
-  bfam_real_t *restrict n2 =
-    bfam_dictionary_get_value_ptr(fields_face,"_grid_ny");
-  bfam_real_t *restrict sJ =
-    bfam_dictionary_get_value_ptr(fields_face,"_grid_sJ");
-  BFAM_ASSUME_ALIGNED(n1,32);
-  BFAM_ASSUME_ALIGNED(n2,32);
-  BFAM_ASSUME_ALIGNED(sJ,32);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(n1  ,"","_grid_nx",fields_face);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(n2  ,"","_grid_ny",fields_face);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(sJ  ,"","_grid_sJ",fields_face);
 
   bfam_locidx_t K  = sub->K;
   BFAM_ALIGN(32) bfam_real_t aux1[Np];
@@ -404,12 +344,9 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_scale_rates_elastic_,NORDER)(
   bfam_dictionary_t *fields = &sub->base.fields;
   const char *f_names[] =
     {"v1","v2","v3","S11","S22","S33","S12","S13","S23",NULL};
-  char name[BFAM_BUFSIZ];
   for(bfam_locidx_t f = 0; f_names[f]!=NULL; ++f)
   {
-    snprintf(name,BFAM_BUFSIZ,"%s%s",rate_prefix,f_names[f]);
-    bfam_real_t *restrict rate = bfam_dictionary_get_value_ptr(fields, name);
-    BFAM_ASSUME_ALIGNED(rate,32);
+    BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix,f_names[f],fields);
     for(bfam_locidx_t n = 0; n < num_pts; n++) rate[n] *= a;
   }
 }
@@ -424,27 +361,17 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_add_rates_elastic_,NORDER)(
   BFAM_WARNING("Using generic intra rhs function");
 #endif
 
-  const char *field_names[] = {"v1", "v2", "v3",
+  const char *f_names[] = {"v1", "v2", "v3",
     "S11", "S22", "S33", "S12", "S13", "S23", NULL};
-  char tmp_name[BFAM_BUFSIZ];
 
   /* get the fields we will need */
   bfam_dictionary_t *fields = &sub->base.fields;
 
-  for(bfam_locidx_t f = 0; field_names[f] != NULL; f++)
+  for(bfam_locidx_t f = 0; f_names[f] != NULL; f++)
   {
-    snprintf(tmp_name,BFAM_BUFSIZ,"%s%s",field_prefix_lhs,field_names[f]);
-    bfam_real_t *lhs = bfam_dictionary_get_value_ptr(fields, tmp_name);
-    BFAM_ASSUME_ALIGNED(lhs,32);
-
-    snprintf(tmp_name,BFAM_BUFSIZ,"%s%s",field_prefix_rhs,field_names[f]);
-    bfam_real_t *rhs = bfam_dictionary_get_value_ptr(fields, tmp_name);
-    BFAM_ASSUME_ALIGNED(rhs,32);
-
-    snprintf(tmp_name,BFAM_BUFSIZ,"%s%s",rate_prefix,field_names[f]);
-    bfam_real_t *rate = bfam_dictionary_get_value_ptr(fields, tmp_name);
-    BFAM_ASSUME_ALIGNED(rate,32);
-
+    BFAM_LOAD_FIELD_RESTRICT_ALIGNED(lhs ,field_prefix_lhs,f_names[f],fields);
+    BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rhs ,field_prefix_rhs,f_names[f],fields);
+    BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,f_names[f],fields);
     for(bfam_locidx_t p = 0; p < sub->K*Np; p++) lhs[p] = rhs[p] + a*rate[p];
   }
 }
@@ -462,111 +389,44 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_boundary_,NORDER)(
 
   bfam_subdomain_dgx_quad_t* sub_m = sub_f->sub_m;
 
-  char tmp_name[BFAM_BUFSIZ];
-
   /* get the fields we will need */
   bfam_dictionary_t *fields = &sub_m->base.fields;
   bfam_dictionary_t *fields_face = &sub_m->base.fields_face;
 
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sv1",field_prefix);
-  bfam_real_t *restrict v1 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sv2",field_prefix);
-  bfam_real_t *restrict v2 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sv3",field_prefix);
-  bfam_real_t *restrict v3 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS11",field_prefix);
-  bfam_real_t *restrict S11 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS12",field_prefix);
-  bfam_real_t *restrict S12 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS13",field_prefix);
-  bfam_real_t *restrict S13 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS22",field_prefix);
-  bfam_real_t *restrict S22 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS23",field_prefix);
-  bfam_real_t *restrict S23 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1 ,field_prefix,"v1" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2 ,field_prefix,"v2" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v3 ,field_prefix,"v3" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11,field_prefix,"S11",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22,field_prefix,"S22",fields);
   /*
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS33",field_prefix);
-  bfam_real_t *restrict S33 = bfam_dictionary_get_value_ptr(fields, tmp_name);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33,field_prefix,"S33",fields);
   */
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12,field_prefix,"S12",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13,field_prefix,"S13",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23,field_prefix,"S23",fields);
 
-  BFAM_ASSUME_ALIGNED(v1,32);
-  BFAM_ASSUME_ALIGNED(v2,32);
-  BFAM_ASSUME_ALIGNED(v3,32);
-  BFAM_ASSUME_ALIGNED(S11,32);
-  BFAM_ASSUME_ALIGNED(S12,32);
-  BFAM_ASSUME_ALIGNED(S13,32);
-  BFAM_ASSUME_ALIGNED(S22,32);
-  BFAM_ASSUME_ALIGNED(S23,32);
-  /* BFAM_ASSUME_ALIGNED(S33,32); */
-
-  /* get the rates we will need */
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sv1",rate_prefix);
-  bfam_real_t *restrict dv1 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sv2",rate_prefix);
-  bfam_real_t *restrict dv2 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sv3",rate_prefix);
-  bfam_real_t *restrict dv3 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS11",rate_prefix);
-  bfam_real_t *restrict dS11 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS12",rate_prefix);
-  bfam_real_t *restrict dS12 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS13",rate_prefix);
-  bfam_real_t *restrict dS13 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS22",rate_prefix);
-  bfam_real_t *restrict dS22 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS23",rate_prefix);
-  bfam_real_t *restrict dS23 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS33",rate_prefix);
-  bfam_real_t *restrict dS33 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  BFAM_ASSUME_ALIGNED(dv1,32);
-  BFAM_ASSUME_ALIGNED(dv2,32);
-  BFAM_ASSUME_ALIGNED(dv3,32);
-  BFAM_ASSUME_ALIGNED(dS11,32);
-  BFAM_ASSUME_ALIGNED(dS12,32);
-  BFAM_ASSUME_ALIGNED(dS13,32);
-  BFAM_ASSUME_ALIGNED(dS22,32);
-  BFAM_ASSUME_ALIGNED(dS23,32);
-  BFAM_ASSUME_ALIGNED(dS33,32);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv1 ,rate_prefix,"v1" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv2 ,rate_prefix,"v2" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv3 ,rate_prefix,"v3" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS11,rate_prefix,"S11",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS22,rate_prefix,"S22",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS33,rate_prefix,"S33",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS12,rate_prefix,"S12",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS13,rate_prefix,"S13",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS23,rate_prefix,"S23",fields);
 
   /* get the material properties and metric terms */
-  bfam_real_t *restrict rhoi = bfam_dictionary_get_value_ptr(fields,"rho_inv");
-  bfam_real_t *restrict lam = bfam_dictionary_get_value_ptr(fields,"lam");
-  bfam_real_t *restrict mu  = bfam_dictionary_get_value_ptr(fields,"mu" );
-  bfam_real_t *restrict Zs  = bfam_dictionary_get_value_ptr(fields,"Zs" );
-  bfam_real_t *restrict Zp  = bfam_dictionary_get_value_ptr(fields,"Zp" );
-  bfam_real_t *restrict J   = bfam_dictionary_get_value_ptr(fields,"_grid_J");
-  bfam_real_t *restrict JI  = bfam_dictionary_get_value_ptr(fields,"_grid_JI");
-  BFAM_ASSUME_ALIGNED(rhoi,32);
-  BFAM_ASSUME_ALIGNED(lam,32);
-  BFAM_ASSUME_ALIGNED(mu ,32);
-  BFAM_ASSUME_ALIGNED(J  ,32);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rhoi,"","rho_inv"  ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(lam ,"","lam"      ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(mu  ,"","mu"       ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zs  ,"","Zs"       ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp  ,"","Zp"       ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(J   ,"","_grid_J"  ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(JI  ,"","_grid_JI" ,fields);
 
-  bfam_real_t *restrict n1 =
-    bfam_dictionary_get_value_ptr(fields_face,"_grid_nx");
-  bfam_real_t *restrict n2 =
-    bfam_dictionary_get_value_ptr(fields_face,"_grid_ny");
-  bfam_real_t *restrict sJ =
-    bfam_dictionary_get_value_ptr(fields_face,"_grid_sJ");
-  BFAM_ASSUME_ALIGNED(n1,32);
-  BFAM_ASSUME_ALIGNED(n2,32);
-  BFAM_ASSUME_ALIGNED(sJ,32);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(n1  ,"","_grid_nx",fields_face);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(n2  ,"","_grid_ny",fields_face);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(sJ  ,"","_grid_sJ",fields_face);
 
   bfam_real_t *wi  = sub_m->wi;
   BFAM_ASSUME_ALIGNED(wi ,32);
@@ -703,56 +563,22 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_energy_,NORDER)(
   BFAM_WARNING("Using generic inter rhs function");
 #endif
 
-  char tmp_name[BFAM_BUFSIZ];
-
   /* get the fields we will need */
   bfam_dictionary_t *fields = &sub->base.fields;
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1 ,field_prefix,"v1" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2 ,field_prefix,"v2" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v3 ,field_prefix,"v3" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11,field_prefix,"S11",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22,field_prefix,"S22",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33,field_prefix,"S33",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12,field_prefix,"S12",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13,field_prefix,"S13",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23,field_prefix,"S23",fields);
 
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sv1",field_prefix);
-  bfam_real_t *restrict v1 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sv2",field_prefix);
-  bfam_real_t *restrict v2 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sv3",field_prefix);
-  bfam_real_t *restrict v3 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS11",field_prefix);
-  bfam_real_t *restrict S11 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS12",field_prefix);
-  bfam_real_t *restrict S12 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS13",field_prefix);
-  bfam_real_t *restrict S13 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS22",field_prefix);
-  bfam_real_t *restrict S22 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS23",field_prefix);
-  bfam_real_t *restrict S23 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  snprintf(tmp_name,BFAM_BUFSIZ,"%sS33",field_prefix);
-  bfam_real_t *restrict S33 = bfam_dictionary_get_value_ptr(fields, tmp_name);
-
-  BFAM_ASSUME_ALIGNED(v1,32);
-  BFAM_ASSUME_ALIGNED(v2,32);
-  BFAM_ASSUME_ALIGNED(v3,32);
-  BFAM_ASSUME_ALIGNED(S11,32);
-  BFAM_ASSUME_ALIGNED(S12,32);
-  BFAM_ASSUME_ALIGNED(S13,32);
-  BFAM_ASSUME_ALIGNED(S22,32);
-  BFAM_ASSUME_ALIGNED(S23,32);
-  BFAM_ASSUME_ALIGNED(S33,32);
-
-  bfam_real_t *restrict rho = bfam_dictionary_get_value_ptr(fields,"rho");
-  bfam_real_t *restrict lam = bfam_dictionary_get_value_ptr(fields,"lam");
-  bfam_real_t *restrict mu  = bfam_dictionary_get_value_ptr(fields,"mu" );
-  bfam_real_t *restrict J   = bfam_dictionary_get_value_ptr(fields,"_grid_J");
-  BFAM_ASSUME_ALIGNED(rho,32);
-  BFAM_ASSUME_ALIGNED(lam,32);
-  BFAM_ASSUME_ALIGNED(mu ,32);
-  BFAM_ASSUME_ALIGNED(J  ,32);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rho,"","rho"    ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(lam,"","lam"    ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(mu ,"","mu"     ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(J  ,"","_grid_J",fields);
 
   bfam_locidx_t K  = sub->K;
 
