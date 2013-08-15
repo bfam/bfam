@@ -746,17 +746,18 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_interface_,NORDER)(
 
     }
 
-    bfam_real_t *TpS_m;
-    bfam_real_t *TnS_m;
-    bfam_real_t *vpS_m;
-    bfam_real_t *vnS_m;
+    bfam_real_t *restrict TpS_m;
+    bfam_real_t *restrict TnS_m;
+    bfam_real_t *restrict vpS_m;
+    bfam_real_t *restrict vnS_m;
 
     /* these will be used to the store the projected values if we need them */
-    bfam_real_t TpS_m_STORAGE[3*Nfp];
-    bfam_real_t TnS_m_STORAGE[  Nfp];
-    bfam_real_t vpS_m_STORAGE[3*Nfp];
-    bfam_real_t vnS_m_STORAGE[  Nfp];
+    BFAM_ALIGN(32) bfam_real_t TpS_m_STORAGE[3*Nfp];
+    BFAM_ALIGN(32) bfam_real_t TnS_m_STORAGE[  Nfp];
+    BFAM_ALIGN(32) bfam_real_t vpS_m_STORAGE[3*Nfp];
+    BFAM_ALIGN(32) bfam_real_t vnS_m_STORAGE[  Nfp];
 
+    /* check to tee if projection */
     if(sub_g->mass == NULL)
     {
       TpS_m = TpS_g;
