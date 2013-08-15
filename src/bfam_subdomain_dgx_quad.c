@@ -800,6 +800,29 @@ bfam_subdomain_dgx_quad_free(bfam_subdomain_t *thisSubdomain)
 }
 
 static int
+bfam_subdomain_dgx_quad_glue_field_add(bfam_subdomain_t *subdomain,
+    const char *name)
+{
+  bfam_subdomain_dgx_quad_glue_t *s =
+    (bfam_subdomain_dgx_quad_glue_t*) subdomain;
+
+  if(bfam_dictionary_get_value_ptr(&s->base.fields,name))
+    return 1;
+
+  size_t fieldSize = s->Np*s->K*sizeof(bfam_real_t);
+  bfam_real_t *field = bfam_malloc_aligned(fieldSize);
+
+  int rval = bfam_dictionary_insert_ptr(&s->base.fields, name, field);
+
+  BFAM_ASSERT(rval != 1);
+
+  if(rval == 0)
+    bfam_free_aligned(field);
+
+  return rval;
+}
+
+static int
 bfam_subdomain_dgx_quad_glue_field_minus_add(bfam_subdomain_t *subdomain,
     const char *name)
 {
@@ -1097,6 +1120,7 @@ bfam_subdomain_dgx_quad_glue_init(bfam_subdomain_dgx_quad_glue_t  *subdomain,
     bfam_subdomain_dgx_quad_glue_put_send_buffer;
   subdomain->base.glue_get_recv_buffer =
     bfam_subdomain_dgx_quad_glue_get_recv_buffer;
+    subdomain->base.field_add = bfam_subdomain_dgx_quad_glue_field_add;
   subdomain->base.field_minus_add =
     bfam_subdomain_dgx_quad_glue_field_minus_add;
   subdomain->base.field_plus_add = bfam_subdomain_dgx_quad_glue_field_plus_add;
