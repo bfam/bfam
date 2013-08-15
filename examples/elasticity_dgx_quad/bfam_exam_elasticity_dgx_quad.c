@@ -577,6 +577,15 @@ init_domain(exam_t *exam, prefs_t *prefs)
       stress_free_box, &field_params);
   bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v2", 0,
       stress_free_box, &field_params);
+
+  /* exchange material properties to glue */
+  const char *glue_mat[] = {"Zs","Zp",NULL};
+  for(bfam_locidx_t g = 0; glue_mat[g] != NULL; g++)
+  {
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, glue_mat[g]);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, glue_mat[g]);
+  }
+
 }
 
 static void

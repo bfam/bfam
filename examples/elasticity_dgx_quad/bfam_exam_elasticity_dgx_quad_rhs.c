@@ -660,6 +660,11 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_interface_,NORDER)(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(n2  ,"","_grid_ny",fields_face);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(sJ  ,"","_grid_sJ",fields_face);
 
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zs_m  ,"","Zs"       ,fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp_m  ,"","Zp"       ,fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zs_p  ,"","Zs"       ,fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp_p  ,"","Zp"       ,fields_p);
+
   bfam_real_t *wi  = sub_m->wi;
   BFAM_ASSUME_ALIGNED(wi ,32);
 
@@ -668,23 +673,37 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_interface_,NORDER)(
     bfam_locidx_t e = sub_g->EToEm[le];
     int8_t face = sub_g->EToFm[le];
 
+    /* Assumes conforming straight sided elements */
+    bfam_real_t nm[] = {n1[Nfp*(face+4*e)],n2[Nfp*(face+4*e)],0};
+
     if(sub_g->EToHm[le] < 2)
       bfam_elasticity_dgx_quad_remove_flux(Nfp,face,e,sub_m->vmapM,n1,n2,Zs,Zp,
           mu,rhoi,lam,sJ,JI,wi,
           v1,v2,v3,S11,S22,S33,S12,S13,S23,
           dv1,dv2,dv3,dS11,dS22,dS33,dS12,dS13,dS23);
 
-    for(bfam_locidx_t pnt = 0; pnt < Nfp; pnt++)
+
+#ifndef USE_GENERIC
+#undef Np
+#endif
+    bfam_locidx_t Np_g = sub_g->Np;
+#ifndef USE_GENERIC
+#define Np (N+1)*(N+1)
+#endif
+
+    bfam_real_t TpS_g[3*Np_g];
+    bfam_real_t TnS_g[  Np_g];
+    bfam_real_t vpS_g[3*Np_g];
+    bfam_real_t vnS_g[  Np_g];
+
+    for(bfam_locidx_t pnt = 0; pnt < Np_g; pnt++)
     {
-      bfam_locidx_t f = pnt + Nfp*(face + 4*e);
-      bfam_locidx_t iM = sub_m->vmapM[f];
-      bfam_locidx_t iG = pnt+le*Nfp;
+      bfam_locidx_t iG = pnt+le*Np_g;
 
       /* Setup stuff for the minus side */
-      bfam_real_t Zsm = Zs[iM];
-      bfam_real_t Zpm = Zp[iM];
+      bfam_real_t Zsm = Zs_m[iG];
+      bfam_real_t Zpm = Zp_m[iG];
 
-      bfam_real_t nm[] = {n1[f],n2[f],0};
 
       bfam_real_t Tpm[] = {
         nm[0]*S11_m[iG]+nm[1]*S12_m[iG],
@@ -702,8 +721,8 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_interface_,NORDER)(
 
       /* now add the real flux */
       /* Setup stuff for the plus side */
-      bfam_real_t Zsp = Zs[iM];
-      bfam_real_t Zpp = Zp[iM];
+      bfam_real_t Zsp = Zs_p[iG];
+      bfam_real_t Zpp = Zp_p[iG];
 
       bfam_real_t np[] = {-nm[0],-nm[1],0};
 
@@ -721,15 +740,78 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_interface_,NORDER)(
       vpp[0] = vpp[0]-vnp*np[0];
       vpp[1] = vpp[1]-vnp*np[1];
 
-      bfam_real_t TnS;
-      bfam_real_t TpS[3];
-      bfam_real_t vnS;
-      bfam_real_t vpS[3];
-
-      bfam_elasticity_dgx_quad_upwind_state_m(&TnS,TpS,&vnS,vpS,
+      bfam_elasticity_dgx_quad_upwind_state_m(
+          &TnS_g[pnt],&TpS_g[3*pnt],&vnS_g[pnt],&vpS_g[3*pnt],
           Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
-      bfam_elasticity_dgx_quad_add_flux(1, TnS,TpS,vnS,vpS,Tnm,Tpm,iM,
+    }
+
+    bfam_real_t *TpS_m;
+    bfam_real_t *TnS_m;
+    bfam_real_t *vpS_m;
+    bfam_real_t *vnS_m;
+
+    /* these will be used to the store the projected values if we need them */
+    bfam_real_t TpS_m_STORAGE[3*Nfp];
+    bfam_real_t TnS_m_STORAGE[  Nfp];
+    bfam_real_t vpS_m_STORAGE[3*Nfp];
+    bfam_real_t vnS_m_STORAGE[  Nfp];
+
+    if(sub_g->mass == NULL)
+    {
+      TpS_m = TpS_g;
+      TnS_m = TnS_g;
+      vpS_m = vpS_g;
+      vnS_m = vnS_g;
+    }
+    else
+    {
+      BFAM_ABORT("projection not implemented yet");
+      /* set to the correct Mass times projection */
+      bfam_real_t * MP = NULL;
+      TpS_m = TpS_m_STORAGE;
+      TnS_m = TnS_m_STORAGE;
+      vpS_m = vpS_m_STORAGE;
+      vnS_m = vnS_m_STORAGE;
+      for(int i = 0; i < Nfp; i++)
+      {
+        for(int k = 0; k < 3; k++)
+        {
+          TpS_m[3*i+k] = 0;
+          vpS_m[3*i+k] = 0;
+        }
+        TpS_m[i] = 0;
+        vpS_m[i] = 0;
+      }
+      for(int j = 0; j < Np_g; j++)
+        for(int i = 0; i < Nfp; i++)
+        {
+          for(int k = 0; k < 3; k++)
+          {
+            TpS_m[3*i+k] += MP[i+j*Np_g]*TpS_g[3*j+k];
+            vpS_m[3*i+k] += MP[i+j*Np_g]*vpS_g[3*j+k];
+          }
+          TpS_m[i] += MP[i+j*Np_g]*TpS_g[j];
+          vpS_m[i] += MP[i+j*Np_g]*vpS_g[j];
+        }
+    }
+
+    for(bfam_locidx_t pnt = 0; pnt < Nfp; pnt++)
+    {
+      bfam_locidx_t f = pnt + Nfp*(face + 4*e);
+      bfam_locidx_t iM = sub_m->vmapM[f];
+
+      bfam_real_t Tpm[] = {
+        nm[0]*S11[iM]+nm[1]*S12[iM],
+        nm[0]*S12[iM]+nm[1]*S22[iM],
+        nm[0]*S13[iM]+nm[1]*S23[iM],
+      };
+      bfam_real_t Tnm = Tpm[0]*nm[0]+Tpm[1]*nm[1];
+      Tpm[0] = Tpm[0]-Tnm*nm[0];
+      Tpm[1] = Tpm[1]-Tnm*nm[1];
+
+      bfam_elasticity_dgx_quad_add_flux(1,
+          TnS_m[pnt],&TpS_m[3*pnt],vnS_m[pnt],&vpS_m[3*pnt],Tnm,Tpm,iM,
           dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
           lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
     }
