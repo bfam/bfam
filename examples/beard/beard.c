@@ -1,5 +1,5 @@
 #include <bfam.h>
-#include "bfam_exam_elasticity_dgx_quad_rhs.h"
+#include "beard_dgx_rhs.h"
 
 static int refine_level = 0;
 static bfam_real_t energy_sq = 0;
@@ -50,7 +50,7 @@ typedef struct prefs
   brick_args_t *brick;
 } prefs_t;
 
-typedef struct exam
+typedef struct beard
 {
   MPI_Comm mpicomm;
   int      mpirank;
@@ -59,20 +59,20 @@ typedef struct exam
   p4est_connectivity_t *conn;
   bfam_domain_p4est_t  *domain;
   bfam_ts_lsrk_t       *lsrk;
-} exam_t;
+} beard_t;
 
 static void
-init_mpi(exam_t *exam, MPI_Comm mpicomm)
+init_mpi(beard_t *beard, MPI_Comm mpicomm)
 {
-  exam->mpicomm = mpicomm;
-  BFAM_MPI_CHECK(MPI_Comm_rank(mpicomm, &exam->mpirank));
-  BFAM_MPI_CHECK(MPI_Comm_size(mpicomm, &exam->mpisize));
+  beard->mpicomm = mpicomm;
+  BFAM_MPI_CHECK(MPI_Comm_rank(mpicomm, &beard->mpirank));
+  BFAM_MPI_CHECK(MPI_Comm_size(mpicomm, &beard->mpisize));
 }
 
 static void
-split_domain_arbitrary(exam_t *exam, int base_N, bfam_locidx_t num_subdomains)
+split_domain_arbitrary(beard_t *beard, int base_N, bfam_locidx_t num_subdomains)
 {
-  bfam_domain_p4est_t *domain = exam->domain;
+  bfam_domain_p4est_t *domain = beard->domain;
   bfam_locidx_t *subdomain_id =
     bfam_malloc(domain->p4est->local_num_quadrants*sizeof(bfam_locidx_t));
   bfam_locidx_t *N = bfam_malloc(num_subdomains*sizeof(int));
@@ -105,7 +105,7 @@ split_domain_arbitrary(exam_t *exam, int base_N, bfam_locidx_t num_subdomains)
   }
 
   p4est_gloidx_t gk_offset =
-    domain->p4est->global_first_quadrant[exam->mpirank];
+    domain->p4est->global_first_quadrant[beard->mpirank];
 
   bfam_locidx_t id_start = 0;
   while(gk_offset >
@@ -232,14 +232,14 @@ void scale_rates_elastic (bfam_subdomain_dgx_quad_t *sub,
     const char *rate_prefix, const bfam_long_real_t a)
 {
 #define X(order) \
-  case order: bfam_elasticity_dgx_quad_scale_rates_elastic_##order(sub->N,sub, \
+  case order: beard_dgx_scale_rates_elastic_##order(sub->N,sub, \
                   rate_prefix,a); break;
 
   switch(sub->N)
   {
     BFAM_LIST_OF_DGX_QUAD_NORDERS
     default:
-      bfam_elasticity_dgx_quad_scale_rates_elastic_(sub->N,sub,rate_prefix,a);
+      beard_dgx_scale_rates_elastic_(sub->N,sub,rate_prefix,a);
       break;
   }
 #undef X
@@ -264,14 +264,14 @@ intra_rhs_elastic(int N, bfam_subdomain_dgx_quad_t *sub,
     const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t)
 {
 #define X(order) \
-  case order: bfam_elasticity_dgx_quad_intra_rhs_elastic_##order(N,sub, \
+  case order: beard_dgx_intra_rhs_elastic_##order(N,sub, \
                   rate_prefix,field_prefix,t); break;
 
   switch(N)
   {
     BFAM_LIST_OF_DGX_QUAD_NORDERS
     default:
-      bfam_elasticity_dgx_quad_intra_rhs_elastic_(N,sub,rate_prefix,
+      beard_dgx_intra_rhs_elastic_(N,sub,rate_prefix,
           field_prefix,t);
       break;
   }
@@ -297,14 +297,14 @@ void inter_rhs_boundary(int N, bfam_subdomain_dgx_quad_glue_t *sub,
     const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t)
 {
 #define X(order) \
-  case order: bfam_elasticity_dgx_quad_inter_rhs_boundary_##order(N,sub, \
+  case order: beard_dgx_inter_rhs_boundary_##order(N,sub, \
                   rate_prefix,field_prefix,t, 1); break;
 
   switch(N)
   {
     BFAM_LIST_OF_DGX_QUAD_NORDERS
     default:
-      bfam_elasticity_dgx_quad_inter_rhs_boundary_(N,sub,rate_prefix,
+      beard_dgx_inter_rhs_boundary_(N,sub,rate_prefix,
           field_prefix,t, 1);
       break;
   }
@@ -315,14 +315,14 @@ void inter_rhs_interface(int N, bfam_subdomain_dgx_quad_glue_t *sub,
     const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t)
 {
 #define X(order) \
-  case order: bfam_elasticity_dgx_quad_inter_rhs_interface_##order(N,sub, \
+  case order: beard_dgx_inter_rhs_interface_##order(N,sub, \
                   rate_prefix,field_prefix,t); break;
 
   switch(N)
   {
     BFAM_LIST_OF_DGX_QUAD_NORDERS
     default:
-      bfam_elasticity_dgx_quad_inter_rhs_interface_(N,sub,rate_prefix,
+      beard_dgx_inter_rhs_interface_(N,sub,rate_prefix,
           field_prefix,t);
       break;
   }
@@ -351,14 +351,14 @@ void add_rates_elastic (bfam_subdomain_dgx_quad_t *sub,
     const char *rate_prefix, const bfam_long_real_t a)
 {
 #define X(order) \
-  case order: bfam_elasticity_dgx_quad_add_rates_elastic_##order(sub->N,sub, \
+  case order: beard_dgx_add_rates_elastic_##order(sub->N,sub, \
                   field_prefix_lhs,field_prefix_rhs,rate_prefix,a); break;
 
   switch(sub->N)
   {
     BFAM_LIST_OF_DGX_QUAD_NORDERS
     default:
-      bfam_elasticity_dgx_quad_add_rates_elastic_(sub->N,sub,field_prefix_lhs,
+      beard_dgx_add_rates_elastic_(sub->N,sub,field_prefix_lhs,
           field_prefix_rhs,rate_prefix,a);
       break;
   }
@@ -381,24 +381,24 @@ void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
 }
 
 static void
-init_lsrk(exam_t *exam, prefs_t *prefs)
+init_lsrk(beard_t *beard, prefs_t *prefs)
 {
   const char *timestep_tags[] = {"_volume","_glue_parallel","_glue_local",
     "_glue_boundary", NULL};
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
-  exam->lsrk = bfam_ts_lsrk_new((bfam_domain_t*) exam->domain,prefs->lsrk_method,
-      BFAM_DOMAIN_OR,timestep_tags, BFAM_DOMAIN_OR,glue, exam->mpicomm,0,
+  beard->lsrk = bfam_ts_lsrk_new((bfam_domain_t*) beard->domain,prefs->lsrk_method,
+      BFAM_DOMAIN_OR,timestep_tags, BFAM_DOMAIN_OR,glue, beard->mpicomm,0,
       &aux_rates,&scale_rates,&intra_rhs,&inter_rhs,&add_rates);
 }
 
 static void
-compute_energy(exam_t *exam, prefs_t *prefs)
+compute_energy(beard_t *beard, prefs_t *prefs)
 {
   const char *tags[] = {"_volume",NULL};
-  bfam_subdomain_t *subs[exam->domain->base.numSubdomains];
+  bfam_subdomain_t *subs[beard->domain->base.numSubdomains];
   bfam_locidx_t num_subs = 0;
-  bfam_domain_get_subdomains((bfam_domain_t*) exam->domain,
-      BFAM_DOMAIN_OR,tags,exam->domain->base.numSubdomains,
+  bfam_domain_get_subdomains((bfam_domain_t*) beard->domain,
+      BFAM_DOMAIN_OR,tags,beard->domain->base.numSubdomains,
       subs,&num_subs);
   bfam_real_t energy_sq_old = energy_sq;
   bfam_real_t energy_sq_local = 0;
@@ -406,75 +406,75 @@ compute_energy(exam_t *exam, prefs_t *prefs)
   {
     bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*) subs[s];
 #define X(order) \
-    case order: bfam_elasticity_dgx_quad_energy_##order(sub->N,&energy_sq_local, \
+    case order: beard_dgx_energy_##order(sub->N,&energy_sq_local, \
                     sub,""); break;
 
     switch(sub->N)
     {
       BFAM_LIST_OF_DGX_QUAD_NORDERS
       default:
-        bfam_elasticity_dgx_quad_energy_(sub->N,&energy_sq_local,sub,"");
+        beard_dgx_energy_(sub->N,&energy_sq_local,sub,"");
         break;
     }
 #undef X
   }
   BFAM_MPI_CHECK(MPI_Reduce(&energy_sq_local,&energy_sq,1,BFAM_REAL_MPI,
-         MPI_SUM,0,exam->mpicomm));
+         MPI_SUM,0,beard->mpicomm));
 
   BFAM_ROOT_INFO("energy: %e delta energy: %e", energy_sq, energy_sq-energy_sq_old);
 }
 
 static void
-init_domain(exam_t *exam, prefs_t *prefs)
+init_domain(beard_t *beard, prefs_t *prefs)
 {
   if(prefs->brick != NULL)
   {
-    exam->conn = p4est_connectivity_new_brick(
+    beard->conn = p4est_connectivity_new_brick(
         prefs->brick->mi,prefs->brick->ni,
         prefs->brick->periodic_a,prefs->brick->periodic_b);
-    for(int i = 0; i < exam->conn->num_vertices; i++)
+    for(int i = 0; i < beard->conn->num_vertices; i++)
     {
-      int x = exam->conn->vertices[i*3+0];
+      int x = beard->conn->vertices[i*3+0];
       if(x > 0 && x < prefs->brick->mi)
       {
         bfam_real_t r = rand() / (bfam_real_t) RAND_MAX;
-        exam->conn->vertices[i*3+0] = x + (r-0.5)/2;
+        beard->conn->vertices[i*3+0] = x + (r-0.5)/2;
       }
-      exam->conn->vertices[i*3+0] -= 0.5*prefs->brick->mi;
-      exam->conn->vertices[i*3+0] /= 0.5*prefs->brick->mi;
+      beard->conn->vertices[i*3+0] -= 0.5*prefs->brick->mi;
+      beard->conn->vertices[i*3+0] /= 0.5*prefs->brick->mi;
 
-      int y = exam->conn->vertices[i*3+1];
+      int y = beard->conn->vertices[i*3+1];
       if(y > 0 && y < prefs->brick->ni)
       {
         bfam_real_t r = rand() / (bfam_real_t) RAND_MAX;
-        exam->conn->vertices[i*3+1] = y + (r-0.5)/2;
+        beard->conn->vertices[i*3+1] = y + (r-0.5)/2;
       }
-      exam->conn->vertices[i*3+1] -= 0.5*prefs->brick->ni;
-      exam->conn->vertices[i*3+1] /= 0.5*prefs->brick->ni;
+      beard->conn->vertices[i*3+1] -= 0.5*prefs->brick->ni;
+      beard->conn->vertices[i*3+1] /= 0.5*prefs->brick->ni;
 
       // BFAM_INFO("%e %e %e",
-      //     exam->conn->vertices[i*3+0],
-      //     exam->conn->vertices[i*3+1],
-      //     exam->conn->vertices[i*3+2]);
+      //     beard->conn->vertices[i*3+0],
+      //     beard->conn->vertices[i*3+1],
+      //     beard->conn->vertices[i*3+2]);
     }
   }
   else
-    exam->conn = prefs->conn_fn();
+    beard->conn = prefs->conn_fn();
 
-  exam->domain = bfam_domain_p4est_new(exam->mpicomm, exam->conn);
+  beard->domain = bfam_domain_p4est_new(beard->mpicomm, beard->conn);
 
-  p4est_refine(exam->domain->p4est, 2, refine_fn, NULL);
-  p4est_balance(exam->domain->p4est, P4EST_CONNECT_CORNER, NULL);
-  p4est_partition(exam->domain->p4est, NULL);
+  p4est_refine(beard->domain->p4est, 2, refine_fn, NULL);
+  p4est_balance(beard->domain->p4est, P4EST_CONNECT_CORNER, NULL);
+  p4est_partition(beard->domain->p4est, NULL);
 
-  p4est_vtk_write_file(exam->domain->p4est, NULL, "p4est_mesh");
+  p4est_vtk_write_file(beard->domain->p4est, NULL, "p4est_mesh");
 
-  split_domain_arbitrary(exam, prefs->N, prefs->num_subdomains);
+  split_domain_arbitrary(beard, prefs->N, prefs->num_subdomains);
 
   const char *volume[] = {"_volume", NULL};
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
 
-  bfam_domain_t *domain = (bfam_domain_t*)exam->domain;
+  bfam_domain_t *domain = (bfam_domain_t*)beard->domain;
 
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "rho");
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "rho_inv");
@@ -589,13 +589,13 @@ init_domain(exam_t *exam, prefs_t *prefs)
 }
 
 static void
-free_exam(exam_t *exam)
+free_beard(beard_t *beard)
 {
-  bfam_ts_lsrk_free(exam->lsrk);
-  bfam_free(exam->lsrk);
-  bfam_domain_p4est_free(exam->domain);
-  bfam_free(exam->domain);
-  p4est_connectivity_destroy(exam->conn);
+  bfam_ts_lsrk_free(beard->lsrk);
+  bfam_free(beard->lsrk);
+  bfam_domain_p4est_free(beard->domain);
+  bfam_free(beard->domain);
+  p4est_connectivity_destroy(beard->conn);
 }
 
 static void
@@ -606,18 +606,18 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   // const char *fields[] = {"v1", NULL};
   const char *volume[] = {"_volume", NULL};
 
-  exam_t exam;
+  beard_t beard;
 
-  init_mpi(&exam, mpicomm);
+  init_mpi(&beard, mpicomm);
 
-  init_domain(&exam, prefs);
+  init_domain(&beard, prefs);
 
-  init_lsrk(&exam, prefs);
+  init_lsrk(&beard, prefs);
 
   char output[BFAM_BUFSIZ];
 
   snprintf(output,BFAM_BUFSIZ,"fields_%05d",0);
-  bfam_vtk_write_file((bfam_domain_t*) exam.domain, BFAM_DOMAIN_OR, volume,
+  bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
       output, fields, NULL, NULL, 0, 0);
   bfam_real_t dt = 0.01/pow(2,refine_level);
   if(prefs->brick != NULL)
@@ -631,27 +631,27 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
     if(s%ndisp == 0)
     {
       snprintf(output,BFAM_BUFSIZ,"fields_%05d",s+1);
-      bfam_vtk_write_file((bfam_domain_t*) exam.domain, BFAM_DOMAIN_OR, volume,
+      bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
           output, fields, NULL, NULL, 0, 0);
-      compute_energy(&exam,prefs);
+      compute_energy(&beard,prefs);
     }
-    exam.lsrk->base.step((bfam_ts_t*) exam.lsrk,dt);
+    beard.lsrk->base.step((bfam_ts_t*) beard.lsrk,dt);
   }
 
-  free_exam(&exam);
+  free_beard(&beard);
 }
 
 static void
 print_order(int N)
 {
 #define X(order) \
-  case order: bfam_elasticity_dgx_quad_print_order_##order(N); break;
+  case order: beard_dgx_print_order_##order(N); break;
 
   switch(N)
   {
     BFAM_LIST_OF_DGX_QUAD_NORDERS
     default:
-      bfam_elasticity_dgx_quad_print_order_(N);
+      beard_dgx_print_order_(N);
       break;
   }
 #undef X

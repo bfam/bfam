@@ -1,4 +1,4 @@
-#include "bfam_exam_elasticity_dgx_quad_rhs.h"
+#include "beard_dgx_rhs.h"
 
 #ifndef NORDER
 #define NORDER
@@ -27,7 +27,7 @@ bfam_real_t *field;                                                            \
 BFAM_ASSUME_ALIGNED(field,32);
 
 
-void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_print_order_,NORDER)(int inN)
+void BFAM_APPEND_EXPAND(beard_dgx_print_order_,NORDER)(int inN)
 {
 
 #ifdef USE_GENERIC
@@ -39,7 +39,7 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_print_order_,NORDER)(int inN)
 }
 
 static inline void
-bfam_elasticity_dgx_quad_upwind_state_m(
+beard_dgx_upwind_state_m(
           bfam_real_t *Tns,       bfam_real_t *Tps,
           bfam_real_t *vns,       bfam_real_t *vps,
           bfam_real_t  Tnm,       bfam_real_t  Tnp,
@@ -70,7 +70,7 @@ bfam_elasticity_dgx_quad_upwind_state_m(
 }
 
 static inline void
-bfam_elasticity_dgx_quad_add_flux(const bfam_real_t scale,
+beard_dgx_add_flux(const bfam_real_t scale,
     const bfam_real_t TnS, const bfam_real_t* TpS,
     const bfam_real_t vnS, const bfam_real_t *vpS,
     const bfam_real_t Tnm, const bfam_real_t *Tpm,
@@ -102,7 +102,7 @@ bfam_elasticity_dgx_quad_add_flux(const bfam_real_t scale,
 }
 
 static inline void
-bfam_elasticity_dgx_quad_remove_flux( const int Nfp_in,
+beard_dgx_remove_flux( const int Nfp_in,
     bfam_locidx_t face, bfam_locidx_t e, const bfam_locidx_t *vmapM,
     const bfam_real_t *n1, const bfam_real_t *n2,
     const bfam_real_t *Zs, const bfam_real_t *Zp,
@@ -161,10 +161,10 @@ bfam_elasticity_dgx_quad_remove_flux( const int Nfp_in,
     bfam_real_t vnS;
     bfam_real_t vpS[3];
 
-    bfam_elasticity_dgx_quad_upwind_state_m(&TnS,TpS,&vnS,vpS,
+    beard_dgx_upwind_state_m(&TnS,TpS,&vnS,vpS,
         Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
-    bfam_elasticity_dgx_quad_add_flux(-1, TnS,TpS,vnS,vpS,Tnm,Tpm,iM,
+    beard_dgx_add_flux(-1, TnS,TpS,vnS,vpS,Tnm,Tpm,iM,
         dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
         lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
   }
@@ -172,7 +172,7 @@ bfam_elasticity_dgx_quad_remove_flux( const int Nfp_in,
 
 
 
-void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
+void BFAM_APPEND_EXPAND(beard_dgx_intra_rhs_elastic_,NORDER)(
     int inN, bfam_subdomain_dgx_quad_t *sub, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t)
 {
@@ -414,10 +414,10 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
         bfam_real_t vnS;
         bfam_real_t vpS[3];
 
-        bfam_elasticity_dgx_quad_upwind_state_m(&TnS,TpS,&vnS,vpS,
+        beard_dgx_upwind_state_m(&TnS,TpS,&vnS,vpS,
             Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
-        bfam_elasticity_dgx_quad_add_flux(1, TnS,TpS,vnS,vpS,Tnm,Tpm,iM,
+        beard_dgx_add_flux(1, TnS,TpS,vnS,vpS,Tnm,Tpm,iM,
             dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
             lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
       }
@@ -425,7 +425,7 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_intra_rhs_elastic_,NORDER)(
   }
 }
 
-void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_scale_rates_elastic_,NORDER)(
+void BFAM_APPEND_EXPAND(beard_dgx_scale_rates_elastic_,NORDER)(
     int inN, bfam_subdomain_dgx_quad_t *sub, const char *rate_prefix,
     const bfam_long_real_t a)
 {
@@ -444,7 +444,7 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_scale_rates_elastic_,NORDER)(
   }
 }
 
-void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_add_rates_elastic_,NORDER)(
+void BFAM_APPEND_EXPAND(beard_dgx_add_rates_elastic_,NORDER)(
     int inN, bfam_subdomain_dgx_quad_t *sub, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
     const bfam_long_real_t a)
@@ -469,7 +469,7 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_add_rates_elastic_,NORDER)(
   }
 }
 
-void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_boundary_,NORDER)(
+void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_boundary_,NORDER)(
     int inN, bfam_subdomain_dgx_quad_glue_t *sub_g, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t, const bfam_real_t R)
 {
@@ -528,7 +528,7 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_boundary_,NORDER)(
     int8_t face = sub_g->EToFm[le];
 
     /* First remove the eroneous flux */
-    bfam_elasticity_dgx_quad_remove_flux(Nfp,face,e,sub_m->vmapM,n1,n2,Zs,Zp,
+    beard_dgx_remove_flux(Nfp,face,e,sub_m->vmapM,n1,n2,Zs,Zp,
         mu,rhoi,lam,sJ,JI,wi,
         v1,v2,v3,S11,S22,S33,S12,S13,S23,
         dv1,dv2,dv3,dS11,dS22,dS33,dS12,dS13,dS23);
@@ -574,17 +574,17 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_boundary_,NORDER)(
       bfam_real_t vnS;
       bfam_real_t vpS[3];
 
-      bfam_elasticity_dgx_quad_upwind_state_m(&TnS,TpS,&vnS,vpS,
+      beard_dgx_upwind_state_m(&TnS,TpS,&vnS,vpS,
           Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
-      bfam_elasticity_dgx_quad_add_flux(1, TnS,TpS,vnS,vpS,Tnm,Tpm,iM,
+      beard_dgx_add_flux(1, TnS,TpS,vnS,vpS,Tnm,Tpm,iM,
           dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
           lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
     }
   }
 }
 
-void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_interface_,NORDER)(
+void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
     int inN, bfam_subdomain_dgx_quad_glue_t *sub_g, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t)
 {
@@ -677,7 +677,7 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_interface_,NORDER)(
     bfam_real_t nm[] = {n1[Nfp*(face+4*e)],n2[Nfp*(face+4*e)],0};
 
     if(sub_g->EToHm[le] < 2)
-      bfam_elasticity_dgx_quad_remove_flux(Nfp,face,e,sub_m->vmapM,n1,n2,Zs,Zp,
+      beard_dgx_remove_flux(Nfp,face,e,sub_m->vmapM,n1,n2,Zs,Zp,
           mu,rhoi,lam,sJ,JI,wi,
           v1,v2,v3,S11,S22,S33,S12,S13,S23,
           dv1,dv2,dv3,dS11,dS22,dS33,dS12,dS13,dS23);
@@ -740,7 +740,7 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_interface_,NORDER)(
       vpp[0] = vpp[0]-vnp*np[0];
       vpp[1] = vpp[1]-vnp*np[1];
 
-      bfam_elasticity_dgx_quad_upwind_state_m(
+      beard_dgx_upwind_state_m(
           &TnS_g[pnt],&TpS_g[3*pnt],&vnS_g[pnt],&vpS_g[3*pnt],
           Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
@@ -811,7 +811,7 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_interface_,NORDER)(
       Tpm[0] = Tpm[0]-Tnm*nm[0];
       Tpm[1] = Tpm[1]-Tnm*nm[1];
 
-      bfam_elasticity_dgx_quad_add_flux(1,
+      beard_dgx_add_flux(1,
           TnS_m[pnt],&TpS_m[3*pnt],vnS_m[pnt],&vpS_m[3*pnt],Tnm,Tpm,iM,
           dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
           lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
@@ -819,7 +819,7 @@ void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_inter_rhs_interface_,NORDER)(
   }
 }
 
-void BFAM_APPEND_EXPAND(bfam_elasticity_dgx_quad_energy_,NORDER)(
+void BFAM_APPEND_EXPAND(beard_dgx_energy_,NORDER)(
     int inN, bfam_real_t *energy_sq, 
     bfam_subdomain_dgx_quad_t *sub, const char *field_prefix)
 {
