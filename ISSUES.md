@@ -10,3 +10,5 @@ Proposal in subdomain is a struct that contains char ** to a list of strings for
 scalars, vectors, and tensors. Vectors and tensors will be rotated to normal and
 perpendicular components.
 
+## communicator prefix
+need to pass field prefix through to the get / put functions
