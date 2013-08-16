@@ -708,18 +708,22 @@ void
 bfam_subdomain_sbp_intra_glue_put_send_buffer(bfam_subdomain_t *thisSubdomain,
     void *buffer, size_t send_sz, void *args)
 {
-  bfam_subdomain_sbp_intra_get_put_data_t data;
+  if(args == NULL)
+  {
+    bfam_subdomain_sbp_intra_get_put_data_t data;
 
-  data.sub    = (bfam_subdomain_sbp_intra_glue_t*) thisSubdomain;
-  data.buffer = (bfam_real_t*) buffer;
-  data.size   = send_sz;
-  data.field  = 0;
+    data.sub    = (bfam_subdomain_sbp_intra_glue_t*) thisSubdomain;
+    data.buffer = (bfam_real_t*) buffer;
+    data.size   = send_sz;
+    data.field  = 0;
 
-  /*
-   * Fill fields_m and the send buffer from sub_m.
-   */
-  bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
-      &bfam_subdomain_sbp_intra_glue_get_fields_m, &data);
+    /*
+     * Fill fields_m and the send buffer from sub_m.
+     */
+    bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
+        &bfam_subdomain_sbp_intra_glue_get_fields_m, &data);
+  }
+  else BFAM_ABORT("args not implemented");
 }
 
 static int
@@ -789,18 +793,22 @@ void
 bfam_subdomain_sbp_intra_glue_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
     void *buffer, size_t recv_sz, void *args)
 {
-  bfam_subdomain_sbp_intra_get_put_data_t data;
+  if(args == NULL)
+  {
+    bfam_subdomain_sbp_intra_get_put_data_t data;
 
-  data.sub    = (bfam_subdomain_sbp_intra_glue_t*) thisSubdomain;
-  data.buffer = (bfam_real_t*) buffer;
-  data.size   = recv_sz;
-  data.field  = 0;
+    data.sub    = (bfam_subdomain_sbp_intra_glue_t*) thisSubdomain;
+    data.buffer = (bfam_real_t*) buffer;
+    data.size   = recv_sz;
+    data.field  = 0;
 
-  /*
-   * Fill fields_p from receive buffer
-   */
-  bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
-      &bfam_subdomain_sbp_intra_glue_put_fields_p, &data);
+    /*
+     * Fill fields_p from receive buffer
+     */
+    bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
+        &bfam_subdomain_sbp_intra_glue_put_fields_p, &data);
+  }
+  else BFAM_ABORT("args not implemented");
 }
 
 
@@ -1118,18 +1126,22 @@ void
 bfam_subdomain_sbp_inter_glue_put_send_buffer(bfam_subdomain_t *thisSubdomain,
     void *buffer, size_t send_sz, void *args)
 {
-  bfam_subdomain_sbp_inter_get_put_data_t data;
+  if(args == NULL)
+  {
+    bfam_subdomain_sbp_inter_get_put_data_t data;
 
-  data.sub    = (bfam_subdomain_sbp_inter_glue_t*) thisSubdomain;
-  data.buffer = (bfam_real_t*) buffer;
-  data.size   = send_sz;
-  data.field  = 0;
+    data.sub    = (bfam_subdomain_sbp_inter_glue_t*) thisSubdomain;
+    data.buffer = (bfam_real_t*) buffer;
+    data.size   = send_sz;
+    data.field  = 0;
 
-  /*
-   * Fill fields_m and the send buffer from sub_m.
-   */
-  bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
-      &bfam_subdomain_sbp_inter_glue_get_fields_m, &data);
+    /*
+     * Fill fields_m and the send buffer from sub_m.
+     */
+    bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
+        &bfam_subdomain_sbp_inter_glue_get_fields_m, &data);
+  }
+  else BFAM_ABORT("args not implemented");
 }
 
 static int
@@ -1158,18 +1170,22 @@ void
 bfam_subdomain_sbp_inter_glue_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
     void *buffer, size_t recv_sz, void *args)
 {
-  bfam_subdomain_sbp_inter_get_put_data_t data;
+  if(args == NULL)
+  {
+    bfam_subdomain_sbp_inter_get_put_data_t data;
 
-  data.sub    = (bfam_subdomain_sbp_inter_glue_t*) thisSubdomain;
-  data.buffer = (bfam_real_t*) buffer;
-  data.size   = recv_sz;
-  data.field  = 0;
+    data.sub    = (bfam_subdomain_sbp_inter_glue_t*) thisSubdomain;
+    data.buffer = (bfam_real_t*) buffer;
+    data.size   = recv_sz;
+    data.field  = 0;
 
-  /*
-   * Fill fields_p from the receive buffer
-   */
-  bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_p, "",
-      &bfam_subdomain_sbp_inter_glue_put_fields_p, &data);
+    /*
+     * Fill fields_p from the receive buffer
+     */
+    bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_p, "",
+        &bfam_subdomain_sbp_inter_glue_put_fields_p, &data);
+  }
+  else BFAM_ABORT("args not implemented");
 }
 
 

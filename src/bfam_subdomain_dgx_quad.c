@@ -1008,21 +1008,28 @@ void
 bfam_subdomain_dgx_quad_glue_put_send_buffer(bfam_subdomain_t *thisSubdomain,
     void *buffer, size_t send_sz, void *args)
 {
-  bfam_subdomain_dgx_quad_get_put_data_t data;
+  if(args == NULL)
+  {
+    bfam_subdomain_dgx_quad_get_put_data_t data;
 
-  data.sub    = (bfam_subdomain_dgx_quad_glue_t*) thisSubdomain;
-  data.buffer = (bfam_real_t*) buffer;
-  data.size   = send_sz;
-  data.field  = 0;
+    data.sub    = (bfam_subdomain_dgx_quad_glue_t*) thisSubdomain;
+    data.buffer = (bfam_real_t*) buffer;
+    data.size   = send_sz;
+    data.field  = 0;
 
-  BFAM_ASSERT(send_sz == data.sub->base.fields_m.num_entries * data.sub->K *
-      data.sub->Np * sizeof(bfam_real_t));
+    BFAM_ASSERT(send_sz == data.sub->base.fields_m.num_entries * data.sub->K *
+        data.sub->Np * sizeof(bfam_real_t));
 
-  /*
-   * Fill fields_m and the send buffer from sub_m.
-   */
-  bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
-      &bfam_subdomain_dgx_quad_glue_get_fields_m, &data);
+    /*
+     * Fill fields_m and the send buffer from sub_m.
+     */
+    bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
+        &bfam_subdomain_dgx_quad_glue_get_fields_m, &data);
+  }
+  else
+  {
+    BFAM_ABORT("args not implemented");
+  }
 }
 
 static int
@@ -1054,24 +1061,31 @@ void
 bfam_subdomain_dgx_quad_glue_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
     void *buffer, size_t recv_sz, void* args)
 {
-  bfam_subdomain_dgx_quad_get_put_data_t data;
+  if(args == NULL)
+  {
+    bfam_subdomain_dgx_quad_get_put_data_t data;
 
-  data.sub    = (bfam_subdomain_dgx_quad_glue_t*) thisSubdomain;
-  data.buffer = (bfam_real_t*) buffer;
-  data.size   = recv_sz;
-  data.field  = 0;
+    data.sub    = (bfam_subdomain_dgx_quad_glue_t*) thisSubdomain;
+    data.buffer = (bfam_real_t*) buffer;
+    data.size   = recv_sz;
+    data.field  = 0;
 
-  BFAM_ASSERT(recv_sz == data.sub->base.fields_m.num_entries * data.sub->K *
-      data.sub->Np * sizeof(bfam_real_t));
+    BFAM_ASSERT(recv_sz == data.sub->base.fields_m.num_entries * data.sub->K *
+        data.sub->Np * sizeof(bfam_real_t));
 
-  /*
-   * Fill fields_p from the recv buffer.
-   */
-  bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_p, "",
-      &bfam_subdomain_dgx_quad_glue_put_fields_p, &data);
+    /*
+     * Fill fields_p from the recv buffer.
+     */
+    bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_p, "",
+        &bfam_subdomain_dgx_quad_glue_put_fields_p, &data);
 
-  BFAM_ASSERT(recv_sz == data.sub->base.fields_p.num_entries * data.sub->K *
-      data.sub->Np * sizeof(bfam_real_t));
+    BFAM_ASSERT(recv_sz == data.sub->base.fields_p.num_entries * data.sub->K *
+        data.sub->Np * sizeof(bfam_real_t));
+  }
+  else
+  {
+    BFAM_ABORT("args not implemented");
+  }
 }
 
 
