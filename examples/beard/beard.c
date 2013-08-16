@@ -4,6 +4,13 @@
 static int refine_level = 0;
 static bfam_real_t energy_sq = 0;
 
+const char *comm_args_scalars[]           = {NULL};
+const char *comm_args_vectors[]           = {"v",NULL};
+const char *comm_args_vector_components[] = {"v1","v2","v3",NULL};
+const char *comm_args_tensors[]           = {"T",NULL};
+const char *comm_args_tensor_components[] = {"S11","S22","S33",
+                                             "S12","S13","S23",NULL};
+
 /*
  * Uniform refinement function
  */
@@ -59,6 +66,7 @@ typedef struct beard
   p4est_connectivity_t *conn;
   bfam_domain_p4est_t  *domain;
   bfam_ts_lsrk_t       *lsrk;
+  bfam_subdomain_comm_args_t * comm_args;
 } beard_t;
 
 static void
@@ -383,12 +391,24 @@ void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
 static void
 init_lsrk(beard_t *beard, prefs_t *prefs)
 {
+  beard->comm_args = bfam_malloc(sizeof(bfam_subdomain_comm_args_t));
+  bfam_subdomain_comm_args_t *args = beard->comm_args;
+
+  args->scalars           = comm_args_scalars;
+  args->vectors           = comm_args_vectors;
+  args->vector_components = comm_args_vector_components;
+  args->tensors           = comm_args_tensors;
+  args->tensor_components = comm_args_tensor_components;
+
+
   const char *timestep_tags[] = {"_volume","_glue_parallel","_glue_local",
     "_glue_boundary", NULL};
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
+
   beard->lsrk = bfam_ts_lsrk_new((bfam_domain_t*) beard->domain,prefs->lsrk_method,
-      BFAM_DOMAIN_OR,timestep_tags, BFAM_DOMAIN_OR,glue, beard->mpicomm, 10, NULL,
-      &aux_rates,&scale_rates,&intra_rhs,&inter_rhs,&add_rates);
+      BFAM_DOMAIN_OR,timestep_tags, BFAM_DOMAIN_OR,glue, beard->mpicomm, 10,
+      beard->comm_args, &aux_rates,&scale_rates,&intra_rhs,&inter_rhs,
+      &add_rates);
 }
 
 static void
@@ -591,8 +611,9 @@ init_domain(beard_t *beard, prefs_t *prefs)
 }
 
 static void
-free_beard(beard_t *beard)
+shave_beard(beard_t *beard)
 {
+  bfam_free(beard->comm_args);
   bfam_ts_lsrk_free(beard->lsrk);
   bfam_free(beard->lsrk);
   bfam_domain_p4est_free(beard->domain);
@@ -640,7 +661,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
     beard.lsrk->base.step((bfam_ts_t*) beard.lsrk,dt);
   }
 
-  free_beard(&beard);
+  shave_beard(&beard);
 }
 
 static void

@@ -7,22 +7,33 @@
 
 typedef struct bfam_subdomain_comm_args
 {
-  char ** scalars;           /* \c NULL terminated array of scalars to send */
-  char ** vectors;           /* \c NULL terminated array of vectors to send:
-                              * \note will suffix n for normal component and
-                              *       p[1-3] for perpendicular components */
-  char ** vector_components; /* \c NULL terminated array of vectors components
-                              * \note must be three components per vector to
-                              *       send and a \c NULL entry will lead to 0
-                              *       being used for that component */
-  char ** tensors;           /* \c NULL terminated array of tensor to send
-                              * \note will suffix n for normal component and
-                              *       p[1-3] for perpendicular components */
-  char ** tensor_components; /* \c NULL terminated array of symetric tensor
-                              * components in order {11,22,33,12,13,23}
-                              * \note must be six components per tensor to
-                              *       send and a \c NULL entry will lead to 0
-                              *       being used for that component */
+  const char ** scalars;           /* \c NULL terminated array of scalars to
+                                    * send */
+
+  const char ** vectors;           /* \c NULL terminated array of vectors to
+                                    * send
+                                    * \note will suffix n for normal component
+                                    *       and p[1-3] for perpendicular
+                                    *       components */
+
+  const char ** vector_components; /* \c NULL terminated array of vectors
+                                    * components
+                                    * \note must be three components per vector
+                                    *       to send and a \c NULL entry will
+                                    *       lead to 0 being used for that
+                                    *       component */
+
+  const char ** tensors;           /* \c NULL terminated array of tensor to send
+                                    * \note will suffix n for normal component
+                                    *       and p[1-3] for perpendicular
+                                    *       components */
+
+  const char ** tensor_components; /* \c NULL terminated array of symetric
+                                    * tensor components in order
+                                    * {11,22,33,12,13,23}
+                                    * \note must be six components per tensor to
+                                    *       send and \c NULL entry will lead to
+                                    *       0 being used for that component */
 } bfam_subdomain_comm_args_t;
 
 typedef struct bfam_subdomain_face_map_entry
