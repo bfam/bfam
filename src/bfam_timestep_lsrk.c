@@ -104,7 +104,7 @@ bfam_ts_lsrk_t*
 bfam_ts_lsrk_new(bfam_domain_t* dom, bfam_ts_lsrk_method_t method,
     bfam_domain_match_t subdom_match, const char** subdom_tags,
     bfam_domain_match_t comm_match, const char** comm_tags,
-    MPI_Comm mpicomm, int mpitag,
+    MPI_Comm mpicomm, int mpitag, void *comm_data,
     void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
     void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
       const char *rate_prefix, const bfam_long_real_t a),
@@ -120,7 +120,7 @@ bfam_ts_lsrk_new(bfam_domain_t* dom, bfam_ts_lsrk_method_t method,
 {
   bfam_ts_lsrk_t* newTS = bfam_malloc(sizeof(bfam_ts_lsrk_t));
   bfam_ts_lsrk_init(newTS, dom, method, subdom_match, subdom_tags,
-      comm_match, comm_tags, mpicomm, mpitag, aux_rates,
+      comm_match, comm_tags, mpicomm, mpitag, comm_data, aux_rates,
       scale_rates,intra_rhs,inter_rhs,add_rates);
   return newTS;
 }
@@ -131,7 +131,7 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts,
     bfam_domain_t* dom, bfam_ts_lsrk_method_t method,
     bfam_domain_match_t subdom_match, const char** subdom_tags,
     bfam_domain_match_t comm_match, const char** comm_tags,
-    MPI_Comm mpicomm, int mpitag,
+    MPI_Comm mpicomm, int mpitag, void* comm_data,
     void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
     void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
       const char *rate_prefix, const bfam_long_real_t a),
@@ -181,7 +181,8 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts,
   /*
    * Set up the communicator we will use
    */
-   ts->comm = bfam_communicator_new(dom,comm_match,comm_tags,mpicomm,mpitag);
+   ts->comm = bfam_communicator_new(dom,comm_match,comm_tags,mpicomm,mpitag,
+       comm_data);
 
   switch(method)
   {

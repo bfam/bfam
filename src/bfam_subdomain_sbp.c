@@ -706,7 +706,7 @@ bfam_subdomain_sbp_intra_glue_get_fields_m(const char * key, void *val,
 
 void
 bfam_subdomain_sbp_intra_glue_put_send_buffer(bfam_subdomain_t *thisSubdomain,
-    void *buffer, size_t send_sz)
+    void *buffer, size_t send_sz, void *args)
 {
   bfam_subdomain_sbp_intra_get_put_data_t data;
 
@@ -787,7 +787,7 @@ bfam_subdomain_sbp_intra_glue_put_fields_p(const char * key, void *val,
 
 void
 bfam_subdomain_sbp_intra_glue_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
-    void *buffer, size_t recv_sz)
+    void *buffer, size_t recv_sz, void *args)
 {
   bfam_subdomain_sbp_intra_get_put_data_t data;
 
@@ -1116,7 +1116,7 @@ bfam_subdomain_sbp_inter_glue_get_fields_m(const char * key, void *val,
 
 void
 bfam_subdomain_sbp_inter_glue_put_send_buffer(bfam_subdomain_t *thisSubdomain,
-    void *buffer, size_t send_sz)
+    void *buffer, size_t send_sz, void *args)
 {
   bfam_subdomain_sbp_inter_get_put_data_t data;
 
@@ -1156,7 +1156,7 @@ bfam_subdomain_sbp_inter_glue_put_fields_p(const char * key, void *val,
 
 void
 bfam_subdomain_sbp_inter_glue_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
-    void *buffer, size_t recv_sz)
+    void *buffer, size_t recv_sz, void *args)
 {
   bfam_subdomain_sbp_inter_get_put_data_t data;
 

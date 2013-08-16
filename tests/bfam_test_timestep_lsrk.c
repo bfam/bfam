@@ -148,7 +148,7 @@ test_lsrk(bfam_ts_lsrk_method_t type,int N,MPI_Comm mpicomm, int commtag)
   ts = bfam_ts_lsrk_new(dom,type,
       BFAM_DOMAIN_AND,ts_tags,
       BFAM_DOMAIN_AND,comm_tags,
-      mpicomm,commtag,
+      mpicomm,commtag, NULL,
       &test_lsrk_aux_rates,
       NULL,NULL,NULL,NULL);
 

@@ -15,7 +15,7 @@ typedef struct bfam_subdomain_comm_test
 
 void
 bfam_subdomain_glue_put(bfam_subdomain_t *thisSubdomain,
-    void *send_buf, size_t send_sz)
+    void *send_buf, size_t send_sz, void *args)
 {
   int num_reals = send_sz/sizeof(bfam_real_t);
   bfam_real_t* buffer = (bfam_real_t*) send_buf;
@@ -27,7 +27,7 @@ bfam_subdomain_glue_put(bfam_subdomain_t *thisSubdomain,
 
 void
 bfam_subdomain_glue_get(bfam_subdomain_t *thisSubdomain,
-    void *recv_buf, size_t recv_sz)
+    void *recv_buf, size_t recv_sz, void *args)
 {
   int num_reals = recv_sz/sizeof(bfam_real_t);
   bfam_real_t* buffer = (bfam_real_t*) recv_buf;
@@ -206,7 +206,7 @@ main (int argc, char *argv[])
   /* set up communicator */
   const char* tags[] = {"_glue",NULL};
   bfam_communicator_t* communicator = bfam_communicator_new(&domain,
-      BFAM_DOMAIN_AND,tags,MPI_COMM_WORLD,10);
+      BFAM_DOMAIN_AND,tags,MPI_COMM_WORLD,10,NULL);
 
   /* start recv_send */
   bfam_communicator_start(communicator);

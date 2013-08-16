@@ -387,7 +387,7 @@ init_lsrk(beard_t *beard, prefs_t *prefs)
     "_glue_boundary", NULL};
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
   beard->lsrk = bfam_ts_lsrk_new((bfam_domain_t*) beard->domain,prefs->lsrk_method,
-      BFAM_DOMAIN_OR,timestep_tags, BFAM_DOMAIN_OR,glue, beard->mpicomm,0,
+      BFAM_DOMAIN_OR,timestep_tags, BFAM_DOMAIN_OR,glue, beard->mpicomm, 10, NULL,
       &aux_rates,&scale_rates,&intra_rhs,&inter_rhs,&add_rates);
 }
 
@@ -429,6 +429,8 @@ init_domain(beard_t *beard, prefs_t *prefs)
 {
   if(prefs->brick != NULL)
   {
+    /* just so we always get the same random grid for convergence tests */
+    srandom(8);
     beard->conn = p4est_connectivity_new_brick(
         prefs->brick->mi,prefs->brick->ni,
         prefs->brick->periodic_a,prefs->brick->periodic_b);
@@ -437,7 +439,7 @@ init_domain(beard_t *beard, prefs_t *prefs)
       int x = beard->conn->vertices[i*3+0];
       if(x > 0 && x < prefs->brick->mi)
       {
-        bfam_real_t r = rand() / (bfam_real_t) RAND_MAX;
+        bfam_real_t r = random() / (bfam_real_t) RAND_MAX;
         beard->conn->vertices[i*3+0] = x + (r-0.5)/2;
       }
       beard->conn->vertices[i*3+0] -= 0.5*prefs->brick->mi;
@@ -446,7 +448,7 @@ init_domain(beard_t *beard, prefs_t *prefs)
       int y = beard->conn->vertices[i*3+1];
       if(y > 0 && y < prefs->brick->ni)
       {
-        bfam_real_t r = rand() / (bfam_real_t) RAND_MAX;
+        bfam_real_t r = random() / (bfam_real_t) RAND_MAX;
         beard->conn->vertices[i*3+1] = y + (r-0.5)/2;
       }
       beard->conn->vertices[i*3+1] -= 0.5*prefs->brick->ni;

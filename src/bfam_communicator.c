@@ -20,12 +20,13 @@ typedef struct bfam_communicator_map_entry
 
 bfam_communicator_t*
 bfam_communicator_new(bfam_domain_t *domain, bfam_domain_match_t match,
-    const char **tags, MPI_Comm comm, int tag)
+    const char **tags, MPI_Comm comm, int tag, void *user_args)
 {
   bfam_communicator_t* newCommunicator =
     bfam_malloc(sizeof(bfam_communicator_t));
 
-  bfam_communicator_init(newCommunicator, domain, match, tags, comm, tag);
+  bfam_communicator_init(newCommunicator, domain, match, tags, comm, tag,
+      user_args);
   return newCommunicator;
 }
 
@@ -75,7 +76,7 @@ bfam_communicator_recv_compare(const void *a, const void *b)
 void
 bfam_communicator_init(bfam_communicator_t* communicator,
     bfam_domain_t *domain, bfam_domain_match_t match, const char **tags,
-    MPI_Comm comm, int tag)
+    MPI_Comm comm, int tag, void *user_args)
 {
   BFAM_LDEBUG("Communicator Init");
   communicator-> comm = comm;
@@ -92,6 +93,7 @@ bfam_communicator_init(bfam_communicator_t* communicator,
   size_t send_sz = 0;
   size_t recv_sz = 0;
   communicator->num_procs = 0;
+  communicator->user_args = user_args;
 
   /* figure out the info for everyone */
   bfam_communicator_map_entry_t map[communicator->num_subs];
@@ -250,7 +252,7 @@ bfam_communicator_start(bfam_communicator_t *comm)
     BFAM_ABORT_IF(sub->glue_put_send_buffer == NULL,
         "glue_put_send_buffer is NULL for %s", sub->name);
     sub->glue_put_send_buffer(sub,comm->sub_data[s].send_buf,
-        comm->sub_data[s].send_sz);
+        comm->sub_data[s].send_sz,comm->user_args);
   }
 
   /* post sends */
@@ -277,6 +279,6 @@ bfam_communicator_finish(bfam_communicator_t *comm)
     BFAM_ABORT_IF(sub->glue_get_recv_buffer == NULL,
         "glue_get_recv_buffer is NULL for %s", sub->name);
     sub->glue_get_recv_buffer(sub,comm->sub_data[s].recv_buf,
-        comm->sub_data[s].recv_sz);
+        comm->sub_data[s].recv_sz,comm->user_args);
   }
 }

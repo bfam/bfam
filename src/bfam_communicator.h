@@ -55,6 +55,8 @@ typedef struct bfam_communicator
                                         processor data */
   bfam_comm_subdata_t*  sub_data;  /**< array of structure with subdomains
                                         specific information */
+
+  void *user_args;     /**< user custom data to pass through */
 } bfam_communicator_t;
 
 /** create a communicator
@@ -72,7 +74,7 @@ typedef struct bfam_communicator
  */
 bfam_communicator_t*
 bfam_communicator_new(bfam_domain_t *domain, bfam_domain_match_t match,
-    const char **tags, MPI_Comm comm, int tag);
+    const char **tags, MPI_Comm comm, int tag, void *user_data);
 
 /** initializes a communicator
  *
@@ -89,7 +91,7 @@ bfam_communicator_new(bfam_domain_t *domain, bfam_domain_match_t match,
 void
 bfam_communicator_init(bfam_communicator_t* communicator,
     bfam_domain_t *domain, bfam_domain_match_t match, const char **tags,
-    MPI_Comm comm, int tag);
+    MPI_Comm comm, int tag, void *user_data);
 
 /** Clean up communicator
  *

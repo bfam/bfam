@@ -1006,7 +1006,7 @@ bfam_subdomain_dgx_quad_glue_get_fields_m(const char * key, void *val,
 
 void
 bfam_subdomain_dgx_quad_glue_put_send_buffer(bfam_subdomain_t *thisSubdomain,
-    void *buffer, size_t send_sz)
+    void *buffer, size_t send_sz, void *args)
 {
   bfam_subdomain_dgx_quad_get_put_data_t data;
 
@@ -1052,7 +1052,7 @@ bfam_subdomain_dgx_quad_glue_put_fields_p(const char * key, void *val,
 
 void
 bfam_subdomain_dgx_quad_glue_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
-    void *buffer, size_t recv_sz)
+    void *buffer, size_t recv_sz, void* args)
 {
   bfam_subdomain_dgx_quad_get_put_data_t data;
 

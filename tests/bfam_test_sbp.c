@@ -586,7 +586,7 @@ test_2d(int rank, int mpi_size,MPI_Comm mpicomm)
 
   bfam_communicator_t* communicator =
     bfam_communicator_new(&domain, BFAM_DOMAIN_OR, glue,
-        mpicomm, 10);
+        mpicomm, 10, NULL);
 
   /* start recv_send */
   bfam_communicator_start(communicator);
@@ -728,7 +728,7 @@ test_3d(int rank, int mpi_size, MPI_Comm mpicomm)
 
   bfam_communicator_t* communicator =
     bfam_communicator_new(&domain, BFAM_DOMAIN_OR, glue,
-        mpicomm, 10);
+        mpicomm, 10, NULL);
 
   /* start recv_send */
   bfam_communicator_start(communicator);

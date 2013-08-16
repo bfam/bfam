@@ -222,7 +222,7 @@ build_mesh(MPI_Comm mpicomm)
   const char* tags[] = {"_glue_parallel", "_glue_local", NULL};
   bfam_communicator_t* communicator =
     bfam_communicator_new((bfam_domain_t*)domain, BFAM_DOMAIN_AND, tags,
-        mpicomm, 10);
+        mpicomm, 10, NULL);
 
   /* start recv_send */
   bfam_communicator_start(communicator);
