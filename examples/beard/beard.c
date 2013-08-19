@@ -4,12 +4,20 @@
 static int refine_level = 0;
 static bfam_real_t energy_sq = 0;
 
+/*
 const char *comm_args_scalars[]           = {NULL};
 const char *comm_args_vectors[]           = {"v",NULL};
 const char *comm_args_vector_components[] = {"v1","v2","v3",NULL};
 const char *comm_args_tensors[]           = {"T",NULL};
 const char *comm_args_tensor_components[] = {"S11","S22","S33",
                                              "S12","S13","S23",NULL};
+*/
+const char *comm_args_scalars[]           = {"v1","v2","v3","S11","S22","S33",
+                                             "S12","S13","S23","Zs","Zp",NULL};
+const char *comm_args_vectors[]           = {NULL};
+const char *comm_args_vector_components[] = {NULL};
+const char *comm_args_tensors[]           = {NULL};
+const char *comm_args_tensor_components[] = {NULL};
 
 /*
  * Uniform refinement function
@@ -394,21 +402,27 @@ init_lsrk(beard_t *beard, prefs_t *prefs)
   beard->comm_args = bfam_malloc(sizeof(bfam_subdomain_comm_args_t));
   bfam_subdomain_comm_args_t *args = beard->comm_args;
 
-  args->scalars           = comm_args_scalars;
-  args->vectors           = comm_args_vectors;
-  args->vector_components = comm_args_vector_components;
-  args->tensors           = comm_args_tensors;
-  args->tensor_components = comm_args_tensor_components;
+  args->scalars_m           = comm_args_scalars;
+  args->vectors_m           = comm_args_vectors;
+  args->vector_components_m = comm_args_vector_components;
+  args->tensors_m           = comm_args_tensors;
+  args->tensor_components_m = comm_args_tensor_components;
+
+  args->scalars_p           = comm_args_scalars;
+  args->vectors_p           = comm_args_vectors;
+  args->vector_components_p = comm_args_vector_components;
+  args->tensors_p           = comm_args_tensors;
+  args->tensor_components_p = comm_args_tensor_components;
 
 
   const char *timestep_tags[] = {"_volume","_glue_parallel","_glue_local",
     "_glue_boundary", NULL};
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
 
-  beard->lsrk = bfam_ts_lsrk_new((bfam_domain_t*) beard->domain,prefs->lsrk_method,
-      BFAM_DOMAIN_OR,timestep_tags, BFAM_DOMAIN_OR,glue, beard->mpicomm, 10,
-      beard->comm_args, &aux_rates,&scale_rates,&intra_rhs,&inter_rhs,
-      &add_rates);
+  beard->lsrk = bfam_ts_lsrk_new((bfam_domain_t*) beard->domain,
+      prefs->lsrk_method, BFAM_DOMAIN_OR,timestep_tags, BFAM_DOMAIN_OR,glue,
+      beard->mpicomm, 10, beard->comm_args,
+      &aux_rates,&scale_rates,&intra_rhs,&inter_rhs, &add_rates);
 }
 
 static void

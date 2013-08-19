@@ -543,7 +543,7 @@ bfam_subdomain_sbp_intra_glue_new(const bfam_locidx_t              id,
 static void
 bfam_subdomain_sbp_intra_glue_comm_info(bfam_subdomain_t *thisSubdomain,
     int *rank, bfam_locidx_t *sort, int sort_num,
-    size_t *send_sz, size_t *recv_sz)
+    size_t *send_sz, size_t *recv_sz, void *args)
 {
   BFAM_ASSERT(sort_num > 5);
   bfam_subdomain_sbp_intra_glue_t *sub =
@@ -1033,7 +1033,7 @@ bfam_subdomain_sbp_inter_glue_field_plus_add(bfam_subdomain_t *subdomain,
 static void
 bfam_subdomain_sbp_inter_glue_comm_info(bfam_subdomain_t *thisSubdomain,
     int *rank, bfam_locidx_t *sort, int sort_num,
-    size_t *send_sz, size_t *recv_sz)
+    size_t *send_sz, size_t *recv_sz, void *args)
 {
   BFAM_ASSERT(sort_num > 5);
   bfam_subdomain_sbp_inter_glue_t *sub =

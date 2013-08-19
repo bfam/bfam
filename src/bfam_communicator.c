@@ -111,7 +111,8 @@ bfam_communicator_init(bfam_communicator_t* communicator,
     subdomains[s]->glue_comm_info(subdomains[s],&map[s].np,
         map[s].s,BFAM_COMM_NUM_SRT,
         &communicator->sub_data[s].send_sz,
-        &communicator->sub_data[s].recv_sz);
+        &communicator->sub_data[s].recv_sz,
+        communicator->user_args);
 
     BFAM_MPI_CHECK(MPI_Comm_rank(comm, &map[s].rank));
 
