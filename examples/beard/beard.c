@@ -19,6 +19,37 @@ const char *comm_args_vector_components[] = {NULL};
 const char *comm_args_tensors[]           = {NULL};
 const char *comm_args_tensor_components[] = {NULL};
 
+static int
+get_global_int(lua_State *L, const char *name, int def, int warning)
+{
+  lua_getglobal(L, name);
+  int result = def;
+  if(!lua_isnumber(L, -1))
+  { /* for some reason gcc combines the two if without these. Why? */
+    if(warning) BFAM_ROOT_WARNING("`%s' not found, using default", name);
+  }
+  else
+    result = (int)lua_tonumber(L, -1);
+  lua_pop(L, 1);
+  return result;
+}
+
+static bfam_real_t
+get_global_real(lua_State *L, const char *name, bfam_real_t def, int warning)
+{
+  lua_getglobal(L, name);
+  bfam_real_t result = def;
+  if(!lua_isnumber(L, -1))
+  { /* for some reason gcc combines the two if without these. Why?? */
+    if(warning) BFAM_ROOT_WARNING("`%s' not found, using default", name);
+  }
+  else
+    result = (bfam_real_t)lua_tonumber(L, -1);
+  lua_pop(L, 1);
+  return result;
+}
+
+
 /*
  * Uniform refinement function
  */
@@ -45,6 +76,9 @@ typedef struct brick_args
   int ni;
   int periodic_a;
   int periodic_b;
+  bfam_real_t Lx;
+  bfam_real_t Ly;
+  int random;
 } brick_args_t;
 
 typedef struct prefs
@@ -163,6 +197,31 @@ typedef struct stress_free_box_params
   int m_ap;
 } stress_free_box_params_t;
 
+typedef struct slip_weakening_params
+{
+  /* friction stuff */
+  bfam_real_t fs;
+  bfam_real_t fd;
+  bfam_real_t Dc;
+
+  /* stress tensor on the fault */
+  bfam_real_t SN;
+  bfam_real_t SV;
+  bfam_real_t SH;
+
+  /* stress tensor in nucleation patch */
+  bfam_real_t nuc_SN;
+  bfam_real_t nuc_SV;
+  bfam_real_t nuc_SH;
+
+  /* nuceleation patch location and width */
+  bfam_real_t nuc_x;
+  bfam_real_t nuc_y;
+  bfam_real_t nuc_z;
+  bfam_real_t nuc_R;
+
+} slip_weakening_params_t;
+
 static void
 stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
     bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
@@ -227,6 +286,32 @@ field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t time,
   for(bfam_locidx_t n=0; n < npoints; ++n)
     field[n] = val;
 }
+
+static void
+field_set_val_region(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(field, 32);
+  BFAM_ASSERT(arg != NULL);
+  bfam_real_t x0  = ((bfam_real_t *)arg)[0];
+  bfam_real_t y0  = ((bfam_real_t *)arg)[1];
+  bfam_real_t z0  = ((bfam_real_t *)arg)[2];
+  bfam_real_t R   = ((bfam_real_t *)arg)[3];
+  bfam_real_t val = ((bfam_real_t *)arg)[4];
+
+  for(bfam_locidx_t n=0; n < npoints; ++n)
+  {
+    if( BFAM_REAL_ABS(x[n]-x0) < R &&
+        BFAM_REAL_ABS(y[n]-y0) < R &&
+        BFAM_REAL_ABS(z[n]-z0) < R)
+      field[n] = val;
+  }
+}
+
 
 void aux_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
 {
@@ -455,7 +540,8 @@ compute_energy(beard_t *beard, prefs_t *prefs)
   BFAM_MPI_CHECK(MPI_Reduce(&energy_sq_local,&energy_sq,1,BFAM_REAL_MPI,
          MPI_SUM,0,beard->mpicomm));
 
-  BFAM_ROOT_INFO("energy: %e delta energy: %e", energy_sq, energy_sq-energy_sq_old);
+  BFAM_ROOT_INFO("energy: %e delta energy: %e", energy_sq,
+      energy_sq-energy_sq_old);
 }
 
 static void
@@ -471,22 +557,22 @@ init_domain(beard_t *beard, prefs_t *prefs)
     for(int i = 0; i < beard->conn->num_vertices; i++)
     {
       int x = beard->conn->vertices[i*3+0];
-      if(x > 0 && x < prefs->brick->mi)
+      if(x > 0 && x < prefs->brick->mi && prefs->brick->random)
       {
         bfam_real_t r = random() / (bfam_real_t) RAND_MAX;
         beard->conn->vertices[i*3+0] = x + (r-0.5)/2;
       }
       beard->conn->vertices[i*3+0] -= 0.5*prefs->brick->mi;
-      beard->conn->vertices[i*3+0] /= 0.5*prefs->brick->mi;
+      beard->conn->vertices[i*3+0] /= 0.5*prefs->brick->mi*prefs->brick->Lx;
 
       int y = beard->conn->vertices[i*3+1];
-      if(y > 0 && y < prefs->brick->ni)
+      if(y > 0 && y < prefs->brick->ni && prefs->brick->random)
       {
         bfam_real_t r = random() / (bfam_real_t) RAND_MAX;
         beard->conn->vertices[i*3+1] = y + (r-0.5)/2;
       }
       beard->conn->vertices[i*3+1] -= 0.5*prefs->brick->ni;
-      beard->conn->vertices[i*3+1] /= 0.5*prefs->brick->ni;
+      beard->conn->vertices[i*3+1] /= 0.5*prefs->brick->ni*prefs->brick->Ly;
 
       // BFAM_INFO("%e %e %e",
       //     beard->conn->vertices[i*3+0],
@@ -596,24 +682,6 @@ init_domain(beard_t *beard, prefs_t *prefs)
       field_set_val, NULL);
 
 
-  stress_free_box_params_t field_params;
-  field_params.A    = 1;
-  field_params.rho  = prefs->rho;
-  field_params.mu   = prefs->mu;
-  field_params.n_ap = 2;
-  field_params.m_ap = 2;
-
-  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v3", 0,
-      stress_free_box, &field_params);
-  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S13", 0,
-      stress_free_box, &field_params);
-  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S23", 0,
-      stress_free_box, &field_params);
-  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v1", 0,
-      stress_free_box, &field_params);
-  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v2", 0,
-      stress_free_box, &field_params);
-
   /* exchange material properties to glue */
   const char *glue_mat[] = {"Zs","Zp",NULL};
   for(bfam_locidx_t g = 0; glue_mat[g] != NULL; g++)
@@ -622,6 +690,78 @@ init_domain(beard_t *beard, prefs_t *prefs)
     bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, glue_mat[g]);
   }
 
+
+  lua_getglobal(prefs->L, "problem");
+  if(lua_isstring(prefs->L, -1))
+  {
+    const char *prob_name = lua_tostring(prefs->L, -1);
+
+    if(strcmp(prob_name,"stress free box") == 0)
+    {
+
+      stress_free_box_params_t field_params;
+      field_params.A    = 1;
+      field_params.rho  = prefs->rho;
+      field_params.mu   = prefs->mu;
+      field_params.n_ap = 2;
+      field_params.m_ap = 2;
+
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v3", 0,
+          stress_free_box, &field_params);
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S13", 0,
+          stress_free_box, &field_params);
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S23", 0,
+          stress_free_box, &field_params);
+      /*
+         bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v1", 0,
+         stress_free_box, &field_params);
+         bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v2", 0,
+         stress_free_box, &field_params);
+         */
+
+    }
+    else if(strcmp(prob_name,"slip weakening") == 0)
+    {
+      slip_weakening_params_t SW = {0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+      SW.fs = get_global_real(prefs->L, "friction_fs", 0, 1);
+      SW.fd = get_global_real(prefs->L, "friction_fd", 0, 1);
+      SW.Dc = get_global_real(prefs->L, "friction_Dc" , 0, 1);
+
+      SW.SN = get_global_real(prefs->L, "friction_SN", 0, 0);
+      SW.SH = get_global_real(prefs->L, "friction_SH", 0, 0);
+      SW.SV = get_global_real(prefs->L, "friction_SV", 0, 0);
+
+      const char *fric[]   = {"_glue_parallel", "_glue_local", NULL};
+
+      const char *fric_fields[]     = {"Ds", "V", "SN0", "SV0", "SH0", "SN",
+        "SV", "SH", "fs",  "fd",  "Dc","rupture_time",NULL};
+      bfam_real_t fric_vals[] =  {  0,   0, SW.SN, SW.SV, SW.SH,    0,
+           0,   0, SW.fs, SW.fd, SW.Dc,            0};
+      for(int fld = 0; fric_fields[fld] != NULL; fld++)
+      {
+        bfam_domain_add_field( domain, BFAM_DOMAIN_OR, fric, fric_fields[fld]);
+        bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric, fric_fields[fld],
+            0, field_set_val, fric_vals+0);
+      }
+
+      /* handle nucleation */
+      SW.nuc_x = get_global_real(prefs->L, "friction_nuc_x", 0, 0);
+      SW.nuc_y = get_global_real(prefs->L, "friction_nuc_y", 0, 0);
+      SW.nuc_z = get_global_real(prefs->L, "friction_nuc_z", 0, 0);
+      SW.nuc_R = get_global_real(prefs->L, "friction_nuc_R", 0, 0);
+
+      SW.nuc_SN = get_global_real(prefs->L, "friction_nuc_SN", 0, 0);
+      SW.nuc_SH = get_global_real(prefs->L, "friction_nuc_SH", 0, 0);
+      SW.nuc_SV = get_global_real(prefs->L, "friction_nuc_SV", 0, 0);
+
+      bfam_real_t data[] = {SW.nuc_x,SW.nuc_y,SW.nuc_z,SW.nuc_R,SW.nuc_SN};
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric, "SN0",
+          0, field_set_val_region, data);
+
+    }
+  }
+  lua_pop(prefs->L, 1);
 }
 
 static void
@@ -718,32 +858,6 @@ struct lsrk_table {
   {NULL,   BFAM_TS_LSRK_NOOP},
 };
 
-static int
-get_global_int(lua_State *L, const char *name, int def)
-{
-  lua_getglobal(L, name);
-  int result = def;
-  if(!lua_isnumber(L, -1))
-    BFAM_ROOT_WARNING("`%s' not found, using default", name);
-  else
-    result = (int)lua_tonumber(L, -1);
-  lua_pop(L, 1);
-  return result;
-}
-
-static bfam_real_t
-get_global_real(lua_State *L, const char *name, bfam_real_t def)
-{
-  lua_getglobal(L, name);
-  bfam_real_t result = def;
-  if(!lua_isnumber(L, -1))
-    BFAM_ROOT_WARNING("`%s' not found, using default", name);
-  else
-    result = (bfam_real_t)lua_tonumber(L, -1);
-  lua_pop(L, 1);
-  return result;
-}
-
 static prefs_t *
 new_prefs(const char *prefs_filename)
 {
@@ -759,11 +873,11 @@ new_prefs(const char *prefs_filename)
 
   BFAM_ASSERT(lua_gettop(L)==0);
 
-  prefs->N = get_global_int(L, "N", 5);
-  prefs->num_subdomains = get_global_int(L, "num_subdomains", 1);
-  prefs->rho = get_global_real(L, "rho", 1);
-  prefs->mu  = get_global_real(L, "mu" , 1);
-  prefs->lam = get_global_real(L, "lam", 1);
+  prefs->N = get_global_int(L, "N", 5, 1);
+  prefs->num_subdomains = get_global_int(L, "num_subdomains", 1, 1);
+  prefs->rho = get_global_real(L, "rho", 1, 1);
+  prefs->mu  = get_global_real(L, "mu" , 1, 1);
+  prefs->lam = get_global_real(L, "lam", 1, 1);
   BFAM_ASSERT(lua_gettop(L)==0);
 
   lua_getglobal(L, "connectivity");
@@ -779,10 +893,15 @@ new_prefs(const char *prefs_filename)
       prefs->conn_fn = NULL;
 
       prefs->brick = bfam_malloc(sizeof(brick_args_t));
-      prefs->brick->ni = get_global_int(L,"brick_n",1);
-      prefs->brick->mi = get_global_int(L,"brick_m",1);
-      prefs->brick->periodic_a = get_global_int(L,"brick_a",0);
-      prefs->brick->periodic_b = get_global_int(L,"brick_b",0);
+      prefs->brick->ni = get_global_int(L,"brick_n",1,1);
+      prefs->brick->mi = get_global_int(L,"brick_m",1,1);
+      prefs->brick->periodic_a = get_global_int(L,"brick_a",0,1);
+      prefs->brick->periodic_b = get_global_int(L,"brick_b",0,1);
+      prefs->brick->random = get_global_int(L,"brick_random",0,1);
+      prefs->brick->Lx = get_global_real(L,"brick_Lx",1,1);
+      prefs->brick->Ly = get_global_real(L,"brick_Ly",1,0);
+      BFAM_INFO("%e",(double)prefs->brick->Lx);
+      BFAM_INFO("%e",(double)prefs->brick->Ly);
     }
     else
     {
