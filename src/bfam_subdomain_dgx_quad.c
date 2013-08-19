@@ -799,6 +799,30 @@ bfam_subdomain_dgx_quad_free(bfam_subdomain_t *thisSubdomain)
   bfam_free_aligned(sub->vmapM);
 }
 
+static void
+bfam_subdomain_dgx_quad_glue_field_init(bfam_subdomain_t *sub,
+    const char *name, bfam_real_t time, bfam_subdomain_init_field_t init_field,
+    void *arg)
+{
+  bfam_subdomain_dgx_quad_glue_t *s = (bfam_subdomain_dgx_quad_glue_t*) sub;
+
+  bfam_real_t *field = bfam_dictionary_get_value_ptr(&s->base.fields,name);
+
+  BFAM_ABORT_IF(field==NULL, "Init: Field %s not found in subdomain %s",
+      name, sub->name);
+
+  size_t fieldLength = s->Np*s->K;
+
+  bfam_real_t *restrict x =
+    bfam_dictionary_get_value_ptr(&sub->fields, "_grid_x");
+  bfam_real_t *restrict y =
+    bfam_dictionary_get_value_ptr(&sub->fields, "_grid_y");
+  bfam_real_t *restrict z =
+    bfam_dictionary_get_value_ptr(&sub->fields, "_grid_z");
+
+  init_field(fieldLength, name, time, x, y, z, sub, arg, field);
+}
+
 static int
 bfam_subdomain_dgx_quad_glue_field_add(bfam_subdomain_t *subdomain,
     const char *name)
@@ -1264,6 +1288,7 @@ bfam_subdomain_dgx_quad_glue_init(bfam_subdomain_dgx_quad_glue_t  *subdomain,
   subdomain->base.glue_get_recv_buffer =
     bfam_subdomain_dgx_quad_glue_get_recv_buffer;
     subdomain->base.field_add = bfam_subdomain_dgx_quad_glue_field_add;
+  subdomain->base.field_init = bfam_subdomain_dgx_quad_glue_field_init;
   subdomain->base.field_minus_add =
     bfam_subdomain_dgx_quad_glue_field_minus_add;
   subdomain->base.field_plus_add = bfam_subdomain_dgx_quad_glue_field_plus_add;
