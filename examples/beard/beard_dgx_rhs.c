@@ -819,6 +819,241 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
   }
 }
 
+void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
+    int inN, bfam_subdomain_dgx_quad_glue_t *sub_g, const char *rate_prefix,
+    const char *field_prefix, const bfam_long_real_t t)
+{
+#ifdef USE_GENERIC
+  /*const int N   = inN;*/
+  /*const int Np  = (inN+1)*(inN+1);*/
+  const int Nfp = inN+1;
+  BFAM_WARNING("Using generic inter rhs function");
+#endif
+
+  bfam_subdomain_dgx_quad_t* sub_m = sub_g->sub_m;
+
+  /* get the fields we will need */
+  bfam_dictionary_t *fields_m    = &sub_g->base.fields_m;
+  bfam_dictionary_t *fields_p    = &sub_g->base.fields_p;
+  bfam_dictionary_t *fields      = &sub_m->base.fields;
+  bfam_dictionary_t *fields_face = &sub_m->base.fields_face;
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1 ,field_prefix,"v1" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2 ,field_prefix,"v2" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v3 ,field_prefix,"v3" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11,field_prefix,"S11",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22,field_prefix,"S22",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33,field_prefix,"S33",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12,field_prefix,"S12",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13,field_prefix,"S13",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23,field_prefix,"S23",fields);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1_m ,field_prefix,"v1" ,fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2_m ,field_prefix,"v2" ,fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v3_m ,field_prefix,"v3" ,fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11_m,field_prefix,"S11",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22_m,field_prefix,"S22",fields_m);
+  /*
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33_m,field_prefix,"S33",fields_m);
+  */
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12_m,field_prefix,"S12",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13_m,field_prefix,"S13",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23_m,field_prefix,"S23",fields_m);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1_p ,field_prefix,"v1" ,fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2_p ,field_prefix,"v2" ,fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v3_p ,field_prefix,"v3" ,fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11_p,field_prefix,"S11",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22_p,field_prefix,"S22",fields_p);
+  /*
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33_p,field_prefix,"S33",fields_p);
+  */
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12_p,field_prefix,"S12",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13_p,field_prefix,"S13",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23_p,field_prefix,"S23",fields_p);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv1 ,rate_prefix,"v1" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv2 ,rate_prefix,"v2" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv3 ,rate_prefix,"v3" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS11,rate_prefix,"S11",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS22,rate_prefix,"S22",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS33,rate_prefix,"S33",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS12,rate_prefix,"S12",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS13,rate_prefix,"S13",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS23,rate_prefix,"S23",fields);
+
+  /* get the material properties and metric terms */
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rhoi,"","rho_inv"  ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(lam ,"","lam"      ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(mu  ,"","mu"       ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zs  ,"","Zs"       ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp  ,"","Zp"       ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(J   ,"","_grid_J"  ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(JI  ,"","_grid_JI" ,fields);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(n1  ,"","_grid_nx",fields_face);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(n2  ,"","_grid_ny",fields_face);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(sJ  ,"","_grid_sJ",fields_face);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zs_m  ,"","Zs"       ,fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp_m  ,"","Zp"       ,fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zs_p  ,"","Zs"       ,fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp_p  ,"","Zp"       ,fields_p);
+
+  bfam_real_t *wi  = sub_m->wi;
+  BFAM_ASSUME_ALIGNED(wi ,32);
+
+  for(bfam_locidx_t le = 0; le < sub_g->K; le++)
+  {
+    bfam_locidx_t e = sub_g->EToEm[le];
+    int8_t face = sub_g->EToFm[le];
+
+    /* Assumes conforming straight sided elements */
+    bfam_real_t nm[] = {n1[Nfp*(face+4*e)],n2[Nfp*(face+4*e)],0};
+
+    if(sub_g->EToHm[le] < 2)
+      beard_dgx_remove_flux(Nfp,face,e,sub_m->vmapM,n1,n2,Zs,Zp,
+          mu,rhoi,lam,sJ,JI,wi,
+          v1,v2,v3,S11,S22,S33,S12,S13,S23,
+          dv1,dv2,dv3,dS11,dS22,dS33,dS12,dS13,dS23);
+
+
+#ifndef USE_GENERIC
+#undef Np
+#endif
+    bfam_locidx_t Np_g = sub_g->Np;
+#ifndef USE_GENERIC
+#define Np (N+1)*(N+1)
+#endif
+
+    bfam_real_t TpS_g[3*Np_g];
+    bfam_real_t TnS_g[  Np_g];
+    bfam_real_t vpS_g[3*Np_g];
+    bfam_real_t vnS_g[  Np_g];
+
+    for(bfam_locidx_t pnt = 0; pnt < Np_g; pnt++)
+    {
+      bfam_locidx_t iG = pnt+le*Np_g;
+
+      /* Setup stuff for the minus side */
+      bfam_real_t Zsm = Zs_m[iG];
+      bfam_real_t Zpm = Zp_m[iG];
+
+
+      bfam_real_t Tpm[] = {
+        nm[0]*S11_m[iG]+nm[1]*S12_m[iG],
+        nm[0]*S12_m[iG]+nm[1]*S22_m[iG],
+        nm[0]*S13_m[iG]+nm[1]*S23_m[iG],
+      };
+      bfam_real_t Tnm = Tpm[0]*nm[0]+Tpm[1]*nm[1];
+      Tpm[0] = Tpm[0]-Tnm*nm[0];
+      Tpm[1] = Tpm[1]-Tnm*nm[1];
+
+      bfam_real_t vpm[] = {v1_m[iG],v2_m[iG],v3_m[iG]};
+      bfam_real_t vnm = nm[0]*vpm[0]+nm[1]*vpm[1];
+      vpm[0] = vpm[0]-vnm*nm[0];
+      vpm[1] = vpm[1]-vnm*nm[1];
+
+      /* now add the real flux */
+      /* Setup stuff for the plus side */
+      bfam_real_t Zsp = Zs_p[iG];
+      bfam_real_t Zpp = Zp_p[iG];
+
+      bfam_real_t np[] = {-nm[0],-nm[1],0};
+
+      bfam_real_t Tpp[] = {
+        np[0]*S11_p[iG]+np[1]*S12_p[iG],
+        np[0]*S12_p[iG]+np[1]*S22_p[iG],
+        np[0]*S13_p[iG]+np[1]*S23_p[iG],
+      };
+      bfam_real_t Tnp = Tpp[0]*np[0]+Tpp[1]*np[1];
+      Tpp[0] = Tpp[0]-Tnp*np[0];
+      Tpp[1] = Tpp[1]-Tnp*np[1];
+
+      bfam_real_t vpp[] = {v1_p[iG], v2_p[iG], v3_p[iG]};
+      bfam_real_t vnp = np[0]*vpp[0]+np[1]*vpp[1];
+      vpp[0] = vpp[0]-vnp*np[0];
+      vpp[1] = vpp[1]-vnp*np[1];
+
+      beard_dgx_upwind_state_m(
+          &TnS_g[pnt],&TpS_g[3*pnt],&vnS_g[pnt],&vpS_g[3*pnt],
+          Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
+
+    }
+
+    bfam_real_t *restrict TpS_m;
+    bfam_real_t *restrict TnS_m;
+    bfam_real_t *restrict vpS_m;
+    bfam_real_t *restrict vnS_m;
+
+    /* these will be used to the store the projected values if we need them */
+    BFAM_ALIGN(32) bfam_real_t TpS_m_STORAGE[3*Nfp];
+    BFAM_ALIGN(32) bfam_real_t TnS_m_STORAGE[  Nfp];
+    BFAM_ALIGN(32) bfam_real_t vpS_m_STORAGE[3*Nfp];
+    BFAM_ALIGN(32) bfam_real_t vnS_m_STORAGE[  Nfp];
+
+    /* check to tee if projection */
+    if(sub_g->mass == NULL)
+    {
+      TpS_m = TpS_g;
+      TnS_m = TnS_g;
+      vpS_m = vpS_g;
+      vnS_m = vnS_g;
+    }
+    else
+    {
+      BFAM_ABORT("projection not implemented yet");
+      /* set to the correct Mass times projection */
+      bfam_real_t * MP = NULL;
+      TpS_m = TpS_m_STORAGE;
+      TnS_m = TnS_m_STORAGE;
+      vpS_m = vpS_m_STORAGE;
+      vnS_m = vnS_m_STORAGE;
+      for(int i = 0; i < Nfp; i++)
+      {
+        for(int k = 0; k < 3; k++)
+        {
+          TpS_m[3*i+k] = 0;
+          vpS_m[3*i+k] = 0;
+        }
+        TpS_m[i] = 0;
+        vpS_m[i] = 0;
+      }
+      for(int j = 0; j < Np_g; j++)
+        for(int i = 0; i < Nfp; i++)
+        {
+          for(int k = 0; k < 3; k++)
+          {
+            TpS_m[3*i+k] += MP[i+j*Np_g]*TpS_g[3*j+k];
+            vpS_m[3*i+k] += MP[i+j*Np_g]*vpS_g[3*j+k];
+          }
+          TpS_m[i] += MP[i+j*Np_g]*TpS_g[j];
+          vpS_m[i] += MP[i+j*Np_g]*vpS_g[j];
+        }
+    }
+
+    for(bfam_locidx_t pnt = 0; pnt < Nfp; pnt++)
+    {
+      bfam_locidx_t f = pnt + Nfp*(face + 4*e);
+      bfam_locidx_t iM = sub_m->vmapM[f];
+
+      bfam_real_t Tpm[] = {
+        nm[0]*S11[iM]+nm[1]*S12[iM],
+        nm[0]*S12[iM]+nm[1]*S22[iM],
+        nm[0]*S13[iM]+nm[1]*S23[iM],
+      };
+      bfam_real_t Tnm = Tpm[0]*nm[0]+Tpm[1]*nm[1];
+      Tpm[0] = Tpm[0]-Tnm*nm[0];
+      Tpm[1] = Tpm[1]-Tnm*nm[1];
+
+      beard_dgx_add_flux(1,
+          TnS_m[pnt],&TpS_m[3*pnt],vnS_m[pnt],&vpS_m[3*pnt],Tnm,Tpm,iM,
+          dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
+          lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
+    }
+  }
+}
+
 void BFAM_APPEND_EXPAND(beard_dgx_energy_,NORDER)(
     int inN, bfam_real_t *energy_sq, 
     bfam_subdomain_dgx_quad_t *sub, const char *field_prefix)

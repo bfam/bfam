@@ -459,6 +459,25 @@ void inter_rhs_interface(int N, bfam_subdomain_dgx_quad_glue_t *sub,
 #undef X
 }
 
+void inter_rhs_slip_weakening_interface(int N, bfam_subdomain_dgx_quad_glue_t
+    *sub, const char *rate_prefix, const char *field_prefix,
+    const bfam_long_real_t t)
+{
+#define X(order) \
+  case order: beard_dgx_inter_rhs_slip_weakening_interface_##order(N,sub, \
+                  rate_prefix,field_prefix,t); break;
+
+  switch(N)
+  {
+    BFAM_LIST_OF_DGX_QUAD_NORDERS
+    default:
+      beard_dgx_inter_rhs_slip_weakening_interface_(N,sub,rate_prefix,
+          field_prefix,t);
+      break;
+  }
+#undef X
+}
+
 void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t)
 {
@@ -471,7 +490,12 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     inter_rhs_boundary(sub->N,sub,rate_prefix,field_prefix,t);
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"))
+    inter_rhs_slip_weakening_interface(sub->N,sub,rate_prefix,field_prefix,t);
+  /*
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"))
     inter_rhs_interface(sub->N,sub,rate_prefix,field_prefix,t);
+  */
   else
     BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
 }
