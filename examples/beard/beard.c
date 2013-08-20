@@ -19,6 +19,40 @@ const char *comm_args_vector_components[] = {NULL};
 const char *comm_args_tensors[]           = {NULL};
 const char *comm_args_tensor_components[] = {NULL};
 
+
+static void
+beard_grid_glue(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  bfam_subdomain_dgx_quad_glue_t* sub_g = (bfam_subdomain_dgx_quad_glue_t*) s;
+
+  /* get the fields we will need */
+  bfam_dictionary_t *fields_m    = &sub_g->base.fields_m;
+  bfam_dictionary_t *fields_p    = &sub_g->base.fields_p;
+  bfam_real_t *x_m = bfam_dictionary_get_value_ptr(fields_m, "_grid_x");
+  bfam_real_t *x_p = bfam_dictionary_get_value_ptr(fields_p, "_grid_x");
+
+  bfam_real_t *y_m = bfam_dictionary_get_value_ptr(fields_m, "_grid_y");
+  bfam_real_t *y_p = bfam_dictionary_get_value_ptr(fields_p, "_grid_y");
+
+  bfam_real_t *z_m = bfam_dictionary_get_value_ptr(fields_m, "_grid_z");
+  bfam_real_t *z_p = bfam_dictionary_get_value_ptr(fields_p, "_grid_z");
+
+  BFAM_ASSERT((sub_g->N_m+1)*sub_g->K == npoints);
+  BFAM_ASSERT((sub_g->N_p+1)*sub_g->K == npoints);
+  for(int n = 0;n < npoints;n++)
+  {
+    BFAM_ASSERT(BFAM_REAL_APPROX_EQ(x_m[n], x_p[n], 10));
+    BFAM_ASSERT(BFAM_REAL_APPROX_EQ(y_m[n], y_p[n], 10));
+    BFAM_ASSERT(BFAM_REAL_APPROX_EQ(z_m[n], z_p[n], 10));
+    x[n] = 0.5*(x_m[n]+x_p[n]);
+    y[n] = 0.5*(y_m[n]+y_p[n]);
+    z[n] = 0.5*(z_m[n]+z_p[n]);
+  }
+
+}
+
 static int
 get_global_int(lua_State *L, const char *name, int def, int warning)
 {
@@ -66,9 +100,6 @@ refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
     return 1;
   }
 }
-
-#define REAL_APPROX_EQ(x, y, K)                                              \
-  BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, BFAM_REAL_EPS)
 
 typedef struct brick_args
 {
@@ -683,24 +714,26 @@ init_domain(beard_t *beard, prefs_t *prefs)
 
 
   /* exchange material properties to glue */
-  const char *glue_mat[] = {"Zs","Zp",NULL};
+  const char *glue_mat[] = {"Zs","Zp","_grid_x","_grid_y","_grid_z",NULL};
   for(bfam_locidx_t g = 0; glue_mat[g] != NULL; g++)
   {
     bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, glue_mat[g]);
     bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, glue_mat[g]);
   }
+  bfam_domain_add_field( domain, BFAM_DOMAIN_OR, glue, "_grid_x");
+  bfam_domain_add_field( domain, BFAM_DOMAIN_OR, glue, "_grid_y");
+  bfam_domain_add_field( domain, BFAM_DOMAIN_OR, glue, "_grid_z");
   bfam_communicator_t material_comm;
 
   bfam_subdomain_comm_args_t mat_args;
-  const char * mat_scalars[]   = {"Zp","Zs",NULL};
   const char * mat_NULL[]      = {NULL};
-  mat_args.scalars_m           = mat_scalars;
+  mat_args.scalars_m           = glue_mat;
   mat_args.vectors_m           = mat_NULL;
   mat_args.vector_components_m = mat_NULL;
   mat_args.tensors_m           = mat_NULL;
   mat_args.tensor_components_m = mat_NULL;
 
-  mat_args.scalars_p           = mat_scalars;
+  mat_args.scalars_p           = glue_mat;
   mat_args.vectors_p           = mat_NULL;
   mat_args.vector_components_p = mat_NULL;
   mat_args.tensors_p           = mat_NULL;
@@ -712,6 +745,14 @@ init_domain(beard_t *beard, prefs_t *prefs)
   bfam_communicator_finish(&material_comm);
   bfam_communicator_free(  &material_comm);
 
+  /*
+   * we can trick init fields into handling locations
+   * to glue
+   */
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x", 0,
+      beard_grid_glue, NULL);
+
+  /* Set up some problem specific problems */
   lua_getglobal(prefs->L, "problem");
   if(lua_isstring(prefs->L, -1))
   {
