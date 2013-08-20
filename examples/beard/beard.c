@@ -13,7 +13,7 @@ const char *comm_args_tensor_components[] = {"S11","S22","S33",
                                              "S12","S13","S23",NULL};
 */
 const char *comm_args_scalars[]           = {"v1","v2","v3","S11","S22","S33",
-                                             "S12","S13","S23","Zs","Zp",NULL};
+                                             "S12","S13","S23",NULL};
 const char *comm_args_vectors[]           = {NULL};
 const char *comm_args_vector_components[] = {NULL};
 const char *comm_args_tensors[]           = {NULL};
@@ -689,7 +689,28 @@ init_domain(beard_t *beard, prefs_t *prefs)
     bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, glue_mat[g]);
     bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, glue_mat[g]);
   }
+  bfam_communicator_t material_comm;
 
+  bfam_subdomain_comm_args_t mat_args;
+  const char * mat_scalars[]   = {"Zp","Zs",NULL};
+  const char * mat_NULL[]      = {NULL};
+  mat_args.scalars_m           = mat_scalars;
+  mat_args.vectors_m           = mat_NULL;
+  mat_args.vector_components_m = mat_NULL;
+  mat_args.tensors_m           = mat_NULL;
+  mat_args.tensor_components_m = mat_NULL;
+
+  mat_args.scalars_p           = mat_scalars;
+  mat_args.vectors_p           = mat_NULL;
+  mat_args.vector_components_p = mat_NULL;
+  mat_args.tensors_p           = mat_NULL;
+  mat_args.tensor_components_p = mat_NULL;
+
+  bfam_communicator_init(&material_comm,domain,BFAM_DOMAIN_OR,glue,
+      beard->mpicomm,10,&mat_args);
+  bfam_communicator_start( &material_comm);
+  bfam_communicator_finish(&material_comm);
+  bfam_communicator_free(  &material_comm);
 
   lua_getglobal(prefs->L, "problem");
   if(lua_isstring(prefs->L, -1))
