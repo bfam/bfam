@@ -335,12 +335,10 @@ field_set_val_region(bfam_locidx_t npoints, const char *name, bfam_real_t time,
   bfam_real_t val = ((bfam_real_t *)arg)[4];
 
   for(bfam_locidx_t n=0; n < npoints; ++n)
-  {
     if( BFAM_REAL_ABS(x[n]-x0) < R &&
         BFAM_REAL_ABS(y[n]-y0) < R &&
         BFAM_REAL_ABS(z[n]-z0) < R)
       field[n] = val;
-  }
 }
 
 
@@ -594,7 +592,7 @@ init_domain(beard_t *beard, prefs_t *prefs)
         beard->conn->vertices[i*3+0] = x + (r-0.5)/2;
       }
       beard->conn->vertices[i*3+0] -= 0.5*prefs->brick->mi;
-      beard->conn->vertices[i*3+0] /= 0.5*prefs->brick->mi*prefs->brick->Lx;
+      beard->conn->vertices[i*3+0] *= 2*prefs->brick->Lx / prefs->brick->mi;
 
       int y = beard->conn->vertices[i*3+1];
       if(y > 0 && y < prefs->brick->ni && prefs->brick->random)
@@ -603,7 +601,7 @@ init_domain(beard_t *beard, prefs_t *prefs)
         beard->conn->vertices[i*3+1] = y + (r-0.5)/2;
       }
       beard->conn->vertices[i*3+1] -= 0.5*prefs->brick->ni;
-      beard->conn->vertices[i*3+1] /= 0.5*prefs->brick->ni*prefs->brick->Ly;
+      beard->conn->vertices[i*3+1] *= 2*prefs->brick->Ly / prefs->brick->ni;
 
       // BFAM_INFO("%e %e %e",
       //     beard->conn->vertices[i*3+0],
@@ -937,6 +935,7 @@ new_prefs(const char *prefs_filename)
 
   prefs->N = get_global_int(L, "N", 5, 1);
   prefs->num_subdomains = get_global_int(L, "num_subdomains", 1, 1);
+  refine_level = get_global_int(L, "refine_level", 0, 1);
   prefs->rho = get_global_real(L, "rho", 1, 1);
   prefs->mu  = get_global_real(L, "mu" , 1, 1);
   prefs->lam = get_global_real(L, "lam", 1, 1);
