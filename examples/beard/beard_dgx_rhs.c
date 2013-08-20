@@ -781,8 +781,8 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
           TpS_m[3*i+k] = 0;
           vpS_m[3*i+k] = 0;
         }
-        TpS_m[i] = 0;
-        vpS_m[i] = 0;
+        TnS_m[i] = 0;
+        vnS_m[i] = 0;
       }
       for(int j = 0; j < Np_g; j++)
         for(int i = 0; i < Nfp; i++)
@@ -792,8 +792,8 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
             TpS_m[3*i+k] += MP[i+j*Np_g]*TpS_g[3*j+k];
             vpS_m[3*i+k] += MP[i+j*Np_g]*vpS_g[3*j+k];
           }
-          TpS_m[i] += MP[i+j*Np_g]*TpS_g[j];
-          vpS_m[i] += MP[i+j*Np_g]*vpS_g[j];
+          TnS_m[i] += MP[i+j*Np_g]*TnS_g[j];
+          vnS_m[i] += MP[i+j*Np_g]*vnS_g[j];
         }
     }
 
@@ -1016,8 +1016,8 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
           TpS_m[3*i+k] = 0;
           vpS_m[3*i+k] = 0;
         }
-        TpS_m[i] = 0;
-        vpS_m[i] = 0;
+        TnS_m[i] = 0;
+        vnS_m[i] = 0;
       }
       for(int j = 0; j < Np_g; j++)
         for(int i = 0; i < Nfp; i++)
@@ -1027,8 +1027,8 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
             TpS_m[3*i+k] += MP[i+j*Np_g]*TpS_g[3*j+k];
             vpS_m[3*i+k] += MP[i+j*Np_g]*vpS_g[3*j+k];
           }
-          TpS_m[i] += MP[i+j*Np_g]*TpS_g[j];
-          vpS_m[i] += MP[i+j*Np_g]*vpS_g[j];
+          TnS_m[i] += MP[i+j*Np_g]*TnS_g[j];
+          vnS_m[i] += MP[i+j*Np_g]*vnS_g[j];
         }
     }
 
