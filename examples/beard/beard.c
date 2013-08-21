@@ -1,5 +1,6 @@
 #include <bfam.h>
 #include "beard_dgx_rhs.h"
+#include <p4est_iterate.h>
 
 static int refine_level = 0;
 static bfam_real_t energy_sq = 0;
@@ -148,6 +149,43 @@ init_mpi(beard_t *beard, MPI_Comm mpicomm)
   beard->mpicomm = mpicomm;
   BFAM_MPI_CHECK(MPI_Comm_rank(mpicomm, &beard->mpirank));
   BFAM_MPI_CHECK(MPI_Comm_size(mpicomm, &beard->mpisize));
+}
+
+typedef struct split_iter_data
+{
+  int loc;
+  bfam_locidx_t *subdomain_id;
+} split_iter_data_t;
+
+static void
+split_domain_treeid_iter_volume(p4est_iter_volume_info_t *info, void *arg)
+{
+  split_iter_data_t *data = (split_iter_data_t*) arg;
+  data->subdomain_id[data->loc] = info->treeid;
+  data->loc++;
+}
+
+static void
+split_domain_treeid(beard_t *beard, int base_N)
+{
+  BFAM_ROOT_INFO("Splitting p4est based on tree id");
+
+  bfam_domain_p4est_t *domain = beard->domain;
+  bfam_locidx_t *subdomain_id =
+    bfam_malloc(domain->p4est->local_num_quadrants*sizeof(bfam_locidx_t));
+  bfam_real_t num_subdomains = domain->p4est->last_local_tree+1;
+  bfam_locidx_t *N = bfam_malloc(num_subdomains*sizeof(int));
+  for(int i = 0;i < num_subdomains;i++) N[i] = base_N;
+
+  split_iter_data_t data = {0,subdomain_id};
+  p4est_iterate (domain->p4est, NULL, &data,
+      split_domain_treeid_iter_volume, NULL, NULL);
+
+  bfam_domain_p4est_split_dgx_quad_subdomains(domain, num_subdomains,
+      subdomain_id, N);
+
+  bfam_free(subdomain_id);
+  bfam_free(N);
 }
 
 static void
@@ -548,14 +586,11 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"));
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"))
     inter_rhs_boundary(sub->N,sub,rate_prefix,field_prefix,t);
-  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
-      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"))
+  else if(bfam_subdomain_has_tag(thisSubdomain,"slip weakening"))
     inter_rhs_slip_weakening_interface(sub->N,sub,rate_prefix,field_prefix,t);
-  /*
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"))
     inter_rhs_interface(sub->N,sub,rate_prefix,field_prefix,t);
-  */
   else
     BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
 }
@@ -704,7 +739,8 @@ init_domain(beard_t *beard, prefs_t *prefs)
 
   p4est_vtk_write_file(beard->domain->p4est, NULL, "p4est_mesh");
 
-  split_domain_arbitrary(beard, prefs->N, prefs->num_subdomains);
+  // split_domain_arbitrary(beard, prefs->N, prefs->num_subdomains);
+  split_domain_treeid(beard,prefs->N);
 
   const char *volume[] = {"_volume", NULL};
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
@@ -867,6 +903,14 @@ init_domain(beard_t *beard, prefs_t *prefs)
     }
     else if(strcmp(prob_name,"slip weakening") == 0)
     {
+      bfam_subdomain_t * fric_sub = NULL;
+      bfam_locidx_t tmp;
+      const char *friction_tag[] = {"_glue_0_1",NULL};
+      bfam_domain_get_subdomains(domain, BFAM_DOMAIN_OR, friction_tag,
+          1, &fric_sub, &tmp);
+      if(tmp == 1) bfam_subdomain_add_tag(fric_sub,"slip weakening");
+
+
       slip_weakening_params_t SW = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
       SW.fs = get_global_real(prefs->L, "friction_fs", 0, 1);
@@ -880,7 +924,7 @@ init_domain(beard_t *beard, prefs_t *prefs)
       SW.S13 = get_global_real(prefs->L, "friction_S13", 0, 0);
       SW.S23 = get_global_real(prefs->L, "friction_S23", 0, 0);
 
-      const char *fric[]   = {"_glue_parallel", "_glue_local", NULL};
+      const char *fric[]   = {"slip weakening", NULL};
 
       const char *fric_fields[] = {"Dp", "Dn", "V", "Tp1_0", "Tp2_0", "Tp3_0",
         "Tn_0", "Tp1", "Tp2", "Tp3", "Tn",  "fs",  "fd", "Dc","rupture_time",
