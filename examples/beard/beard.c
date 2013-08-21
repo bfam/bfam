@@ -236,14 +236,20 @@ typedef struct slip_weakening_params
   bfam_real_t Dc;
 
   /* stress tensor on the fault */
-  bfam_real_t SN;
-  bfam_real_t SV;
-  bfam_real_t SH;
+  bfam_real_t S11;
+  bfam_real_t S22;
+  bfam_real_t S33;
+  bfam_real_t S12;
+  bfam_real_t S13;
+  bfam_real_t S23;
 
   /* stress tensor in nucleation patch */
-  bfam_real_t nuc_SN;
-  bfam_real_t nuc_SV;
-  bfam_real_t nuc_SH;
+  bfam_real_t nuc_dS11;
+  bfam_real_t nuc_dS22;
+  bfam_real_t nuc_dS33;
+  bfam_real_t nuc_dS12;
+  bfam_real_t nuc_dS13;
+  bfam_real_t nuc_dS23;
 
   /* nuceleation patch location and width */
   bfam_real_t nuc_x;
@@ -319,26 +325,80 @@ field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t time,
 }
 
 static void
-field_set_val_region(bfam_locidx_t npoints, const char *name, bfam_real_t time,
-    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
-    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+slip_weakening_set_stress(bfam_locidx_t npoints, const char *name,
+    bfam_real_t time, bfam_real_t *restrict x, bfam_real_t *restrict y,
+    bfam_real_t *restrict z, struct bfam_subdomain *s, void *arg,
+    bfam_real_t *restrict field)
 {
   BFAM_ASSUME_ALIGNED(x, 32);
   BFAM_ASSUME_ALIGNED(y, 32);
   BFAM_ASSUME_ALIGNED(z, 32);
   BFAM_ASSUME_ALIGNED(field, 32);
   BFAM_ASSERT(arg != NULL);
-  bfam_real_t x0  = ((bfam_real_t *)arg)[0];
-  bfam_real_t y0  = ((bfam_real_t *)arg)[1];
-  bfam_real_t z0  = ((bfam_real_t *)arg)[2];
-  bfam_real_t R   = ((bfam_real_t *)arg)[3];
-  bfam_real_t val = ((bfam_real_t *)arg)[4];
 
-  for(bfam_locidx_t n=0; n < npoints; ++n)
-    if( BFAM_REAL_ABS(x[n]-x0) < R &&
-        BFAM_REAL_ABS(y[n]-y0) < R &&
-        BFAM_REAL_ABS(z[n]-z0) < R)
-      field[n] = val;
+  bfam_subdomain_dgx_quad_glue_t *sub_g = (bfam_subdomain_dgx_quad_glue_t*)s;
+
+  bfam_dictionary_t *fields_face = &sub_g->sub_m->base.fields_face;
+  bfam_real_t *n1 = bfam_dictionary_get_value_ptr(fields_face, "_grid_nx");
+  bfam_real_t *n2 = bfam_dictionary_get_value_ptr(fields_face, "_grid_ny");
+
+  slip_weakening_params_t *SW = (slip_weakening_params_t *)arg;
+  bfam_real_t x0  = SW->nuc_x;
+  bfam_real_t y0  = SW->nuc_y;
+  bfam_real_t z0  = SW->nuc_z;
+  bfam_real_t R   = SW->nuc_R;
+
+
+  BFAM_ASSERT((sub_g->N_m+1)*sub_g->K == npoints);
+  BFAM_ASSERT((sub_g->N  +1)*sub_g->K == npoints);
+  BFAM_ASSERT((sub_g->N_p+1)*sub_g->K == npoints);
+
+  bfam_real_t      T[4] = {0,0,0,0};
+  bfam_real_t nuc_dT[4] = {0,0,0,0};
+  bfam_locidx_t val;
+  if(strcmp(name,"Tp1_0") == 0)
+    val = 0;
+  else if(strcmp(name,"Tp2_0") == 0)
+    val = 1;
+  else if(strcmp(name,"Tp3_0") == 0)
+    val = 2;
+  else if(strcmp(name,"Tn_0") == 0)
+    val = 3;
+  else
+    BFAM_ABORT("Invalid field %s",name);
+
+  for(int le = 0; le<sub_g->K; le++)
+  {
+    bfam_locidx_t e = sub_g->EToEm[le];
+    int8_t face = sub_g->EToFm[le];
+    /* WARNING ASSUMES STRAIGHT SIDED ELEMENTS!!!*/
+    bfam_real_t nm[] = {n1[sub_g->sub_m->Nfp*(face+4*e)],
+                        n2[sub_g->sub_m->Nfp*(face+4*e)],0};
+    T[0] = nm[0]*SW->S11+nm[1]*SW->S12;
+    T[1] = nm[0]*SW->S12+nm[1]*SW->S22;
+    T[2] = nm[0]*SW->S13+nm[1]*SW->S23;
+    T[3] = T[0]*nm[0]+T[1]*nm[1];
+    T[0] = T[0]-T[3]*nm[0];
+    T[1] = T[1]-T[3]*nm[1];
+
+
+    nuc_dT[0] = nm[0]*SW->nuc_dS11+nm[1]*SW->nuc_dS12;
+    nuc_dT[1] = nm[0]*SW->nuc_dS12+nm[1]*SW->nuc_dS22;
+    nuc_dT[2] = nm[0]*SW->nuc_dS13+nm[1]*SW->nuc_dS23;
+    nuc_dT[3] = nuc_dT[0]*nm[0]+nuc_dT[1]*nm[1];
+    nuc_dT[0] = nuc_dT[0]-nuc_dT[3]*nm[0];
+    nuc_dT[1] = nuc_dT[1]-nuc_dT[3]*nm[1];
+
+    for(int pnt = 0; pnt < sub_g->N+1;pnt++)
+    {
+      bfam_locidx_t n = pnt+le*(sub_g->N+1);
+      field[n] = T[val];
+      if( BFAM_REAL_ABS(x[n]-x0) < R &&
+          BFAM_REAL_ABS(y[n]-y0) < R &&
+          BFAM_REAL_ABS(z[n]-z0) < R)
+        field[n] += nuc_dT[val];
+    }
+  }
 }
 
 
@@ -806,28 +866,36 @@ init_domain(beard_t *beard, prefs_t *prefs)
     }
     else if(strcmp(prob_name,"slip weakening") == 0)
     {
-      slip_weakening_params_t SW = {0,0,0,0,0,0,0,0,0,0,0,0,0};
+      slip_weakening_params_t SW = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
       SW.fs = get_global_real(prefs->L, "friction_fs", 0, 1);
       SW.fd = get_global_real(prefs->L, "friction_fd", 0, 1);
       SW.Dc = get_global_real(prefs->L, "friction_Dc" , 0, 1);
 
-      SW.SN = get_global_real(prefs->L, "friction_SN", 0, 0);
-      SW.SH = get_global_real(prefs->L, "friction_SH", 0, 0);
-      SW.SV = get_global_real(prefs->L, "friction_SV", 0, 0);
+      SW.S11 = get_global_real(prefs->L, "friction_S11", 0, 0);
+      SW.S22 = get_global_real(prefs->L, "friction_S22", 0, 0);
+      SW.S33 = get_global_real(prefs->L, "friction_S33", 0, 0);
+      SW.S12 = get_global_real(prefs->L, "friction_S12", 0, 0);
+      SW.S13 = get_global_real(prefs->L, "friction_S13", 0, 0);
+      SW.S23 = get_global_real(prefs->L, "friction_S23", 0, 0);
 
       const char *fric[]   = {"_glue_parallel", "_glue_local", NULL};
 
-      const char *fric_fields[]     = {"Ds", "V", "SN0", "SV0", "SH0", "SN",
-        "SV", "SH", "fs",  "fd",  "Dc","rupture_time",NULL};
-      bfam_real_t fric_vals[] =  {  0,   0, SW.SN, SW.SV, SW.SH,    0,
-           0,   0, SW.fs, SW.fd, SW.Dc,            0};
+      const char *fric_fields[] = {"Dp", "Dn" "V", "Tp1_0", "Tp2_0", "Tp3_0",
+        "Tn_0", "Tp1", "Tp2", "Tp3", "Tn",  "fs",  "fd", "Dc","rupture_time",
+        NULL};
       for(int fld = 0; fric_fields[fld] != NULL; fld++)
       {
         bfam_domain_add_field( domain, BFAM_DOMAIN_OR, fric, fric_fields[fld]);
         bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric, fric_fields[fld],
-            0, field_set_val, fric_vals+0);
+            0, field_set_val, NULL);
       }
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric, "Dc",
+          0, field_set_val, &SW.Dc);
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric, "fs",
+          0, field_set_val, &SW.fs);
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric, "fd",
+          0, field_set_val, &SW.fd);
 
       /* handle nucleation */
       SW.nuc_x = get_global_real(prefs->L, "friction_nuc_x", 0, 0);
@@ -835,14 +903,22 @@ init_domain(beard_t *beard, prefs_t *prefs)
       SW.nuc_z = get_global_real(prefs->L, "friction_nuc_z", 0, 0);
       SW.nuc_R = get_global_real(prefs->L, "friction_nuc_R", 0, 0);
 
-      SW.nuc_SN = get_global_real(prefs->L, "friction_nuc_SN", 0, 0);
-      SW.nuc_SH = get_global_real(prefs->L, "friction_nuc_SH", 0, 0);
-      SW.nuc_SV = get_global_real(prefs->L, "friction_nuc_SV", 0, 0);
+      SW.nuc_dS11 = get_global_real(prefs->L, "friction_nuc_dS11", 0, 0);
+      SW.nuc_dS22 = get_global_real(prefs->L, "friction_nuc_dS22", 0, 0);
+      SW.nuc_dS33 = get_global_real(prefs->L, "friction_nuc_dS33", 0, 0);
+      SW.nuc_dS12 = get_global_real(prefs->L, "friction_nuc_dS12", 0, 0);
+      SW.nuc_dS13 = get_global_real(prefs->L, "friction_nuc_dS13", 0, 0);
+      SW.nuc_dS23 = get_global_real(prefs->L, "friction_nuc_dS23", 0, 0);
 
-      bfam_real_t data[] = {SW.nuc_x,SW.nuc_y,SW.nuc_z,SW.nuc_R,SW.nuc_SN};
-      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric, "SN0",
-          0, field_set_val_region, data);
-
+      /* rotate the fault stresses to tractions */
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric, "Tp1_0",
+          0, slip_weakening_set_stress, &SW);
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric, "Tp2_0",
+          0, slip_weakening_set_stress, &SW);
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric, "Tp3_0",
+          0, slip_weakening_set_stress, &SW);
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric, "Tn_0",
+          0, slip_weakening_set_stress, &SW);
     }
   }
   lua_pop(prefs->L, 1);
@@ -886,7 +962,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   int nsteps = 10/dt;
   int ndisp  = 0.1 / dt;
   // nsteps = 1/dt;
-  // ndisp  = 1;
+  ndisp  = 1;
   for(int s = 0; s < nsteps; s++)
   {
     if(s%ndisp == 0)

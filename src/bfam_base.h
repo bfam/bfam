@@ -238,6 +238,7 @@ typedef double bfam_real_t;
 #define BFAM_REAL_PRIg "g"
 
 #define BFAM_REAL_ABS fabs
+#define BFAM_REAL_SQRT sqrt
 
 #define BFAM_REAL_EPS DBL_EPSILON
 #define BFAM_REAL_MIN DBL_MIN

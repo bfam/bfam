@@ -15,6 +15,7 @@ bfam_real_t *restrict field;                                                   \
   char bfam_load_field_name[BFAM_BUFSIZ];                                      \
   snprintf(bfam_load_field_name,BFAM_BUFSIZ,"%s%s",(prefix),(base));           \
   field = bfam_dictionary_get_value_ptr(dictionary, bfam_load_field_name);     \
+  BFAM_ASSERT(field != NULL);                                                  \
 }                                                                              \
 BFAM_ASSUME_ALIGNED(field,32);
 #define BFAM_LOAD_FIELD_ALIGNED(field,prefix,base,dictionary)                  \
@@ -23,6 +24,7 @@ bfam_real_t *field;                                                            \
   char bfam_load_field_name[BFAM_BUFSIZ];                                      \
   snprintf(bfam_load_field_name,BFAM_BUFSIZ,"%s%s",(prefix),(base));           \
   field = bfam_dictionary_get_value_ptr(dictionary, bfam_load_field_name);     \
+  BFAM_ASSERT(field != NULL);                                                  \
 }                                                                              \
 BFAM_ASSUME_ALIGNED(field,32);
 
@@ -57,7 +59,7 @@ beard_dgx_upwind_state_m(
   vns[0] = (    wnp -     wnm)/(Zpp+Zpm);
   Tns[0] = (Zpm*wnp + Zpp*wnm)/(Zpp+Zpm);
 
-  /* upwind perpendiculat velocitie and tractions */
+  /* upwind perpendiculat velocities and tractions */
   /* wpm = Tpm - Zsm*vpm = TpS - Zsm*vpS */
   /* wpp = Tpp - Zsp*vpp =-TpS - Zsp*vpS */
   for(bfam_locidx_t i = 0; i < 3; i++)
@@ -66,6 +68,36 @@ beard_dgx_upwind_state_m(
     bfam_real_t wpp = Tpp[i] - Zsp*vpp[i];
     vps[i] =-(wpm    +wpp    )/(Zsp+Zsm);
     Tps[i] = (wpm*Zsp-wpp*Zsm)/(Zsp+Zsm);
+  }
+}
+
+static inline void
+beard_dgx_upwind_state_friction_m(
+          bfam_real_t *Tps,       bfam_real_t *vpsm, bfam_real_t *Vps,
+          const bfam_real_t  T,
+    const bfam_real_t *Tpm, const bfam_real_t *Tpp, const bfam_real_t *Tp0,
+    const bfam_real_t *vpm, const bfam_real_t *vpp,
+    const bfam_real_t  Zsm, const bfam_real_t  Zsp)
+{
+  /* upwind perpendiculat velocities and tractions */
+  /* wpm = Tpm - Zsm*vpm = TpS - Zsm*vpS */
+  /* wpp = Tpp - Zsp*vpp =-TpS - Zsp*vpS */
+  bfam_real_t phi[3];
+  bfam_real_t mag = 0;
+  for(bfam_locidx_t i = 0; i < 3; i++)
+  {
+    bfam_real_t wpm = Tpm[i] + Tp0[i] - Zsm*vpm[i];
+    bfam_real_t wpp = Tpp[i] - Tp0[i] - Zsp*vpp[i];
+    phi[i] = (wpm*Zsp-wpp*Zsm)/(Zsp+Zsm);
+    mag += phi[i]*phi[i];
+  }
+  mag = BFAM_REAL_SQRT(mag);
+  for(bfam_locidx_t i = 0; i < 3; i++)
+  {
+    Tps[i] = T*phi[i]/mag - Tp0[i];
+    vpsm[i] = (Tps[i]-Tpm[i])/Zsm + vpm[i];
+    bfam_real_t vpsp =-(Tps[i]+Tpp[i])/Zsp + vpp[i];
+    Vps[i] = vpsm[i]-vpsp;
   }
 }
 
@@ -743,7 +775,6 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
       beard_dgx_upwind_state_m(
           &TnS_g[pnt],&TpS_g[3*pnt],&vnS_g[pnt],&vpS_g[3*pnt],
           Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
-
     }
 
     bfam_real_t *restrict TpS_m;
@@ -835,6 +866,7 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
   /* get the fields we will need */
   bfam_dictionary_t *fields_m    = &sub_g->base.fields_m;
   bfam_dictionary_t *fields_p    = &sub_g->base.fields_p;
+  bfam_dictionary_t *fields_g    = &sub_g->base.fields;
   bfam_dictionary_t *fields      = &sub_m->base.fields;
   bfam_dictionary_t *fields_face = &sub_m->base.fields_face;
 
@@ -899,6 +931,15 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp_m  ,"","Zp"       ,fields_m);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zs_p  ,"","Zs"       ,fields_p);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp_p  ,"","Zp"       ,fields_p);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1_0  ,"","Tp1_0" ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2_0  ,"","Tp2_0" ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3_0  ,"","Tp3_0" ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn_0   ,"","Tn_0"  ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dc     ,"","Dc"    ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dp     ,"","Dp"    ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fs     ,"","fs"    ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fd     ,"","fd"    ,fields_g);
 
   bfam_real_t *wi  = sub_m->wi;
   BFAM_ASSUME_ALIGNED(wi ,32);
@@ -975,10 +1016,29 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
       vpp[0] = vpp[0]-vnp*np[0];
       vpp[1] = vpp[1]-vnp*np[1];
 
+      /* compute the upwind state assuming that the fault is locked */
       beard_dgx_upwind_state_m(
           &TnS_g[pnt],&TpS_g[3*pnt],&vnS_g[pnt],&vpS_g[3*pnt],
           Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
+      bfam_real_t Tn = TnS_g[pnt]+Tn_0[iG];
+      BFAM_ABORT_IF(Tn > 0, "fault opening not implemented");
+
+      bfam_real_t Slock2 =
+        + (TpS_g[3*pnt+0]+Tp1_0[iG])*(TpS_g[3*pnt+0]+Tp1_0[iG])
+        + (TpS_g[3*pnt+1]+Tp2_0[iG])*(TpS_g[3*pnt+1]+Tp2_0[iG])
+        + (TpS_g[3*pnt+2]+Tp3_0[iG])*(TpS_g[3*pnt+2]+Tp3_0[iG]);
+
+      bfam_real_t Sfric =
+        -Tn*(fs[iG]-(fs[iG]-fd[iG])*BFAM_MIN(Dp[iG],Dc[iG])/Dc[iG]);
+
+      if(Sfric*Sfric < Slock2)
+      {
+        bfam_real_t Vps[3];
+        const bfam_real_t Tp0[] = {Tp1_0[iG],Tp2_0[iG],Tp3_0[iG]};
+        beard_dgx_upwind_state_friction_m(&TpS_g[3*pnt], &vpS_g[3*pnt], Vps,
+            Sfric, Tpm, Tpp, Tp0, vpm, vpp, Zsm, Zsp);
+      }
     }
 
     bfam_real_t *restrict TpS_m;
