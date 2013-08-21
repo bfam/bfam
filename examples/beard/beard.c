@@ -304,7 +304,7 @@ stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
   {
     /* BFAM_ABORT("no stress_free_box for field %s",name);*/
     for(bfam_locidx_t n=0; n < npoints; ++n)
-      field[n] = exp(-(pow(x[n],2) + pow(y[n],2))*50);
+      field[n] = 100*exp(-(pow(x[n],2) + pow(y[n],2))/2.5);
   }
 }
 
@@ -624,7 +624,7 @@ init_lsrk(beard_t *beard, prefs_t *prefs)
 }
 
 static void
-compute_energy(beard_t *beard, prefs_t *prefs)
+compute_energy(beard_t *beard, prefs_t *prefs, bfam_real_t t)
 {
   const char *tags[] = {"_volume",NULL};
   bfam_subdomain_t *subs[beard->domain->base.numSubdomains];
@@ -653,7 +653,7 @@ compute_energy(beard_t *beard, prefs_t *prefs)
   BFAM_MPI_CHECK(MPI_Reduce(&energy_sq_local,&energy_sq,1,BFAM_REAL_MPI,
          MPI_SUM,0,beard->mpicomm));
 
-  BFAM_ROOT_INFO("energy: %e delta energy: %e", energy_sq,
+  BFAM_ROOT_INFO("time: %f energy: %e delta energy: %e", t, energy_sq,
       energy_sq-energy_sq_old);
 }
 
@@ -857,11 +857,12 @@ init_domain(beard_t *beard, prefs_t *prefs)
       bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S23", 0,
           stress_free_box, &field_params);
       /*
-         bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v1", 0,
-         stress_free_box, &field_params);
-         bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v2", 0,
-         stress_free_box, &field_params);
-         */
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v1", 0,
+          stress_free_box, &field_params);
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v2", 0,
+          stress_free_box, &field_params);
+      */
+
 
     }
     else if(strcmp(prob_name,"slip weakening") == 0)
@@ -881,7 +882,7 @@ init_domain(beard_t *beard, prefs_t *prefs)
 
       const char *fric[]   = {"_glue_parallel", "_glue_local", NULL};
 
-      const char *fric_fields[] = {"Dp", "Dn" "V", "Tp1_0", "Tp2_0", "Tp3_0",
+      const char *fric_fields[] = {"Dp", "Dn", "V", "Tp1_0", "Tp2_0", "Tp3_0",
         "Tn_0", "Tp1", "Tp2", "Tp3", "Tn",  "fs",  "fd", "Dc","rupture_time",
         NULL};
       for(int fld = 0; fric_fields[fld] != NULL; fld++)
@@ -956,10 +957,11 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   snprintf(output,BFAM_BUFSIZ,"fields_%05d",0);
   bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
       output, fields, NULL, NULL, 0, 0);
-  bfam_real_t dt = 0.01/pow(2,refine_level);
+  bfam_real_t dt = 1/pow(2,refine_level)/prefs->N/prefs->N;
   if(prefs->brick != NULL)
-    dt /= (bfam_real_t) BFAM_MAX(prefs->brick->mi,prefs->brick->ni);
-  int nsteps = 10/dt;
+    dt = 0.5*prefs->brick->Lx/pow(2,refine_level)/prefs->N/prefs->N;
+  BFAM_INFO("dt = %f",dt);
+  int nsteps = 1/dt;
   int ndisp  = 0.1 / dt;
   // nsteps = 1/dt;
   ndisp  = 1;
@@ -970,7 +972,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
       snprintf(output,BFAM_BUFSIZ,"fields_%05d",s+1);
       bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
           output, fields, NULL, NULL, 0, 0);
-      compute_energy(&beard,prefs);
+      compute_energy(&beard,prefs,s*dt);
     }
     beard.lsrk->base.step((bfam_ts_t*) beard.lsrk,dt);
   }
