@@ -12,7 +12,7 @@ brick_n = 2
 brick_a = 0
 brick_b = 0
 
-brick_Lx = 3
+brick_Lx = 15
 brick_Ly = brick_Lx
 
 -- material properties
@@ -23,15 +23,15 @@ mu  = rho*cs^2
 lam = rho*cp^2-2*mu
 
 -- friction stuff
-friction_fs  =    0.67
+friction_fs  =    0.677
 friction_fd  =    0.525
 friction_Dc  =    0.4
-friction_S12 =   62.0
+friction_S12 =   70.0
 friction_S22 = -120
 
 friction_nuc_dS12 = 81.6-friction_S12
-friction_nuc_x   =  0;
-friction_nuc_y   =  0;
-friction_nuc_z   =  0;
-friction_nuc_R   =  0.3;
+friction_nuc_x   =  0
+friction_nuc_y   =  0
+friction_nuc_z   =  0
+friction_nuc_R   =  1.5
 
