@@ -1096,6 +1096,10 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
 
       bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue");
       bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue_local");
+      char glue_num_tag[BFAM_BUFSIZ];
+      snprintf(glue_num_tag,BFAM_BUFSIZ,"_glue_%d_%d",
+          BFAM_MIN(id_m,id_p),BFAM_MAX(id_m,id_p));
+      bfam_subdomain_add_tag((bfam_subdomain_t *) glue, glue_num_tag);
 
       bfam_domain_add_subdomain((bfam_domain_t    *) domain,
                                 (bfam_subdomain_t *) glue);
@@ -1216,6 +1220,10 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
 
     bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue");
     bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue_parallel");
+      char glue_num_tag[BFAM_BUFSIZ];
+      snprintf(glue_num_tag,BFAM_BUFSIZ,"_glue_%d_%d",
+          BFAM_MIN(id_m,id_p),BFAM_MAX(id_m,id_p));
+      bfam_subdomain_add_tag((bfam_subdomain_t *) glue, glue_num_tag);
 
     bfam_domain_add_subdomain((bfam_domain_t    *) domain,
                               (bfam_subdomain_t *) glue);
