@@ -12,7 +12,7 @@ brick_n = 2
 brick_a = 0
 brick_b = 0
 
-brick_Lx = 30
+brick_Lx = 3
 brick_Ly = brick_Lx
 
 -- material properties

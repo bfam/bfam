@@ -497,6 +497,25 @@ void BFAM_APPEND_EXPAND(beard_dgx_scale_rates_elastic_,NORDER)(
   }
 }
 
+void BFAM_APPEND_EXPAND(beard_dgx_scale_rates_slip_weakening_,NORDER)(
+    int inN, bfam_subdomain_dgx_quad_glue_t *sub, const char *rate_prefix,
+    const bfam_long_real_t a)
+{
+#ifdef USE_GENERIC
+  const int N   = inN;
+  BFAM_WARNING("Using generic intra rhs function");
+#endif
+  const bfam_locidx_t num_pts = sub->K * (N+1);
+  bfam_dictionary_t *fields = &sub->base.fields;
+  const char *f_names[] = {"Dp","Dn",NULL};
+  for(bfam_locidx_t f = 0; f_names[f]!=NULL; ++f)
+  {
+    BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix,f_names[f],fields);
+    for(bfam_locidx_t n = 0; n < num_pts; n++) rate[n] *= a;
+  }
+}
+
+
 void BFAM_APPEND_EXPAND(beard_dgx_add_rates_elastic_,NORDER)(
     int inN, bfam_subdomain_dgx_quad_t *sub, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
@@ -519,6 +538,30 @@ void BFAM_APPEND_EXPAND(beard_dgx_add_rates_elastic_,NORDER)(
     BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,f_names[f],fields);
     BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,f_names[f],fields);
     for(bfam_locidx_t p = 0; p < sub->K*Np; p++) lhs[p] = rhs[p] + a*rate[p];
+  }
+}
+
+void BFAM_APPEND_EXPAND(beard_dgx_add_rates_slip_weakening_,NORDER)(
+    int inN, bfam_subdomain_dgx_quad_glue_t *sub, const char *field_prefix_lhs,
+    const char *field_prefix_rhs, const char *rate_prefix,
+    const bfam_long_real_t a)
+{
+#ifdef USE_GENERIC
+  const int N = inN;
+  BFAM_WARNING("Using generic intra rhs function");
+#endif
+
+  const char *f_names[] = {"Dp","Dn",NULL};
+
+  /* get the fields we will need */
+  bfam_dictionary_t *fields = &sub->base.fields;
+
+  for(bfam_locidx_t f = 0; f_names[f] != NULL; f++)
+  {
+    BFAM_LOAD_FIELD_ALIGNED(         lhs ,field_prefix_lhs,f_names[f],fields);
+    BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,f_names[f],fields);
+    BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,f_names[f],fields);
+    for(bfam_locidx_t p = 0; p < sub->K*(N+1); p++) lhs[p] = rhs[p] + a*rate[p];
   }
 }
 
@@ -967,6 +1010,8 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fs     ,"","fs"    ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fd     ,"","fd"    ,fields_g);
 
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDp,rate_prefix,"Dp",fields_g);
+
   bfam_real_t *wi  = sub_m->wi;
   BFAM_ASSUME_ALIGNED(wi ,32);
 
@@ -1067,6 +1112,7 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
             Sfric, Tpm, Tpp, Tp0, vpm, vpp, Zsm, Zsp);
         V[iG] = BFAM_REAL_SQRT(Vps[0]*Vps[0] + Vps[1]*Vps[1] + Vps[2]*Vps[2]);
       }
+      dDp[iG] += V[iG];
       Tp1[iG] = TpS_g[3*pnt+0];
       Tp2[iG] = TpS_g[3*pnt+1];
       Tp3[iG] = TpS_g[3*pnt+2];

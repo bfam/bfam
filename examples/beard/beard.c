@@ -454,9 +454,20 @@ void aux_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
       thisSubdomain->field_add(thisSubdomain,field);
     }
   }
+  else if(bfam_subdomain_has_tag(thisSubdomain,"slip weakening"))
+  {
+    const char *fields[] = {"Dp","Dn",NULL};
+
+    char field[BFAM_BUFSIZ];
+    for(int f = 0; fields[f]!=NULL; ++f)
+    {
+      snprintf(field,BFAM_BUFSIZ,"%s%s",prefix,fields[f]);
+      thisSubdomain->field_add(thisSubdomain,field);
+    }
+  }
 }
 
-void scale_rates_elastic (bfam_subdomain_dgx_quad_t *sub, 
+void scale_rates_elastic (bfam_subdomain_dgx_quad_t *sub,
     const char *rate_prefix, const bfam_long_real_t a)
 {
 #define X(order) \
@@ -473,13 +484,39 @@ void scale_rates_elastic (bfam_subdomain_dgx_quad_t *sub,
 #undef X
 }
 
+
+void scale_rates_slip_weakening (bfam_subdomain_dgx_quad_glue_t *sub,
+    const char *rate_prefix, const bfam_long_real_t a)
+{
+#define X(order) \
+  case order: beard_dgx_scale_rates_slip_weakening_##order(sub->N,sub, \
+                  rate_prefix,a); break;
+
+  switch(sub->N)
+  {
+    BFAM_LIST_OF_DGX_QUAD_NORDERS
+    default:
+      beard_dgx_scale_rates_slip_weakening_(sub->N,sub,rate_prefix,a);
+      break;
+  }
+#undef X
+}
+
 void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     const bfam_long_real_t a)
 {
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx_quad"));
-  bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*)thisSubdomain;
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+  {
+    bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*)thisSubdomain;
     scale_rates_elastic(sub,rate_prefix,a);
+  }
+  else if(bfam_subdomain_has_tag(thisSubdomain,"slip weakening"))
+  {
+    bfam_subdomain_dgx_quad_glue_t *sub =
+      (bfam_subdomain_dgx_quad_glue_t*)thisSubdomain;
+    scale_rates_slip_weakening(sub,rate_prefix,a);
+  }
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"));
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel"));
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_local"));
@@ -532,8 +569,7 @@ void inter_rhs_boundary(int N, bfam_subdomain_dgx_quad_glue_t *sub,
   {
     BFAM_LIST_OF_DGX_QUAD_NORDERS
     default:
-      beard_dgx_inter_rhs_boundary_(N,sub,rate_prefix,
-          field_prefix,t, 1);
+      beard_dgx_inter_rhs_boundary_(N,sub,rate_prefix, field_prefix,t, 1);
       break;
   }
 #undef X
@@ -585,14 +621,34 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     (bfam_subdomain_dgx_quad_glue_t*) thisSubdomain;
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"));
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"))
-    inter_rhs_boundary(sub->N,sub,rate_prefix,field_prefix,t);
+    inter_rhs_boundary(sub->sub_m->N,sub,rate_prefix,field_prefix,t);
   else if(bfam_subdomain_has_tag(thisSubdomain,"slip weakening"))
-    inter_rhs_slip_weakening_interface(sub->N,sub,rate_prefix,field_prefix,t);
+    inter_rhs_slip_weakening_interface(sub->sub_m->N,sub,rate_prefix,
+        field_prefix,t);
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"))
-    inter_rhs_interface(sub->N,sub,rate_prefix,field_prefix,t);
+    inter_rhs_interface(sub->sub_m->N,sub,rate_prefix,field_prefix,t);
   else
     BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
+}
+
+void add_rates_slip_weakening (bfam_subdomain_dgx_quad_glue_t *sub,
+    const char *field_prefix_lhs, const char *field_prefix_rhs,
+    const char *rate_prefix, const bfam_long_real_t a)
+{
+#define X(order) \
+  case order: beard_dgx_add_rates_slip_weakening_##order(sub->N,sub, \
+                  field_prefix_lhs,field_prefix_rhs,rate_prefix,a); break;
+
+  switch(sub->N)
+  {
+    BFAM_LIST_OF_DGX_QUAD_NORDERS
+    default:
+      beard_dgx_add_rates_slip_weakening_(sub->N,sub,field_prefix_lhs,
+          field_prefix_rhs,rate_prefix,a);
+      break;
+  }
+#undef X
 }
 
 void add_rates_elastic (bfam_subdomain_dgx_quad_t *sub,
@@ -619,9 +675,17 @@ void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
     const bfam_long_real_t a)
 {
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx_quad"));
-  bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*)thisSubdomain;
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+  {
+    bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*)thisSubdomain;
     add_rates_elastic(sub,field_prefix_lhs,field_prefix_rhs,rate_prefix,a);
+  }
+  else if(bfam_subdomain_has_tag(thisSubdomain,"slip weakening"))
+  {
+    bfam_subdomain_dgx_quad_glue_t *sub =
+      (bfam_subdomain_dgx_quad_glue_t*)thisSubdomain;
+    add_rates_slip_weakening(sub,field_prefix_lhs,field_prefix_rhs,rate_prefix,a);
+  }
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"   ));
@@ -927,8 +991,7 @@ init_domain(beard_t *beard, prefs_t *prefs)
       const char *fric[]   = {"slip weakening", NULL};
 
       const char *fric_fields[] = {"Dp", "Dn", "V", "Tp1_0", "Tp2_0", "Tp3_0",
-        "Tn_0", "Tp1", "Tp2", "Tp3", "Tn",  "fs",  "fd", "Dc","rupture_time",
-        NULL};
+        "Tn_0", "Tp1", "Tp2", "Tp3", "Tn",  "fs",  "fd", "Dc",NULL};
       for(int fld = 0; fric_fields[fld] != NULL; fld++)
       {
         bfam_domain_add_field( domain, BFAM_DOMAIN_OR, fric, fric_fields[fld]);
@@ -1006,9 +1069,9 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
     dt = 0.5*prefs->brick->Lx/pow(2,refine_level)/prefs->N/prefs->N;
   BFAM_INFO("dt = %f",dt);
   int nsteps = 1/dt;
-  int ndisp  = 0.1 / dt;
+  int ndisp  = 0.01 / dt;
   // nsteps = 1/dt;
-  ndisp  = 1;
+  // ndisp  = 1;
   for(int s = 0; s < nsteps; s++)
   {
     if(s%ndisp == 0)
@@ -1016,7 +1079,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
       snprintf(output,BFAM_BUFSIZ,"fields_%05d",s+1);
       bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
           output, fields, NULL, NULL, 0, 0);
-      compute_energy(&beard,prefs,s*dt);
+      compute_energy(&beard,prefs,(s+1)*dt);
     }
     beard.lsrk->base.step((bfam_ts_t*) beard.lsrk,dt);
   }
