@@ -322,6 +322,9 @@ bfam_subdomain_dgx_quad_field_add(bfam_subdomain_t *subdomain, const char *name)
 
   size_t fieldSize = s->Np*s->K*sizeof(bfam_real_t);
   bfam_real_t *field = bfam_malloc_aligned(fieldSize);
+#ifdef BFAM_DEBUG
+  for(int i = 0; i < s->Np*s->K;i++) field[i] = bfam_real_nan("");
+#endif
 
   int rval = bfam_dictionary_insert_ptr(&s->base.fields, name, field);
 
@@ -835,6 +838,9 @@ bfam_subdomain_dgx_quad_glue_field_add(bfam_subdomain_t *subdomain,
 
   size_t fieldSize = s->Np*s->K*sizeof(bfam_real_t);
   bfam_real_t *field = bfam_malloc_aligned(fieldSize);
+#ifdef BFAM_DEBUG
+  for(int i = 0; i < s->Np*s->K;i++) field[i] = bfam_real_nan("");
+#endif
 
   int rval = bfam_dictionary_insert_ptr(&s->base.fields, name, field);
 
@@ -858,6 +864,9 @@ bfam_subdomain_dgx_quad_glue_field_minus_add(bfam_subdomain_t *subdomain,
 
   size_t fieldSize = s->Np*s->K*sizeof(bfam_real_t);
   bfam_real_t *field = bfam_malloc_aligned(fieldSize);
+#ifdef BFAM_DEBUG
+  for(int i = 0; i < s->Np*s->K;i++) field[i] = bfam_real_nan("");
+#endif
 
   int rval = bfam_dictionary_insert_ptr(&s->base.fields_m, name, field);
 
@@ -881,6 +890,9 @@ bfam_subdomain_dgx_quad_glue_field_plus_add(bfam_subdomain_t *subdomain,
 
   size_t fieldSize = s->Np*s->K*sizeof(bfam_real_t);
   bfam_real_t *field = bfam_malloc_aligned(fieldSize);
+#ifdef BFAM_DEBUG
+  for(int i = 0; i < s->Np*s->K;i++) field[i] = bfam_real_nan("");
+#endif
 
   int rval = bfam_dictionary_insert_ptr(&s->base.fields_p, name, field);
 
