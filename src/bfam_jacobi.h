@@ -129,4 +129,20 @@ bfam_jacobi_p_differentiation(bfam_long_real_t alpha, bfam_long_real_t beta,
     int N, size_t nx, bfam_long_real_t *x, bfam_long_real_t *V,
     bfam_long_real_t *D);
 
+/** Compute the mass matrix using Jacobi polynomials.
+ *
+ * \param[in]  alpha Jacobi polynomial parameter
+ * \param[in]  beta  Jacobi polynomial parameter
+ * \param[in]  N     Jacobi polynomial order
+ * \param[in]  V     A \a N+1 by \a N+1 matrix in column first order where
+ *                   the $i,j$ entry contains the normalized Jacobi polynomials
+ *                   $p^{(\alpha,\beta)}_j$ evaluated at the N+1 interpolating
+ *                   points r[i] in [-1,1].
+ * \param[out] M     mass matrix.
+ *
+ */
+void
+bfam_jacobi_p_mass(bfam_long_real_t alpha, bfam_long_real_t beta,
+    int N, bfam_long_real_t *V, bfam_long_real_t *M);
+
 #endif

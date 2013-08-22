@@ -410,3 +410,38 @@ bfam_jacobi_p_differentiation(bfam_long_real_t alpha, bfam_long_real_t beta,
 
   return;
 }
+
+void
+bfam_jacobi_p_mass(bfam_long_real_t alpha, bfam_long_real_t beta,
+    int N, bfam_long_real_t *V, bfam_long_real_t *M)
+{
+  bfam_long_real_t *I =
+    bfam_malloc_aligned((N+1)*(N+1)*sizeof(bfam_long_real_t));
+
+  bfam_long_real_t *invV =
+    bfam_malloc_aligned((N+1)*(N+1)*sizeof(bfam_long_real_t));
+
+  bfam_long_real_t *invVT =
+    bfam_malloc_aligned((N+1)*(N+1)*sizeof(bfam_long_real_t));
+
+  for(int i = 0; i < (N+1)*(N+1); ++i)
+    I[i] = 0;
+
+  for(int i = 0; i < (N+1)*(N+1); ++i)
+    M[i] = 0;
+
+  for(int i = 0; i <= N; ++i)
+    I[(N+1)*i + i] = 1;
+
+  bfam_util_backslash(N+1, N+1, V, I, invV);
+
+  bfam_util_mtranspose(N+1, N+1, invV, N+1, invVT, N+1);
+
+  bfam_util_mmmult(N+1, N+1, N+1, invVT, N+1, invV, N+1, M, N+1);
+
+  bfam_free_aligned(I);
+  bfam_free_aligned(invV);
+  bfam_free_aligned(invVT);
+
+  return;
+}
