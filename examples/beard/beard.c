@@ -318,7 +318,7 @@ stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
   {
     bfam_long_real_t kx = n_ap*pi;
     bfam_long_real_t ky = m_ap*pi;
-    bfam_long_real_t w = -sqrt((mu/rho)*(kx*kx+ky*ky));
+    bfam_long_real_t w = -BFAM_REAL_SQRT((mu/rho)*(kx*kx+ky*ky));
     for(bfam_locidx_t n=0; n < npoints; ++n)
       field[n] = -(A*w/mu)*sin(kx*x[n])*sin(ky*y[n])*sin(w*t);
   }
@@ -326,7 +326,7 @@ stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
   {
     bfam_long_real_t kx = n_ap*pi;
     bfam_long_real_t ky = m_ap*pi;
-    bfam_long_real_t w = -sqrt((mu/rho)*(kx*kx+ky*ky));
+    bfam_long_real_t w = -BFAM_REAL_SQRT((mu/rho)*(kx*kx+ky*ky));
     for(bfam_locidx_t n=0; n < npoints; ++n)
       field[n] = A*ky*sin(kx*x[n])*cos(ky*y[n])*cos(w*t);
   }
@@ -334,7 +334,7 @@ stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
   {
     bfam_long_real_t kx = n_ap*pi;
     bfam_long_real_t ky = m_ap*pi;
-    bfam_long_real_t w = -sqrt((mu/rho)*(kx*kx+ky*ky));
+    bfam_long_real_t w = -BFAM_REAL_SQRT((mu/rho)*(kx*kx+ky*ky));
     for(bfam_locidx_t n=0; n < npoints; ++n)
       field[n] = A*kx*cos(kx*x[n])*sin(ky*y[n])*cos(w*t);
   }
@@ -344,6 +344,20 @@ stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
     for(bfam_locidx_t n=0; n < npoints; ++n)
       field[n] = 100*exp(-(pow(x[n],2) + pow(y[n],2))/2.5);
   }
+}
+
+static void
+print_field(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(field, 32);
+
+  for(bfam_locidx_t n=0; n < npoints; ++n)
+    BFAM_INFO("%s: %f",name,field[n]);
 }
 
 static void
@@ -452,6 +466,7 @@ void aux_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
     {
       snprintf(field,BFAM_BUFSIZ,"%s%s",prefix,fields[f]);
       thisSubdomain->field_add(thisSubdomain,field);
+      bfam_subdomain_field_init(thisSubdomain, field, 0, field_set_val, NULL);
     }
   }
   else if(bfam_subdomain_has_tag(thisSubdomain,"slip weakening"))
@@ -463,6 +478,7 @@ void aux_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
     {
       snprintf(field,BFAM_BUFSIZ,"%s%s",prefix,fields[f]);
       thisSubdomain->field_add(thisSubdomain,field);
+      bfam_subdomain_field_init(thisSubdomain, field, 0, field_set_val, NULL);
     }
   }
 }
