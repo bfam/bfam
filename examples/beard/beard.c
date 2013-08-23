@@ -21,43 +21,6 @@ const char *comm_args_tensors[]           = {NULL};
 const char *comm_args_tensor_components[] = {NULL};
 
 static void
-lua_field_set_val_lua (lua_State *L, bfam_locidx_t npoints, const char *name,
-    bfam_real_t time, const bfam_real_t *x, const bfam_real_t *y,
-    const bfam_real_t *z, const bfam_real_t def, int warning,
-    bfam_real_t *field)
-{
-  lua_getglobal(L, name);
-  bfam_real_t val = def;
-  int lua_func = 0;
-
-  if(lua_isnumber(L,-1))
-    val = (bfam_real_t)lua_tonumber(L, -1);
-  else if(lua_isfunction(L,-1))
-    lua_func = 1;
-  else if(warning) BFAM_ROOT_WARNING("`%s' not found, using default", name);
-  lua_pop(L,1);
-
-  for(int n = 0; n < npoints; n++)
-  {
-    if(lua_func)
-    {
-      lua_getglobal(L, name);
-      lua_pushnumber(L, time);
-      lua_pushnumber(L, x[n]);
-      lua_pushnumber(L, y[n]);
-      lua_pushnumber(L, z[n]);
-      if(lua_pcall(L,4,1,0) != 0)
-        BFAM_ABORT("error running function %s: %s",name,lua_tostring(L,-1));
-      if(!lua_isnumber(L,-1))
-        BFAM_ABORT("function 'f' must return number");
-      val = (bfam_real_t)lua_tonumber(L,-1);
-      lua_pop(L,1);
-    }
-    field[n] = val;
-  }
-}
-
-static void
 beard_grid_glue(bfam_locidx_t npoints, const char *name, bfam_real_t time,
     bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
     struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
@@ -302,32 +265,6 @@ typedef struct stress_free_box_params
   int m_ap;
 } stress_free_box_params_t;
 
-typedef struct slip_weakening_params
-{
-  /* stress tensor on the fault */
-  bfam_real_t S11;
-  bfam_real_t S22;
-  bfam_real_t S33;
-  bfam_real_t S12;
-  bfam_real_t S13;
-  bfam_real_t S23;
-
-  /* stress tensor in nucleation patch */
-  bfam_real_t nuc_dS11;
-  bfam_real_t nuc_dS22;
-  bfam_real_t nuc_dS33;
-  bfam_real_t nuc_dS12;
-  bfam_real_t nuc_dS13;
-  bfam_real_t nuc_dS23;
-
-  /* nuceleation patch location and width */
-  bfam_real_t nuc_x;
-  bfam_real_t nuc_y;
-  bfam_real_t nuc_z;
-  bfam_real_t nuc_R;
-
-} slip_weakening_params_t;
-
 static void
 stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
     bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
@@ -416,26 +353,61 @@ typedef struct field_set_val_lua_args
 } field_set_val_lua_args_t;
 
 static void
+lua_field_set_val_lua (lua_State *L, bfam_locidx_t npoints, const char *name,
+    bfam_real_t time, const bfam_real_t *x, const bfam_real_t *y,
+    const bfam_real_t *z, const bfam_real_t def, int warning,
+    bfam_real_t *field)
+{
+  lua_getglobal(L, name);
+  bfam_real_t val = def;
+  int lua_func = 0;
+
+  if(lua_isnumber(L,-1))
+    val = (bfam_real_t)lua_tonumber(L, -1);
+  else if(lua_isfunction(L,-1))
+    lua_func = 1;
+  else if(warning) BFAM_ROOT_WARNING("`%s' not found, using default", name);
+  lua_pop(L,1);
+
+  for(int n = 0; n < npoints; n++)
+  {
+    if(lua_func)
+    {
+      lua_getglobal(L, name);
+      lua_pushnumber(L, time);
+      lua_pushnumber(L, x[n]);
+      lua_pushnumber(L, y[n]);
+      lua_pushnumber(L, z[n]);
+      if(lua_pcall(L,4,1,0) != 0)
+        BFAM_ABORT("error running function %s: %s",name,lua_tostring(L,-1));
+      if(!lua_isnumber(L,-1))
+        BFAM_ABORT("function '%s' must return number",name);
+      val = (bfam_real_t)lua_tonumber(L,-1);
+      lua_pop(L,1);
+    }
+    field[n] = val;
+  }
+}
+
+static void
 field_set_val_lua (bfam_locidx_t npoints, const char *name, bfam_real_t time,
     bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
     struct bfam_subdomain *s, void *args_in, bfam_real_t *restrict field)
 {
+  BFAM_ASSERT(args_in != NULL);
   field_set_val_lua_args_t *args = (field_set_val_lua_args_t *)args_in;
   lua_field_set_val_lua (args->L, npoints, args->lua_name, time, x, y, z,
       args->def, args->warning, field);
 }
 
 static void
-slip_weakening_set_stress(bfam_locidx_t npoints, const char *name,
+field_set_val_normal_lua(bfam_locidx_t npoints, const char *name,
     bfam_real_t time, bfam_real_t *restrict x, bfam_real_t *restrict y,
-    bfam_real_t *restrict z, struct bfam_subdomain *s, void *arg,
+    bfam_real_t *restrict z, struct bfam_subdomain *s, void *args_in,
     bfam_real_t *restrict field)
 {
-  BFAM_ASSUME_ALIGNED(x, 32);
-  BFAM_ASSUME_ALIGNED(y, 32);
-  BFAM_ASSUME_ALIGNED(z, 32);
-  BFAM_ASSUME_ALIGNED(field, 32);
-  BFAM_ASSERT(arg != NULL);
+  BFAM_ASSERT(args_in != NULL);
+  field_set_val_lua_args_t *args = (field_set_val_lua_args_t *)args_in;
 
   bfam_subdomain_dgx_quad_glue_t *sub_g = (bfam_subdomain_dgx_quad_glue_t*)s;
 
@@ -443,30 +415,16 @@ slip_weakening_set_stress(bfam_locidx_t npoints, const char *name,
   bfam_real_t *n1 = bfam_dictionary_get_value_ptr(fields_face, "_grid_nx");
   bfam_real_t *n2 = bfam_dictionary_get_value_ptr(fields_face, "_grid_ny");
 
-  slip_weakening_params_t *SW = (slip_weakening_params_t *)arg;
-  bfam_real_t x0  = SW->nuc_x;
-  bfam_real_t y0  = SW->nuc_y;
-  bfam_real_t z0  = SW->nuc_z;
-  bfam_real_t R   = SW->nuc_R;
-
-
   BFAM_ASSERT((sub_g->N_m+1)*sub_g->K == npoints);
   BFAM_ASSERT((sub_g->N  +1)*sub_g->K == npoints);
   BFAM_ASSERT((sub_g->N_p+1)*sub_g->K == npoints);
 
-  bfam_real_t      T[4] = {0,0,0,0};
-  bfam_real_t nuc_dT[4] = {0,0,0,0};
-  bfam_locidx_t val;
-  if(strcmp(name,"Tp1_0") == 0)
-    val = 0;
-  else if(strcmp(name,"Tp2_0") == 0)
-    val = 1;
-  else if(strcmp(name,"Tp3_0") == 0)
-    val = 2;
-  else if(strcmp(name,"Tn_0") == 0)
-    val = 3;
-  else
-    BFAM_ABORT("Invalid field %s",name);
+  lua_State *L = args->L;
+  lua_getglobal(L, args->lua_name);
+
+  if(!lua_isfunction(L,-1))
+    BFAM_ABORT("`%s' must be a lua function", args->lua_name);
+  lua_pop(L,1);
 
   for(int le = 0; le<sub_g->K; le++)
   {
@@ -475,29 +433,25 @@ slip_weakening_set_stress(bfam_locidx_t npoints, const char *name,
     /* WARNING ASSUMES STRAIGHT SIDED ELEMENTS!!!*/
     bfam_real_t nm[] = {n1[sub_g->sub_m->Nfp*(face+4*e)],
                         n2[sub_g->sub_m->Nfp*(face+4*e)],0};
-    T[0] = nm[0]*SW->S11+nm[1]*SW->S12;
-    T[1] = nm[0]*SW->S12+nm[1]*SW->S22;
-    T[2] = nm[0]*SW->S13+nm[1]*SW->S23;
-    T[3] = T[0]*nm[0]+T[1]*nm[1];
-    T[0] = T[0]-T[3]*nm[0];
-    T[1] = T[1]-T[3]*nm[1];
-
-
-    nuc_dT[0] = nm[0]*SW->nuc_dS11+nm[1]*SW->nuc_dS12;
-    nuc_dT[1] = nm[0]*SW->nuc_dS12+nm[1]*SW->nuc_dS22;
-    nuc_dT[2] = nm[0]*SW->nuc_dS13+nm[1]*SW->nuc_dS23;
-    nuc_dT[3] = nuc_dT[0]*nm[0]+nuc_dT[1]*nm[1];
-    nuc_dT[0] = nuc_dT[0]-nuc_dT[3]*nm[0];
-    nuc_dT[1] = nuc_dT[1]-nuc_dT[3]*nm[1];
 
     for(int pnt = 0; pnt < sub_g->N+1;pnt++)
     {
       bfam_locidx_t n = pnt+le*(sub_g->N+1);
-      field[n] = T[val];
-      if( BFAM_REAL_ABS(x[n]-x0) < R &&
-          BFAM_REAL_ABS(y[n]-y0) < R &&
-          BFAM_REAL_ABS(z[n]-z0) < R)
-        field[n] += nuc_dT[val];
+      lua_getglobal (L, args->lua_name);
+      lua_pushnumber(L, time);
+      lua_pushnumber(L, x[n]);
+      lua_pushnumber(L, y[n]);
+      lua_pushnumber(L, z[n]);
+      lua_pushnumber(L, nm[0]);
+      lua_pushnumber(L, nm[1]);
+      lua_pushnumber(L, nm[2]);
+      if(lua_pcall(L,7,1,0) != 0)
+        BFAM_ABORT("error running function %s: %s",
+            args->lua_name,lua_tostring(L,-1));
+      if(!lua_isnumber(L,-1))
+        BFAM_ABORT("function '%s' must return number",args->lua_name);
+      field[n] = (bfam_real_t)lua_tonumber(L,-1);
+      lua_pop(L,1);
     }
   }
 }
@@ -1033,71 +987,55 @@ init_domain(beard_t *beard, prefs_t *prefs)
     }
     else if(strcmp(prob_name,"slip weakening") == 0)
     {
-      bfam_subdomain_t * fric_sub[domain->numSubdomains];
+      bfam_subdomain_t * fault_sub[domain->numSubdomains];
       bfam_locidx_t num_subs;
       const char *friction_tag[] = {"_glue_0_1",NULL};
       bfam_domain_get_subdomains(domain, BFAM_DOMAIN_OR, friction_tag,
-          domain->numSubdomains, fric_sub, &num_subs);
+          domain->numSubdomains, fault_sub, &num_subs);
       for(int s = 0; s < num_subs; s++)
-        bfam_subdomain_add_tag(fric_sub[s],"slip weakening");
-
-      slip_weakening_params_t SW = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-
-      SW.S11 = get_global_real(prefs->L, "friction_S11", 0, 0);
-      SW.S22 = get_global_real(prefs->L, "friction_S22", 0, 0);
-      SW.S33 = get_global_real(prefs->L, "friction_S33", 0, 0);
-      SW.S12 = get_global_real(prefs->L, "friction_S12", 0, 0);
-      SW.S13 = get_global_real(prefs->L, "friction_S13", 0, 0);
-      SW.S23 = get_global_real(prefs->L, "friction_S23", 0, 0);
+        bfam_subdomain_add_tag(fault_sub[s],"slip weakening");
 
       const char *fric[]   = {"slip weakening", NULL};
 
-      const char *fric_fields[] = {"Dp", "Dn", "V", "Tp1_0", "Tp2_0", "Tp3_0",
+      const char *fault_fields[] = {"Dp", "Dn", "V", "Tp1_0", "Tp2_0", "Tp3_0",
         "Tn_0", "Tp1", "Tp2", "Tp3", "Tn",  "fs",  "fd", "Dc",NULL};
-      for(int fld = 0; fric_fields[fld] != NULL; fld++)
+      for(int fld = 0; fault_fields[fld] != NULL; fld++)
       {
-        bfam_domain_add_field( domain, BFAM_DOMAIN_OR, fric, fric_fields[fld]);
-        bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric, fric_fields[fld],
+        bfam_domain_add_field( domain, BFAM_DOMAIN_OR, fric, fault_fields[fld]);
+        bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric, fault_fields[fld],
             0, field_set_val, NULL);
       }
 
-      const char * fric_lua_field[] = {"fs", "fd", "Dc", NULL};
-      const char * fric_lua_names[] = {"friction_fs", "friction_fd",
-        "friction_Dc", NULL};
-      for(int fld = 0; fric_lua_field[fld] != NULL; fld++)
+      const char * fault_lua_field[] = {"fs", "fd", "Dc", NULL};
+      const char * fault_lua_names[] = {"fault_fs", "fault_fd",
+        "fault_Dc", NULL};
+      for(int fld = 0; fault_lua_field[fld] != NULL; fld++)
       {
-        BFAM_ASSERT(fric_lua_names[fld] != NULL);
+        BFAM_ASSERT(fault_lua_names[fld] != NULL);
         field_set_val_lua_args_t args;
         args.L = prefs->L;
         args.def = 0;
         args.warning = 1;
-        args.lua_name = fric_lua_names[fld];
+        args.lua_name = fault_lua_names[fld];
         bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric,
-            fric_lua_field[fld], 0, field_set_val_lua, &args);
+            fault_lua_field[fld], 0, field_set_val_lua, &args);
       }
 
-      /* handle nucleation */
-      SW.nuc_x = get_global_real(prefs->L, "friction_nuc_x", 0, 0);
-      SW.nuc_y = get_global_real(prefs->L, "friction_nuc_y", 0, 0);
-      SW.nuc_z = get_global_real(prefs->L, "friction_nuc_z", 0, 0);
-      SW.nuc_R = get_global_real(prefs->L, "friction_nuc_R", 0, 0);
-
-      SW.nuc_dS11 = get_global_real(prefs->L, "friction_nuc_dS11", 0, 0);
-      SW.nuc_dS22 = get_global_real(prefs->L, "friction_nuc_dS22", 0, 0);
-      SW.nuc_dS33 = get_global_real(prefs->L, "friction_nuc_dS33", 0, 0);
-      SW.nuc_dS12 = get_global_real(prefs->L, "friction_nuc_dS12", 0, 0);
-      SW.nuc_dS13 = get_global_real(prefs->L, "friction_nuc_dS13", 0, 0);
-      SW.nuc_dS23 = get_global_real(prefs->L, "friction_nuc_dS23", 0, 0);
-
-      /* rotate the fault stresses to tractions */
-      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric, "Tp1_0",
-          0, slip_weakening_set_stress, &SW);
-      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric, "Tp2_0",
-          0, slip_weakening_set_stress, &SW);
-      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric, "Tp3_0",
-          0, slip_weakening_set_stress, &SW);
-      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric, "Tn_0",
-          0, slip_weakening_set_stress, &SW);
+      const char * fault_lua_field_normal[] = {"Tp1_0", "Tp2_0", "Tp3_0",
+        "Tn_0", NULL};
+      const char * fault_lua_names_normal[] = {"fault_Tp1_0", "fault_Tp2_0",
+        "fault_Tp3_0", "fault_Tn_0", NULL};
+      for(int fld = 0; fault_lua_field_normal[fld] != NULL; fld++)
+      {
+        BFAM_ASSERT(fault_lua_names_normal[fld] != NULL);
+        field_set_val_lua_args_t args;
+        args.L = prefs->L;
+        args.def = 0;
+        args.warning = 1;
+        args.lua_name = fault_lua_names_normal[fld];
+        bfam_domain_init_field(domain, BFAM_DOMAIN_OR, fric,
+            fault_lua_field_normal[fld], 0, field_set_val_normal_lua, &args);
+      }
     }
   }
   lua_pop(prefs->L, 1);
@@ -1139,7 +1077,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   if(prefs->brick != NULL)
     dt = 0.5*prefs->brick->Lx/pow(2,refine_level)/prefs->N/prefs->N;
   BFAM_INFO("dt = %f",dt);
-  int nsteps = 1000;
+  int nsteps = 2000;
   int ndisp  = 10;
   // nsteps = 1/dt;
   // ndisp  = 1;

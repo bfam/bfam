@@ -70,18 +70,20 @@ project_flux(bfam_real_t *Tns,       bfam_real_t *Tps,
       {
         Tps[3*i+k] += wi[i]*MP[i+j*Nfp]*Tpg[3*j+k];
         vps[3*i+k] += wi[i]*MP[i+j*Nfp]*vpg[3*j+k];
-        /*
-        Tps[3*i+k] = Tpg[3*i+k];
-        vps[3*i+k] = vpg[3*i+k];
-        */
       }
-      Tps[i] += wi[i]*MP[i+j*Nfp]*Tpg[j];
-      vps[i] += wi[i]*MP[i+j*Nfp]*vpg[j];
-      /*
-      Tps[i] = Tpg[i];
-      vps[i] = vpg[i];
-      */
+      Tns[i] += wi[i]*MP[i+j*Nfp]*Tng[j];
+      vns[i] += wi[i]*MP[i+j*Nfp]*vng[j];
     }
+  }
+  for(int i = 0; i < Nfp; i++)
+  {
+    for(int k = 0; k < 3; k++)
+    {
+      Tps[3*i+k] = Tpg[3*i+k];
+      vps[3*i+k] = vpg[3*i+k];
+    }
+    Tns[i] = Tng[i];
+    vns[i] = vng[i];
   }
 }
 

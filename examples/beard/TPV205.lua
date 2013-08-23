@@ -23,18 +23,10 @@ mu  = rho*cs^2
 lam = rho*cp^2-2*mu
 
 -- friction stuff
-friction_fd  =    0.525
-friction_Dc  =    0.4
-friction_S12 =   70.0
-friction_S22 = -120
+fault_fd  =    0.525
+fault_Dc  =    0.4
 
-friction_nuc_dS12 = 81.6-friction_S12
-friction_nuc_x   =  0
-friction_nuc_y   =  0
-friction_nuc_z   =  0
-friction_nuc_R   =  1.5
-
-function friction_fs ( t, x, y, z )
+function fault_fs ( t, x, y, z )
   if math.abs(x) <= 15 then
     return( 0.677 )
   else
@@ -42,3 +34,26 @@ function friction_fs ( t, x, y, z )
   end
 end
 
+function fault_Tp1_0 ( t, x, y, z, n1, n2, n3)
+  if math.abs(x) <= 1.5 then
+    return 81.6*n2
+  elseif math.abs(x-7.5) <= 1.5 then
+    return 62*n2
+  elseif math.abs(x+7.5) <= 1.5 then
+    return 78*n2
+  else
+    return 70*n2
+  end
+end
+
+function fault_Tp2_0 ( t, x, y, z, n1, n2, n3)
+  return 0
+end
+
+function fault_Tp3_0 ( t, x, y, z, n1, n2, n3)
+  return 0
+end
+
+function fault_Tn_0 ( t, x, y, z, n1, n2, n3)
+  return -120
+end
