@@ -1033,12 +1033,13 @@ init_domain(beard_t *beard, prefs_t *prefs)
     }
     else if(strcmp(prob_name,"slip weakening") == 0)
     {
-      bfam_subdomain_t * fric_sub = NULL;
-      bfam_locidx_t tmp;
+      bfam_subdomain_t * fric_sub[domain->numSubdomains];
+      bfam_locidx_t num_subs;
       const char *friction_tag[] = {"_glue_0_1",NULL};
       bfam_domain_get_subdomains(domain, BFAM_DOMAIN_OR, friction_tag,
-          1, &fric_sub, &tmp);
-      if(tmp == 1) bfam_subdomain_add_tag(fric_sub,"slip weakening");
+          domain->numSubdomains, fric_sub, &num_subs);
+      for(int s = 0; s < num_subs; s++)
+        bfam_subdomain_add_tag(fric_sub[s],"slip weakening");
 
       slip_weakening_params_t SW = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 

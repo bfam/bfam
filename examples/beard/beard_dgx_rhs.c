@@ -41,6 +41,51 @@ void BFAM_APPEND_EXPAND(beard_dgx_print_order_,NORDER)(int inN)
 }
 
 static inline void
+project_flux(bfam_real_t *Tns,       bfam_real_t *Tps,
+             bfam_real_t *vns,       bfam_real_t *vps,
+        bfam_locidx_t  Nfp_in,     bfam_locidx_t  Npg,
+       const bfam_real_t *Tng, const bfam_real_t *Tpg,
+       const bfam_real_t *vng, const bfam_real_t *vpg,
+       const bfam_real_t * MP, const bfam_real_t  *wi)
+{
+#ifdef USE_GENERIC
+  const int Nfp = Nfp_in;
+#endif
+  /* zero out the components */
+  for(int i = 0; i < Nfp; i++)
+  {
+    for(int k = 0; k < 3; k++)
+    {
+      Tps[3*i+k] = 0;
+      vps[3*i+k] = 0;
+    }
+    Tns[i] = 0;
+    vns[i] = 0;
+  }
+  for(int j = 0; j < Npg; j++)
+  {
+    for(int i = 0; i < Nfp; i++)
+    {
+      for(int k = 0; k < 3; k++)
+      {
+        Tps[3*i+k] += wi[i]*MP[i+j*Nfp]*Tpg[3*j+k];
+        vps[3*i+k] += wi[i]*MP[i+j*Nfp]*vpg[3*j+k];
+        /*
+        Tps[3*i+k] = Tpg[3*i+k];
+        vps[3*i+k] = vpg[3*i+k];
+        */
+      }
+      Tps[i] += wi[i]*MP[i+j*Nfp]*Tpg[j];
+      vps[i] += wi[i]*MP[i+j*Nfp]*vpg[j];
+      /*
+      Tps[i] = Tpg[i];
+      vps[i] = vpg[i];
+      */
+    }
+  }
+}
+
+static inline void
 beard_dgx_upwind_state_m(
           bfam_real_t *Tns,       bfam_real_t *Tps,
           bfam_real_t *vns,       bfam_real_t *vps,
@@ -853,7 +898,8 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
     BFAM_ALIGN(32) bfam_real_t vnS_m_STORAGE[  Nfp];
 
     /* check to tee if projection */
-    if(sub_g->mass == NULL)
+    /* locked */
+    if(0)
     {
       TpS_m = TpS_g;
       TnS_m = TnS_g;
@@ -862,34 +908,13 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
     }
     else
     {
-      BFAM_ABORT("projection not implemented yet");
       /* set to the correct Mass times projection */
-      bfam_real_t * MP = NULL;
       TpS_m = TpS_m_STORAGE;
       TnS_m = TnS_m_STORAGE;
       vpS_m = vpS_m_STORAGE;
       vnS_m = vnS_m_STORAGE;
-      for(int i = 0; i < Nfp; i++)
-      {
-        for(int k = 0; k < 3; k++)
-        {
-          TpS_m[3*i+k] = 0;
-          vpS_m[3*i+k] = 0;
-        }
-        TnS_m[i] = 0;
-        vnS_m[i] = 0;
-      }
-      for(int j = 0; j < Np_g; j++)
-        for(int i = 0; i < Nfp; i++)
-        {
-          for(int k = 0; k < 3; k++)
-          {
-            TpS_m[3*i+k] += MP[i+j*Np_g]*TpS_g[3*j+k];
-            vpS_m[3*i+k] += MP[i+j*Np_g]*vpS_g[3*j+k];
-          }
-          TnS_m[i] += MP[i+j*Np_g]*TnS_g[j];
-          vnS_m[i] += MP[i+j*Np_g]*vnS_g[j];
-        }
+      project_flux(TnS_m, TpS_m, vnS_m, vpS_m, Nfp, Np_g, TnS_g, TpS_g, vnS_g,
+          vpS_g, sub_g->massprojection[sub_g->EToHm[le]], wi);
     }
 
     for(bfam_locidx_t pnt = 0; pnt < Nfp; pnt++)
@@ -1130,7 +1155,8 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
     BFAM_ALIGN(32) bfam_real_t vnS_m_STORAGE[  Nfp];
 
     /* check to tee if projection */
-    if(sub_g->mass == NULL)
+    /* slip weakening */
+    if(0)
     {
       TpS_m = TpS_g;
       TnS_m = TnS_g;
@@ -1139,34 +1165,13 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
     }
     else
     {
-      BFAM_ABORT("projection not implemented yet");
       /* set to the correct Mass times projection */
-      bfam_real_t * MP = NULL;
       TpS_m = TpS_m_STORAGE;
       TnS_m = TnS_m_STORAGE;
       vpS_m = vpS_m_STORAGE;
       vnS_m = vnS_m_STORAGE;
-      for(int i = 0; i < Nfp; i++)
-      {
-        for(int k = 0; k < 3; k++)
-        {
-          TpS_m[3*i+k] = 0;
-          vpS_m[3*i+k] = 0;
-        }
-        TnS_m[i] = 0;
-        vnS_m[i] = 0;
-      }
-      for(int j = 0; j < Np_g; j++)
-        for(int i = 0; i < Nfp; i++)
-        {
-          for(int k = 0; k < 3; k++)
-          {
-            TpS_m[3*i+k] += MP[i+j*Np_g]*TpS_g[3*j+k];
-            vpS_m[3*i+k] += MP[i+j*Np_g]*vpS_g[3*j+k];
-          }
-          TnS_m[i] += MP[i+j*Np_g]*TnS_g[j];
-          vnS_m[i] += MP[i+j*Np_g]*vnS_g[j];
-        }
+      project_flux(TnS_m, TpS_m, vnS_m, vpS_m, Nfp, Np_g, TnS_g, TpS_g, vnS_g,
+          vpS_g, sub_g->massprojection[sub_g->EToHm[le]], wi);
     }
 
     for(bfam_locidx_t pnt = 0; pnt < Nfp; pnt++)
