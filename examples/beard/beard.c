@@ -344,6 +344,59 @@ field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t time,
     field[n] = val;
 }
 
+static void
+compute_dt(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict JI)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(JI, 32);
+  bfam_real_t *dt = (bfam_real_t*)arg;
+
+  bfam_real_t *restrict Jrx =
+    bfam_dictionary_get_value_ptr(&s->fields, "_grid_Jrx");
+  BFAM_ASSUME_ALIGNED(Jrx, 32);
+
+  bfam_real_t *restrict Jry =
+    bfam_dictionary_get_value_ptr(&s->fields, "_grid_Jry");
+  BFAM_ASSUME_ALIGNED(Jry, 32);
+
+  bfam_real_t *restrict Jsx =
+    bfam_dictionary_get_value_ptr(&s->fields, "_grid_Jsx");
+  BFAM_ASSUME_ALIGNED(Jsx, 32);
+
+  bfam_real_t *restrict Jsy =
+    bfam_dictionary_get_value_ptr(&s->fields, "_grid_Jsy");
+  BFAM_ASSUME_ALIGNED(Jsy, 32);
+
+  bfam_real_t *restrict mu =
+    bfam_dictionary_get_value_ptr(&s->fields, "mu");
+  BFAM_ASSUME_ALIGNED(mu, 32);
+
+  bfam_real_t *restrict lam =
+    bfam_dictionary_get_value_ptr(&s->fields, "lam");
+  BFAM_ASSUME_ALIGNED(lam, 32);
+
+  bfam_real_t *restrict rho =
+    bfam_dictionary_get_value_ptr(&s->fields, "rho");
+  BFAM_ASSUME_ALIGNED(rho, 32);
+
+  bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t *) s;
+  bfam_real_t p2 = sub->N*sub->N;
+
+  for(int n = 0; n < npoints; n++)
+  {
+    bfam_real_t cp = BFAM_REAL_SQRT((lam[n]+2*mu[n])/rho[n]);
+    bfam_real_t hs =
+      1.0/BFAM_REAL_SQRT(JI[n]*JI[n]*(Jsy[n]*Jsy[n]+Jsx[n]*Jsx[n]));
+    bfam_real_t hr =
+      1.0/BFAM_REAL_SQRT(JI[n]*JI[n]*(Jry[n]*Jry[n]+Jrx[n]*Jrx[n]));
+    dt[0] = BFAM_MIN(dt[0], BFAM_MIN(hs,hr)/cp/p2);
+  }
+}
+
 typedef struct field_set_val_lua_args
 {
   lua_State *L;
@@ -1069,28 +1122,33 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   init_lsrk(&beard, prefs);
 
   char output[BFAM_BUFSIZ];
-
   snprintf(output,BFAM_BUFSIZ,"fields_%05d",0);
   bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
       output, fields, NULL, NULL, 1, 1);
-  bfam_real_t dt = 1/pow(2,refine_level)/prefs->N/prefs->N;
-  if(prefs->brick != NULL)
-    dt = 0.5*prefs->brick->Lx/pow(2,refine_level)/prefs->N/prefs->N;
-  BFAM_INFO("dt = %f",dt);
+
+  bfam_real_t ldt = INFINITY;
+  bfam_domain_init_field((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
+      "_grid_JI", 0, compute_dt, &ldt);
+  bfam_real_t dt = 0;
+  BFAM_MPI_CHECK(MPI_Allreduce(&ldt,&dt,1,BFAM_REAL_MPI, MPI_MIN,beard.mpicomm));
+
+  BFAM_INFO("global dt = %e (local dt = %e)", dt, ldt);
+
   int nsteps = 2000;
   int ndisp  = 10;
   // nsteps = 1/dt;
   // ndisp  = 1;
-  for(int s = 0; s < nsteps+1; s++)
+
+  for(int s = 0; s < nsteps; s++)
   {
+    beard.lsrk->base.step((bfam_ts_t*) beard.lsrk,dt);
     if(s%ndisp == 0)
     {
       snprintf(output,BFAM_BUFSIZ,"fields_%05d",s+1);
       bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
           output, fields, NULL, NULL, 1, 1);
-      compute_energy(&beard,prefs,s*dt);
+      compute_energy(&beard,prefs,(s+1)*dt);
     }
-    beard.lsrk->base.step((bfam_ts_t*) beard.lsrk,dt);
   }
 
   shave_beard(&beard);
