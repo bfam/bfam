@@ -27,6 +27,28 @@ void bfam_util_mtranspose(size_t m, size_t n,
                           bfam_long_real_t *restrict A, size_t lda,
                           bfam_long_real_t *restrict B, size_t ldb);
 
+/** Matrix transpose matrix multiplication.
+ *
+ * $C = A^T * B + C$
+ *
+ * \param [in]     m   The number of rows of the matrix \a A^T and \a C.
+ * \param [in]     n   The number of columns of the matrix \a B and \a C.
+ * \param [in]     k   The number of columns of the matrix \a A^T and
+ *                     the number of rows    of the matrix \a B.
+ * \param [in]     A   The matrix $A$ in column first storage.
+ * \param [in]     lda The first dimension of \a A.
+ * \param [in]     B   The matrix $B$ in column first storage.
+ * \param [in]     ldb The first dimension of \a B.
+ * \param [in,out] C   The matrix $C$ in column first storage.
+ * \param [in]     ldc The first dimension of \a C.
+ *
+ * \note This code is not designed for speed.
+ */
+void bfam_util_mTmmult(size_t m, size_t n, size_t k,
+                       bfam_long_real_t *restrict A, size_t lda,
+                       bfam_long_real_t *restrict B, size_t ldb,
+                       bfam_long_real_t *restrict C, size_t ldc);
+
 /** Matrix matrix multiplication.
  *
  * $C = A * B + C$

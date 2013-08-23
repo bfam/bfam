@@ -176,7 +176,14 @@ typedef struct bfam_subdomain_dgx_quad_glue
                                     * if the operator is NULL it is assumed
                                     * to be the identity operator.
                                     */
-  bfam_real_t      *mass;  /* exact mass matrix for the glue grid */
+
+  bfam_real_t     **massprojection; /* array of mass projection operators;
+                                     * the first is for non-hanging faces
+                                     * the rest are for the hanging faces;
+                                     * if the operator is NULL it is assumed
+                                     * to be the identity operator.
+                                     */
+
   bfam_locidx_t    *EToEp; /* Element     number on neighboring glue */
   bfam_locidx_t    *EToEm; /* Element     number on local subdomain */
   int8_t           *EToFm; /* Face        number on local subdomain */
