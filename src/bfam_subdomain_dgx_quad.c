@@ -1373,6 +1373,7 @@ bfam_subdomain_dgx_quad_glue_init(bfam_subdomain_dgx_quad_glue_t  *subdomain,
   {
     massprojection[i] =
       bfam_malloc_aligned(Nrp*sub_m_Nrp*sizeof(bfam_long_real_t));
+    for(int n = 0; n < Nrp*Nrp; n++) massprojection[i][n] = 0;
 
     bfam_util_mTmmult(sub_m_Nrp, Nrp, Nrp, interpolation[i], Nrp,
         mass, Nrp, massprojection[i], sub_m_Nrp);
