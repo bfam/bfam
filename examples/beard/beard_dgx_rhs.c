@@ -161,9 +161,8 @@ beard_dgx_upwind_state_friction_m(
 
 static inline void
 beard_dgx_add_flux(const bfam_real_t scale,
-    const bfam_real_t TnS, const bfam_real_t* TpS,
+    const bfam_real_t delta_TnS, const bfam_real_t* delta_TpS,
     const bfam_real_t vnS, const bfam_real_t *vpS,
-    const bfam_real_t Tnm, const bfam_real_t *Tpm,
     const bfam_locidx_t iM,
     bfam_real_t *dv1,  bfam_real_t *dv2,  bfam_real_t *dv3,
     bfam_real_t *dS11, bfam_real_t *dS22, bfam_real_t *dS33,
@@ -179,9 +178,9 @@ beard_dgx_add_flux(const bfam_real_t scale,
   /* add the flux back in */
   bfam_real_t JI_wi_sJ = scale * wi * sJ * JI;
 
-  dv1[iM] += rhoi*JI_wi_sJ*(TpS[0]-Tpm[0]+(TnS-Tnm)*nm[0]);
-  dv2[iM] += rhoi*JI_wi_sJ*(TpS[1]-Tpm[1]+(TnS-Tnm)*nm[1]);
-  dv3[iM] += rhoi*JI_wi_sJ*(TpS[2]-Tpm[2]);
+  dv1[iM] += rhoi*JI_wi_sJ*(delta_TpS[0]+delta_TnS*nm[0]);
+  dv2[iM] += rhoi*JI_wi_sJ*(delta_TpS[1]+delta_TnS*nm[1]);
+  dv3[iM] += rhoi*JI_wi_sJ*(delta_TpS[2]);
 
   dS11[iM] += JI_wi_sJ*((lam+2*mu)*vS[0]*nm[0] +  lam       *vS[1]*nm[1]);
   dS22[iM] += JI_wi_sJ*( lam       *vS[0]*nm[0] + (lam+2*mu)*vS[1]*nm[1]);
@@ -254,7 +253,12 @@ beard_dgx_remove_flux( const int Nfp_in,
     beard_dgx_upwind_state_m(&TnS,TpS,&vnS,vpS,
         Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
-    beard_dgx_add_flux(-1, TnS,TpS,vnS,vpS,Tnm,Tpm,iM,
+    TnS -= Tnm;
+    TpS[0] -= Tpm[0];
+    TpS[1] -= Tpm[1];
+    TpS[2] -= Tpm[2];
+
+    beard_dgx_add_flux(-1, TnS,TpS,vnS,vpS,iM,
         dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
         lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
   }
@@ -507,7 +511,12 @@ void BFAM_APPEND_EXPAND(beard_dgx_intra_rhs_elastic_,NORDER)(
         beard_dgx_upwind_state_m(&TnS,TpS,&vnS,vpS,
             Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
-        beard_dgx_add_flux(1, TnS,TpS,vnS,vpS,Tnm,Tpm,iM,
+        TnS -= Tnm;
+        TpS[0] -= Tpm[0];
+        TpS[1] -= Tpm[1];
+        TpS[2] -= Tpm[2];
+
+        beard_dgx_add_flux(1, TnS,TpS,vnS,vpS,iM,
             dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
             lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
       }
@@ -710,7 +719,12 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_boundary_,NORDER)(
       beard_dgx_upwind_state_m(&TnS,TpS,&vnS,vpS,
           Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
-      beard_dgx_add_flux(1, TnS,TpS,vnS,vpS,Tnm,Tpm,iM,
+      TnS -= Tnm;
+      TpS[0] -= Tpm[0];
+      TpS[1] -= Tpm[1];
+      TpS[2] -= Tpm[2];
+
+      beard_dgx_add_flux(1, TnS,TpS,vnS,vpS,iM,
           dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
           lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
     }
@@ -876,6 +890,12 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
       beard_dgx_upwind_state_m(
           &TnS_g[pnt],&TpS_g[3*pnt],&vnS_g[pnt],&vpS_g[3*pnt],
           Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
+
+      /* substract off the grid values */
+      TpS_g[3*pnt+0] -= Tpm[0];
+      TpS_g[3*pnt+1] -= Tpm[1];
+      TpS_g[3*pnt+2] -= Tpm[2];
+      TnS_g[pnt]     -= Tnm;
     }
 
     bfam_real_t *restrict TpS_m;
@@ -914,17 +934,8 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
       bfam_locidx_t f = pnt + Nfp*(face + 4*e);
       bfam_locidx_t iM = sub_m->vmapM[f];
 
-      bfam_real_t Tpm[] = {
-        nm[0]*S11[iM]+nm[1]*S12[iM],
-        nm[0]*S12[iM]+nm[1]*S22[iM],
-        nm[0]*S13[iM]+nm[1]*S23[iM],
-      };
-      bfam_real_t Tnm = Tpm[0]*nm[0]+Tpm[1]*nm[1];
-      Tpm[0] = Tpm[0]-Tnm*nm[0];
-      Tpm[1] = Tpm[1]-Tnm*nm[1];
-
       beard_dgx_add_flux(1,
-          TnS_m[pnt],&TpS_m[3*pnt],vnS_m[pnt],&vpS_m[3*pnt],Tnm,Tpm,iM,
+          TnS_m[pnt],&TpS_m[3*pnt],vnS_m[pnt],&vpS_m[3*pnt],iM,
           dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
           lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
     }
@@ -1133,6 +1144,12 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
       Tp1[iG] = TpS_g[3*pnt+0];
       Tp2[iG] = TpS_g[3*pnt+1];
       Tp3[iG] = TpS_g[3*pnt+2];
+
+      /* substract off the grid values */
+      TpS_g[3*pnt+0] -= Tpm[0];
+      TpS_g[3*pnt+1] -= Tpm[1];
+      TpS_g[3*pnt+2] -= Tpm[2];
+      TnS_g[pnt]     -= Tnm;
     }
 
     bfam_real_t *restrict TpS_m;
@@ -1171,17 +1188,8 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
       bfam_locidx_t f = pnt + Nfp*(face + 4*e);
       bfam_locidx_t iM = sub_m->vmapM[f];
 
-      bfam_real_t Tpm[] = {
-        nm[0]*S11[iM]+nm[1]*S12[iM],
-        nm[0]*S12[iM]+nm[1]*S22[iM],
-        nm[0]*S13[iM]+nm[1]*S23[iM],
-      };
-      bfam_real_t Tnm = Tpm[0]*nm[0]+Tpm[1]*nm[1];
-      Tpm[0] = Tpm[0]-Tnm*nm[0];
-      Tpm[1] = Tpm[1]-Tnm*nm[1];
-
       beard_dgx_add_flux(1,
-          TnS_m[pnt],&TpS_m[3*pnt],vnS_m[pnt],&vpS_m[3*pnt],Tnm,Tpm,iM,
+          TnS_m[pnt],&TpS_m[3*pnt],vnS_m[pnt],&vpS_m[3*pnt],iM,
           dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
           lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
     }
