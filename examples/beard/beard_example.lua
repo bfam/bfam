@@ -1,11 +1,12 @@
 N = 5
-num_subdomains = 9
+num_subdomains = 3
 connectivity = "brick"
 lsrk_method = "KC54"
 problem = "stress free box"
+refine_level = 1;
 
-brick_m = 4
-brick_n = 7
+brick_m = 2
+brick_n = 2
 brick_a = 0
 brick_b = 0
 brick_random = 1

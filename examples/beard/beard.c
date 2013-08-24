@@ -39,13 +39,13 @@ beard_grid_glue(bfam_locidx_t npoints, const char *name, bfam_real_t time,
   bfam_real_t *z_m = bfam_dictionary_get_value_ptr(fields_m, "_grid_z");
   bfam_real_t *z_p = bfam_dictionary_get_value_ptr(fields_p, "_grid_z");
 
-  BFAM_ASSERT((sub_g->N_m+1)*sub_g->K == npoints);
-  BFAM_ASSERT((sub_g->N_p+1)*sub_g->K == npoints);
+  // BFAM_ASSERT((sub_g->N_m+1)*sub_g->K == npoints);
+  // BFAM_ASSERT((sub_g->N_p+1)*sub_g->K == npoints);
   for(int n = 0;n < npoints;n++)
   {
-    BFAM_ASSERT(BFAM_REAL_APPROX_EQ(x_m[n], x_p[n], 10));
-    BFAM_ASSERT(BFAM_REAL_APPROX_EQ(y_m[n], y_p[n], 10));
-    BFAM_ASSERT(BFAM_REAL_APPROX_EQ(z_m[n], z_p[n], 10));
+    // BFAM_ASSERT(BFAM_REAL_APPROX_EQ(x_m[n], x_p[n], 10));
+    // BFAM_ASSERT(BFAM_REAL_APPROX_EQ(y_m[n], y_p[n], 10));
+    // BFAM_ASSERT(BFAM_REAL_APPROX_EQ(z_m[n], z_p[n], 10));
     x[n] = 0.5*(x_m[n]+x_p[n]);
     y[n] = 0.5*(y_m[n]+y_p[n]);
     z[n] = 0.5*(z_m[n]+z_p[n]);
@@ -174,7 +174,7 @@ split_domain_treeid(beard_t *beard, int base_N)
     bfam_malloc(domain->p4est->local_num_quadrants*sizeof(bfam_locidx_t));
   bfam_real_t num_subdomains = domain->p4est->last_local_tree+1;
   bfam_locidx_t *N = bfam_malloc(num_subdomains*sizeof(int));
-  for(int i = 0;i < num_subdomains;i++) N[i] = base_N;
+  for(int i = 0;i < num_subdomains;i++) N[i] = base_N + i;
 
   split_iter_data_t data = {0,subdomain_id};
   p4est_iterate (domain->p4est, NULL, &data,
@@ -208,7 +208,7 @@ split_domain_arbitrary(beard_t *beard, int base_N, bfam_locidx_t num_subdomains)
       (intmax_t) num_subdomains);
   for(bfam_locidx_t id = 0; id < num_subdomains; ++id)
   {
-    N[id] = base_N;/*+id;*/
+    N[id] = base_N+id;/*+id;*/
 
     p4est_gloidx_t first =
       p4est_partition_cut_gloidx(domain->p4est->global_num_quadrants,
@@ -468,9 +468,9 @@ field_set_val_normal_lua(bfam_locidx_t npoints, const char *name,
   bfam_real_t *n1 = bfam_dictionary_get_value_ptr(fields_face, "_grid_nx");
   bfam_real_t *n2 = bfam_dictionary_get_value_ptr(fields_face, "_grid_ny");
 
-  BFAM_ASSERT((sub_g->N_m+1)*sub_g->K == npoints);
-  BFAM_ASSERT((sub_g->N  +1)*sub_g->K == npoints);
-  BFAM_ASSERT((sub_g->N_p+1)*sub_g->K == npoints);
+  // BFAM_ASSERT((sub_g->N_m+1)*sub_g->K == npoints);
+  // BFAM_ASSERT((sub_g->N  +1)*sub_g->K == npoints);
+  // BFAM_ASSERT((sub_g->N_p+1)*sub_g->K == npoints);
 
   lua_State *L = args->L;
   lua_getglobal(L, args->lua_name);
@@ -694,7 +694,7 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     (bfam_subdomain_dgx_quad_glue_t*) thisSubdomain;
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"));
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"))
-    inter_rhs_boundary(sub->sub_m->N,sub,rate_prefix,field_prefix,t,0);
+    inter_rhs_boundary(sub->sub_m->N,sub,rate_prefix,field_prefix,t,1);
   else if(bfam_subdomain_has_tag(thisSubdomain,"slip weakening"))
     inter_rhs_slip_weakening_interface(sub->sub_m->N,sub,rate_prefix,
         field_prefix,t);
@@ -876,8 +876,8 @@ init_domain(beard_t *beard, prefs_t *prefs)
 
   p4est_vtk_write_file(beard->domain->p4est, NULL, "p4est_mesh");
 
-  // split_domain_arbitrary(beard, prefs->N, prefs->num_subdomains);
-  split_domain_treeid(beard,prefs->N);
+  split_domain_arbitrary(beard, prefs->N, prefs->num_subdomains);
+  // split_domain_treeid(beard,prefs->N);
 
   const char *volume[] = {"_volume", NULL};
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
