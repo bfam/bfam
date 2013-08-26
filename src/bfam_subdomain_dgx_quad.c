@@ -759,6 +759,7 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
 
   bfam_free_aligned(D);
   bfam_free_aligned(V);
+  bfam_free_aligned(M);
 
   bfam_free_aligned(lr);
   bfam_free_aligned(lw);
