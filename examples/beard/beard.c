@@ -1136,17 +1136,16 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
 
   BFAM_INFO("global dt = %e (local dt = %e)", dt, ldt);
 
-  int nsteps = 2000;
-  int ndisp  = 10;
-  // nsteps = 1/dt;
-  // ndisp  = 1;
+  int nsteps = get_global_int(prefs->L,"nsteps",1000,1);
+  int ndisp  = get_global_int(prefs->L,"ndisp" ,  10,1);
+  dt  *= get_global_real(prefs->L,"dt_scale" ,  1,1);
 
   for(int s = 0; s < nsteps; s++)
   {
     beard.lsrk->base.step((bfam_ts_t*) beard.lsrk,dt);
     if(s%ndisp == 0)
     {
-      snprintf(output,BFAM_BUFSIZ,"fields_%05d",s+1);
+      snprintf(output,BFAM_BUFSIZ,"solution_%05d",s+1);
       bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
           output, fields, NULL, NULL, 1, 1);
       compute_energy(&beard,prefs,(s+1)*dt);
