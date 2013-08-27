@@ -842,7 +842,9 @@ init_domain(beard_t *beard, prefs_t *prefs)
     for(int i = 0; i < beard->conn->num_vertices; i++)
     {
       int x = beard->conn->vertices[i*3+0];
-      if(x > 0 && x < prefs->brick->mi && prefs->brick->random)
+      int y = beard->conn->vertices[i*3+1];
+      if(x > 0 && x < prefs->brick->mi && y > 0 && y < prefs->brick->ni
+          && prefs->brick->random)
       {
         bfam_real_t r = random() / (bfam_real_t) RAND_MAX;
         beard->conn->vertices[i*3+0] = x + (r-0.5)/2;
@@ -850,8 +852,8 @@ init_domain(beard_t *beard, prefs_t *prefs)
       beard->conn->vertices[i*3+0] -= 0.5*prefs->brick->mi;
       beard->conn->vertices[i*3+0] *= 2*prefs->brick->Lx / prefs->brick->mi;
 
-      int y = beard->conn->vertices[i*3+1];
-      if(y > 0 && y < prefs->brick->ni && prefs->brick->random)
+      if(x > 0 && x < prefs->brick->mi && y > 0 && y < prefs->brick->ni
+          && prefs->brick->random)
       {
         bfam_real_t r = random() / (bfam_real_t) RAND_MAX;
         beard->conn->vertices[i*3+1] = y + (r-0.5)/2;
