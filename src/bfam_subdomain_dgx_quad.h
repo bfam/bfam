@@ -177,6 +177,8 @@ typedef struct bfam_subdomain_dgx_quad_glue
                                     * to be the identity operator.
                                     */
 
+  bfam_real_t     *exact_mass;
+
   bfam_real_t     **massprojection; /* array of mass projection operators;
                                      * the first is for non-hanging faces
                                      * the rest are for the hanging faces;

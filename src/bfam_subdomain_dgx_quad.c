@@ -1324,6 +1324,9 @@ bfam_subdomain_dgx_quad_glue_init(bfam_subdomain_dgx_quad_glue_t  *subdomain,
   const int sub_m_Nrp = N_m+1;
 
   const int num_interp = 3;
+  const bfam_long_real_t projection_scale[3] = {BFAM_LONG_REAL(1.0),
+                                                BFAM_LONG_REAL(0.5),
+                                                BFAM_LONG_REAL(0.5)};
 
   bfam_long_real_t **lr;
   lr = bfam_malloc_aligned(num_interp*sizeof(bfam_long_real_t*));
@@ -1385,10 +1388,10 @@ bfam_subdomain_dgx_quad_glue_init(bfam_subdomain_dgx_quad_glue_t  *subdomain,
 
     bfam_util_mTmmult(sub_m_Nrp, Nrp, Nrp, interpolation[i], Nrp,
         mass, Nrp, massprojection[i], sub_m_Nrp);
+    for(int n = 0; n < Nrp*sub_m_Nrp; n++)
+      massprojection[i][n] *= projection_scale[i];
   }
 
-  bfam_free_aligned(V);
-  bfam_free_aligned(mass);
 
   subdomain->N_m = N_m;
   subdomain->N_p = N_p;
@@ -1430,6 +1433,10 @@ bfam_subdomain_dgx_quad_glue_init(bfam_subdomain_dgx_quad_glue_t  *subdomain,
   subdomain->massprojection =
     bfam_malloc_aligned(subdomain->num_interp * sizeof(bfam_real_t*));
 
+  subdomain->exact_mass =
+    bfam_malloc_aligned(Nrp*Nrp*sizeof(bfam_real_t));
+  for(int n = 0; n < Nrp*Nrp; ++n)
+    subdomain->exact_mass[n] = (bfam_real_t) mass[n];
 
   for(int i = 0; i < subdomain->num_interp; ++i)
   {
@@ -1492,6 +1499,9 @@ bfam_subdomain_dgx_quad_glue_init(bfam_subdomain_dgx_quad_glue_t  *subdomain,
     bfam_free_aligned(interpolation[i]);
     bfam_free_aligned(massprojection[i]);
   }
+
+  bfam_free_aligned(V);
+  bfam_free_aligned(mass);
 
   bfam_free_aligned(lr);
   bfam_free_aligned(lw);
