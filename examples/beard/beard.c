@@ -2,7 +2,8 @@
 #include "beard_dgx_rhs.h"
 #include <p4est_iterate.h>
 
-static int refine_level = 0;
+static int refine_level     = 0;
+static int max_refine_level = 0;
 static bfam_real_t energy_sq = 0;
 
 /*
