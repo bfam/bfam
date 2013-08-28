@@ -5,6 +5,7 @@
 static int refine_level     = 0;
 static int max_refine_level = 0;
 static bfam_real_t energy_sq = 0;
+static bfam_long_real_t pi = 4*atanl(1);
 
 /*
 const char *comm_args_scalars[]           = {NULL};
@@ -305,7 +306,6 @@ stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
   bfam_real_t mu = params->mu;
   int n_ap = params->n_ap;
   int m_ap = params->m_ap;
-  bfam_long_real_t pi = 4*atanl(1);
   /*
     for(bfam_locidx_t n=0; n < npoints; ++n)
       field[n] = 1;
