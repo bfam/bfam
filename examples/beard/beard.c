@@ -135,6 +135,7 @@ typedef struct brick_args
   int periodic_b;
   bfam_real_t Lx;
   bfam_real_t Ly;
+  bfam_real_t rotate;
   int random;
 } brick_args_t;
 
@@ -196,11 +197,12 @@ split_domain_treeid(beard_t *beard, int base_N)
   BFAM_ROOT_INFO("Splitting p4est based on tree id");
 
   bfam_domain_p4est_t *domain = beard->domain;
+  if(domain->p4est->local_num_quadrants == 0) BFAM_ABORT("No quadrants");
   bfam_locidx_t *subdomain_id =
     bfam_malloc(domain->p4est->local_num_quadrants*sizeof(bfam_locidx_t));
   bfam_real_t num_subdomains = domain->p4est->last_local_tree+1;
   bfam_locidx_t *N = bfam_malloc(num_subdomains*sizeof(int));
-  for(int i = 0;i < num_subdomains;i++) N[i] = base_N + i;
+  for(int i = 0;i < num_subdomains;i++) N[i] = base_N;
 
   split_iter_data_t data = {0,subdomain_id};
   p4est_iterate (domain->p4est, NULL, &data,
@@ -872,8 +874,8 @@ init_domain(beard_t *beard, prefs_t *prefs)
       if(x > 0 && x < prefs->brick->mi && y > 0 && y < prefs->brick->ni
           && prefs->brick->random)
       {
-        bfam_real_t r = random() / (bfam_real_t) RAND_MAX;
-        beard->conn->vertices[i*3+0] = x + (r-0.5)/2;
+        bfam_real_t r = 2*(random() / (bfam_real_t) RAND_MAX - 0.5);
+        beard->conn->vertices[i*3+0] = x + 0.7*0.5*r;
       }
       beard->conn->vertices[i*3+0] -= 0.5*prefs->brick->mi;
       beard->conn->vertices[i*3+0] *= 2*prefs->brick->Lx / prefs->brick->mi;
@@ -881,11 +883,20 @@ init_domain(beard_t *beard, prefs_t *prefs)
       if(x > 0 && x < prefs->brick->mi && y > 0 && y < prefs->brick->ni
           && prefs->brick->random)
       {
-        bfam_real_t r = random() / (bfam_real_t) RAND_MAX;
-        beard->conn->vertices[i*3+1] = y + (r-0.5)/2;
+        bfam_real_t r = 2*(random() / (bfam_real_t) RAND_MAX - 0.5);
+        beard->conn->vertices[i*3+1] = y + 0.7*0.5*r;
       }
       beard->conn->vertices[i*3+1] -= 0.5*prefs->brick->ni;
       beard->conn->vertices[i*3+1] *= 2*prefs->brick->Ly / prefs->brick->ni;
+
+      if(prefs->brick->rotate > 0)
+      {
+        double q = prefs->brick->rotate;
+        bfam_real_t x = beard->conn->vertices[i*3+0];
+        bfam_real_t y = beard->conn->vertices[i*3+1];
+        beard->conn->vertices[i*3+0] = x*cos(q) + y*sin(q);
+        beard->conn->vertices[i*3+1] =-x*sin(q) + y*cos(q);
+      }
 
       // BFAM_INFO("%e %e %e",
       //     beard->conn->vertices[i*3+0],
@@ -1151,7 +1162,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   init_lsrk(&beard, prefs);
 
   char output[BFAM_BUFSIZ];
-  snprintf(output,BFAM_BUFSIZ,"fields_%05d",0);
+  snprintf(output,BFAM_BUFSIZ,"solution_%05d",0);
   bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
       output, fields, NULL, NULL, 1, 1);
 
@@ -1264,6 +1275,7 @@ new_prefs(const char *prefs_filename)
       prefs->brick->periodic_a = get_global_int(L,"brick_a",0,1);
       prefs->brick->periodic_b = get_global_int(L,"brick_b",0,1);
       prefs->brick->random = get_global_int(L,"brick_random",0,1);
+      prefs->brick->rotate = get_global_int(L,"brick_rotate",0,1);
       prefs->brick->Lx = get_global_real(L,"brick_Lx",1,1);
       prefs->brick->Ly = get_global_real(L,"brick_Ly",1,0);
       BFAM_INFO("%e",(double)prefs->brick->Lx);
