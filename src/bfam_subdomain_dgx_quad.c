@@ -415,6 +415,26 @@ bfam_subdomain_dgx_quad_geo2D(int N, bfam_locidx_t K, int **fmask,
     BFAM_KRON_AXI(Nrp, Dr, x + vsk, Jry + vsk); /* xs */
     BFAM_KRON_AXI(Nrp, Dr, y + vsk, Jrx + vsk); /* ys */
 
+    for(int n = 0; n < Nrp*Nrp; ++n)
+    {
+      bfam_locidx_t idx = n + vsk;
+
+      /* xr*ys - xs*yr */
+      J[idx] = Jsy[idx]*Jrx[idx] - Jry[idx]*Jsx[idx];
+
+      /* J*rx = ys */
+      Jrx[idx] =  Jrx[idx];
+
+      /* J*ry = -xs */
+      Jry[idx] = -Jry[idx];
+
+      /* J*sx = -yr */
+      Jsx[idx] = -Jsx[idx];
+
+      /* J*sy = xr */
+      Jsy[idx] =  Jsy[idx];
+    }
+
     for(int n = 0; n < Nrp; ++n)
     {
       const bfam_locidx_t fidx0 = fsk + 0 * Nrp + n;
@@ -428,20 +448,20 @@ bfam_subdomain_dgx_quad_geo2D(int N, bfam_locidx_t K, int **fmask,
       const bfam_locidx_t vidx3 = vsk + fmask[3][n];
 
       /* face 0 */
-      nx[fidx0] = -Jrx[vidx0];
-      ny[fidx0] =  Jry[vidx0];
+      nx[fidx0] = -Jrx[vidx0]; /* -sy */
+      ny[fidx0] = -Jry[vidx0]; /*  sx */
 
       /* face 1 */
-      nx[fidx1] =  Jrx[vidx1];
-      ny[fidx1] = -Jry[vidx1];
+      nx[fidx1] =  Jrx[vidx1]; /*  sy */
+      ny[fidx1] =  Jry[vidx1]; /* -sx */
 
       /* face 2 */
-      nx[fidx2] =  Jsx[vidx2];
-      ny[fidx2] = -Jsy[vidx2];
+      nx[fidx2] = -Jsx[vidx2]; /*  ry */
+      ny[fidx2] = -Jsy[vidx2]; /* -rx */
 
       /* face 3 */
-      nx[fidx3] = -Jsx[vidx3];
-      ny[fidx3] =  Jsy[vidx3];
+      nx[fidx3] =  Jsx[vidx3]; /* -sx */
+      ny[fidx3] =  Jsy[vidx3]; /* -sx */
 
       sJ[fidx0] = BFAM_LONG_REAL_HYPOT(nx[fidx0],ny[fidx0]);
       sJ[fidx1] = BFAM_LONG_REAL_HYPOT(nx[fidx1],ny[fidx1]);
@@ -456,19 +476,6 @@ bfam_subdomain_dgx_quad_geo2D(int N, bfam_locidx_t K, int **fmask,
       ny[fidx2] /= sJ[fidx2];
       nx[fidx3] /= sJ[fidx3];
       ny[fidx3] /= sJ[fidx3];
-    }
-
-    for(int n = 0; n < Nrp*Nrp; ++n)
-    {
-      bfam_locidx_t idx = n + vsk;
-
-      J[idx] = Jsy[idx]*Jrx[idx] - Jry[idx]*Jsx[idx];
-
-      Jrx[idx] =  Jrx[idx];
-      Jry[idx] = -Jry[idx];
-
-      Jsx[idx] = -Jsx[idx];
-      Jsy[idx] =  Jsy[idx];
     }
 
     vsk += Nrp*Nrp;
@@ -712,8 +719,8 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
     Jsx[n] = (bfam_real_t) lJsx[n];
     Jsy[n] = (bfam_real_t) lJsy[n];
 
-    J[n] = (bfam_real_t) lJ[n];
-    JI[n] = 1.0/J[n];
+    J[n]  = (bfam_real_t) lJ[n];
+    JI[n] = (bfam_real_t) (BFAM_LONG_REAL(1.0)/lJ[n]);
   }
 
   rval = bfam_subdomain_dgx_quad_field_face_add(&subdomain->base, "_grid_nx");
