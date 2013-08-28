@@ -427,6 +427,57 @@ compute_dt(bfam_locidx_t npoints, const char *name, bfam_real_t time,
   }
 }
 
+
+static void
+compute_dt_grid(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict JI)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  bfam_real_t *dt = (bfam_real_t*)arg;
+
+  bfam_real_t *restrict mu =
+    bfam_dictionary_get_value_ptr(&s->fields, "mu");
+  BFAM_ASSUME_ALIGNED(mu, 32);
+
+  bfam_real_t *restrict lam =
+    bfam_dictionary_get_value_ptr(&s->fields, "lam");
+  BFAM_ASSUME_ALIGNED(lam, 32);
+
+  bfam_real_t *restrict rho =
+    bfam_dictionary_get_value_ptr(&s->fields, "rho");
+  BFAM_ASSUME_ALIGNED(rho, 32);
+
+  bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t *) s;
+
+  bfam_locidx_t Nrp = sub->N+1;
+  for(bfam_locidx_t k = 0; k < sub->K; k++)
+  {
+    bfam_locidx_t n = k*sub->Np;
+    bfam_real_t cp = BFAM_REAL_SQRT((lam[n]+2*mu[n])/rho[n]);
+    for(bfam_locidx_t j = 0; j < Nrp; j++)
+      for(bfam_locidx_t i = 0; i < Nrp; i++)
+      {
+        bfam_real_t h =  INFINITY;
+        if(i < sub->N)
+        {
+          bfam_real_t hx = x[n+j*Nrp+i+1]-x[n+j*Nrp+i];
+          bfam_real_t hy = y[n+j*Nrp+i+1]-y[n+j*Nrp+i];
+          h = BFAM_MIN(h,BFAM_REAL_SQRT(hx*hx+hy*hy));
+        }
+        if(j < sub->N)
+        {
+          bfam_real_t hx = x[n+(j+1)*Nrp+i]-x[n+j*Nrp+i];
+          bfam_real_t hy = y[n+(j+1)*Nrp+i]-y[n+j*Nrp+i];
+          h = BFAM_MIN(h,BFAM_REAL_SQRT(hx*hx+hy*hy));
+        }
+        dt[0] = BFAM_MIN(dt[0], h/cp);
+      }
+  }
+}
+
 typedef struct field_set_val_lua_args
 {
   lua_State *L;
@@ -1175,6 +1226,11 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   bfam_real_t ldt = INFINITY;
   bfam_domain_init_field((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
       "_grid_JI", 0, compute_dt, &ldt);
+  /*
+  bfam_domain_init_field((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
+      "_grid_JI", 0, compute_dt_grid, &ldt);
+  */
+  ldt  *= get_global_real(prefs->L,"dt_scale" ,  1,1);
   bfam_real_t dt = 0;
   BFAM_MPI_CHECK(MPI_Allreduce(&ldt,&dt,1,BFAM_REAL_MPI, MPI_MIN,beard.mpicomm));
 
