@@ -5,6 +5,7 @@
 static int refine_level     = 0;
 static int max_refine_level = 0;
 static bfam_real_t energy_sq = 0;
+static bfam_real_t init_energy_sq = 0;
 static bfam_long_real_t pi = 4*atanl(1);
 
 /*
@@ -825,7 +826,7 @@ init_lsrk(beard_t *beard, prefs_t *prefs)
 }
 
 static void
-compute_energy(beard_t *beard, prefs_t *prefs, bfam_real_t t)
+compute_energy(beard_t *beard, prefs_t *prefs, bfam_real_t t, int init_energy)
 {
   const char *tags[] = {"_volume",NULL};
   bfam_subdomain_t *subs[beard->domain->base.numSubdomains];
@@ -854,8 +855,12 @@ compute_energy(beard_t *beard, prefs_t *prefs, bfam_real_t t)
   BFAM_MPI_CHECK(MPI_Reduce(&energy_sq_local,&energy_sq,1,BFAM_REAL_MPI,
          MPI_SUM,0,beard->mpicomm));
 
-  BFAM_ROOT_INFO("time: %f energy: %e delta energy: %e", t, energy_sq,
-      energy_sq-energy_sq_old);
+  if(!init_energy)
+    BFAM_ROOT_INFO("time: %f energy: %e delta energy: %+e"
+        " delta init energy: %+e",
+        t, energy_sq, energy_sq-energy_sq_old, energy_sq-init_energy_sq);
+  else
+    init_energy_sq = energy_sq;
 }
 
 static void
@@ -1178,7 +1183,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   int nsteps = get_global_int(prefs->L,"nsteps",1000,1);
   int ndisp  = get_global_int(prefs->L,"ndisp" ,  10,1);
   int noutput  = get_global_int(prefs->L,"noutput" ,  10,1);
-  dt  *= get_global_real(prefs->L,"dt_scale" ,  1,1);
+  compute_energy(&beard,prefs,0,1);
 
   for(int s = 0; s < nsteps; s++)
   {
@@ -1191,7 +1196,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
     }
     if(s%ndisp == 0)
     {
-      compute_energy(&beard,prefs,(s+1)*dt);
+      compute_energy(&beard,prefs,(s+1)*dt,0);
     }
   }
 
