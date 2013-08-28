@@ -112,7 +112,7 @@ static inline void
 beard_dgx_central_state_m(
           bfam_real_t *Tns,       bfam_real_t *Tps,
           bfam_real_t *vns,       bfam_real_t *vps,
-          bfam_real_t  Tnm,       bfam_real_t  Tnp,
+    const bfam_real_t  Tnm, const bfam_real_t  Tnp,
     const bfam_real_t *Tpm, const bfam_real_t *Tpp,
     const bfam_real_t  vnm, const bfam_real_t  vnp,
     const bfam_real_t *vpm, const bfam_real_t *vpp,
@@ -182,9 +182,9 @@ beard_dgx_add_flux(const bfam_real_t scale,
   dv2[iM] += rhoi*JI_wi_sJ*(delta_TpS[1]+delta_TnS*nm[1]);
   dv3[iM] += rhoi*JI_wi_sJ*(delta_TpS[2]);
 
-  dS11[iM] += JI_wi_sJ*((lam+2*mu)*vS[0]*nm[0] +  lam       *vS[1]*nm[1]);
-  dS22[iM] += JI_wi_sJ*( lam       *vS[0]*nm[0] + (lam+2*mu)*vS[1]*nm[1]);
-  dS33[iM] += JI_wi_sJ*( lam       *vS[0]*nm[0] +  lam       *vS[1]*nm[1]);
+  dS11[iM] += JI_wi_sJ*((lam+2*mu)*vS[0]*nm[0] +  lam      *vS[1]*nm[1]);
+  dS22[iM] += JI_wi_sJ*( lam      *vS[0]*nm[0] + (lam+2*mu)*vS[1]*nm[1]);
+  dS33[iM] += JI_wi_sJ*( lam      *vS[0]*nm[0] +  lam      *vS[1]*nm[1]);
   dS12[iM] += JI_wi_sJ*mu*(vS[0]*nm[1] + vS[1]*nm[0]);
   dS13[iM] += JI_wi_sJ*mu *vS[2]*nm[0];
   dS23[iM] += JI_wi_sJ*mu *vS[2]*nm[1];
@@ -333,9 +333,9 @@ void BFAM_APPEND_EXPAND(beard_dgx_intra_rhs_elastic_,NORDER)(
   BFAM_ALIGN(32) bfam_real_t DsTv3[Np];
   BFAM_ALIGN(32) bfam_real_t rate[Np];
 
-  BFAM_ALIGN(32) bfam_real_t MJv1[Np];
-  BFAM_ALIGN(32) bfam_real_t MJv2[Np];
-  BFAM_ALIGN(32) bfam_real_t MJv3[Np];
+  BFAM_ALIGN(32) bfam_real_t Mv1[Np];
+  BFAM_ALIGN(32) bfam_real_t Mv2[Np];
+  BFAM_ALIGN(32) bfam_real_t Mv3[Np];
 
   bfam_real_t *Dr = sub->Dr;
   bfam_real_t *w  = sub->w;
@@ -397,9 +397,9 @@ void BFAM_APPEND_EXPAND(beard_dgx_intra_rhs_elastic_,NORDER)(
       for(bfam_locidx_t j = 0; j < N+1; j++)
       {
         bfam_locidx_t k = i*(N+1)+j;
-        MJv1[k] = w[i]*w[j]*v1[off+k];
-        MJv2[k] = w[i]*w[j]*v2[off+k];
-        MJv3[k] = w[i]*w[j]*v3[off+k];
+        Mv1[k] = w[i]*w[j]*v1[off+k];
+        Mv2[k] = w[i]*w[j]*v2[off+k];
+        Mv3[k] = w[i]*w[j]*v3[off+k];
       }
 
     /*
@@ -419,12 +419,12 @@ void BFAM_APPEND_EXPAND(beard_dgx_intra_rhs_elastic_,NORDER)(
      *
      * S23 += -mu*MI*JI*((Jry*Dr'+Jsy*Ds')*v3
      */
-    BFAM_KRON_IXAT(N+1, Dr, MJv1, DrTv1);
-    BFAM_KRON_ATXI(N+1, Dr, MJv1, DsTv1);
-    BFAM_KRON_IXAT(N+1, Dr, MJv2, DrTv2);
-    BFAM_KRON_ATXI(N+1, Dr, MJv2, DsTv2);
-    BFAM_KRON_IXAT(N+1, Dr, MJv3, DrTv3);
-    BFAM_KRON_ATXI(N+1, Dr, MJv3, DsTv3);
+    BFAM_KRON_IXAT(N+1, Dr, Mv1, DrTv1);
+    BFAM_KRON_ATXI(N+1, Dr, Mv1, DsTv1);
+    BFAM_KRON_IXAT(N+1, Dr, Mv2, DrTv2);
+    BFAM_KRON_ATXI(N+1, Dr, Mv2, DsTv2);
+    BFAM_KRON_IXAT(N+1, Dr, Mv3, DrTv3);
+    BFAM_KRON_ATXI(N+1, Dr, Mv3, DsTv3);
     for(bfam_locidx_t i = 0; i < N+1; i++)
       for(bfam_locidx_t j = 0; j < N+1; j++)
       {
@@ -511,11 +511,12 @@ void BFAM_APPEND_EXPAND(beard_dgx_intra_rhs_elastic_,NORDER)(
         beard_dgx_upwind_state_m(&TnS,TpS,&vnS,vpS,
             Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
-        TnS -= Tnm;
+        TnS    -= Tnm;
         TpS[0] -= Tpm[0];
         TpS[1] -= Tpm[1];
         TpS[2] -= Tpm[2];
 
+        /* intra */
         beard_dgx_add_flux(1, TnS,TpS,vnS,vpS,iM,
             dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
             lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
@@ -530,7 +531,7 @@ void BFAM_APPEND_EXPAND(beard_dgx_scale_rates_elastic_,NORDER)(
 {
 #ifdef USE_GENERIC
   const int Np  = (inN+1)*(inN+1);
-  BFAM_WARNING("Using generic intra rhs function");
+  BFAM_WARNING("Using generic scale rates function");
 #endif
   const bfam_locidx_t num_pts = sub->K * Np;
   bfam_dictionary_t *fields = &sub->base.fields;
@@ -549,7 +550,7 @@ void BFAM_APPEND_EXPAND(beard_dgx_scale_rates_slip_weakening_,NORDER)(
 {
 #ifdef USE_GENERIC
   const int N   = inN;
-  BFAM_WARNING("Using generic intra rhs function");
+  BFAM_WARNING("Using generic scale rates function");
 #endif
   const bfam_locidx_t num_pts = sub->K * (N+1);
   bfam_dictionary_t *fields = &sub->base.fields;
@@ -569,7 +570,7 @@ void BFAM_APPEND_EXPAND(beard_dgx_add_rates_elastic_,NORDER)(
 {
 #ifdef USE_GENERIC
   const int Np  = (inN+1)*(inN+1);
-  BFAM_WARNING("Using generic intra rhs function");
+  BFAM_WARNING("Using generic add rates function");
 #endif
 
   const char *f_names[] = {"v1", "v2", "v3",
@@ -594,7 +595,7 @@ void BFAM_APPEND_EXPAND(beard_dgx_add_rates_slip_weakening_,NORDER)(
 {
 #ifdef USE_GENERIC
   const int N = inN;
-  BFAM_WARNING("Using generic intra rhs function");
+  BFAM_WARNING("Using generic add rates function");
 #endif
 
   const char *f_names[] = {"Dp","Dn",NULL};
@@ -1197,13 +1198,13 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
 }
 
 void BFAM_APPEND_EXPAND(beard_dgx_energy_,NORDER)(
-    int inN, bfam_real_t *energy_sq, 
+    int inN, bfam_real_t *energy_sq,
     bfam_subdomain_dgx_quad_t *sub, const char *field_prefix)
 {
 #ifdef USE_GENERIC
   const int N   = inN;
   const int Np  = (inN+1)*(inN+1);
-  BFAM_WARNING("Using generic inter rhs function");
+  BFAM_WARNING("Using generic compute energy function");
 #endif
 
   /* get the fields we will need */
