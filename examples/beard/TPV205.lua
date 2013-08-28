@@ -1,10 +1,11 @@
 -- simulation data
-N = 5
+N = 2
 num_subdomains = 2
 connectivity = "brick"
 lsrk_method = "KC54"
 problem = "slip weakening"
-refine_level = 6
+refine_level = 3
+max_refine_level = 8
 
 -- 2 blocks with fault at y = 0
 brick_m = 1
