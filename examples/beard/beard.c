@@ -307,10 +307,10 @@ stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
   int n_ap = params->n_ap;
   int m_ap = params->m_ap;
   /*
-    for(bfam_locidx_t n=0; n < npoints; ++n)
-      field[n] = 1;
-    return;
-    */
+  for(bfam_locidx_t n=0; n < npoints; ++n)
+    field[n] = 1;
+  return;
+  */
   if(strcmp(name,"v3")==0)
   {
     bfam_long_real_t kx = n_ap*pi;
@@ -1177,16 +1177,20 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
 
   int nsteps = get_global_int(prefs->L,"nsteps",1000,1);
   int ndisp  = get_global_int(prefs->L,"ndisp" ,  10,1);
+  int noutput  = get_global_int(prefs->L,"noutput" ,  10,1);
   dt  *= get_global_real(prefs->L,"dt_scale" ,  1,1);
 
   for(int s = 0; s < nsteps; s++)
   {
     beard.lsrk->base.step((bfam_ts_t*) beard.lsrk,dt);
-    if(s%ndisp == 0)
+    if(s%noutput == 0)
     {
       snprintf(output,BFAM_BUFSIZ,"solution_%05d",s+1);
       bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
           output, fields, NULL, NULL, 1, 1);
+    }
+    if(s%ndisp == 0)
+    {
       compute_energy(&beard,prefs,(s+1)*dt);
     }
   }
