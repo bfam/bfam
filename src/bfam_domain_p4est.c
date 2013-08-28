@@ -1055,6 +1055,7 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
     const bfam_locidx_t id_p = ifmapping[ifk].ns;
 
     int repeat = (id_m == id_p);
+    repeat = 0;
 
     for(int r = 0; r <= repeat; ++r)
     {
@@ -1087,7 +1088,7 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
                                          N[id_p],
                                          rank_m,
                                          rank_p,
-                                         sign_m * (id_m+1),
+                                         sign_p * (id_m+1),
                                          sign_p * (id_p+1),
                                          subdomains[id_m],
                                          ktosubk,
