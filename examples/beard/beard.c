@@ -88,6 +88,32 @@ get_global_real(lua_State *L, const char *name, bfam_real_t def, int warning)
  * Uniform refinement function
  */
 static int
+refine_near_fault_fn(p4est_t * p4est, p4est_topidx_t which_tree,
+                     p4est_quadrant_t * quadrant)
+{
+  /* if not at base level refine */
+  if((int)quadrant->level >= max_refine_level) return 0;
+  if((int)quadrant->level < refine_level) return 1;
+
+  /* loop through corners to see if we are near the fault */
+  for(int ix = 0; ix < 2; ix++)
+    for(int iy = 0; iy < 2; iy++)
+    {
+      int ox = ix*(1 << (P4EST_MAXLEVEL-quadrant->level));
+      int oy = iy*(1 << (P4EST_MAXLEVEL-quadrant->level));
+      double vxyz[3];
+      p4est_qcoord_to_vertex (p4est->connectivity, which_tree,
+          quadrant->x+ox, quadrant->y+oy,vxyz);
+      if(BFAM_REAL_ABS(vxyz[1])<0.2) return 1;
+    }
+
+  return 0;
+}
+
+/*
+ * Uniform refinement function
+ */
+static int
 refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
           p4est_quadrant_t * quadrant)
 {
@@ -872,7 +898,8 @@ init_domain(beard_t *beard, prefs_t *prefs)
 
   beard->domain = bfam_domain_p4est_new(beard->mpicomm, beard->conn);
 
-  p4est_refine(beard->domain->p4est, 2, refine_fn, NULL);
+  // p4est_refine(beard->domain->p4est, 2, refine_fn, NULL);
+  p4est_refine(beard->domain->p4est, 2, refine_near_fault_fn, NULL);
   p4est_balance(beard->domain->p4est, P4EST_CONNECT_CORNER, NULL);
   p4est_partition(beard->domain->p4est, NULL);
 
@@ -1213,6 +1240,7 @@ new_prefs(const char *prefs_filename)
   prefs->N = get_global_int(L, "N", 5, 1);
   prefs->num_subdomains = get_global_int(L, "num_subdomains", 1, 1);
   refine_level = get_global_int(L, "refine_level", 0, 1);
+  max_refine_level = get_global_int(L, "max_refine_level", refine_level, 1);
   prefs->rho = get_global_real(L, "rho", 1, 1);
   prefs->mu  = get_global_real(L, "mu" , 1, 1);
   prefs->lam = get_global_real(L, "lam", 1, 1);
