@@ -250,7 +250,7 @@ beard_dgx_remove_flux( const int Nfp_in,
     bfam_real_t vnS;
     bfam_real_t vpS[3];
 
-    beard_dgx_upwind_state_m(&TnS,TpS,&vnS,vpS,
+    beard_dgx_central_state_m(&TnS,TpS,&vnS,vpS,
         Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
     TnS -= Tnm;
@@ -508,7 +508,7 @@ void BFAM_APPEND_EXPAND(beard_dgx_intra_rhs_elastic_,NORDER)(
         bfam_real_t vnS;
         bfam_real_t vpS[3];
 
-        beard_dgx_upwind_state_m(&TnS,TpS,&vnS,vpS,
+        beard_dgx_central_state_m(&TnS,TpS,&vnS,vpS,
             Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
         TnS    -= Tnm;
@@ -717,7 +717,7 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_boundary_,NORDER)(
       bfam_real_t vnS;
       bfam_real_t vpS[3];
 
-      beard_dgx_upwind_state_m(&TnS,TpS,&vnS,vpS,
+      beard_dgx_central_state_m(&TnS,TpS,&vnS,vpS,
           Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
       TnS -= Tnm;
@@ -888,7 +888,7 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
       vpp[0] = vpp[0]-vnp*np[0];
       vpp[1] = vpp[1]-vnp*np[1];
 
-      beard_dgx_upwind_state_m(
+      beard_dgx_central_state_m(
           &TnS_g[pnt],&TpS_g[3*pnt],&vnS_g[pnt],&vpS_g[3*pnt],
           Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
@@ -1117,7 +1117,7 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
       vpp[1] = vpp[1]-vnp*np[1];
 
       /* compute the upwind state assuming that the fault is locked */
-      beard_dgx_upwind_state_m(
+      beard_dgx_central_state_m(
           &TnS_g[pnt],&TpS_g[3*pnt],&vnS_g[pnt],&vpS_g[3*pnt],
           Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
