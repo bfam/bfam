@@ -66,6 +66,8 @@ check_pm(bfam_subdomain_dgx_quad_glue_t *sub, const char *name)
   int failures = 0;
   bfam_real_t *f_m = bfam_dictionary_get_value_ptr(&sub->base.fields_m, name);
   bfam_real_t *f_p = bfam_dictionary_get_value_ptr(&sub->base.fields_p, name);
+  bfam_real_t *sub_m_f   = bfam_dictionary_get_value_ptr(&sub->sub_m->base.fields,
+                                                   name);
 
   BFAM_LDEBUG("Testing subdomain (%2jd, %2jd) -- (%2jd, %2jd)",
       (intmax_t)sub->rank_m, (intmax_t)sub->s_m,
@@ -92,6 +94,92 @@ check_pm(bfam_subdomain_dgx_quad_glue_t *sub, const char *name)
             BFAM_REAL_ABS(f_m[idx]-f_p[idx]) < BFAM_REAL_MIN);
 
       failures += fail;
+    }
+  }
+
+  /* check the projection back */
+  /*
+   * only check when orders match b/c exact mass is only exact for plus side
+   * when the orders are the same 
+   */
+  bfam_subdomain_dgx_quad_t * sub_m = sub->sub_m;
+  if(sub->N == sub->N_m)
+  {
+    bfam_locidx_t Nfp = sub_m->Nfp;
+    bfam_real_t field_m[Nfp];
+    bfam_real_t Mf[Nfp];
+    bfam_real_t MPf[Nfp];
+    bfam_real_t* mass = sub->exact_mass;
+    bfam_real_t** MP   = sub->massprojection;
+    for(bfam_locidx_t le = 0; le < sub->K; ++le)
+    {
+      bfam_locidx_t e = sub->EToEm[le];
+      int8_t face = sub->EToFm[le];
+
+      /* make sure that we have both the hanging guys on this glue grid */
+      if(sub->EToHm[le] == 1 && sub->EToHm[le+1] == 2 &&  e == sub->EToEm[le+1])
+      {
+        for(bfam_locidx_t n = 0;n < Nfp;n++)
+        {
+          bfam_locidx_t f = n + Nfp*(face + 4*e);
+          bfam_locidx_t iM = sub_m->vmapM[f];
+          field_m[n] = sub_m_f[iM];
+          Mf[n] = 0;
+        }
+
+        for(bfam_locidx_t j = 0; j < Nfp; ++j)
+          for(bfam_locidx_t i = 0; i < Nfp; ++i)
+            Mf[i] += mass[j * Nfp + i] * field_m[j];
+
+        for(bfam_locidx_t i = 0; i < Nfp; i++) MPf[i] = 0;
+        for(bfam_locidx_t i = 0; i < Nfp; i++)
+          for(bfam_locidx_t j = 0; j < Nfp; j++)
+          {
+            MPf[i] += MP[1][i+j*Nfp]*f_m[le*sub->Np + j];
+            MPf[i] += MP[2][i+j*Nfp]*f_m[(le+1)*sub->Np + j];
+          }
+
+        for(bfam_locidx_t n = 0; n < Nfp; n++)
+        {
+          int fail = !REAL_APPROX_EQ(Mf[n], MPf[n], 10);
+          if(fail)
+            BFAM_LDEBUG("mass projection fail on element %d face %d node %d:"
+                "M*f = %e and MP[1]*I[1]*f + MP[2]*I[2]*f = %e",
+                (int)e, (int)face,(int)n,(double)Mf[n],(double)MPf[n]);
+          failures += fail;
+        }
+      }
+      else if(sub->EToHm[le] == 0)
+      {
+        for(bfam_locidx_t n = 0;n < Nfp;n++)
+        {
+          bfam_locidx_t f = n + Nfp*(face + 4*e);
+          bfam_locidx_t iM = sub_m->vmapM[f];
+          field_m[n] = sub_m_f[iM];
+          Mf[n] = 0;
+        }
+
+        for(bfam_locidx_t j = 0; j < Nfp; ++j)
+          for(bfam_locidx_t i = 0; i < Nfp; ++i)
+            Mf[i] += mass[j * Nfp + i] * field_m[j];
+
+        for(bfam_locidx_t i = 0; i < Nfp; i++) MPf[i] = 0;
+        for(bfam_locidx_t i = 0; i < Nfp; i++)
+          for(bfam_locidx_t j = 0; j < Nfp; j++)
+          {
+            MPf[i] += MP[0][i+j*Nfp]*f_m[le*sub->Np + j];
+          }
+
+        for(bfam_locidx_t n = 0; n < Nfp; n++)
+        {
+          int fail = !REAL_APPROX_EQ(Mf[n], MPf[n], 10);
+          if(fail)
+            BFAM_LDEBUG("mass projection fail on element %d face %d node %d:"
+                "M*f = %e and MP[0]*I[0]*f = %e",
+                (int)e, (int)face,(int)n,(double)Mf[n],(double)MPf[n]);
+          failures += fail;
+        }
+      }
     }
   }
 
