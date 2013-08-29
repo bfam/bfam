@@ -5,8 +5,7 @@
 static int refine_level     = 0;
 static int max_refine_level = 0;
 static bfam_real_t energy_sq = 0;
-static bfam_real_t init_energy_sq = 0;
-static bfam_long_real_t pi = 4*atanl(1);
+static bfam_real_t init_energy_sq = 1;
 
 /*
 const char *comm_args_scalars[]           = {NULL};
