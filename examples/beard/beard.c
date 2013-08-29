@@ -907,9 +907,26 @@ compute_energy(beard_t *beard, prefs_t *prefs, bfam_real_t t, int init_energy)
          MPI_SUM,0,beard->mpicomm));
 
   if(!init_energy)
-    BFAM_ROOT_INFO("time: %f energy: %e delta energy: %+e"
-        " delta init energy: %+e",
-        t, energy_sq, energy_sq-energy_sq_old, energy_sq-init_energy_sq);
+    if(energy_sq > energy_sq_old)
+      BFAM_ROOT_INFO("\x1B[31m"
+          "time: %f energy_sq: %e D_energy_sq: %+e"
+          " NDI_energy: %+e"
+          "\x1B[0m",
+          t,
+          BFAM_REAL_SQRT(energy_sq/init_energy_sq),
+          BFAM_REAL_SQRT(energy_sq/init_energy_sq)
+          - BFAM_REAL_SQRT(energy_sq_old/init_energy_sq),
+          BFAM_REAL_SQRT(energy_sq/init_energy_sq)-1);
+    else
+      BFAM_ROOT_INFO("\x1B[32m"
+          "time: %f energy_sq: %e D_energy_sq: %+e"
+          " NDI_energy: %+e"
+          "\x1B[0m",
+          t,
+          BFAM_REAL_SQRT(energy_sq/init_energy_sq),
+          BFAM_REAL_SQRT(energy_sq/init_energy_sq)
+          - BFAM_REAL_SQRT(energy_sq_old/init_energy_sq),
+          BFAM_REAL_SQRT(energy_sq/init_energy_sq)-1);
   else
     init_energy_sq = energy_sq;
 }
