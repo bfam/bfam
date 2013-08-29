@@ -307,6 +307,8 @@ stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
   bfam_real_t mu = params->mu;
   int n_ap = params->n_ap;
   int m_ap = params->m_ap;
+  bfam_long_real_t pi = 4*atanl(1);
+
   /*
   for(bfam_locidx_t n=0; n < npoints; ++n)
     field[n] = 1;
@@ -775,7 +777,7 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     (bfam_subdomain_dgx_quad_glue_t*) thisSubdomain;
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"));
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"))
-    inter_rhs_boundary(sub->sub_m->N,sub,rate_prefix,field_prefix,t,1);
+    inter_rhs_boundary(sub->sub_m->N,sub,rate_prefix,field_prefix,t,0);
   else if(bfam_subdomain_has_tag(thisSubdomain,"slip weakening"))
     inter_rhs_slip_weakening_interface(sub->sub_m->N,sub,rate_prefix,
         field_prefix,t);
@@ -990,8 +992,8 @@ init_domain(beard_t *beard, prefs_t *prefs)
 
   p4est_vtk_write_file(beard->domain->p4est, NULL, "p4est_mesh");
 
-  split_domain_arbitrary(beard, prefs->N, prefs->num_subdomains);
-  // split_domain_treeid(beard,prefs->N);
+  // split_domain_arbitrary(beard, prefs->N, prefs->num_subdomains);
+  split_domain_treeid(beard,prefs->N);
 
   const char *volume[] = {"_volume", NULL};
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
@@ -1255,8 +1257,8 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
 
   int nsteps = get_global_int(prefs->L,"nsteps",1000,1);
   int ndisp  = get_global_int(prefs->L,"ndisp" ,  10,1);
-  int noutput  = get_global_int(prefs->L,"noutput" ,  10,1);
-  compute_energy(&beard,prefs,0,1);
+  int noutput  = get_global_int(prefs->L,"noutput",  10,1);
+  compute_energy(&beard,prefs,0,0);
 
   for(int s = 0; s < nsteps; s++)
   {
