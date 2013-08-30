@@ -7,7 +7,7 @@
 
 static void
 bfam_subdomain_dgx_quad_glue_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
-    FILE *file, const char **scalars, const char **vectors,
+    FILE *file, bfam_real_t time, const char **scalars, const char **vectors,
     const char **components, int writeBinary, int writeCompressed,
     int rank, bfam_locidx_t id)
 {
@@ -174,7 +174,37 @@ bfam_subdomain_dgx_quad_glue_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
   /*
    * Cell Data
    */
-  fprintf(file, "      <CellData Scalars=\"mpirank,subdomain_id\">\n");
+  fprintf(file, "      <CellData Scalars=\"time,mpirank,subdomain_id\">\n");
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"time\""
+           " format=\"%s\">\n", BFAM_REAL_VTK, format);
+  fprintf(file, "          ");
+  if(writeBinary)
+  {
+    size_t timesize = Ncells*sizeof(bfam_real_t);
+    bfam_real_t *times = bfam_malloc_aligned(timesize);
+
+    for(bfam_locidx_t i = 0; i < Ncells; ++i)
+      times[i] = time;
+
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)times,
+          timesize);
+    if(rval)
+      BFAM_WARNING("Error encoding times");
+
+    bfam_free_aligned(times);
+  }
+  else
+  {
+    for(bfam_locidx_t i = 0, sk = 1; i < Ncells; ++i, ++sk)
+    {
+      fprintf(file, " %"BFAM_REAL_FMTe, time);
+      if (!(sk % 8) && i != (Ncells - 1))
+        fprintf(file, "\n         ");
+    }
+  }
+  fprintf(file, "\n");
+  fprintf(file, "        </DataArray>\n");
   fprintf(file, "        <DataArray type=\"%s\" Name=\"mpirank\""
            " format=\"%s\">\n", BFAM_LOCIDX_VTK, format);
   fprintf(file, "          ");
@@ -290,7 +320,7 @@ bfam_subdomain_dgx_quad_glue_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
 
 static void
 bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
-    FILE *file, const char **scalars, const char **vectors,
+    FILE *file, bfam_real_t time, const char **scalars, const char **vectors,
     const char **components, int writeBinary, int writeCompressed,
     int rank, bfam_locidx_t id)
 {
@@ -458,7 +488,37 @@ bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
   /*
    * Cell Data
    */
-  fprintf(file, "      <CellData Scalars=\"mpirank,subdomain_id\">\n");
+  fprintf(file, "      <CellData Scalars=\"time,mpirank,subdomain_id\">\n");
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"time\""
+           " format=\"%s\">\n", BFAM_REAL_VTK, format);
+  fprintf(file, "          ");
+  if(writeBinary)
+  {
+    size_t timesize = Ncells*sizeof(bfam_real_t);
+    bfam_real_t *times = bfam_malloc_aligned(timesize);
+
+    for(bfam_locidx_t i = 0; i < Ncells; ++i)
+      times[i] = time;
+
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)times,
+          timesize);
+    if(rval)
+      BFAM_WARNING("Error encoding times");
+
+    bfam_free_aligned(times);
+  }
+  else
+  {
+    for(bfam_locidx_t i = 0, sk = 1; i < Ncells; ++i, ++sk)
+    {
+      fprintf(file, " %"BFAM_REAL_FMTe, time);
+      if (!(sk % 8) && i != (Ncells - 1))
+        fprintf(file, "\n         ");
+    }
+  }
+  fprintf(file, "\n");
+  fprintf(file, "        </DataArray>\n");
   fprintf(file, "        <DataArray type=\"%s\" Name=\"mpirank\""
            " format=\"%s\">\n", BFAM_LOCIDX_VTK, format);
   fprintf(file, "          ");

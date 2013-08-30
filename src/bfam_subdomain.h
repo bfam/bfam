@@ -122,6 +122,7 @@ typedef struct bfam_subdomain
   /**< Write a vtk vtu file */
   void (*vtk_write_vtu_piece) (struct bfam_subdomain *thisSubdomain,
                                FILE *file,
+                               bfam_real_t time,
                                const char **scalars,
                                const char **vectors,
                                const char **components,

@@ -61,9 +61,9 @@ bfam_vtk_write_vtu_empty(FILE *file,int writeBinary)
 }
 
 static void
-bfam_vtk_write_file_pvtu(int size, const char *prefix, const char **scalars,
-    const char **vectors, const char **components, int binary,
-    int compress)
+bfam_vtk_write_file_pvtu(int size, const char *directory, const char *prefix,
+    const char **scalars, const char **vectors, const char **components,
+    int binary, int compress)
 {
   const int endian = bfam_endian();
 
@@ -104,7 +104,9 @@ bfam_vtk_write_file_pvtu(int size, const char *prefix, const char **scalars,
           BFAM_REAL_VTK, format);
   fprintf(file, "    </PPoints>\n");
 
-  fprintf(file, "    <PCellData Scalars=\"mpirank,subdomain_id\">\n");
+  fprintf(file, "    <PCellData Scalars=\"time,mpirank,subdomain_id\">\n");
+  fprintf(file, "      <PDataArray type=\"%s\" Name=\"time\""
+           " format=\"%s\"/>\n", BFAM_REAL_VTK, format);
   fprintf(file, "      <PDataArray type=\"%s\" Name=\"mpirank\""
            " format=\"%s\"/>\n", BFAM_LOCIDX_VTK, format);
   fprintf(file, "      <PDataArray type=\"%s\" Name=\"subdomain_id\""
@@ -153,10 +155,10 @@ bfam_vtk_write_file_pvtu(int size, const char *prefix, const char **scalars,
 }
 
 void
-bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match,
-    const char **tags, const char *prefix, const char **scalars,
-    const char **vectors, const char **components, int binary,
-    int compress)
+bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match, const
+    char **tags, const char *directory, const char *prefix, bfam_real_t time,
+    const char **scalars, const char **vectors, const char **components,
+    int binary, int compress)
 {
   const int endian = bfam_endian();
 
@@ -167,8 +169,8 @@ bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match,
   BFAM_MPI_CHECK(MPI_Comm_size(domain->comm, &size));
 
   if(rank == 0)
-    bfam_vtk_write_file_pvtu(size, prefix, scalars, vectors, components, binary,
-        compress);
+    bfam_vtk_write_file_pvtu(size, directory, prefix, scalars, vectors,
+        components, binary, compress);
 
   bfam_subdomain_t **subdomains =
     bfam_malloc(numElements*sizeof(bfam_subdomain_t*));
@@ -210,8 +212,8 @@ bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match,
 
     if(subdomain->vtk_write_vtu_piece)
     {
-      subdomain->vtk_write_vtu_piece(subdomains[s], file, scalars, vectors,
-          components, binary, compress, rank, s);
+      subdomain->vtk_write_vtu_piece(subdomains[s], file, time, scalars,
+          vectors, components, binary, compress, rank, s);
     }
     else
     {
