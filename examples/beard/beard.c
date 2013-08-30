@@ -106,7 +106,9 @@ refine_near_fault_fn(p4est_t * p4est, p4est_topidx_t which_tree,
       double vxyz[3];
       p4est_qcoord_to_vertex (p4est->connectivity, which_tree,
           quadrant->x+ox, quadrant->y+oy,vxyz);
-      if(BFAM_REAL_ABS(vxyz[1])<0.2) return 1;
+      if(BFAM_REAL_ABS(vxyz[1])<1*(max_refine_level-quadrant->level)
+          && BFAM_REAL_ABS(vxyz[0])<17+1*(max_refine_level-quadrant->level))
+          return 1;
     }
 
   return 0;
