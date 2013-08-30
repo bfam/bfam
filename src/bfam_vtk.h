@@ -4,6 +4,16 @@
 #include <bfam_base.h>
 #include <bfam_domain.h>
 
+/** Utility function for writing an empty vtu file
+ *
+ * \param [out] file            stream to write the vector to.
+ * \param [in]  name            name of the vector.
+ * \param [in]  writeBinary     boolean indicating if the data should be written
+ *                              in binary.
+ */
+void
+bfam_vtk_write_vtu_empty(FILE *file,int writeBinary);
+
 /** Write out vtk files for each domain.
  *
  * This loops through the subdomains and writes out a vtk file for each one.

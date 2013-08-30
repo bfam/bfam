@@ -7,6 +7,59 @@
 #define BFAM_VTK_VTS_FORMAT "%s_%s_%s.vts"
 #define BFAM_VTK_PVTS_FORMAT "%s_%s.pvts"
 
+void
+bfam_vtk_write_vtu_empty(FILE *file,int writeBinary)
+{
+  const char *format;
+
+  if(writeBinary)
+    format = "binary";
+  else
+    format = "ascii";
+
+  fprintf(file,
+           "    <Piece NumberOfPoints=\"%jd\" NumberOfCells=\"%jd\">\n",
+           (intmax_t) 0, (intmax_t) 0);
+
+  /*
+   * Points
+   */
+  fprintf (file, "      <Points>\n");
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"%s\""
+          " NumberOfComponents=\"3\" format=\"%s\">\n",
+           BFAM_REAL_VTK, "Position", format);
+  fprintf(file, "        </DataArray>\n");
+  fprintf(file, "      </Points>\n");
+
+  /*
+   * Cells
+   */
+  fprintf(file, "      <Cells>\n");
+
+  /*
+   * Connectivity
+   */
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"connectivity\""
+          " format=\"%s\">\n", BFAM_LOCIDX_VTK, format);
+  fprintf(file, "        </DataArray>\n");
+
+  /*
+   * Offsets
+   */
+  fprintf (file, "        <DataArray type=\"%s\" Name=\"offsets\""
+           " format=\"%s\">\n", BFAM_LOCIDX_VTK, format);
+  fprintf(file, "        </DataArray>\n");
+
+  /*
+   * Types
+   */
+  fprintf(file, "        <DataArray type=\"UInt8\" Name=\"types\""
+           " format=\"%s\">\n", format);
+  fprintf(file, "        </DataArray>\n");
+  fprintf(file, "      </Cells>\n");
+  fprintf(file, "    </Piece>\n");
+}
+
 static void
 bfam_vtk_write_file_pvtu(int size, const char *prefix, const char **scalars,
     const char **vectors, const char **components, int binary,
@@ -148,6 +201,8 @@ bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match,
     fprintf(file, " byte_order=\"LittleEndian\">\n");
 
   fprintf(file, "  <UnstructuredGrid>\n");
+
+  if(numSubdomains == 0) bfam_vtk_write_vtu_empty(file,binary);
 
   for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
   {

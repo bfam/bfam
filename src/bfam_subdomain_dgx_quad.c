@@ -6,6 +6,289 @@
 #include <bfam_vtk.h>
 
 static void
+bfam_subdomain_dgx_quad_glue_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
+    FILE *file, const char **scalars, const char **vectors,
+    const char **components, int writeBinary, int writeCompressed,
+    int rank, bfam_locidx_t id)
+{
+  bfam_subdomain_dgx_quad_glue_t *s =
+    (bfam_subdomain_dgx_quad_glue_t*) subdomain;
+
+  if(s->id_m != BFAM_MIN(s->id_m,s->id_p))
+  {
+    bfam_vtk_write_vtu_empty(file,writeBinary);
+    return;
+  }
+
+  const char *format;
+
+  if(writeBinary)
+    format = "binary";
+  else
+    format = "ascii";
+
+  const bfam_locidx_t  K  = s->K;
+  const int            N  = s->N;
+  const int            Np = s->Np;
+
+  const int Ncorners = s->Ncorners;
+
+  const bfam_locidx_t Ncells = K * N;
+  const bfam_locidx_t Ntotal = K * Np;
+
+  bfam_real_t *restrict x =
+    bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_x");
+  bfam_real_t *restrict y =
+    bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_y");
+  bfam_real_t *restrict z =
+    bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_z");
+
+  fprintf(file,
+           "    <Piece NumberOfPoints=\"%jd\" NumberOfCells=\"%jd\">\n",
+           (intmax_t) Ntotal, (intmax_t) Ncells);
+
+  /*
+   * Points
+   */
+  fprintf (file, "      <Points>\n");
+
+  bfam_vtk_write_real_vector_data_array(file, "Position", writeBinary,
+      writeCompressed, Ntotal, x, y, z);
+
+  fprintf(file, "      </Points>\n");
+
+  /*
+   * Cells
+   */
+  fprintf(file, "      <Cells>\n");
+
+  /*
+   * Connectivity
+   */
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"connectivity\""
+          " format=\"%s\">\n", BFAM_LOCIDX_VTK, format);
+  if(writeBinary)
+  {
+    size_t cellsSize = Ncells*Ncorners*sizeof(bfam_locidx_t);
+    bfam_locidx_t *cells = bfam_malloc_aligned(cellsSize);
+
+    for(bfam_locidx_t k = 0, i = 0; k < K; ++k)
+    {
+      for(int m = 0; m < N; ++m)
+      {
+        cells[i++] = Np * k + (m + 0);
+        cells[i++] = Np * k + (m + 1);
+      }
+    }
+
+    fprintf(file, "          ");
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)cells,
+          cellsSize);
+    fprintf(file, "\n");
+    if(rval)
+      BFAM_WARNING("Error encoding cells");
+
+    bfam_free_aligned(cells);
+  }
+  else
+  {
+    for(bfam_locidx_t k = 0; k < K; ++k)
+      for(int m = 0; m < N; ++m)
+        fprintf(file,
+                 "          %8jd %8jd\n",
+                 (intmax_t) Np * k + (m + 0),
+                 (intmax_t) Np * k + (m + 1));
+  }
+  fprintf(file, "        </DataArray>\n");
+
+  /*
+   * Offsets
+   */
+  fprintf (file, "        <DataArray type=\"%s\" Name=\"offsets\""
+           " format=\"%s\">\n", BFAM_LOCIDX_VTK, format);
+  fprintf(file, "          ");
+  if(writeBinary)
+  {
+    size_t offsetsSize = Ncells*sizeof(bfam_locidx_t);
+    bfam_locidx_t *offsets = bfam_malloc_aligned(offsetsSize);
+
+    for(bfam_locidx_t i = 1; i <= Ncells; ++i)
+      offsets[i - 1] = Ncorners * i;
+
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)offsets,
+          offsetsSize);
+    if(rval)
+      BFAM_WARNING("Error encoding offsets");
+
+    bfam_free_aligned(offsets);
+  }
+  else
+  {
+    for(bfam_locidx_t i = 1, sk = 1; i <= Ncells; ++i, ++sk)
+    {
+      fprintf(file, " %8jd", (intmax_t) (Ncorners * i));
+      if(!(sk % 20) && i != Ncells)
+        fprintf(file, "\n          ");
+    }
+  }
+  fprintf(file, "\n");
+  fprintf(file, "        </DataArray>\n");
+
+  /*
+   * Types
+   */
+  fprintf(file, "        <DataArray type=\"UInt8\" Name=\"types\""
+           " format=\"%s\">\n", format);
+  fprintf(file, "          ");
+  if(writeBinary)
+  {
+    size_t typesSize = Ncells*sizeof(uint8_t);
+    uint8_t *types = bfam_malloc_aligned(typesSize);
+
+    for(bfam_locidx_t i = 0; i < Ncells; ++i)
+      types[i] = 3; /* VTK_LINE */
+
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)types,
+          typesSize);
+    if(rval)
+      BFAM_WARNING("Error encoding types");
+
+    bfam_free_aligned(types);
+  }
+  else
+  {
+    for(bfam_locidx_t i = 0, sk = 1; i < Ncells; ++i, ++sk)
+    {
+      fprintf(file, " 3"); /* VTK_LINE */
+      if (!(sk % 20) && i != (Ncells - 1))
+        fprintf(file, "\n         ");
+    }
+  }
+  fprintf(file, "\n");
+  fprintf(file, "        </DataArray>\n");
+  fprintf(file, "      </Cells>\n");
+
+  /*
+   * Cell Data
+   */
+  fprintf(file, "      <CellData Scalars=\"mpirank,subdomain_id\">\n");
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"mpirank\""
+           " format=\"%s\">\n", BFAM_LOCIDX_VTK, format);
+  fprintf(file, "          ");
+  if(writeBinary)
+  {
+    size_t ranksSize = Ncells*sizeof(bfam_locidx_t);
+    bfam_locidx_t *ranks = bfam_malloc_aligned(ranksSize);
+
+    for(bfam_locidx_t i = 0; i < Ncells; ++i)
+      ranks[i] = rank;
+
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)ranks,
+          ranksSize);
+    if(rval)
+      BFAM_WARNING("Error encoding ranks");
+
+    bfam_free_aligned(ranks);
+  }
+  else
+  {
+    for(bfam_locidx_t i = 0, sk = 1; i < Ncells; ++i, ++sk)
+    {
+      fprintf(file, " %6jd", (intmax_t)rank);
+      if (!(sk % 8) && i != (Ncells - 1))
+        fprintf(file, "\n         ");
+    }
+  }
+  fprintf(file, "\n");
+  fprintf(file, "        </DataArray>\n");
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"subdomain_id\""
+           " format=\"%s\">\n", BFAM_LOCIDX_VTK, format);
+  fprintf(file, "          ");
+  if(writeBinary)
+  {
+    size_t idsSize = Ncells*sizeof(bfam_locidx_t);
+    bfam_locidx_t *ids = bfam_malloc_aligned(idsSize);
+
+    for(bfam_locidx_t i = 0; i < Ncells; ++i)
+      ids[i] = id;
+
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)ids,
+          idsSize);
+    if(rval)
+      BFAM_WARNING("Error encoding ids");
+
+    bfam_free_aligned(ids);
+  }
+  else
+  {
+    for(bfam_locidx_t i = 0, sk = 1; i < Ncells; ++i, ++sk)
+    {
+      fprintf(file, " %6jd", (intmax_t)id);
+      if (!(sk % 8) && i != (Ncells - 1))
+        fprintf(file, "\n         ");
+    }
+  }
+  fprintf(file, "\n");
+  fprintf(file, "        </DataArray>\n");
+
+  fprintf(file, "      </CellData>\n");
+
+  char pointscalars[BFAM_BUFSIZ];
+  bfam_util_strcsl(pointscalars, scalars);
+
+  char pointvectors[BFAM_BUFSIZ];
+  bfam_util_strcsl(pointvectors, vectors);
+
+  fprintf(file, "      <PointData Scalars=\"%s\" Vectors=\"%s\">\n",
+      pointscalars, pointvectors);
+
+  if(scalars)
+  {
+    for(size_t s = 0; scalars[s]; ++s)
+    {
+      bfam_real_t *sdata = bfam_dictionary_get_value_ptr(&subdomain->fields,
+          scalars[s]);
+      BFAM_ABORT_IF(sdata == NULL, "VTK: Field %s not in subdomain %s",
+          scalars[s], subdomain->name);
+      bfam_vtk_write_real_scalar_data_array(file, scalars[s],
+          writeBinary, writeCompressed, Ntotal, sdata);
+    }
+  }
+
+  if(vectors)
+  {
+    for(size_t v = 0; vectors[v]; ++v)
+    {
+
+      bfam_real_t *v1 =
+        bfam_dictionary_get_value_ptr(&subdomain->fields, components[3*v+0]);
+      bfam_real_t *v2 =
+        bfam_dictionary_get_value_ptr(&subdomain->fields, components[3*v+1]);
+      bfam_real_t *v3 =
+        bfam_dictionary_get_value_ptr(&subdomain->fields, components[3*v+2]);
+
+      BFAM_ABORT_IF(v1 == NULL, "VTK: Field %s not in subdomain %s",
+          components[3*v+0], subdomain->name);
+      BFAM_ABORT_IF(v2 == NULL, "VTK: Field %s not in subdomain %s",
+          components[3*v+1], subdomain->name);
+      BFAM_ABORT_IF(v3 == NULL, "VTK: Field %s not in subdomain %s",
+          components[3*v+2], subdomain->name);
+
+      bfam_vtk_write_real_vector_data_array(file, vectors[v],
+          writeBinary, writeCompressed, Ntotal, v1, v2, v3);
+    }
+  }
+
+  fprintf(file, "      </PointData>\n");
+  fprintf(file, "    </Piece>\n");
+}
+
+static void
 bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
     FILE *file, const char **scalars, const char **vectors,
     const char **components, int writeBinary, int writeCompressed,
@@ -1318,6 +1601,8 @@ bfam_subdomain_dgx_quad_glue_init(bfam_subdomain_dgx_quad_glue_t  *subdomain,
     bfam_subdomain_dgx_quad_glue_field_minus_add;
   subdomain->base.field_plus_add = bfam_subdomain_dgx_quad_glue_field_plus_add;
   subdomain->base.free = bfam_subdomain_dgx_quad_glue_free;
+  subdomain->base.vtk_write_vtu_piece =
+    bfam_subdomain_dgx_quad_glue_vtk_write_vtu_piece;
 
   const int N   = BFAM_MAX(N_m, N_p);
   const int Nrp = N+1;
