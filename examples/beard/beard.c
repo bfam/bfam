@@ -1157,7 +1157,7 @@ init_domain(beard_t *beard, prefs_t *prefs)
     {
       bfam_subdomain_t * fault_sub[domain->numSubdomains];
       bfam_locidx_t num_subs;
-      const char *friction_tag[] = {"_glue_0_1",NULL};
+      const char *friction_tag[] = {"_glue_0_2","_glue_1_3",NULL};
       bfam_domain_get_subdomains(domain, BFAM_DOMAIN_OR, friction_tag,
           domain->numSubdomains, fault_sub, &num_subs);
       for(int s = 0; s < num_subs; s++)
@@ -1227,6 +1227,8 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
     "S11", "S22", "S33", "S12", "S13", "S23", NULL};
   // const char *fields[] = {"v1", NULL};
   const char *volume[] = {"_volume", NULL};
+  const char *fault_fields[] = {"Dp", "Dn", "V",NULL};
+  const char *fric_tags[]   = {"slip weakening", NULL};
 
   beard_t beard;
 
@@ -1240,6 +1242,10 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   snprintf(output,BFAM_BUFSIZ,"solution_%05d",0);
   bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
       output, fields, NULL, NULL, 1, 1);
+
+  snprintf(output,BFAM_BUFSIZ,"solution_friction_%05d",0);
+  bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, fric_tags,
+      output, fault_fields, NULL, NULL, 0, 0);
 
   bfam_real_t ldt = INFINITY;
   bfam_domain_init_field((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
@@ -1267,6 +1273,9 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
       snprintf(output,BFAM_BUFSIZ,"solution_%05d",s+1);
       bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
           output, fields, NULL, NULL, 1, 1);
+      snprintf(output,BFAM_BUFSIZ,"solution_friction_%05d",s+1);
+      bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, fric_tags,
+          output, fault_fields, NULL, NULL, 0, 0);
     }
     if(s%ndisp == 0)
     {
