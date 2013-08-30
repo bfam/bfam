@@ -12,6 +12,15 @@ ndisp    = 1
 noutput_body   = 1000
 noutput_fault  = 10
 
+function dt_modify ( dt )
+  noutput_fault = math.ceil(0.1/dt)
+  dt = 0.05/noutput_fault
+  nsteps = 12/dt
+  noutput_body = 1/dt
+  noutput_fault = 0.1/dt
+  return  noutput_fault, noutput_body, ndisp, nsteps, dt
+end
+
 -- 2 blocks with fault at y = 0
 brick_m = 2
 brick_n = 2

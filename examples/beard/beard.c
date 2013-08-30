@@ -1281,10 +1281,42 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
 
   BFAM_INFO("global dt = %e (local dt = %e)", dt, ldt);
 
-  int nsteps = get_global_int(prefs->L,"nsteps",1000,1);
-  int ndisp  = get_global_int(prefs->L,"ndisp" ,  10,1);
-  int noutput_body  = get_global_int(prefs->L,"noutput_body",   100,1);
-  int noutput_fault  = get_global_int(prefs->L,"noutput_fault",  10,1);
+  int nsteps = get_global_int(prefs->L,"nsteps",1000,0);
+  int ndisp  = get_global_int(prefs->L,"ndisp" ,  10,0);
+  int noutput_body  = get_global_int(prefs->L,"noutput_body",   100,0);
+  int noutput_fault  = get_global_int(prefs->L,"noutput_fault",  10,0);
+
+  lua_getglobal(prefs->L, "dt_modify");
+  if(lua_isfunction(prefs->L,-1))
+  {
+    lua_pushnumber(prefs->L, dt);
+    if(lua_pcall(prefs->L,1,5,0) != 0)
+      BFAM_ABORT("error running function %s: %s",
+          "dt_modify",lua_tostring(prefs->L,-1));
+
+    dt = (bfam_real_t)lua_tonumber(prefs->L,-1);
+    lua_pop(prefs->L,1);
+
+    nsteps = (int)lua_tonumber(prefs->L,-1);
+    lua_pop(prefs->L,1);
+
+    ndisp = (int)lua_tonumber(prefs->L,-1);
+    lua_pop(prefs->L,1);
+
+    noutput_body = (int)lua_tonumber(prefs->L,-1);
+    lua_pop(prefs->L,1);
+
+    noutput_fault = (int)lua_tonumber(prefs->L,-1);
+    lua_pop(prefs->L,1);
+  }
+  else lua_pop(prefs->L,1);
+
+  BFAM_ROOT_INFO("dt:     %"BFAM_REAL_FMTe,dt);
+  BFAM_ROOT_INFO("nsteps: %04d",nsteps);
+  BFAM_ROOT_INFO("ndisp:  %04d",ndisp);
+  BFAM_ROOT_INFO("nout_b: %04d",noutput_body);
+  BFAM_ROOT_INFO("nout_f: %04d",noutput_fault);
+
   compute_energy(&beard,prefs,0,0);
 
   for(int s = 0; s < nsteps; s++)
@@ -1398,8 +1430,8 @@ new_prefs(const char *prefs_filename)
       prefs->brick->rotate = get_global_int(L,"brick_rotate",0,1);
       prefs->brick->Lx = get_global_real(L,"brick_Lx",1,1);
       prefs->brick->Ly = get_global_real(L,"brick_Ly",1,0);
-      BFAM_INFO("%e",(double)prefs->brick->Lx);
-      BFAM_INFO("%e",(double)prefs->brick->Ly);
+      BFAM_ROOT_INFO("%e",(double)prefs->brick->Lx);
+      BFAM_ROOT_INFO("%e",(double)prefs->brick->Ly);
     }
     else
     {
