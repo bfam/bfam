@@ -1414,7 +1414,7 @@ bfam_subdomain_dgx_quad_glue_put_send_buffer(bfam_subdomain_t *thisSubdomain,
       void *vp3 = bfam_dictionary_get_value_ptr(&data.sub->base.fields_m,str);
       BFAM_ASSERT(vn != NULL && vp1 != NULL && vp2 != NULL && vp3 != NULL);
       const char **comps = args->vector_components_m + 3*v;
-      bfam_subdomain_dgx_quad_glue_get_vector_fields_m(comps,vn,vp1,vp2,vp2,
+      bfam_subdomain_dgx_quad_glue_get_vector_fields_m(comps,vn,vp1,vp2,vp3,
           &data);
     }
     for(int t = 0; args->tensors_m[t] != NULL;t++)
@@ -1431,7 +1431,7 @@ bfam_subdomain_dgx_quad_glue_put_send_buffer(bfam_subdomain_t *thisSubdomain,
       void *tp3 = bfam_dictionary_get_value_ptr(&data.sub->base.fields_m,str);
       BFAM_ASSERT(tn != NULL && tp1 != NULL && tp2 != NULL && tp3 != NULL);
       const char **comps = args->tensor_components_m + 3*t;
-      bfam_subdomain_dgx_quad_glue_get_tensor_fields_m(comps,tn,tp1,tp2,tp2,
+      bfam_subdomain_dgx_quad_glue_get_tensor_fields_m(comps,tn,tp1,tp2,tp3,
           &data);
     }
   }
@@ -1526,7 +1526,7 @@ bfam_subdomain_dgx_quad_glue_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
       void *vp3 = bfam_dictionary_get_value_ptr(&data.sub->base.fields_p,str);
       BFAM_ASSERT(vn != NULL && vp1 != NULL && vp2 != NULL && vp3 != NULL);
       const char **comps = args->vector_components_p + 3*v;
-      bfam_subdomain_dgx_quad_glue_put_vector_fields_p(comps,vn,vp1,vp2,vp2,
+      bfam_subdomain_dgx_quad_glue_put_vector_fields_p(comps,vn,vp1,vp2,vp3,
           &data);
     }
     for(int t = 0; args->tensors_p[t] != NULL;t++)
@@ -1543,7 +1543,7 @@ bfam_subdomain_dgx_quad_glue_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
       void *tp3 = bfam_dictionary_get_value_ptr(&data.sub->base.fields_p,str);
       BFAM_ASSERT(tn != NULL && tp1 != NULL && tp2 != NULL && tp3 != NULL);
       const char **comps = args->tensor_components_p + 3*t;
-      bfam_subdomain_dgx_quad_glue_put_tensor_fields_p(comps,tn,tp1,tp2,tp2,
+      bfam_subdomain_dgx_quad_glue_put_tensor_fields_p(comps,tn,tp1,tp2,tp3,
           &data);
     }
   }
