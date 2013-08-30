@@ -146,7 +146,9 @@ typedef struct prefs
   lua_State *L;
 
   int N;
+  int N_fault;
   bfam_locidx_t num_subdomains;
+  bfam_real_t dt_scale;
 
   p4est_connectivity_t * (*conn_fn) (void);
 
@@ -183,18 +185,22 @@ typedef struct split_iter_data
 {
   int loc;
   bfam_locidx_t *subdomain_id;
+  bfam_real_t dt;
+  int N_fault;
 } split_iter_data_t;
 
 static void
 split_domain_treeid_iter_volume(p4est_iter_volume_info_t *info, void *arg)
 {
+  bfam_locidx_t num_trees = info->p4est->connectivity->num_trees;
   split_iter_data_t *data = (split_iter_data_t*) arg;
-  data->subdomain_id[data->loc] = info->treeid;
+  int N = ceil(data->N_fault*sqrt(pow(2.0,max_refine_level-info->quad->level)));
+  data->subdomain_id[data->loc] = info->treeid + num_trees*(N-1);
   data->loc++;
 }
 
 static void
-split_domain_treeid(beard_t *beard, int base_N)
+split_domain_treeid(beard_t *beard, int base_N, int N_fault)
 {
   BFAM_ROOT_INFO("Splitting p4est based on tree id");
 
@@ -202,11 +208,17 @@ split_domain_treeid(beard_t *beard, int base_N)
   if(domain->p4est->local_num_quadrants == 0) BFAM_ABORT("No quadrants");
   bfam_locidx_t *subdomain_id =
     bfam_malloc(domain->p4est->local_num_quadrants*sizeof(bfam_locidx_t));
-  bfam_real_t num_subdomains = domain->p4est->last_local_tree+1;
+  bfam_locidx_t num_trees = domain->p4est->connectivity->num_trees;
+  int Nmax = ceil(N_fault*sqrt(pow(2.0,max_refine_level-refine_level)));
+  bfam_real_t num_subdomains = num_trees*Nmax;
   bfam_locidx_t *N = bfam_malloc(num_subdomains*sizeof(int));
-  for(int i = 0;i < num_subdomains;i++) N[i] = base_N;
+  for(int l = 0; l < Nmax;l++)
+    for(int t = 0;t < num_trees;t++)
+    {
+      N[l*num_trees+t] = l+1;
+    }
 
-  split_iter_data_t data = {0,subdomain_id};
+  split_iter_data_t data = {0,subdomain_id,1,N_fault};
   p4est_iterate (domain->p4est, NULL, &data,
       split_domain_treeid_iter_volume, NULL, NULL);
 
@@ -992,7 +1004,7 @@ init_domain(beard_t *beard, prefs_t *prefs)
   p4est_vtk_write_file(beard->domain->p4est, NULL, "p4est_mesh");
 
   // split_domain_arbitrary(beard, prefs->N, prefs->num_subdomains);
-  split_domain_treeid(beard,prefs->N);
+  split_domain_treeid(beard,prefs->N,prefs->N_fault);
 
   const char *volume[] = {"_volume", NULL};
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
@@ -1157,7 +1169,13 @@ init_domain(beard_t *beard, prefs_t *prefs)
     {
       bfam_subdomain_t * fault_sub[domain->numSubdomains];
       bfam_locidx_t num_subs;
-      const char *friction_tag[] = {"_glue_0_2","_glue_1_3",NULL};
+      char friction_name[2][10];
+      const char *friction_tag[] = {friction_name[0],friction_name[1],NULL};
+      const int num_trees = beard->conn->num_trees;
+      snprintf(friction_name[0],10,"_glue_%d_%d",
+          num_trees*(prefs->N_fault-1),2+num_trees*(prefs->N_fault-1));
+      snprintf(friction_name[1],10,"_glue_%d_%d",
+          1+num_trees*(prefs->N_fault-1),3+num_trees*(prefs->N_fault-1));
       bfam_domain_get_subdomains(domain, BFAM_DOMAIN_OR, friction_tag,
           domain->numSubdomains, fault_sub, &num_subs);
       for(int s = 0; s < num_subs; s++)
@@ -1254,7 +1272,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   bfam_domain_init_field((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
       "_grid_JI", 0, compute_dt_grid, &ldt);
   */
-  ldt  *= get_global_real(prefs->L,"dt_scale" ,  1,1);
+  ldt  *= prefs->dt_scale;
   bfam_real_t dt = 0;
   BFAM_MPI_CHECK(MPI_Allreduce(&ldt,&dt,1,BFAM_REAL_MPI, MPI_MIN,beard.mpicomm));
 
@@ -1262,17 +1280,21 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
 
   int nsteps = get_global_int(prefs->L,"nsteps",1000,1);
   int ndisp  = get_global_int(prefs->L,"ndisp" ,  10,1);
-  int noutput  = get_global_int(prefs->L,"noutput",  10,1);
+  int noutput_body  = get_global_int(prefs->L,"noutput_body",   100,1);
+  int noutput_fault  = get_global_int(prefs->L,"noutput_fault",  10,1);
   compute_energy(&beard,prefs,0,0);
 
   for(int s = 0; s < nsteps; s++)
   {
     beard.lsrk->base.step((bfam_ts_t*) beard.lsrk,dt);
-    if(s%noutput == 0)
+    if(s%noutput_body == 0)
     {
       snprintf(output,BFAM_BUFSIZ,"solution_%05d",s+1);
       bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
           output, fields, NULL, NULL, 1, 1);
+    }
+    if(s%noutput_fault == 0)
+    {
       snprintf(output,BFAM_BUFSIZ,"solution_friction_%05d",s+1);
       bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, fric_tags,
           output, fault_fields, NULL, NULL, 0, 0);
@@ -1342,6 +1364,8 @@ new_prefs(const char *prefs_filename)
   BFAM_ASSERT(lua_gettop(L)==0);
 
   prefs->N = get_global_int(L, "N", 5, 1);
+  prefs->N_fault = get_global_int(L, "N_fault", 1, 1);
+  prefs->dt_scale = get_global_real(L, "dt_scale", 1, 1);
   prefs->num_subdomains = get_global_int(L, "num_subdomains", 1, 1);
   refine_level = get_global_int(L, "refine_level", 0, 1);
   max_refine_level = get_global_int(L, "max_refine_level", refine_level, 1);
@@ -1434,6 +1458,8 @@ print_prefs(prefs_t *prefs)
 {
   BFAM_ROOT_INFO("----------Preferences----------");
   BFAM_ROOT_INFO("N=%d", prefs->N);
+  BFAM_ROOT_INFO("N_fault=%d", prefs->N_fault);
+  BFAM_ROOT_INFO("dt_scale=%f", prefs->dt_scale);
   BFAM_ROOT_INFO("num_subdomains=%"BFAM_LOCIDX_PRId, prefs->num_subdomains);
   for(int i=0; conn_table[i].name!=NULL; ++i)
     if(conn_table[i].conn_fn == prefs->conn_fn)
