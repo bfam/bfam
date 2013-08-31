@@ -97,6 +97,8 @@ refine_near_fault_fn(p4est_t * p4est, p4est_topidx_t which_tree,
   if((int)quadrant->level >= max_refine_level) return 0;
   if((int)quadrant->level < refine_level) return 1;
 
+  lua_State *L = (lua_State*)p4est->user_pointer;
+
   /* loop through corners to see if we are near the fault */
   for(int ix = 0; ix < 2; ix++)
     for(int iy = 0; iy < 2; iy++)
@@ -106,9 +108,18 @@ refine_near_fault_fn(p4est_t * p4est, p4est_topidx_t which_tree,
       double vxyz[3];
       p4est_qcoord_to_vertex (p4est->connectivity, which_tree,
           quadrant->x+ox, quadrant->y+oy,vxyz);
-      if(BFAM_REAL_ABS(vxyz[1])<1*(max_refine_level-quadrant->level)
-          && BFAM_REAL_ABS(vxyz[0])<17+1*(max_refine_level-quadrant->level))
-          return 1;
+      lua_getglobal(L,"fault_refine");
+      lua_pushnumber(L,vxyz[0]);
+      lua_pushnumber(L,vxyz[1]);
+      lua_pushnumber(L,vxyz[2]);
+      lua_pushnumber(L,(double)quadrant->level);
+      if(lua_pcall(L,4,1,0) != 0)
+        BFAM_ABORT("error running function %s: %s",
+            "fault_refine",lua_tostring(L,-1));
+      if(!lua_isnumber(L,-1))
+        BFAM_ABORT("function '%s' must return number","fault_refine");
+      bfam_real_t val = (int) lua_tonumber(L,-1);
+      if(val) return 1;
     }
 
   return 0;
@@ -955,45 +966,78 @@ init_domain(beard_t *beard, prefs_t *prefs)
   if(prefs->brick != NULL)
   {
     /* just so we always get the same random grid for convergence tests */
-    srandom(8);
     beard->conn = p4est_connectivity_new_brick(
         prefs->brick->mi,prefs->brick->ni,
         prefs->brick->periodic_a,prefs->brick->periodic_b);
-    for(int i = 0; i < beard->conn->num_vertices; i++)
+
+    /* If there is a user defined corners function */
+    const char fname[] = "brick_corners";
+    lua_getglobal(prefs->L,fname);
+    if(lua_isfunction(prefs->L,-1))
     {
-      int x = beard->conn->vertices[i*3+0];
-      int y = beard->conn->vertices[i*3+1];
-      if(x > 0 && x < prefs->brick->mi && y > 0 && y < prefs->brick->ni
-          && prefs->brick->random)
+      lua_State *L = prefs->L;
+      lua_pop(L,1);
+      for(int i = 0; i < beard->conn->num_vertices; i++)
       {
-        bfam_real_t r = 2*(random() / (bfam_real_t) RAND_MAX - 0.5);
-        beard->conn->vertices[i*3+0] = x + 0.7*0.5*r;
-      }
-      beard->conn->vertices[i*3+0] -= 0.5*prefs->brick->mi;
-      beard->conn->vertices[i*3+0] *= 2*prefs->brick->Lx / prefs->brick->mi;
+        lua_getglobal(prefs->L,fname);
+        int x = beard->conn->vertices[i*3+0];
+        int y = beard->conn->vertices[i*3+1];
+        int z = 0;
+        lua_pushnumber(L,x);
+        lua_pushnumber(L,y);
+        lua_pushnumber(L,z);
+        if(lua_pcall(L,3,3,0) != 0)
+          BFAM_ABORT("error running function %s: %s",fname,lua_tostring(L,-1));
 
-      if(x > 0 && x < prefs->brick->mi && y > 0 && y < prefs->brick->ni
-          && prefs->brick->random)
+        for(int j = 0; j < 3; j++)
+        {
+          if(!lua_isnumber(L,-1))
+            BFAM_ABORT("function '%s' must return number",fname);
+          beard->conn->vertices[i*3+j] = (bfam_real_t)lua_tonumber(L,-1);
+          lua_pop(L,1);
+        }
+      }
+    }
+    else
+    {
+      lua_pop(prefs->L,1);
+      srandom(8);
+      for(int i = 0; i < beard->conn->num_vertices; i++)
       {
-        bfam_real_t r = 2*(random() / (bfam_real_t) RAND_MAX - 0.5);
-        beard->conn->vertices[i*3+1] = y + 0.7*0.5*r;
-      }
-      beard->conn->vertices[i*3+1] -= 0.5*prefs->brick->ni;
-      beard->conn->vertices[i*3+1] *= 2*prefs->brick->Ly / prefs->brick->ni;
+        int x = beard->conn->vertices[i*3+0];
+        int y = beard->conn->vertices[i*3+1];
+        if(x > 0 && x < prefs->brick->mi && y > 0 && y < prefs->brick->ni
+            && prefs->brick->random)
+        {
+          bfam_real_t r = 2*(random() / (bfam_real_t) RAND_MAX - 0.5);
+          beard->conn->vertices[i*3+0] = x + 0.7*0.5*r;
+        }
+        beard->conn->vertices[i*3+0] -= 0.5*prefs->brick->mi;
+        beard->conn->vertices[i*3+0] *= 2*prefs->brick->Lx / prefs->brick->mi;
 
-      if(prefs->brick->rotate > 0)
-      {
-        double q = prefs->brick->rotate;
-        bfam_real_t x = beard->conn->vertices[i*3+0];
-        bfam_real_t y = beard->conn->vertices[i*3+1];
-        beard->conn->vertices[i*3+0] = x*cos(q) + y*sin(q);
-        beard->conn->vertices[i*3+1] =-x*sin(q) + y*cos(q);
-      }
+        if(x > 0 && x < prefs->brick->mi && y > 0 && y < prefs->brick->ni
+            && prefs->brick->random)
+        {
+          bfam_real_t r = 2*(random() / (bfam_real_t) RAND_MAX - 0.5);
+          beard->conn->vertices[i*3+1] = y + 0.7*0.5*r;
+        }
+        beard->conn->vertices[i*3+1] -= 0.5*prefs->brick->ni;
+        beard->conn->vertices[i*3+1] *= 2*prefs->brick->Ly / prefs->brick->ni;
 
-      // BFAM_INFO("%e %e %e",
-      //     beard->conn->vertices[i*3+0],
-      //     beard->conn->vertices[i*3+1],
-      //     beard->conn->vertices[i*3+2]);
+        if(prefs->brick->rotate > 0)
+        {
+          double q = prefs->brick->rotate;
+          bfam_real_t x = beard->conn->vertices[i*3+0];
+          bfam_real_t y = beard->conn->vertices[i*3+1];
+          beard->conn->vertices[i*3+0] = x*cos(q) + y*sin(q);
+          beard->conn->vertices[i*3+1] =-x*sin(q) + y*cos(q);
+        }
+
+        // BFAM_INFO("%e %e %e",
+        //     beard->conn->vertices[i*3+0],
+        //     beard->conn->vertices[i*3+1],
+        //     beard->conn->vertices[i*3+2]);
+      }
     }
   }
   else
@@ -1002,7 +1046,17 @@ init_domain(beard_t *beard, prefs_t *prefs)
   beard->domain = bfam_domain_p4est_new(beard->mpicomm, beard->conn);
 
   // p4est_refine(beard->domain->p4est, 2, refine_fn, NULL);
+  void *current_user_pointer = beard->domain->p4est->user_pointer;
+  beard->domain->p4est->user_pointer = NULL;
+  lua_getglobal(prefs->L,"fault_refine");
+  BFAM_ABORT_IF_NOT(lua_isfunction(prefs->L,-1),
+      "expected lua function fault_refine but got %s",
+      lua_tostring(prefs->L,-1));
+  lua_pop(prefs->L, 1);
+  beard->domain->p4est->user_pointer = prefs->L;
   p4est_refine(beard->domain->p4est, 2, refine_near_fault_fn, NULL);
+  beard->domain->p4est->user_pointer = current_user_pointer;
+
   p4est_balance(beard->domain->p4est, P4EST_CONNECT_CORNER, NULL);
   p4est_partition(beard->domain->p4est, NULL);
 
@@ -1174,18 +1228,52 @@ init_domain(beard_t *beard, prefs_t *prefs)
     {
       bfam_subdomain_t * fault_sub[domain->numSubdomains];
       bfam_locidx_t num_subs;
-      char friction_name[2][BFAM_BUFSIZ];
-      const char *friction_tag[] = {friction_name[0],friction_name[1],NULL};
+      char friction_name[BFAM_BUFSIZ];
+      char fault_name[BFAM_BUFSIZ];
+      const char *friction_tag[] = {friction_name,NULL};
       const int num_trees = beard->conn->num_trees;
-      snprintf(friction_name[0],BFAM_BUFSIZ,"_glue_%d_%d",
-          num_trees*(prefs->N_fault-1),2+num_trees*(prefs->N_fault-1));
-      snprintf(friction_name[1],BFAM_BUFSIZ,"_glue_%d_%d",
-          1+num_trees*(prefs->N_fault-1),3+num_trees*(prefs->N_fault-1));
-      bfam_domain_get_subdomains(domain, BFAM_DOMAIN_OR, friction_tag,
-          domain->numSubdomains, fault_sub, &num_subs);
-      for(int s = 0; s < num_subs; s++)
-        bfam_subdomain_add_tag(fault_sub[s],"slip weakening");
-      BFAM_INFO("num_sub: %d %s %s",num_subs,friction_name[0],friction_name[1]);
+
+      int nfaults = get_global_int(prefs->L,"nfaults",0,1);
+      for(int f = 0; f < nfaults; f++)
+      {
+        lua_getglobal(prefs->L, "fault_bricks");
+        if(!lua_isfunction(prefs->L,-1))
+          BFAM_ABORT("fault_bricks must be function: %s",
+              lua_tostring(prefs->L,-1));
+        lua_pushnumber(prefs->L, f);
+        if(lua_pcall(prefs->L,1,2,0) != 0)
+          BFAM_ABORT("error running function %s: %s",
+              "fault_bricks",lua_tostring(prefs->L,-1));
+
+        int bricks[2];
+        for(int b = 0; b < 2; b++)
+        {
+          if(!lua_isnumber(prefs->L,-1))
+            BFAM_ABORT("function '%s' must return number got %s",
+                "fault_bricks",lua_tostring(prefs->L,-1));
+          bricks[b] = (int)lua_tonumber(prefs->L,-1);
+          lua_pop(prefs->L, 1);
+        }
+        if(bricks[1] < bricks[0])
+        {
+          int tmp = bricks[0];
+          bricks[0] = bricks[1];
+          bricks[1] = tmp;
+        }
+
+        snprintf(fault_name,BFAM_BUFSIZ,"fault %d",f);
+        snprintf(friction_name,BFAM_BUFSIZ,"_glue_%d_%d",
+            bricks[0]+num_trees*(prefs->N_fault-1),
+            bricks[1]+num_trees*(prefs->N_fault-1));
+        bfam_domain_get_subdomains(domain, BFAM_DOMAIN_OR, friction_tag,
+            domain->numSubdomains, fault_sub, &num_subs);
+        for(int s = 0; s < num_subs; s++)
+        {
+          bfam_subdomain_add_tag(fault_sub[s],"slip weakening");
+          bfam_subdomain_add_tag(fault_sub[s],fault_name);
+        }
+        BFAM_INFO("num_sub: %d %s %s",num_subs,friction_name,fault_name);
+      }
 
       const char *fric[]   = {"slip weakening", NULL};
 
