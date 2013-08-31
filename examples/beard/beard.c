@@ -197,7 +197,7 @@ split_domain_treeid_iter_volume(p4est_iter_volume_info_t *info, void *arg)
 {
   bfam_locidx_t num_trees = info->p4est->connectivity->num_trees;
   split_iter_data_t *data = (split_iter_data_t*) arg;
-  int N = BFAM_MAX(data->base_N,
+  int N = BFAM_MIN(data->base_N,
       ceil(data->N_fault*sqrt(pow(2.0,max_refine_level-info->quad->level))));
   data->subdomain_id[data->loc] = info->treeid + num_trees*(N-1);
   data->loc++;
@@ -214,7 +214,7 @@ split_domain_treeid(beard_t *beard, int base_N, int N_fault)
     bfam_malloc(domain->p4est->local_num_quadrants*sizeof(bfam_locidx_t));
   bfam_locidx_t num_trees = domain->p4est->connectivity->num_trees;
   int Nmax =
-    BFAM_MAX(base_N,ceil(N_fault*sqrt(pow(2.0,max_refine_level-refine_level))));
+    BFAM_MIN(base_N,ceil(N_fault*sqrt(pow(2.0,max_refine_level-refine_level))));
   bfam_real_t num_subdomains = num_trees*Nmax;
   bfam_locidx_t *N = bfam_malloc(num_subdomains*sizeof(int));
   for(int l = 0; l < Nmax;l++)
