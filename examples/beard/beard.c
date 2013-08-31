@@ -1174,12 +1174,12 @@ init_domain(beard_t *beard, prefs_t *prefs)
     {
       bfam_subdomain_t * fault_sub[domain->numSubdomains];
       bfam_locidx_t num_subs;
-      char friction_name[2][10];
+      char friction_name[2][BFAM_BUFSIZ];
       const char *friction_tag[] = {friction_name[0],friction_name[1],NULL};
       const int num_trees = beard->conn->num_trees;
-      snprintf(friction_name[0],10,"_glue_%d_%d",
+      snprintf(friction_name[0],BFAM_BUFSIZ,"_glue_%d_%d",
           num_trees*(prefs->N_fault-1),2+num_trees*(prefs->N_fault-1));
-      snprintf(friction_name[1],10,"_glue_%d_%d",
+      snprintf(friction_name[1],BFAM_BUFSIZ,"_glue_%d_%d",
           1+num_trees*(prefs->N_fault-1),3+num_trees*(prefs->N_fault-1));
       bfam_domain_get_subdomains(domain, BFAM_DOMAIN_OR, friction_tag,
           domain->numSubdomains, fault_sub, &num_subs);
