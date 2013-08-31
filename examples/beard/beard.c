@@ -1185,6 +1185,7 @@ init_domain(beard_t *beard, prefs_t *prefs)
           domain->numSubdomains, fault_sub, &num_subs);
       for(int s = 0; s < num_subs; s++)
         bfam_subdomain_add_tag(fault_sub[s],"slip weakening");
+      BFAM_INFO("num_sub: %d %s %s",num_subs,friction_name[0],friction_name[1]);
 
       const char *fric[]   = {"slip weakening", NULL};
 
