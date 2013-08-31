@@ -189,6 +189,7 @@ typedef struct split_iter_data
   bfam_locidx_t *subdomain_id;
   bfam_real_t dt;
   int N_fault;
+  int base_N;
 } split_iter_data_t;
 
 static void
@@ -196,7 +197,8 @@ split_domain_treeid_iter_volume(p4est_iter_volume_info_t *info, void *arg)
 {
   bfam_locidx_t num_trees = info->p4est->connectivity->num_trees;
   split_iter_data_t *data = (split_iter_data_t*) arg;
-  int N = ceil(data->N_fault*sqrt(pow(2.0,max_refine_level-info->quad->level)));
+  int N = BFAM_MAX(data->base_N,
+      ceil(data->N_fault*sqrt(pow(2.0,max_refine_level-info->quad->level))));
   data->subdomain_id[data->loc] = info->treeid + num_trees*(N-1);
   data->loc++;
 }
@@ -211,7 +213,8 @@ split_domain_treeid(beard_t *beard, int base_N, int N_fault)
   bfam_locidx_t *subdomain_id =
     bfam_malloc(domain->p4est->local_num_quadrants*sizeof(bfam_locidx_t));
   bfam_locidx_t num_trees = domain->p4est->connectivity->num_trees;
-  int Nmax = ceil(N_fault*sqrt(pow(2.0,max_refine_level-refine_level)));
+  int Nmax =
+    BFAM_MAX(base_N,ceil(N_fault*sqrt(pow(2.0,max_refine_level-refine_level))));
   bfam_real_t num_subdomains = num_trees*Nmax;
   bfam_locidx_t *N = bfam_malloc(num_subdomains*sizeof(int));
   for(int l = 0; l < Nmax;l++)
@@ -220,7 +223,7 @@ split_domain_treeid(beard_t *beard, int base_N, int N_fault)
       N[l*num_trees+t] = l+1;
     }
 
-  split_iter_data_t data = {0,subdomain_id,1,N_fault};
+  split_iter_data_t data = {0,subdomain_id,1,N_fault,base_N};
   p4est_iterate (domain->p4est, NULL, &data,
       split_domain_treeid_iter_volume, NULL, NULL);
 
@@ -1319,24 +1322,24 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
 
   compute_energy(&beard,prefs,0,0);
 
-  for(int s = 0; s < nsteps; s++)
+  for(int s = 1; s <= nsteps; s++)
   {
     beard.lsrk->base.step((bfam_ts_t*) beard.lsrk,dt);
     if(s%noutput_body == 0)
     {
-      snprintf(output,BFAM_BUFSIZ,"solution_%05d",s+1);
+      snprintf(output,BFAM_BUFSIZ,"solution_%05d",s);
       bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
-          directory,output,(s+1)*dt, fields, NULL, NULL, 1, 1);
+          directory,output,(s)*dt, fields, NULL, NULL, 1, 1);
     }
     if(s%noutput_fault == 0)
     {
-      snprintf(output,BFAM_BUFSIZ,"solution_friction_%05d",s+1);
+      snprintf(output,BFAM_BUFSIZ,"solution_friction_%05d",s);
       bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, fric_tags,
-          directory,output,(s+1)*dt, fault_fields, NULL, NULL, 0, 0);
+          directory,output,(s)*dt, fault_fields, NULL, NULL, 0, 0);
     }
     if(s%ndisp == 0)
     {
-      compute_energy(&beard,prefs,(s+1)*dt,0);
+      compute_energy(&beard,prefs,(s)*dt,0);
     }
   }
 
