@@ -11,9 +11,9 @@ function dt_modify ( dt )
   noutput_fault = math.ceil(t_fault/dt)
   dt = t_fault/noutput_fault
 
-  nsteps = 12/dt
-  ndisp = 0.1/dt
-  noutput_body = 0.1/dt
+  nsteps = math.ceil(t_final/dt)
+  ndisp = math.ceil(t_disp/dt)
+  noutput_body = math.ceil(t_body/dt)
   return  noutput_fault, noutput_body, ndisp, nsteps, dt
 end
 
