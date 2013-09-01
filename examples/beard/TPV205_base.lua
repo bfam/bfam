@@ -6,6 +6,32 @@ nsteps   = 12000
 ndisp    = 1
 noutput_body   = 1000
 noutput_fault  = 10
+nfaults = 2
+
+function fault_bricks(f)
+  if f == 0 then
+    return 0,2
+  elseif f == 1 then
+    return 1,3
+  end
+end
+
+
+function fault_refine(x,y,z,level)
+  if x < -15 then
+    dist = (x+15)^2+y^2
+  elseif x > 15 then
+    dist = (x-15)^2+y^2
+  else
+    dist = y^2
+  end
+  dist = math.sqrt(dist)
+  if(dist < 2*(max_refine_level-level)) then
+    return 1
+  else
+    return 0
+  end
+end
 
 function dt_modify ( dt )
   noutput_fault = math.ceil(t_fault/dt)
