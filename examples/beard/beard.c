@@ -119,6 +119,7 @@ refine_near_fault_fn(p4est_t * p4est, p4est_topidx_t which_tree,
       if(!lua_isnumber(L,-1))
         BFAM_ABORT("function '%s' must return number","fault_refine");
       bfam_real_t val = (int) lua_tonumber(L,-1);
+      lua_pop(L,1);
       if(val) return 1;
     }
 
