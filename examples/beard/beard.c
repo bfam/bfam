@@ -1679,7 +1679,7 @@ main(int argc, char *argv[])
   prefs_t *prefs = new_prefs(argv[1]);
   print_prefs(prefs);
 
-  print_order(prefs->N);
+  /* print_order(prefs->N); */
 
   run(comm, prefs);
   free_prefs(prefs);

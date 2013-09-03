@@ -84,7 +84,7 @@ function fault_refine(x,y,z,level)
     end
   end
   dist = math.sqrt(dist)
-  if(dist < 3*(max_refine_level-level)) then
+  if(dist < refine_dist*(max_refine_level-level)) then
     return 1
   else
     return 0
