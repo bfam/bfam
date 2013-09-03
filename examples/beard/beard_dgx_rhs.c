@@ -1124,7 +1124,17 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
           Tnm, Tnp, Tpm, Tpp, vnm, vnp, vpm, vpp, Zpm, Zpp, Zsm, Zsp);
 
       Tn[iG] = TnS_g[pnt]+Tn_0[iG];
-      BFAM_ABORT_IF(Tn[iG] > 0, "fault opening not implemented");
+      if(Tn[iG] > 0)
+      {
+        BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x  ,"","_grid_x" ,fields_g);
+        BFAM_LOAD_FIELD_RESTRICT_ALIGNED(y  ,"","_grid_y" ,fields_g);
+        BFAM_LOAD_FIELD_RESTRICT_ALIGNED(z  ,"","_grid_z" ,fields_g);
+        BFAM_ABORT("fault opening not implemented: point"
+            " %"BFAM_REAL_FMTe
+            " %"BFAM_REAL_FMTe
+            " %"BFAM_REAL_FMTe,
+            x[iG], y[iG], z[iG]);
+      }
 
       bfam_real_t Slock2 =
         + (TpS_g[3*pnt+0]+Tp1_0[iG])*(TpS_g[3*pnt+0]+Tp1_0[iG])
