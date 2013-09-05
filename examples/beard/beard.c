@@ -163,6 +163,12 @@ typedef struct brick_args
   int random;
 } brick_args_t;
 
+typedef enum problem
+{
+  PROBLEM_STRESS_FREE_BOX,
+  PROBLEM_OTHER
+} problem_t;
+
 typedef struct prefs
 {
   lua_State *L;
@@ -181,6 +187,9 @@ typedef struct prefs
   bfam_ts_lsrk_method_t lsrk_method;
 
   brick_args_t *brick;
+
+  problem_t problem;
+  void * problem_data;
 } prefs_t;
 
 typedef struct beard
@@ -328,8 +337,8 @@ typedef struct stress_free_box_params
   bfam_real_t A;
   bfam_real_t rho;
   bfam_real_t mu;
-  int n_ap;
-  int m_ap;
+  bfam_real_t n_ap;
+  bfam_real_t m_ap;
 } stress_free_box_params_t;
 
 static void
@@ -341,38 +350,55 @@ stress_free_box(bfam_locidx_t npoints, const char* name, bfam_real_t t,
   bfam_real_t A = params->A;
   bfam_real_t rho = params->rho;
   bfam_real_t mu = params->mu;
-  int n_ap = params->n_ap;
-  int m_ap = params->m_ap;
+  bfam_real_t n_ap = params->n_ap;
+  bfam_real_t m_ap = params->m_ap;
   bfam_long_real_t pi = 4*atanl(1);
+  BFAM_ASSUME_ALIGNED(field, 32);
 
-  /*
-  for(bfam_locidx_t n=0; n < npoints; ++n)
-    field[n] = 1;
-  return;
-  */
-  if(strcmp(name,"v3")==0)
+  if(strcmp(name,"v3")==0 || strcmp(name,"error_v3")==0)
   {
     bfam_long_real_t kx = n_ap*pi;
     bfam_long_real_t ky = m_ap*pi;
     bfam_long_real_t w = -BFAM_REAL_SQRT((mu/rho)*(kx*kx+ky*ky));
     for(bfam_locidx_t n=0; n < npoints; ++n)
       field[n] = -(A*w/mu)*sin(kx*x[n])*sin(ky*y[n])*sin(w*t);
+    if(strcmp(name,"error_v3")==0)
+    {
+      bfam_real_t *restrict v3 =
+        bfam_dictionary_get_value_ptr(&s->fields, "v3");
+      BFAM_ASSUME_ALIGNED(v3, 32);
+      for(bfam_locidx_t n=0; n < npoints; ++n) field[n] -= v3[n];
+    }
   }
-  else if(strcmp(name,"S13")==0)
-  {
-    bfam_long_real_t kx = n_ap*pi;
-    bfam_long_real_t ky = m_ap*pi;
-    bfam_long_real_t w = -BFAM_REAL_SQRT((mu/rho)*(kx*kx+ky*ky));
-    for(bfam_locidx_t n=0; n < npoints; ++n)
-      field[n] = A*ky*sin(kx*x[n])*cos(ky*y[n])*cos(w*t);
-  }
-  else if(strcmp(name,"S23")==0)
+  else if(strcmp(name,"S13")==0 || strcmp(name,"error_S13")==0)
   {
     bfam_long_real_t kx = n_ap*pi;
     bfam_long_real_t ky = m_ap*pi;
     bfam_long_real_t w = -BFAM_REAL_SQRT((mu/rho)*(kx*kx+ky*ky));
     for(bfam_locidx_t n=0; n < npoints; ++n)
       field[n] = A*kx*cos(kx*x[n])*sin(ky*y[n])*cos(w*t);
+    if(strcmp(name,"error_S13")==0)
+    {
+      bfam_real_t *restrict S13 =
+        bfam_dictionary_get_value_ptr(&s->fields, "S13");
+      BFAM_ASSUME_ALIGNED(S13, 32);
+      for(bfam_locidx_t n=0; n < npoints; ++n) field[n] -= S13[n];
+    }
+  }
+  else if(strcmp(name,"S23")==0 || strcmp(name,"error_S23")==0)
+  {
+    bfam_long_real_t kx = n_ap*pi;
+    bfam_long_real_t ky = m_ap*pi;
+    bfam_long_real_t w = -BFAM_REAL_SQRT((mu/rho)*(kx*kx+ky*ky));
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      field[n] = A*ky*sin(kx*x[n])*cos(ky*y[n])*cos(w*t);
+    if(strcmp(name,"error_S23")==0)
+    {
+      bfam_real_t *restrict S23 =
+        bfam_dictionary_get_value_ptr(&s->fields, "S23");
+      BFAM_ASSUME_ALIGNED(S23, 32);
+      for(bfam_locidx_t n=0; n < npoints; ++n) field[n] -= S23[n];
+    }
   }
   else
   {
@@ -917,7 +943,43 @@ init_lsrk(beard_t *beard, prefs_t *prefs)
 }
 
 static void
-compute_energy(beard_t *beard, prefs_t *prefs, bfam_real_t t, int init_energy)
+compute_error(beard_t *beard, prefs_t *prefs, bfam_real_t t, const char *prefix)
+{
+  const char *tags[] = {"_volume",NULL};
+  bfam_subdomain_t *subs[beard->domain->base.numSubdomains];
+  bfam_locidx_t num_subs = 0;
+  bfam_domain_get_subdomains((bfam_domain_t*) beard->domain,
+      BFAM_DOMAIN_OR,tags,beard->domain->base.numSubdomains,
+      subs,&num_subs);
+  bfam_real_t error_sq = 0;
+  bfam_real_t error_sq_local = 0;
+  for(bfam_locidx_t s = 0; s<num_subs; s++)
+  {
+    bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*) subs[s];
+#define X(order) \
+    case order: beard_dgx_energy_##order(sub->N,&error_sq_local, \
+                    sub,prefix); break;
+
+    switch(sub->N)
+    {
+      BFAM_LIST_OF_DGX_QUAD_NORDERS
+      default:
+        beard_dgx_energy_(sub->N,&error_sq_local,sub,prefix);
+        break;
+    }
+#undef X
+  }
+  BFAM_MPI_CHECK(MPI_Reduce(&error_sq_local,&error_sq,1,BFAM_REAL_MPI,
+         MPI_SUM,0,beard->mpicomm));
+
+  BFAM_ROOT_INFO("\x1B[34mtime: %f error: %e\x1B[0m",
+      t, BFAM_REAL_SQRT(error_sq));
+}
+
+
+static void
+compute_energy(beard_t *beard, prefs_t *prefs, bfam_real_t t,
+    int init_energy, const char *prefix)
 {
   const char *tags[] = {"_volume",NULL};
   bfam_subdomain_t *subs[beard->domain->base.numSubdomains];
@@ -932,13 +994,13 @@ compute_energy(beard_t *beard, prefs_t *prefs, bfam_real_t t, int init_energy)
     bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*) subs[s];
 #define X(order) \
     case order: beard_dgx_energy_##order(sub->N,&energy_sq_local, \
-                    sub,""); break;
+                    sub,prefix); break;
 
     switch(sub->N)
     {
       BFAM_LIST_OF_DGX_QUAD_NORDERS
       default:
-        beard_dgx_energy_(sub->N,&energy_sq_local,sub,"");
+        beard_dgx_energy_(sub->N,&energy_sq_local,sub,prefix);
         break;
     }
 #undef X
@@ -1233,33 +1295,74 @@ init_domain(beard_t *beard, prefs_t *prefs)
 
   /* Set up some problem specific problems */
   lua_getglobal(prefs->L, "problem");
+  prefs->problem = PROBLEM_OTHER;
   if(lua_isstring(prefs->L, -1))
   {
+    prefs->problem = PROBLEM_STRESS_FREE_BOX;
     const char *prob_name = lua_tostring(prefs->L, -1);
 
     if(strcmp(prob_name,"stress free box") == 0)
     {
 
-      stress_free_box_params_t field_params;
-      field_params.A    = 1;
-      field_params.rho  = prefs->rho;
-      field_params.mu   = prefs->mu;
-      field_params.n_ap = 2;
-      field_params.m_ap = 2;
+      prefs->problem_data = bfam_malloc(sizeof(stress_free_box_params_t));
+      stress_free_box_params_t *field_params =
+        (stress_free_box_params_t*) prefs->problem_data;
+      field_params->A    = 1;
+      field_params->rho  = prefs->rho;
+      field_params->mu   = prefs->mu;
+      field_params->n_ap = 1.0;
+      field_params->m_ap = 1.0;
 
       bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v3", 0,
-          stress_free_box, &field_params);
+          stress_free_box, field_params);
       bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S13", 0,
-          stress_free_box, &field_params);
+          stress_free_box, field_params);
       bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S23", 0,
-          stress_free_box, &field_params);
+          stress_free_box, field_params);
       /*
       bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v1", 0,
-          stress_free_box, &field_params);
+          stress_free_box, field_params);
       bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v2", 0,
-          stress_free_box, &field_params);
+          stress_free_box, field_params);
       */
 
+      bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "error_v1");
+      bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "error_v2");
+      bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "error_v3");
+
+      bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "error_S11");
+      bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "error_S22");
+      bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "error_S33");
+      bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "error_S12");
+      bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "error_S13");
+      bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "error_S23");
+
+
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "error_v1", 0,
+          field_set_val, NULL);
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "error_v2", 0,
+          field_set_val, NULL);
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "error_v3", 0,
+          field_set_val, NULL);
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "error_S11", 0,
+          field_set_val, NULL);
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "error_S22", 0,
+          field_set_val, NULL);
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "error_S33", 0,
+          field_set_val, NULL);
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "error_S12", 0,
+          field_set_val, NULL);
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "error_S13", 0,
+          field_set_val, NULL);
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "error_S23", 0,
+          field_set_val, NULL);
+
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "error_v3", 0,
+          stress_free_box, field_params);
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "error_S13", 0,
+          stress_free_box, field_params);
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "error_S23", 0,
+          stress_free_box, field_params);
 
     }
     else if(strcmp(prob_name,"slip weakening") == 0)
@@ -1360,8 +1463,9 @@ init_domain(beard_t *beard, prefs_t *prefs)
 }
 
 static void
-shave_beard(beard_t *beard)
+shave_beard(beard_t *beard,prefs_t *prefs)
 {
+  if(prefs->problem_data != NULL) bfam_free(prefs->problem_data);
   bfam_free(beard->comm_args);
   bfam_ts_lsrk_free(beard->lsrk);
   bfam_free(beard->lsrk);
@@ -1374,7 +1478,8 @@ static void
 run(MPI_Comm mpicomm, prefs_t *prefs)
 {
   const char *fields[] = {"v1", "v2", "v3",
-    "S11", "S22", "S33", "S12", "S13", "S23", NULL};
+    "S11", "S22", "S33", "S12", "S13", "S23",
+    "error_v3", "error_S13", "error_S23",NULL};
   // const char *fields[] = {"v1", NULL};
   const char *volume[] = {"_volume", NULL};
   const char *fault_fields[] = {"Dp", "Dn", "V", "Tp1_0", "Tp2_0", "Tp3_0",
@@ -1448,13 +1553,22 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   BFAM_ROOT_INFO("nout_b: %04d",noutput_body);
   BFAM_ROOT_INFO("nout_f: %04d",noutput_fault);
 
-  compute_energy(&beard,prefs,0,0);
+  compute_energy(&beard,prefs,0,0,"");
 
   for(int s = 1; s <= nsteps; s++)
   {
     beard.lsrk->base.step((bfam_ts_t*) beard.lsrk,dt);
-    if(s%noutput_body == 0)
+    if(prefs->problem == PROBLEM_STRESS_FREE_BOX)
     {
+      stress_free_box_params_t *field_params =
+        (stress_free_box_params_t*) prefs->problem_data;
+      bfam_domain_init_field(beard.domain, BFAM_DOMAIN_OR, volume,
+          "error_v3", s*dt, stress_free_box, field_params);
+      bfam_domain_init_field(beard.domain, BFAM_DOMAIN_OR, volume,
+          "error_S13", s*dt, stress_free_box, field_params);
+      bfam_domain_init_field(beard.domain, BFAM_DOMAIN_OR, volume,
+          "error_S23", s*dt, stress_free_box, field_params);
+
       snprintf(output,BFAM_BUFSIZ,"solution_%05d",s);
       bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
           directory,output,(s)*dt, fields, NULL, NULL, 1, 1,2*(prefs->N+1));
@@ -1467,11 +1581,19 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
     }
     if(s%ndisp == 0)
     {
-      compute_energy(&beard,prefs,(s)*dt,0);
+      compute_energy(&beard,prefs,s*dt,0,"");
+      if(prefs->problem == PROBLEM_STRESS_FREE_BOX)
+        compute_error(&beard,prefs,s*dt,"error_");
+    }
+    if(s%noutput_body == 0)
+    {
+      snprintf(output,BFAM_BUFSIZ,"solution_%05d",s);
+      bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
+          directory,output,(s)*dt, fields, NULL, NULL, 1, 1);
     }
   }
 
-  shave_beard(&beard);
+  shave_beard(&beard,prefs);
 }
 
 static void
@@ -1518,6 +1640,7 @@ static prefs_t *
 new_prefs(const char *prefs_filename)
 {
   prefs_t *prefs = bfam_malloc(sizeof(prefs_t));
+  prefs->problem_data = NULL;
 
   lua_State *L = luaL_newstate();
   luaL_openlibs(L);
@@ -1530,7 +1653,7 @@ new_prefs(const char *prefs_filename)
   BFAM_ASSERT(lua_gettop(L)==0);
 
   prefs->N = get_global_int(L, "N", 5, 1);
-  prefs->N_fault = get_global_int(L, "N_fault", 1, 1);
+  prefs->N_fault = get_global_int(L, "N_fault", prefs->N, 1);
   prefs->dt_scale = get_global_real(L, "dt_scale", 1, 1);
   prefs->num_subdomains = get_global_int(L, "num_subdomains", 1, 1);
   refine_level = get_global_int(L, "refine_level", 0, 1);
