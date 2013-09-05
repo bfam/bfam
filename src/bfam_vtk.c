@@ -204,16 +204,16 @@ bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match, const
 
   fprintf(file, "  <UnstructuredGrid>\n");
 
-  if(numSubdomains == 0) bfam_vtk_write_vtu_empty(file,binary);
 
+  int files_written = 0;
   for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
   {
     bfam_subdomain_t *subdomain = subdomains[s];
 
     if(subdomain->vtk_write_vtu_piece)
     {
-      subdomain->vtk_write_vtu_piece(subdomains[s], file, time, scalars,
-          vectors, components, binary, compress, rank, s);
+      files_written += subdomain->vtk_write_vtu_piece(subdomains[s], file, time,
+          scalars, vectors, components, binary, compress, rank, s);
     }
     else
     {
@@ -221,6 +221,8 @@ bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match, const
         subdomain->name);
     }
   }
+
+  if(files_written == 0) bfam_vtk_write_vtu_empty(file,binary);
 
   fprintf(file, "  </UnstructuredGrid>\n");
   fprintf(file, "</VTKFile>\n");

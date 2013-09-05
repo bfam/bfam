@@ -5,7 +5,7 @@
 #include <bfam_util.h>
 #include <bfam_vtk.h>
 
-static void
+static int
 bfam_subdomain_dgx_quad_glue_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
     FILE *file, bfam_real_t time, const char **scalars, const char **vectors,
     const char **components, int writeBinary, int writeCompressed,
@@ -16,8 +16,7 @@ bfam_subdomain_dgx_quad_glue_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
 
   if(s->id_m != BFAM_MIN(s->id_m,s->id_p))
   {
-    bfam_vtk_write_vtu_empty(file,writeBinary);
-    return;
+    return 0;
   }
 
   const char *format;
@@ -316,9 +315,11 @@ bfam_subdomain_dgx_quad_glue_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
 
   fprintf(file, "      </PointData>\n");
   fprintf(file, "    </Piece>\n");
+
+  return 1;
 }
 
-static void
+static int
 bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
     FILE *file, bfam_real_t time, const char **scalars, const char **vectors,
     const char **components, int writeBinary, int writeCompressed,
@@ -630,6 +631,7 @@ bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
 
   fprintf(file, "      </PointData>\n");
   fprintf(file, "    </Piece>\n");
+  return 1;
 }
 
 
