@@ -1340,7 +1340,8 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
     "S11", "S22", "S33", "S12", "S13", "S23", NULL};
   // const char *fields[] = {"v1", NULL};
   const char *volume[] = {"_volume", NULL};
-  const char *fault_fields[] = {"Dp", "Dn", "V",NULL};
+  const char *fault_fields[] = {"Dp", "Dn", "V", "Tp1_0", "Tp2_0", "Tp3_0",
+    "Tn_0", "Tp1", "Tp2", "Tp3", "Tn",  "fs",  "fd", "Dc",NULL};
   const char *fric_tags[]   = {"slip weakening", NULL};
 
   beard_t beard;
