@@ -207,8 +207,8 @@ bfam_util_forwardslash(size_t m, size_t n, bfam_long_real_t *restrict A,
                        bfam_long_real_t *restrict B,
                        bfam_long_real_t *restrict C)
 {
-  bfam_long_real_t *AT = bfam_malloc_aligned(m*m*sizeof(bfam_long_real_t));
-  bfam_long_real_t *BT = bfam_malloc_aligned(n*m*sizeof(bfam_long_real_t));
+  bfam_long_real_t *AT = bfam_malloc_aligned(n*m*sizeof(bfam_long_real_t));
+  bfam_long_real_t *BT = bfam_malloc_aligned(n*n*sizeof(bfam_long_real_t));
   bfam_long_real_t *CT = bfam_malloc_aligned(n*m*sizeof(bfam_long_real_t));
 
   bfam_util_mtranspose(m, n, A, m, AT, n);
