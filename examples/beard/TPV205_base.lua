@@ -26,7 +26,7 @@ function fault_refine(x,y,z,level)
     dist = y^2
   end
   dist = math.sqrt(dist)
-  if(dist < 2*(max_refine_level-level)) then
+  if(dist < refine_dist*(max_refine_level-level)) then
     return 1
   else
     return 0
