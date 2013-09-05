@@ -51,6 +51,8 @@ typedef struct bfam_subdomain_dgx_quad
 
   bfam_real_t     *Dr;  /* 1D LGL differentiation matrix */
 
+  bfam_long_real_t *V;  /* 1D Vandermonde matrix for this N */
+
   bfam_locidx_t    K;   /* Number of elements in the subdomain */
 
   bfam_locidx_t   *vmapM; /* Mapping into the volume for the minus side of the

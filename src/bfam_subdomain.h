@@ -129,7 +129,8 @@ typedef struct bfam_subdomain
                                int writeBinary,
                                int writeCompressed,
                                int rank,
-                               bfam_locidx_t id);
+                               bfam_locidx_t id,
+                               int Np_write);
 
   /**< Write a vtk vts file */
   void (*vtk_write_vts_piece) (struct bfam_subdomain *thisSubdomain,

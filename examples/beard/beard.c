@@ -1355,11 +1355,11 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   char output[BFAM_BUFSIZ];
   snprintf(output,BFAM_BUFSIZ,"solution_%05d",0);
   bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
-      directory,output,0, fields, NULL, NULL, 1, 1);
+      directory,output,0, fields, NULL, NULL, 1, 1,2*(prefs->N+1));
 
   snprintf(output,BFAM_BUFSIZ,"solution_friction_%05d",0);
   bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, fric_tags,
-      directory,output,0, fault_fields, NULL, NULL, 0, 0);
+      directory,output,0, fault_fields, NULL, NULL, 0, 0,0);
 
   bfam_real_t ldt = INFINITY;
   bfam_domain_init_field((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
@@ -1419,13 +1419,13 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
     {
       snprintf(output,BFAM_BUFSIZ,"solution_%05d",s);
       bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
-          directory,output,(s)*dt, fields, NULL, NULL, 1, 1);
+          directory,output,(s)*dt, fields, NULL, NULL, 1, 1,2*(prefs->N+1));
     }
     if(s%noutput_fault == 0)
     {
       snprintf(output,BFAM_BUFSIZ,"solution_friction_%05d",s);
       bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, fric_tags,
-          directory,output,(s)*dt, fault_fields, NULL, NULL, 0, 0);
+          directory,output,(s)*dt, fault_fields, NULL, NULL, 0, 0,0);
     }
     if(s%ndisp == 0)
     {

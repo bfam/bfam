@@ -158,7 +158,7 @@ void
 bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match, const
     char **tags, const char *directory, const char *prefix, bfam_real_t time,
     const char **scalars, const char **vectors, const char **components,
-    int binary, int compress)
+    int binary, int compress, int Np_write)
 {
   const int endian = bfam_endian();
 
@@ -213,7 +213,7 @@ bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match, const
     if(subdomain->vtk_write_vtu_piece)
     {
       files_written += subdomain->vtk_write_vtu_piece(subdomains[s], file, time,
-          scalars, vectors, components, binary, compress, rank, s);
+          scalars, vectors, components, binary, compress, rank, s, Np_write);
     }
     else
     {

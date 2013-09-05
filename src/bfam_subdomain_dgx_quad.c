@@ -9,8 +9,12 @@ static int
 bfam_subdomain_dgx_quad_glue_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
     FILE *file, bfam_real_t time, const char **scalars, const char **vectors,
     const char **components, int writeBinary, int writeCompressed,
-    int rank, bfam_locidx_t id)
+    int rank, bfam_locidx_t id, int Np_write)
 {
+
+  BFAM_ABORT_IF_NOT(Np_write == 0,
+      "changing number of points not implemented for "
+      "bfam_subdomain_dgx_quad_glue_t yet");
   bfam_subdomain_dgx_quad_glue_t *s =
     (bfam_subdomain_dgx_quad_glue_t*) subdomain;
 
@@ -319,13 +323,38 @@ bfam_subdomain_dgx_quad_glue_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
   return 1;
 }
 
+static void
+bfam_subdomain_dgx_quad_vtk_interp(bfam_locidx_t K,
+    int N_d,       bfam_real_t * restrict d,
+    int N_s, const bfam_real_t * restrict s,
+    const bfam_real_t *restrict interp)
+{
+  BFAM_ASSUME_ALIGNED(d,32);
+  BFAM_ASSUME_ALIGNED(s,32);
+  BFAM_ASSUME_ALIGNED(interp,32);
+  for(int elem = 0; elem < K; elem++)
+  {
+    int o_d = elem * (N_d+1)*(N_d+1);
+    int o_s = elem * (N_s+1)*(N_s+1);
+    for(int n = 0; n < (N_d+1)*(N_d+1); n++) d[o_d+n] = 0;
+
+    for(int l = 0; l < N_s+1; l++)
+      for(int k = 0; k < N_s+1; k++)
+        for(int j = 0; j < N_d+1; j++)
+          for(int i = 0; i < N_d+1; i++)
+            d[o_d+j*(N_d+1)+i] +=
+              interp[(N_d+1)*l+j]*interp[(N_d+1)*k+i]
+              *s[o_s+l*(N_s+1)+k];
+  }
+}
+
 static int
 bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
     FILE *file, bfam_real_t time, const char **scalars, const char **vectors,
     const char **components, int writeBinary, int writeCompressed,
-    int rank, bfam_locidx_t id)
+    int rank, bfam_locidx_t id, int Np_write)
 {
-  bfam_subdomain_dgx_quad_t *s = (bfam_subdomain_dgx_quad_t*) subdomain;
+  bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*) subdomain;
 
   const char *format;
 
@@ -334,14 +363,51 @@ bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
   else
     format = "ascii";
 
-  const bfam_locidx_t  K  = s->K;
-  const int            N  = s->N;
-  const int            Np = s->Np;
+  const bfam_locidx_t  K  = sub->K;
+  int            N_vtk  = sub->N;
+  int            Np_vtk = sub->Np;
+  bfam_real_t *interp = NULL;
 
-  const int Ncorners = s->Ncorners;
+  bfam_real_t *restrict stor1 = NULL;
+  bfam_real_t *restrict stor2 = NULL;
+  bfam_real_t *restrict stor3 = NULL;
 
-  const bfam_locidx_t Ncells = K * N * N;
-  const bfam_locidx_t Ntotal = K * Np;
+  if(Np_write > 0)
+  {
+    BFAM_ABORT_IF_NOT(Np_write > 1, "Np_write = %d is not valid",
+        Np_write);
+
+    N_vtk  = Np_write - 1;
+    Np_vtk = Np_write*Np_write;
+
+    interp = bfam_malloc_aligned(sizeof(bfam_real_t)*(sub->N+1)*(N_vtk+1));
+
+    bfam_long_real_t *calc_interp =
+      bfam_malloc_aligned(sizeof(bfam_long_real_t)*(sub->N+1)*(N_vtk+1));
+    bfam_long_real_t *lr =
+      bfam_malloc_aligned(sizeof(bfam_long_real_t)*Np_write);
+
+    for(int r = 0; r < Np_write; r++)
+      lr[r] = -1 + 2*(bfam_long_real_t)r/(Np_write-1);
+
+    bfam_jacobi_p_interpolation(0, 0, sub->N, Np_write, lr, sub->V,
+        calc_interp);
+
+    for(int n = 0; n < (sub->N+1)*(N_vtk+1); n++)
+      interp[n] = (bfam_real_t)calc_interp[n];
+
+    stor1 = bfam_malloc_aligned(sizeof(bfam_real_t)*Np_vtk*K);
+    stor2 = bfam_malloc_aligned(sizeof(bfam_real_t)*Np_vtk*K);
+    stor3 = bfam_malloc_aligned(sizeof(bfam_real_t)*Np_vtk*K);
+
+    bfam_free_aligned(lr);
+    bfam_free_aligned(calc_interp);
+  }
+
+  const int Ncorners = sub->Ncorners;
+
+  const bfam_locidx_t Ncells = K * N_vtk * N_vtk;
+  const bfam_locidx_t Ntotal = K * Np_vtk;
 
   bfam_real_t *restrict x =
     bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_x");
@@ -349,6 +415,19 @@ bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
     bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_y");
   bfam_real_t *restrict z =
     bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_z");
+
+  if(interp == NULL)
+  {
+    stor1 = x;
+    stor2 = y;
+    stor3 = z;
+  }
+  else
+  {
+    bfam_subdomain_dgx_quad_vtk_interp(K,N_vtk,stor1,sub->N,x,interp);
+    bfam_subdomain_dgx_quad_vtk_interp(K,N_vtk,stor2,sub->N,y,interp);
+    bfam_subdomain_dgx_quad_vtk_interp(K,N_vtk,stor3,sub->N,z,interp);
+  }
 
   fprintf(file,
            "    <Piece NumberOfPoints=\"%jd\" NumberOfCells=\"%jd\">\n",
@@ -360,7 +439,7 @@ bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
   fprintf (file, "      <Points>\n");
 
   bfam_vtk_write_real_vector_data_array(file, "Position", writeBinary,
-      writeCompressed, Ntotal, x, y, z);
+      writeCompressed, Ntotal, stor1, stor2, stor3);
 
   fprintf(file, "      </Points>\n");
 
@@ -381,14 +460,14 @@ bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
 
     for(bfam_locidx_t k = 0, i = 0; k < K; ++k)
     {
-      for(int m = 0; m < N; ++m)
+      for(int m = 0; m < N_vtk; ++m)
       {
-        for(int n = 0; n < N; ++n)
+        for(int n = 0; n < N_vtk; ++n)
         {
-          cells[i++] = Np * k + (N + 1) * (m + 0) + (n + 0);
-          cells[i++] = Np * k + (N + 1) * (m + 0) + (n + 1);
-          cells[i++] = Np * k + (N + 1) * (m + 1) + (n + 0);
-          cells[i++] = Np * k + (N + 1) * (m + 1) + (n + 1);
+          cells[i++] = Np_vtk * k + (N_vtk + 1) * (m + 0) + (n + 0);
+          cells[i++] = Np_vtk * k + (N_vtk + 1) * (m + 0) + (n + 1);
+          cells[i++] = Np_vtk * k + (N_vtk + 1) * (m + 1) + (n + 0);
+          cells[i++] = Np_vtk * k + (N_vtk + 1) * (m + 1) + (n + 1);
         }
       }
     }
@@ -406,14 +485,14 @@ bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
   else
   {
     for(bfam_locidx_t k = 0; k < K; ++k)
-      for(int m = 0; m < N; ++m)
-        for(int n = 0; n < N; ++n)
+      for(int m = 0; m < N_vtk; ++m)
+        for(int n = 0; n < N_vtk; ++n)
           fprintf(file,
                    "          %8jd %8jd %8jd %8jd\n",
-                   (intmax_t) Np * k + (N + 1) * (m + 0) + (n + 0),
-                   (intmax_t) Np * k + (N + 1) * (m + 0) + (n + 1),
-                   (intmax_t) Np * k + (N + 1) * (m + 1) + (n + 0),
-                   (intmax_t) Np * k + (N + 1) * (m + 1) + (n + 1));
+                   (intmax_t) Np_vtk * k + (N_vtk + 1) * (m + 0) + (n + 0),
+                   (intmax_t) Np_vtk * k + (N_vtk + 1) * (m + 0) + (n + 1),
+                   (intmax_t) Np_vtk * k + (N_vtk + 1) * (m + 1) + (n + 0),
+                   (intmax_t) Np_vtk * k + (N_vtk + 1) * (m + 1) + (n + 1));
   }
   fprintf(file, "        </DataArray>\n");
 
@@ -600,8 +679,17 @@ bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
           scalars[s]);
       BFAM_ABORT_IF(sdata == NULL, "VTK: Field %s not in subdomain %s",
           scalars[s], subdomain->name);
+      if(interp == NULL)
+      {
+        stor1 = sdata;
+      }
+      else
+      {
+        bfam_subdomain_dgx_quad_vtk_interp(K,N_vtk,stor1,sub->N,sdata,interp);
+      }
+
       bfam_vtk_write_real_scalar_data_array(file, scalars[s],
-          writeBinary, writeCompressed, Ntotal, sdata);
+          writeBinary, writeCompressed, Ntotal, stor1);
     }
   }
 
@@ -623,14 +711,34 @@ bfam_subdomain_dgx_quad_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
           components[3*v+1], subdomain->name);
       BFAM_ABORT_IF(v3 == NULL, "VTK: Field %s not in subdomain %s",
           components[3*v+2], subdomain->name);
+      if(interp == NULL)
+      {
+        stor1 = v1;
+        stor2 = v2;
+        stor3 = v3;
+      }
+      else
+      {
+        bfam_subdomain_dgx_quad_vtk_interp(K,N_vtk,stor1,sub->N,v1,interp);
+        bfam_subdomain_dgx_quad_vtk_interp(K,N_vtk,stor2,sub->N,v2,interp);
+        bfam_subdomain_dgx_quad_vtk_interp(K,N_vtk,stor3,sub->N,v3,interp);
+      }
 
       bfam_vtk_write_real_vector_data_array(file, vectors[v],
-          writeBinary, writeCompressed, Ntotal, v1, v2, v3);
+          writeBinary, writeCompressed, Ntotal, stor1, stor2, stor3);
     }
   }
 
   fprintf(file, "      </PointData>\n");
   fprintf(file, "    </Piece>\n");
+
+  if(interp != NULL)
+  {
+    bfam_free_aligned(interp);
+    bfam_free_aligned(stor1);
+    bfam_free_aligned(stor2);
+    bfam_free_aligned(stor3);
+  }
   return 1;
 }
 
@@ -955,8 +1063,8 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
     }
   }
 
-  bfam_long_real_t *restrict V =
-    bfam_malloc_aligned(Nrp*Nrp*sizeof(bfam_long_real_t));
+  subdomain->V = bfam_malloc_aligned(Nrp*Nrp*sizeof(bfam_long_real_t));
+  bfam_long_real_t *restrict V = subdomain->V;
 
   bfam_jacobi_p_vandermonde(0, 0, N, Nrp, lr, V);
 
@@ -1110,7 +1218,6 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
   bfam_free_aligned(lJ );
 
   bfam_free_aligned(D);
-  bfam_free_aligned(V);
   bfam_free_aligned(M);
 
   bfam_free_aligned(lr);
@@ -1147,6 +1254,7 @@ bfam_subdomain_dgx_quad_free(bfam_subdomain_t *thisSubdomain)
   bfam_subdomain_free(thisSubdomain);
 
   bfam_free_aligned(sub->Dr);
+  bfam_free_aligned(sub->V);
 
   bfam_free_aligned(sub->r);
   bfam_free_aligned(sub->w);
