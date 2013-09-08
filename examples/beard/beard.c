@@ -1112,28 +1112,6 @@ init_domain(beard_t *beard, prefs_t *prefs)
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "S13");
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, volume, "S23");
 
-  bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, "v1");
-  bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, "v2");
-  bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, "v3");
-
-  bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "v1");
-  bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "v2");
-  bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "v3");
-
-  bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, "S11");
-  bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, "S22");
-  bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, "S33");
-  bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, "S12");
-  bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, "S13");
-  bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, "S23");
-
-  bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "S11");
-  bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "S22");
-  bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "S33");
-  bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "S12");
-  bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "S13");
-  bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, "S23");
-
   /* zero out fields */
   bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "v1", 0,
       field_set_val, NULL);
@@ -1154,6 +1132,46 @@ init_domain(beard_t *beard, prefs_t *prefs)
   bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, "S23", 0,
       field_set_val, NULL);
 
+  /* add glue fields */
+  for(int f = 0 ; comm_args_scalars[f] != NULL; f++)
+  {
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue,
+        comm_args_scalars[f]);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue,
+        comm_args_scalars[f]);
+  }
+  for(int f = 0 ; comm_args_vectors[f] != NULL; f++)
+  {
+    char name[BFAM_BUFSIZ];
+    snprintf(name,BFAM_BUFSIZ, "%sn",comm_args_vectors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+    snprintf(name,BFAM_BUFSIZ, "%sp1",comm_args_vectors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+    snprintf(name,BFAM_BUFSIZ, "%sp2",comm_args_vectors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+    snprintf(name,BFAM_BUFSIZ, "%sp3",comm_args_vectors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+  }
+  for(int f = 0 ; comm_args_tensors[f] != NULL; f++)
+  {
+    char name[BFAM_BUFSIZ];
+    snprintf(name,BFAM_BUFSIZ, "%sn",comm_args_tensors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+    snprintf(name,BFAM_BUFSIZ, "%sp1",comm_args_tensors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+    snprintf(name,BFAM_BUFSIZ, "%sp2",comm_args_tensors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+    snprintf(name,BFAM_BUFSIZ, "%sp3",comm_args_tensors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+  }
 
   /* exchange material properties to glue */
   const char *glue_mat[] = {"Zs","Zp","_grid_x","_grid_y","_grid_z",NULL};
