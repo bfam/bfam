@@ -7,20 +7,20 @@ static int max_refine_level = 0;
 static bfam_real_t energy_sq = 0;
 static bfam_real_t init_energy_sq = 1;
 
-/*
 const char *comm_args_scalars[]           = {NULL};
 const char *comm_args_vectors[]           = {"v",NULL};
 const char *comm_args_vector_components[] = {"v1","v2","v3",NULL};
 const char *comm_args_tensors[]           = {"T",NULL};
 const char *comm_args_tensor_components[] = {"S11","S22","S33",
                                              "S12","S13","S23",NULL};
-*/
+/*
 const char *comm_args_scalars[]           = {"v1","v2","v3","S11","S22","S33",
                                              "S12","S13","S23",NULL};
 const char *comm_args_vectors[]           = {NULL};
 const char *comm_args_vector_components[] = {NULL};
 const char *comm_args_tensors[]           = {NULL};
 const char *comm_args_tensor_components[] = {NULL};
+*/
 
 static void
 beard_grid_glue(bfam_locidx_t npoints, const char *name, bfam_real_t time,
