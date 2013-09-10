@@ -763,6 +763,14 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13,field_prefix,"S13",fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23,field_prefix,"S23",fields);
 
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vn_m ,field_prefix,"vn" ,fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp1_m,field_prefix,"vp1",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp2_m,field_prefix,"vp2",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp3_m,field_prefix,"vp3",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn_m ,field_prefix,"Tn" ,fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1_m,field_prefix,"Tp1",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2_m,field_prefix,"Tp2",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3_m,field_prefix,"Tp3",fields_m);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1_m ,field_prefix,"v1" ,fields_m);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2_m ,field_prefix,"v2" ,fields_m);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v3_m ,field_prefix,"v3" ,fields_m);
@@ -775,6 +783,14 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13_m,field_prefix,"S13",fields_m);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23_m,field_prefix,"S23",fields_m);
 
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vn_p ,field_prefix,"vn" ,fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp1_p,field_prefix,"vp1",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp2_p,field_prefix,"vp2",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp3_p,field_prefix,"vp3",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn_p ,field_prefix,"Tn" ,fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1_p,field_prefix,"Tp1",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2_p,field_prefix,"Tp2",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3_p,field_prefix,"Tp3",fields_p);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1_p ,field_prefix,"v1" ,fields_p);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2_p ,field_prefix,"v2" ,fields_p);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v3_p ,field_prefix,"v3" ,fields_p);
@@ -863,11 +879,27 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
       bfam_real_t Tnm = Tpm[0]*nm[0]+Tpm[1]*nm[1];
       Tpm[0] = Tpm[0]-Tnm*nm[0];
       Tpm[1] = Tpm[1]-Tnm*nm[1];
+      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(Tnm, Tn_m[iG], 10),
+          "%e %e",Tnm,Tn_m[iG]);
+      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(Tpm[0], Tp1_m[iG], 10),
+          "%e %e",Tpm[0],Tp1_m[iG]);
+      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(Tpm[1], Tp2_m[iG], 10),
+          "%e %e",Tpm[1],Tp2_m[iG]);
+      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(Tpm[2], Tp3_m[iG], 10),
+          "%e %e",Tpm[2],Tp3_m[iG]);
 
       bfam_real_t vpm[] = {v1_m[iG],v2_m[iG],v3_m[iG]};
       bfam_real_t vnm = nm[0]*vpm[0]+nm[1]*vpm[1];
       vpm[0] = vpm[0]-vnm*nm[0];
       vpm[1] = vpm[1]-vnm*nm[1];
+      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(vnm, vn_m[iG], 10),
+          "%e %e",vnm,vn_m[iG]);
+      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(vpm[0], vp1_m[iG], 10),
+          "%e %e",vpm[0],vp1_m[iG]);
+      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(vpm[1], vp2_m[iG], 10),
+          "%e %e",vpm[1],vp2_m[iG]);
+      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(vpm[2], vp3_m[iG], 10),
+          "%e %e",vpm[2],vp3_m[iG]);
 
       /* now add the real flux */
       /* Setup stuff for the plus side */
@@ -884,11 +916,27 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
       bfam_real_t Tnp = Tpp[0]*np[0]+Tpp[1]*np[1];
       Tpp[0] = Tpp[0]-Tnp*np[0];
       Tpp[1] = Tpp[1]-Tnp*np[1];
+      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(Tnp, Tn_p[iG], 10),
+          "%e %e",Tnp,Tn_p[iG]);
+      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(Tpp[0], Tp1_p[iG], 10),
+          "%e %e",Tpp[0],Tp1_p[iG]);
+      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(Tpp[1], Tp2_p[iG], 10),
+          "%e %e",Tpp[1],Tp2_p[iG]);
+      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(Tpp[2], Tp3_p[iG], 10),
+          "%e %e",Tpp[2],Tp3_p[iG]);
 
       bfam_real_t vpp[] = {v1_p[iG], v2_p[iG], v3_p[iG]};
       bfam_real_t vnp = np[0]*vpp[0]+np[1]*vpp[1];
       vpp[0] = vpp[0]-vnp*np[0];
       vpp[1] = vpp[1]-vnp*np[1];
+      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(vnp, vn_p[iG], 10),
+          "%e %e",vnp,vn_p[iG]);
+      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(vpp[0], vp1_p[iG], 10),
+          "%e %e",vpp[0],vp1_p[iG]);
+      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(vpp[1], vp2_p[iG], 10),
+          "%e %e",vpp[1],vp2_p[iG]);
+      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(vpp[2], vp3_p[iG], 10),
+          "%e %e",vpp[2],vp3_p[iG]);
 
       BEARD_STATE(
           &TnS_g[pnt],&TpS_g[3*pnt],&vnS_g[pnt],&vpS_g[3*pnt],
