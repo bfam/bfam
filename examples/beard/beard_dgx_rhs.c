@@ -771,17 +771,6 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1_m,field_prefix,"Tp1",fields_m);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2_m,field_prefix,"Tp2",fields_m);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3_m,field_prefix,"Tp3",fields_m);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1_m ,field_prefix,"v1" ,fields_m);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2_m ,field_prefix,"v2" ,fields_m);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v3_m ,field_prefix,"v3" ,fields_m);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11_m,field_prefix,"S11",fields_m);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22_m,field_prefix,"S22",fields_m);
-  /*
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33_m,field_prefix,"S33",fields_m);
-  */
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12_m,field_prefix,"S12",fields_m);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13_m,field_prefix,"S13",fields_m);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23_m,field_prefix,"S23",fields_m);
 
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vn_p ,field_prefix,"vn" ,fields_p);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp1_p,field_prefix,"vp1",fields_p);
@@ -791,17 +780,6 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1_p,field_prefix,"Tp1",fields_p);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2_p,field_prefix,"Tp2",fields_p);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3_p,field_prefix,"Tp3",fields_p);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1_p ,field_prefix,"v1" ,fields_p);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2_p ,field_prefix,"v2" ,fields_p);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v3_p ,field_prefix,"v3" ,fields_p);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11_p,field_prefix,"S11",fields_p);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22_p,field_prefix,"S22",fields_p);
-  /*
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33_p,field_prefix,"S33",fields_p);
-  */
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12_p,field_prefix,"S12",fields_p);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13_p,field_prefix,"S13",fields_p);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23_p,field_prefix,"S23",fields_p);
 
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv1 ,rate_prefix,"v1" ,fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv2 ,rate_prefix,"v2" ,fields);
@@ -839,8 +817,6 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
     bfam_locidx_t e = sub_g->EToEm[le];
     int8_t face = sub_g->EToFm[le];
 
-    /* Assumes conforming straight sided elements */
-    bfam_real_t nm[] = {n1[Nfp*(face+4*e)],n2[Nfp*(face+4*e)],0};
 
     if(sub_g->EToHm[le] < 2)
       beard_dgx_remove_flux(Nfp,face,e,sub_m->vmapM,n1,n2,Zs,Zp,
@@ -870,73 +846,22 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
       bfam_real_t Zsm = Zs_m[iG];
       bfam_real_t Zpm = Zp_m[iG];
 
+      bfam_real_t Tpm[] = {Tp1_m[iG], Tp2_m[iG], Tp3_m[iG]};
+      bfam_real_t Tnm = Tn_m[iG];
 
-      bfam_real_t Tpm[] = {
-        nm[0]*S11_m[iG]+nm[1]*S12_m[iG],
-        nm[0]*S12_m[iG]+nm[1]*S22_m[iG],
-        nm[0]*S13_m[iG]+nm[1]*S23_m[iG],
-      };
-      bfam_real_t Tnm = Tpm[0]*nm[0]+Tpm[1]*nm[1];
-      Tpm[0] = Tpm[0]-Tnm*nm[0];
-      Tpm[1] = Tpm[1]-Tnm*nm[1];
-      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(Tnm, Tn_m[iG], 10),
-          "%e %e",Tnm,Tn_m[iG]);
-      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(Tpm[0], Tp1_m[iG], 10),
-          "%e %e",Tpm[0],Tp1_m[iG]);
-      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(Tpm[1], Tp2_m[iG], 10),
-          "%e %e",Tpm[1],Tp2_m[iG]);
-      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(Tpm[2], Tp3_m[iG], 10),
-          "%e %e",Tpm[2],Tp3_m[iG]);
-
-      bfam_real_t vpm[] = {v1_m[iG],v2_m[iG],v3_m[iG]};
-      bfam_real_t vnm = nm[0]*vpm[0]+nm[1]*vpm[1];
-      vpm[0] = vpm[0]-vnm*nm[0];
-      vpm[1] = vpm[1]-vnm*nm[1];
-      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(vnm, vn_m[iG], 10),
-          "%e %e",vnm,vn_m[iG]);
-      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(vpm[0], vp1_m[iG], 10),
-          "%e %e",vpm[0],vp1_m[iG]);
-      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(vpm[1], vp2_m[iG], 10),
-          "%e %e",vpm[1],vp2_m[iG]);
-      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(vpm[2], vp3_m[iG], 10),
-          "%e %e",vpm[2],vp3_m[iG]);
+      bfam_real_t vpm[] = {vp1_m[iG],vp2_m[iG],vp3_m[iG]};
+      bfam_real_t vnm = vn_m[iG];
 
       /* now add the real flux */
       /* Setup stuff for the plus side */
       bfam_real_t Zsp = Zs_p[iG];
       bfam_real_t Zpp = Zp_p[iG];
 
-      bfam_real_t np[] = {-nm[0],-nm[1],0};
+      bfam_real_t Tpp[] = {Tp1_p[iG], Tp2_p[iG], Tp3_p[iG]};
+      bfam_real_t Tnp = Tn_p[iG];
 
-      bfam_real_t Tpp[] = {
-        np[0]*S11_p[iG]+np[1]*S12_p[iG],
-        np[0]*S12_p[iG]+np[1]*S22_p[iG],
-        np[0]*S13_p[iG]+np[1]*S23_p[iG],
-      };
-      bfam_real_t Tnp = Tpp[0]*np[0]+Tpp[1]*np[1];
-      Tpp[0] = Tpp[0]-Tnp*np[0];
-      Tpp[1] = Tpp[1]-Tnp*np[1];
-      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(Tnp, Tn_p[iG], 10),
-          "%e %e",Tnp,Tn_p[iG]);
-      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(Tpp[0], Tp1_p[iG], 10),
-          "%e %e",Tpp[0],Tp1_p[iG]);
-      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(Tpp[1], Tp2_p[iG], 10),
-          "%e %e",Tpp[1],Tp2_p[iG]);
-      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(Tpp[2], Tp3_p[iG], 10),
-          "%e %e",Tpp[2],Tp3_p[iG]);
-
-      bfam_real_t vpp[] = {v1_p[iG], v2_p[iG], v3_p[iG]};
-      bfam_real_t vnp = np[0]*vpp[0]+np[1]*vpp[1];
-      vpp[0] = vpp[0]-vnp*np[0];
-      vpp[1] = vpp[1]-vnp*np[1];
-      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(vnp, vn_p[iG], 10),
-          "%e %e",vnp,vn_p[iG]);
-      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(vpp[0], vp1_p[iG], 10),
-          "%e %e",vpp[0],vp1_p[iG]);
-      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(vpp[1], vp2_p[iG], 10),
-          "%e %e",vpp[1],vp2_p[iG]);
-      BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(vpp[2], vp3_p[iG], 10),
-          "%e %e",vpp[2],vp3_p[iG]);
+      bfam_real_t vpp[] = {vp1_p[iG],vp2_p[iG],vp3_p[iG]};
+      bfam_real_t vnp = vn_p[iG];
 
       BEARD_STATE(
           &TnS_g[pnt],&TpS_g[3*pnt],&vnS_g[pnt],&vpS_g[3*pnt],
@@ -984,6 +909,7 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
     {
       bfam_locidx_t f = pnt + Nfp*(face + 4*e);
       bfam_locidx_t iM = sub_m->vmapM[f];
+      bfam_real_t nm[] = {n1[f],n2[f],0};
 
       beard_dgx_add_flux(1,
           TnS_m[pnt],&TpS_m[3*pnt],vnS_m[pnt],&vpS_m[3*pnt],iM,
@@ -1023,29 +949,23 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13,field_prefix,"S13",fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23,field_prefix,"S23",fields);
 
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1_m ,field_prefix,"v1" ,fields_m);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2_m ,field_prefix,"v2" ,fields_m);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v3_m ,field_prefix,"v3" ,fields_m);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11_m,field_prefix,"S11",fields_m);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22_m,field_prefix,"S22",fields_m);
-  /*
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33_m,field_prefix,"S33",fields_m);
-  */
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12_m,field_prefix,"S12",fields_m);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13_m,field_prefix,"S13",fields_m);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23_m,field_prefix,"S23",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vn_m ,field_prefix,"vn" ,fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp1_m,field_prefix,"vp1",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp2_m,field_prefix,"vp2",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp3_m,field_prefix,"vp3",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn_m ,field_prefix,"Tn" ,fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1_m,field_prefix,"Tp1",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2_m,field_prefix,"Tp2",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3_m,field_prefix,"Tp3",fields_m);
 
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1_p ,field_prefix,"v1" ,fields_p);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2_p ,field_prefix,"v2" ,fields_p);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v3_p ,field_prefix,"v3" ,fields_p);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11_p,field_prefix,"S11",fields_p);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22_p,field_prefix,"S22",fields_p);
-  /*
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33_p,field_prefix,"S33",fields_p);
-  */
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12_p,field_prefix,"S12",fields_p);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13_p,field_prefix,"S13",fields_p);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23_p,field_prefix,"S23",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vn_p ,field_prefix,"vn" ,fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp1_p,field_prefix,"vp1",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp2_p,field_prefix,"vp2",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp3_p,field_prefix,"vp3",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn_p ,field_prefix,"Tn" ,fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1_p,field_prefix,"Tp1",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2_p,field_prefix,"Tp2",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3_p,field_prefix,"Tp3",fields_p);
 
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv1 ,rate_prefix,"v1" ,fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv2 ,rate_prefix,"v2" ,fields);
@@ -1131,40 +1051,22 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
       bfam_real_t Zpm = Zp_m[iG];
 
 
-      bfam_real_t Tpm[] = {
-        nm[0]*S11_m[iG]+nm[1]*S12_m[iG],
-        nm[0]*S12_m[iG]+nm[1]*S22_m[iG],
-        nm[0]*S13_m[iG]+nm[1]*S23_m[iG],
-      };
-      bfam_real_t Tnm = Tpm[0]*nm[0]+Tpm[1]*nm[1];
-      Tpm[0] = Tpm[0]-Tnm*nm[0];
-      Tpm[1] = Tpm[1]-Tnm*nm[1];
+      bfam_real_t Tpm[] = {Tp1_m[iG], Tp2_m[iG], Tp3_m[iG]};
+      bfam_real_t Tnm = Tn_m[iG];
 
-      bfam_real_t vpm[] = {v1_m[iG],v2_m[iG],v3_m[iG]};
-      bfam_real_t vnm = nm[0]*vpm[0]+nm[1]*vpm[1];
-      vpm[0] = vpm[0]-vnm*nm[0];
-      vpm[1] = vpm[1]-vnm*nm[1];
+      bfam_real_t vpm[] = {vp1_m[iG],vp2_m[iG],vp3_m[iG]};
+      bfam_real_t vnm = vn_m[iG];
 
       /* now add the real flux */
       /* Setup stuff for the plus side */
       bfam_real_t Zsp = Zs_p[iG];
       bfam_real_t Zpp = Zp_p[iG];
 
-      bfam_real_t np[] = {-nm[0],-nm[1],0};
+      bfam_real_t Tpp[] = {Tp1_p[iG], Tp2_p[iG], Tp3_p[iG]};
+      bfam_real_t Tnp = Tn_p[iG];
 
-      bfam_real_t Tpp[] = {
-        np[0]*S11_p[iG]+np[1]*S12_p[iG],
-        np[0]*S12_p[iG]+np[1]*S22_p[iG],
-        np[0]*S13_p[iG]+np[1]*S23_p[iG],
-      };
-      bfam_real_t Tnp = Tpp[0]*np[0]+Tpp[1]*np[1];
-      Tpp[0] = Tpp[0]-Tnp*np[0];
-      Tpp[1] = Tpp[1]-Tnp*np[1];
-
-      bfam_real_t vpp[] = {v1_p[iG], v2_p[iG], v3_p[iG]};
-      bfam_real_t vnp = np[0]*vpp[0]+np[1]*vpp[1];
-      vpp[0] = vpp[0]-vnp*np[0];
-      vpp[1] = vpp[1]-vnp*np[1];
+      bfam_real_t vpp[] = {vp1_p[iG],vp2_p[iG],vp3_p[iG]};
+      bfam_real_t vnp = vn_p[iG];
 
       /* compute the upwind state assuming that the fault is locked */
       BEARD_STATE(
