@@ -18,7 +18,7 @@ const char *comm_args_tensor_components[] = {"S11","S12","S13",
 static void
 beard_grid_glue(bfam_locidx_t npoints, const char *name, bfam_real_t time,
     bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
-    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict sJ)
 {
   bfam_subdomain_dgx_quad_glue_t* sub_g = (bfam_subdomain_dgx_quad_glue_t*) s;
 
@@ -34,6 +34,18 @@ beard_grid_glue(bfam_locidx_t npoints, const char *name, bfam_real_t time,
   bfam_real_t *z_m = bfam_dictionary_get_value_ptr(fields_m, "_grid_z");
   bfam_real_t *z_p = bfam_dictionary_get_value_ptr(fields_p, "_grid_z");
 
+  bfam_real_t *sJ_m = bfam_dictionary_get_value_ptr(fields_m, "_grid_sJ");
+  bfam_real_t *sJ_p = bfam_dictionary_get_value_ptr(fields_p, "_grid_sJ");
+
+  BFAM_ASSERT(x_m  != NULL);
+  BFAM_ASSERT(x_p  != NULL);
+  BFAM_ASSERT(y_m  != NULL);
+  BFAM_ASSERT(y_p  != NULL);
+  BFAM_ASSERT(z_m  != NULL);
+  BFAM_ASSERT(z_p  != NULL);
+  BFAM_ASSERT(sJ_m != NULL);
+  BFAM_ASSERT(sJ_p != NULL);
+
   // BFAM_ASSERT((sub_g->N_m+1)*sub_g->K == npoints);
   // BFAM_ASSERT((sub_g->N_p+1)*sub_g->K == npoints);
   for(int n = 0;n < npoints;n++)
@@ -41,9 +53,12 @@ beard_grid_glue(bfam_locidx_t npoints, const char *name, bfam_real_t time,
     // BFAM_ASSERT(BFAM_REAL_APPROX_EQ(x_m[n], x_p[n], 10));
     // BFAM_ASSERT(BFAM_REAL_APPROX_EQ(y_m[n], y_p[n], 10));
     // BFAM_ASSERT(BFAM_REAL_APPROX_EQ(z_m[n], z_p[n], 10));
-    x[n] = 0.5*(x_m[n]+x_p[n]);
-    y[n] = 0.5*(y_m[n]+y_p[n]);
-    z[n] = 0.5*(z_m[n]+z_p[n]);
+    BFAM_ASSERT(BFAM_REAL_APPROX_EQ(sJ_m[n], sJ_p[n], 10));
+    x[n]  = 0.5*(x_m[n]+x_p[n]);
+    y[n]  = 0.5*(y_m[n]+y_p[n]);
+    z[n]  = 0.5*(z_m[n]+z_p[n]);
+    sJ[n] = 0.5*(sJ_m[n]+sJ_p[n]);
+    BFAM_ABORT_IF_NOT(sJ[n] > 0, "Surface Jacobian must be positive");
   }
 
 }
@@ -1184,6 +1199,7 @@ init_domain(beard_t *beard, prefs_t *prefs)
   bfam_domain_add_field( domain, BFAM_DOMAIN_OR, glue, "_grid_x");
   bfam_domain_add_field( domain, BFAM_DOMAIN_OR, glue, "_grid_y");
   bfam_domain_add_field( domain, BFAM_DOMAIN_OR, glue, "_grid_z");
+  bfam_domain_add_field( domain, BFAM_DOMAIN_OR, glue, "_grid_sJ");
   bfam_communicator_t material_comm;
 
   bfam_subdomain_comm_args_t mat_args;
@@ -1212,7 +1228,7 @@ init_domain(beard_t *beard, prefs_t *prefs)
    * we can trick init fields into handling locations
    * to glue
    */
-  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x", 0,
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, glue, "_grid_sJ", 0,
       beard_grid_glue, NULL);
 
   /* Set up some problem specific problems */
