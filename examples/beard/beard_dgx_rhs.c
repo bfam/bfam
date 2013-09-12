@@ -1019,9 +1019,6 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
     bfam_locidx_t e = sub_g->EToEm[le];
     int8_t face = sub_g->EToFm[le];
 
-    /* Assumes conforming straight sided elements */
-    bfam_real_t nm[] = {n1[Nfp*(face+4*e)],n2[Nfp*(face+4*e)],0};
-
     if(sub_g->EToHm[le] < 2)
       beard_dgx_remove_flux(Nfp,face,e,sub_m->vmapM,n1,n2,Zs,Zp,
           mu,rhoi,lam,sJ,JI,wi,
@@ -1150,6 +1147,8 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
     {
       bfam_locidx_t f = pnt + Nfp*(face + 4*e);
       bfam_locidx_t iM = sub_m->vmapM[f];
+      bfam_real_t nm[] = {n1[f],n2[f],0};
+
 
       beard_dgx_add_flux(1,
           TnS_m[pnt],&TpS_m[3*pnt],vnS_m[pnt],&vpS_m[3*pnt],iM,
