@@ -7,6 +7,7 @@ static int max_refine_level = 0;
 static bfam_real_t energy_sq = 0;
 static bfam_real_t init_energy_sq = 1;
 
+const char *comm_args_face_scalars[]      = {NULL};
 const char *comm_args_scalars[]           = {NULL};
 const char *comm_args_vectors[]           = {"v",NULL};
 const char *comm_args_vector_components[] = {"v1","v2","v3",NULL};
@@ -880,12 +881,14 @@ init_lsrk(beard_t *beard, prefs_t *prefs)
   args->vector_components_m = comm_args_vector_components;
   args->tensors_m           = comm_args_tensors;
   args->tensor_components_m = comm_args_tensor_components;
+  args->face_scalars_m      = comm_args_face_scalars;
 
   args->scalars_p           = comm_args_scalars;
   args->vectors_p           = comm_args_vectors;
   args->vector_components_p = comm_args_vector_components;
   args->tensors_p           = comm_args_tensors;
   args->tensor_components_p = comm_args_tensor_components;
+  args->face_scalars_p      = comm_args_face_scalars;
 
 
   const char *timestep_tags[] = {"_volume","_glue_parallel","_glue_local",
@@ -1167,10 +1170,16 @@ init_domain(beard_t *beard, prefs_t *prefs)
 
   /* exchange material properties to glue */
   const char *glue_mat[] = {"Zs","Zp","_grid_x","_grid_y","_grid_z",NULL};
+  const char *glue_face[] = {"_grid_sJ",NULL};
   for(bfam_locidx_t g = 0; glue_mat[g] != NULL; g++)
   {
     bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, glue_mat[g]);
     bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, glue_mat[g]);
+  }
+  for(bfam_locidx_t g = 0; glue_face[g] != NULL; g++)
+  {
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, glue_face[g]);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, glue_face[g]);
   }
   bfam_domain_add_field( domain, BFAM_DOMAIN_OR, glue, "_grid_x");
   bfam_domain_add_field( domain, BFAM_DOMAIN_OR, glue, "_grid_y");
@@ -1184,12 +1193,14 @@ init_domain(beard_t *beard, prefs_t *prefs)
   mat_args.vector_components_m = mat_NULL;
   mat_args.tensors_m           = mat_NULL;
   mat_args.tensor_components_m = mat_NULL;
+  mat_args.face_scalars_m      = glue_face;
 
   mat_args.scalars_p           = glue_mat;
   mat_args.vectors_p           = mat_NULL;
   mat_args.vector_components_p = mat_NULL;
   mat_args.tensors_p           = mat_NULL;
   mat_args.tensor_components_p = mat_NULL;
+  mat_args.face_scalars_p      = glue_face;
 
   bfam_communicator_init(&material_comm,domain,BFAM_DOMAIN_OR,glue,
       beard->mpicomm,10,&mat_args);

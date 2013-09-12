@@ -35,11 +35,15 @@ typedef struct bfam_subdomain_comm_args
                                       *       to send and \c NULL entry will
                                       *       lead to 0 being used for that
                                       *       component */
+
+  const char ** face_scalars_m;      /* \c NULL terminated array of face scalars
+                                      *  to send */
   const char ** scalars_p;
   const char ** vectors_p;
   const char ** vector_components_p;
   const char ** tensors_p;
   const char ** tensor_components_p;
+  const char ** face_scalars_p;
 } bfam_subdomain_comm_args_t;
 
 typedef struct bfam_subdomain_face_map_entry
