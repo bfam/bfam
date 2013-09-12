@@ -2489,6 +2489,7 @@ bfam_subdomain_dgx_quad_glue_free(bfam_subdomain_t *subdomain)
     if(sub->massprojection[i])
       bfam_free_aligned(sub->massprojection[i]);
   bfam_free_aligned(sub->massprojection);
+  bfam_free_aligned(sub->exact_mass);
 
   bfam_free_aligned(sub->EToEp);
   bfam_free_aligned(sub->EToEm);
