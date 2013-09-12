@@ -1557,12 +1557,14 @@ bfam_subdomain_dgx_quad_glue_get_vector_fields_m(const char **comp,
       {
         const bfam_locidx_t f   = j + sub_m_Nfp*(face + 4*EToEm[k]);
         const bfam_real_t sq_sJ = BFAM_REAL_SQRT(sJ[f]);
-        const bfam_real_t vn_e  =       (n1[f]*v1_m_elem[fmask[j]]
+
+        const bfam_real_t vn_e  = sq_sJ*(n1[f]*v1_m_elem[fmask[j]]
                                        + n2[f]*v2_m_elem[fmask[j]]
                                      /*+ n3[f]*v3_m_elem[fmask[j]]*/);
-        const bfam_real_t vp1_e =       v1_m_elem[fmask[j]]-vn_e*n1[f];
-        const bfam_real_t vp2_e =       v2_m_elem[fmask[j]]-vn_e*n2[f];
-        const bfam_real_t vp3_e =       v3_m_elem[fmask[j]]/*-vn_e*n3[f]*/;
+        const bfam_real_t vp1_e = sq_sJ*v1_m_elem[fmask[j]]-vn_e*n1[f];
+        const bfam_real_t vp2_e = sq_sJ*v2_m_elem[fmask[j]]-vn_e*n2[f];
+        const bfam_real_t vp3_e = sq_sJ*v3_m_elem[fmask[j]]/*-vn_e*n3[f]*/;
+
         for(int i = 0; i < Np; ++i)
         {
           vn_g_elem[i]  += interpolation[j * Np + i] * vn_e;
@@ -1578,12 +1580,13 @@ bfam_subdomain_dgx_quad_glue_get_vector_fields_m(const char **comp,
       {
         const bfam_locidx_t f   = j + sub_m_Nfp*(face + 4*EToEm[k]);
         const bfam_real_t sq_sJ = BFAM_REAL_SQRT(sJ[f]);
-        vn_g_elem[j]  =       (n1[f]*v1_m_elem[fmask[j]]
+
+        vn_g_elem[j]  = sq_sJ*(n1[f]*v1_m_elem[fmask[j]]
                              + n2[f]*v2_m_elem[fmask[j]]
                            /*+ n3[f]*v3_m_elem[fmask[j]]*/);
-        vp1_g_elem[j] =       v1_m_elem[fmask[j]]-vn_g_elem[j]*n1[f];
-        vp2_g_elem[j] =       v2_m_elem[fmask[j]]-vn_g_elem[j]*n2[f];
-        vp3_g_elem[j] =       v3_m_elem[fmask[j]]/*-vn_g_elem[j]*n3[f]*/;
+        vp1_g_elem[j] = sq_sJ*v1_m_elem[fmask[j]]-vn_g_elem[j]*n1[f];
+        vp2_g_elem[j] = sq_sJ*v2_m_elem[fmask[j]]-vn_g_elem[j]*n2[f];
+        vp3_g_elem[j] = sq_sJ*v3_m_elem[fmask[j]]/*-vn_g_elem[j]*n3[f]*/;
       }
     }
 
@@ -1769,16 +1772,24 @@ bfam_subdomain_dgx_quad_glue_get_tensor_fields_m(const char **comp,
         const bfam_locidx_t f   = j + sub_m_Nfp*(face + 4*EToEm[k]);
         const bfam_locidx_t fm  = fmask[j];
         const bfam_real_t sq_sJ = BFAM_REAL_SQRT(sJ[f]);
+
         bfam_real_t Tp1_e =
           S11_m_elem[fm]*n1[f] + S12_m_elem[fm]*n2[f] + S13_m_elem[fm]*0;
         bfam_real_t Tp2_e =
           S12_m_elem[fm]*n1[f] + S22_m_elem[fm]*n2[f] + S23_m_elem[fm]*0;
         bfam_real_t Tp3_e =
           S13_m_elem[fm]*n1[f] + S23_m_elem[fm]*n2[f] + S33_m_elem[fm]*0;
-        const bfam_real_t Tn_e  =  n1[f]*Tp1_e + n2[f]*Tp2_e + 0*Tp3_e;
+        bfam_real_t Tn_e  =  n1[f]*Tp1_e + n2[f]*Tp2_e + 0*Tp3_e;
+
         Tp1_e -= n1[f]*Tn_e;
         Tp2_e -= n2[f]*Tn_e;
         Tp3_e -= 0*Tn_e;
+
+        Tp1_e *= sq_sJ;
+        Tp2_e *= sq_sJ;
+        Tp3_e *= sq_sJ;
+        Tn_e  *= sq_sJ;
+
         for(int i = 0; i < Np; ++i)
         {
           Tn_g_elem[i]  += interpolation[j * Np + i] * Tn_e;
@@ -1795,6 +1806,7 @@ bfam_subdomain_dgx_quad_glue_get_tensor_fields_m(const char **comp,
         const bfam_locidx_t f   = j + sub_m_Nfp*(face + 4*EToEm[k]);
         const bfam_locidx_t fm  = fmask[j];
         const bfam_real_t sq_sJ = BFAM_REAL_SQRT(sJ[f]);
+
         Tp1_g_elem[j] =
           S11_m_elem[fm]*n1[f] + S12_m_elem[fm]*n2[f] + S13_m_elem[fm]*0;
         Tp2_g_elem[j] =
@@ -1803,9 +1815,15 @@ bfam_subdomain_dgx_quad_glue_get_tensor_fields_m(const char **comp,
           S13_m_elem[fm]*n1[f] + S23_m_elem[fm]*n2[f] + S33_m_elem[fm]*0;
         Tn_g_elem[j]  =  n1[f]*Tp1_g_elem[j] + n2[f]*Tp2_g_elem[j]
                       + 0*Tp3_g_elem[j];
+
         Tp1_g_elem[j] -= n1[f]*Tn_g_elem[j];
         Tp2_g_elem[j] -= n2[f]*Tn_g_elem[j];
         Tp3_g_elem[j] -= 0*Tn_g_elem[j];
+
+        Tp1_g_elem[j] *= sq_sJ;
+        Tp2_g_elem[j] *= sq_sJ;
+        Tp3_g_elem[j] *= sq_sJ;
+        Tn_g_elem[j]  *= sq_sJ;
       }
     }
 
@@ -1957,7 +1975,6 @@ bfam_subdomain_dgx_quad_glue_get_face_scalar_fields_m(const char * key,
   const int8_t        *restrict EToHm = sub->EToHm;
   const int8_t        *restrict EToOm = sub->EToOm;
 
-  const int sub_m_Np = sub->sub_m->Np;
   const int sub_m_Nfp = sub->sub_m->Nfp;
 
   const size_t buffer_offset = data->field * Np * K;
