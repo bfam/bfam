@@ -1556,7 +1556,11 @@ bfam_subdomain_dgx_quad_glue_get_vector_fields_m(const char **comp,
       for(int j = 0; j < sub_m_Nfp; ++j)
       {
         const bfam_locidx_t f   = j + sub_m_Nfp*(face + 4*EToEm[k]);
-        const bfam_real_t sq_sJ = BFAM_REAL_SQRT(sJ[f]);
+        bfam_real_t sq_sJ;
+        if(EToHm[k] == 1 || EToHm[k] == 2)
+          sq_sJ = BFAM_REAL_SQRT(0.5*sJ[f]);
+        else
+          sq_sJ = BFAM_REAL_SQRT(sJ[f]);
 
         const bfam_real_t vn_e  = sq_sJ*(n1[f]*v1_m_elem[fmask[j]]
                                        + n2[f]*v2_m_elem[fmask[j]]
@@ -1771,7 +1775,11 @@ bfam_subdomain_dgx_quad_glue_get_tensor_fields_m(const char **comp,
       {
         const bfam_locidx_t f   = j + sub_m_Nfp*(face + 4*EToEm[k]);
         const bfam_locidx_t fm  = fmask[j];
-        const bfam_real_t sq_sJ = BFAM_REAL_SQRT(sJ[f]);
+        bfam_real_t sq_sJ;
+        if(EToHm[k] == 1 || EToHm[k] == 2)
+          sq_sJ = BFAM_REAL_SQRT(0.5*sJ[f]);
+        else
+          sq_sJ = BFAM_REAL_SQRT(sJ[f]);
 
         bfam_real_t Tp1_e =
           S11_m_elem[fm]*n1[f] + S12_m_elem[fm]*n2[f] + S13_m_elem[fm]*0;
@@ -2018,6 +2026,7 @@ bfam_subdomain_dgx_quad_glue_get_face_scalar_fields_m(const char * key,
 
     bfam_real_t *restrict glue_elem = glue_field + k * Np;
 
+
     /*
      * Decide which interpolation operation to use.
      */
@@ -2033,11 +2042,14 @@ bfam_subdomain_dgx_quad_glue_get_face_scalar_fields_m(const char * key,
        * XXX: Replace with something faster; this will also have to change
        * for 3D.
        */
+      bfam_real_t scale = 1;
+      if((EToHm[k] == 1 || EToHm[k] == 2) && strcmp(key,"_grid_sJ")==0) 
+        scale = 0.5;
       for(int n = 0; n < Np; ++n)
         glue_elem[n] = 0;
       for(int j = 0; j < sub_m_Nfp; ++j)
         for(int i = 0; i < Np; ++i)
-          glue_elem[i] += interpolation[j * Np + i] * sub_m_face_elem[j];
+          glue_elem[i] += scale*interpolation[j * Np + i] * sub_m_face_elem[j];
     }
     else
     {
