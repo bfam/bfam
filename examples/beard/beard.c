@@ -1562,16 +1562,12 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
     {
       stress_free_box_params_t *field_params =
         (stress_free_box_params_t*) prefs->problem_data;
-      bfam_domain_init_field(beard.domain, BFAM_DOMAIN_OR, volume,
-          "error_v3", s*dt, stress_free_box, field_params);
-      bfam_domain_init_field(beard.domain, BFAM_DOMAIN_OR, volume,
-          "error_S13", s*dt, stress_free_box, field_params);
-      bfam_domain_init_field(beard.domain, BFAM_DOMAIN_OR, volume,
-          "error_S23", s*dt, stress_free_box, field_params);
-
-      snprintf(output,BFAM_BUFSIZ,"solution_%05d",s);
-      bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
-          directory,output,(s)*dt, fields, NULL, NULL, 1, 1,2*(prefs->N+1));
+      bfam_domain_init_field((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR,
+          volume, "error_v3", s*dt, stress_free_box, field_params);
+      bfam_domain_init_field((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR,
+          volume, "error_S13", s*dt, stress_free_box, field_params);
+      bfam_domain_init_field((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR,
+          volume, "error_S23", s*dt, stress_free_box, field_params);
     }
     if(s%noutput_fault == 0)
     {
@@ -1589,7 +1585,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
     {
       snprintf(output,BFAM_BUFSIZ,"solution_%05d",s);
       bfam_vtk_write_file((bfam_domain_t*) beard.domain, BFAM_DOMAIN_OR, volume,
-          directory,output,(s)*dt, fields, NULL, NULL, 1, 1);
+          directory,output,(s)*dt, fields, NULL, NULL, 1, 1,0);
     }
   }
 

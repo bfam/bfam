@@ -1,4 +1,4 @@
-N = 6
+N = 4
 num_subdomains = 1
 connectivity = "brick"
 lsrk_method = "KC54"
@@ -13,8 +13,8 @@ noutput  = 10
 
 dt_scale = 1
 
-brick_m = 3
-brick_n = 3
+brick_m = 2
+brick_n = 2
 brick_a = 1
 brick_b = 1
 brick_random = 1
