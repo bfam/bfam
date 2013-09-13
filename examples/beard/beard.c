@@ -2,6 +2,53 @@
 #include "beard_dgx_rhs.h"
 #include <p4est_iterate.h>
 
+typedef struct prefs
+{
+  lua_State *L;
+} prefs_t;
+
+/*
+ * Set up the beard preference file
+ */
+static prefs_t *
+new_prefs(const char *prefs_filename)
+{
+  prefs_t *prefs = bfam_malloc(sizeof(prefs_t));
+
+  lua_State *L = luaL_newstate();
+  luaL_openlibs(L);
+
+  if(luaL_loadfile(L, prefs_filename) || lua_pcall(L, 0, 0, 0))
+    BFAM_LERROR("cannot run configuration file: `%s'", lua_tostring(L, -1));
+
+  prefs->L = L;
+
+  BFAM_ASSERT(lua_gettop(L)==0);
+
+  return prefs;
+}
+
+static void
+free_prefs(prefs_t *prefs)
+{
+  lua_close(prefs->L);
+}
+
+static void
+print_prefs(prefs_t *prefs)
+{
+  BFAM_ROOT_INFO("----------Preferences----------");
+  BFAM_ROOT_INFO("-------------------------------");
+}
+
+/*
+ * run the beard
+ */
+static void
+run(MPI_Comm mpicomm, prefs_t *prefs)
+{
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -70,12 +117,12 @@ main(int argc, char *argv[])
   sc_init(comm, 0, 0, NULL, sc_log_priorities);
   p4est_init(NULL, sc_log_priorities);
 
-  /* prefs_t *prefs = new_prefs(argv[1]);
-  print_prefs(prefs); */
+  prefs_t *prefs = new_prefs(argv[1]);
+  print_prefs(prefs);
 
-  /*run(comm, prefs);
+  run(comm, prefs);
   free_prefs(prefs);
-  bfam_free(prefs);*/
+  bfam_free(prefs);
 
   sc_finalize();
   BFAM_MPI_CHECK(MPI_Finalize());
