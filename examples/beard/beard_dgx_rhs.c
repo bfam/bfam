@@ -914,7 +914,7 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
       beard_dgx_add_flux(1,
           TnS_m[pnt],&TpS_m[3*pnt],vnS_m[pnt],&vpS_m[3*pnt],iM,
           dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
-          lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
+          lam[iM],mu[iM],rhoi[iM],nm,BFAM_REAL_SQRT(sJ[f]),JI[iM],wi[0]);
     }
   }
 }
@@ -1153,7 +1153,7 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_slip_weakening_interface_,NORDER)(
       beard_dgx_add_flux(1,
           TnS_m[pnt],&TpS_m[3*pnt],vnS_m[pnt],&vpS_m[3*pnt],iM,
           dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
-          lam[iM],mu[iM],rhoi[iM],nm,sJ[f],JI[iM],wi[0]);
+          lam[iM],mu[iM],rhoi[iM],nm,BFAM_REAL_SQRT(sJ[f]),JI[iM],wi[0]);
     }
   }
 }

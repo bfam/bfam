@@ -30,7 +30,7 @@ function fault_refine(x,y,z,level)
 end
 
 function dt_modify ( dt )
-  tf = 1
+  tf = 12
   t_final = tf/cs/math.sqrt(2)
   t_body  = t_final/tf/10
   noutput_body = math.ceil(t_body/dt)
