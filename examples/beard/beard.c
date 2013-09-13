@@ -2,9 +2,31 @@
 #include "beard_dgx_rhs.h"
 #include <p4est_iterate.h>
 
+/*
+ * Lua helper functions
+ */
+static int
+lua_get_global_int(lua_State *L, const char *name, int def, int warning)
+{
+  lua_getglobal(L, name);
+  int result = def;
+  if(!lua_isnumber(L, -1))
+  { /* for some reason gcc combines the two if without these. Why? */
+    if(warning) BFAM_ROOT_WARNING("`%s' not found, using default %d",
+        name, def);
+  }
+  else
+    result = (int)lua_tonumber(L, -1);
+  lua_pop(L, 1);
+  return result;
+}
+
 typedef struct prefs
 {
   lua_State *L;
+
+  int min_refine_level;
+  int max_refine_level;
 } prefs_t;
 
 /*
@@ -25,6 +47,9 @@ new_prefs(const char *prefs_filename)
 
   BFAM_ASSERT(lua_gettop(L)==0);
 
+  prefs->min_refine_level = lua_get_global_int(prefs->L,"min_refine_level",0,1);
+  prefs->max_refine_level = lua_get_global_int(prefs->L,"max_refine_level",0,1);
+
   return prefs;
 }
 
@@ -38,6 +63,8 @@ static void
 print_prefs(prefs_t *prefs)
 {
   BFAM_ROOT_INFO("----------Preferences----------");
+  BFAM_ROOT_INFO(" minimum refinement level = %d",prefs->min_refine_level);
+  BFAM_ROOT_INFO(" maximum refinement level = %d",prefs->max_refine_level);
   BFAM_ROOT_INFO("-------------------------------");
 }
 
