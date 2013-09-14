@@ -244,6 +244,19 @@ init_mpi(beard_t *beard, MPI_Comm mpicomm)
 static void
 init_domain(beard_t *beard, prefs_t *prefs)
 {
+  if(prefs->brick_args != NULL)
+    beard->conn = p4est_connectivity_new_brick(
+        prefs->brick_args->nx        ,prefs->brick_args->ny,
+        prefs->brick_args->periodic_x,prefs->brick_args->periodic_y);
+  else if(prefs->conn_fn != NULL)
+    beard->conn = prefs->conn_fn();
+  else BFAM_ABORT("no connectivity");
+}
+
+static void
+shave_beard(beard_t *beard,prefs_t *prefs)
+{
+  p4est_connectivity_destroy(beard->conn);
 }
 
 /*
@@ -257,6 +270,8 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   init_mpi(&beard, mpicomm);
 
   init_domain(&beard, prefs);
+
+  shave_beard(&beard,prefs);
 }
 
 int
