@@ -38,9 +38,6 @@ typedef struct prefs
 {
   lua_State *L;
 
-  int min_refine_level;
-  int max_refine_level;
-
   p4est_connectivity_t * (*conn_fn) (void);
   brick_args_t* brick_args;
 
@@ -114,10 +111,6 @@ new_prefs(const char *prefs_filename)
   prefs->L = L;
 
   BFAM_ASSERT(lua_gettop(L)==0);
-
-  /* get the refinement information */
-  prefs->min_refine_level = lua_get_global_int(prefs->L,"min_refine_level",0,1);
-  prefs->max_refine_level = lua_get_global_int(prefs->L,"max_refine_level",0,1);
 
   /* get the time stepper type */
   lua_getglobal(L, "lsrk_method");
@@ -214,9 +207,6 @@ static void
 print_prefs(prefs_t *prefs)
 {
   BFAM_ROOT_INFO("----------Preferences----------");
-  BFAM_ROOT_INFO(" minimum refinement level = %d",prefs->min_refine_level);
-  BFAM_ROOT_INFO(" maximum refinement level = %d",prefs->max_refine_level);
-  BFAM_ROOT_INFO("");
   BFAM_ROOT_INFO(" Low Storage Time Stepper = %s",prefs->lsrk_name);
   BFAM_ROOT_INFO(" Connectivity             = %s",prefs->conn_name);
   if(prefs->brick_args != NULL)
