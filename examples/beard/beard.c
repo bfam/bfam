@@ -47,6 +47,18 @@ typedef struct prefs
   char lsrk_name[BFAM_BUFSIZ];
 } prefs_t;
 
+typedef struct beard
+{
+  MPI_Comm mpicomm;
+  int      mpirank;
+  int      mpisize;
+
+  p4est_connectivity_t *conn;
+  bfam_domain_p4est_t  *domain;
+  bfam_ts_lsrk_t       *lsrk;
+  bfam_subdomain_comm_args_t * comm_args;
+} beard_t;
+
 /*
  * Lua helper functions
  */
@@ -156,7 +168,7 @@ new_prefs(const char *prefs_filename)
     if(strcmp(conn_name,"brick") == 0)
     {
       strncpy(prefs->conn_name,"brick",BFAM_BUFSIZ);
-      prefs->conn_fn    = NULL;
+      prefs->conn_fn = NULL;
       prefs->brick_args = bfam_malloc(sizeof(brick_args_t));
       prefs->brick_args->nx = lua_get_table_int(prefs->L, "brick", "nx",1,1);
       prefs->brick_args->ny = lua_get_table_int(prefs->L, "brick", "ny",1,1);
@@ -220,12 +232,31 @@ print_prefs(prefs_t *prefs)
   BFAM_ROOT_INFO("-------------------------------");
 }
 
+
+static void
+init_mpi(beard_t *beard, MPI_Comm mpicomm)
+{
+  beard->mpicomm = mpicomm;
+  BFAM_MPI_CHECK(MPI_Comm_rank(mpicomm, &beard->mpirank));
+  BFAM_MPI_CHECK(MPI_Comm_size(mpicomm, &beard->mpisize));
+}
+
+static void
+init_domain(beard_t *beard, prefs_t *prefs)
+{
+}
+
 /*
  * run the beard
  */
 static void
 run(MPI_Comm mpicomm, prefs_t *prefs)
 {
+  beard_t beard;
+
+  init_mpi(&beard, mpicomm);
+
+  init_domain(&beard, prefs);
 }
 
 int
