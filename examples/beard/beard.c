@@ -26,6 +26,14 @@ struct lsrk_table {
   {NULL,   BFAM_TS_LSRK_NOOP},
 };
 
+typedef struct brick_args
+{
+  int nx;
+  int ny;
+  int periodic_x;
+  int periodic_y;
+} brick_args_t;
+
 typedef struct prefs
 {
   lua_State *L;
@@ -34,6 +42,8 @@ typedef struct prefs
   int max_refine_level;
 
   p4est_connectivity_t * (*conn_fn) (void);
+  brick_args_t* brick_args;
+
   char conn_name[BFAM_BUFSIZ];
 
   bfam_ts_lsrk_method_t lsrk_method;
@@ -55,6 +65,34 @@ lua_get_global_int(lua_State *L, const char *name, int def, int warning)
   }
   else
     result = (int)lua_tonumber(L, -1);
+  lua_pop(L, 1);
+  return result;
+}
+
+static int
+lua_get_table_int(lua_State *L, const char *table, const char *name,
+    int def, int warning)
+{
+  int result = def;
+  lua_getglobal(L, table);
+  if(!lua_istable(L, -1))
+  {
+    if(warning) BFAM_ROOT_WARNING("table `%s' not found, using default %d",
+        table, def);
+  }
+  else
+  {
+    lua_pushstring(L,name);
+    lua_gettable(L,-2);
+    if(!lua_isnumber(L,-1))
+    {
+      if(warning) BFAM_ROOT_WARNING("table `%s' does not contain `%s', "
+          "using default %d", table, name, def);
+    }
+    else
+      result = (int)lua_tonumber(L, -1);
+    lua_pop(L, 1);
+  }
   lua_pop(L, 1);
   return result;
 }
@@ -115,25 +153,42 @@ new_prefs(const char *prefs_filename)
   /* get the connectivity type */
   lua_getglobal(L, "connectivity");
   prefs->conn_fn = conn_table[0].conn_fn;
+  prefs->brick_args = NULL;
   strncpy(prefs->conn_name,conn_table[0].name,BFAM_BUFSIZ);
   if(lua_isstring(L, -1))
   {
     int i;
     const char *conn_name = lua_tostring(L, -1);
 
-    for(i = 0; conn_table[i].name != NULL; ++i)
+    if(strcmp(conn_name,"brick") == 0)
     {
-      if(strcmp(conn_name, conn_table[i].name) == 0)
-        break;
+      strncpy(prefs->conn_name,"brick",BFAM_BUFSIZ);
+      prefs->conn_fn    = NULL;
+      prefs->brick_args = bfam_malloc(sizeof(brick_args_t));
+      prefs->brick_args->nx = lua_get_table_int(prefs->L, "brick", "nx",1,1);
+      prefs->brick_args->ny = lua_get_table_int(prefs->L, "brick", "ny",1,1);
+      prefs->brick_args->periodic_x = lua_get_table_int(prefs->L, "brick",
+          "periodic_x",1,1);
+      prefs->brick_args->periodic_y = lua_get_table_int(prefs->L, "brick",
+          "periodic_y",1,1);
     }
-
-    if(conn_table[i].name == NULL)
-      BFAM_ROOT_WARNING("invalid connectivity name: `%s'; using default %s",
-          conn_name, prefs->conn_name);
     else
     {
-      prefs->conn_fn = conn_table[i].conn_fn;
-      strncpy(prefs->conn_name,conn_table[i].name,BFAM_BUFSIZ);
+
+      for(i = 0; conn_table[i].name != NULL; ++i)
+      {
+        if(strcmp(conn_name, conn_table[i].name) == 0)
+          break;
+      }
+
+      if(conn_table[i].name == NULL)
+        BFAM_ROOT_WARNING("invalid connectivity name: `%s'; using default %s",
+            conn_name, prefs->conn_name);
+      else
+      {
+        prefs->conn_fn = conn_table[i].conn_fn;
+        strncpy(prefs->conn_name,conn_table[i].name,BFAM_BUFSIZ);
+      }
     }
   }
   else
@@ -141,7 +196,8 @@ new_prefs(const char *prefs_filename)
     BFAM_ROOT_WARNING("`connectivity' not found, using default %s",
         prefs->conn_name);
   }
-  BFAM_ASSERT(prefs->conn_fn != NULL);
+  BFAM_ABORT_IF(prefs->conn_fn == NULL && prefs->brick_args == NULL,
+      "no connectivity");
   lua_pop(L, 1);
 
   return prefs;
@@ -150,6 +206,7 @@ new_prefs(const char *prefs_filename)
 static void
 free_prefs(prefs_t *prefs)
 {
+  if(prefs->brick_args != NULL) bfam_free(prefs->brick_args);
   lua_close(prefs->L);
 }
 
@@ -162,6 +219,14 @@ print_prefs(prefs_t *prefs)
   BFAM_ROOT_INFO("");
   BFAM_ROOT_INFO(" Low Storage Time Stepper = %s",prefs->lsrk_name);
   BFAM_ROOT_INFO(" Connectivity             = %s",prefs->conn_name);
+  if(prefs->brick_args != NULL)
+  {
+    BFAM_ROOT_INFO(" brick arguments");
+    BFAM_ROOT_INFO("  nx         = %d", prefs->brick_args->nx);
+    BFAM_ROOT_INFO("  ny         = %d", prefs->brick_args->ny);
+    BFAM_ROOT_INFO("  periodic_x = %d", prefs->brick_args->periodic_x);
+    BFAM_ROOT_INFO("  periodic_y = %d", prefs->brick_args->periodic_y);
+  }
   BFAM_ROOT_INFO("-------------------------------");
 }
 
