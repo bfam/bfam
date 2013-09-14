@@ -4,7 +4,8 @@ max_refine_level = 4
 
 -- connectivity info
 connectivity = "brick"
-brick = {
+brick =
+{
   nx = 2,
   ny = 3,
   periodic_x = 1,
