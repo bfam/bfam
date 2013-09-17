@@ -157,15 +157,12 @@ lua_global_function_call(lua_State *L, const char *name, const char *sig, ...)
 }
 
 static int
-lua_get_global_int(lua_State *L, const char *name, int def, int warning)
+lua_get_global_int(lua_State *L, const char *name, int def)
 {
   lua_getglobal(L, name);
   int result = def;
   if(!lua_isnumber(L, -1))
-  { /* for some reason gcc combines the two if without these. Why? */
-    if(warning) BFAM_ROOT_WARNING("`%s' not found, using default %d",
-        name, def);
-  }
+    BFAM_ROOT_WARNING("`%s' not found, using default %d", name, def);
   else
     result = (int)lua_tonumber(L, -1);
   lua_pop(L, 1);
@@ -173,25 +170,19 @@ lua_get_global_int(lua_State *L, const char *name, int def, int warning)
 }
 
 static int
-lua_get_table_int(lua_State *L, const char *table, const char *name,
-    int def, int warning)
+lua_get_table_int(lua_State *L, const char *table, const char *name, int def)
 {
   int result = def;
   lua_getglobal(L, table);
   if(!lua_istable(L, -1))
-  {
-    if(warning) BFAM_ROOT_WARNING("table `%s' not found, using default %d",
-        table, def);
-  }
+    BFAM_ROOT_WARNING("table `%s' not found, using default %d", table, def);
   else
   {
     lua_pushstring(L,name);
     lua_gettable(L,-2);
     if(!lua_isnumber(L,-1))
-    {
-      if(warning) BFAM_ROOT_WARNING("table `%s' does not contain `%s', "
-          "using default %d", table, name, def);
-    }
+      BFAM_ROOT_WARNING("table `%s' does not contain `%s', using default %d",
+          table, name, def);
     else
       result = (int)lua_tonumber(L, -1);
     lua_pop(L, 1);
@@ -264,12 +255,12 @@ new_prefs(const char *prefs_filename)
       strncpy(prefs->conn_name,"brick",BFAM_BUFSIZ);
       prefs->conn_fn = NULL;
       prefs->brick_args = bfam_malloc(sizeof(brick_args_t));
-      prefs->brick_args->nx = lua_get_table_int(prefs->L, "brick", "nx",1,1);
-      prefs->brick_args->ny = lua_get_table_int(prefs->L, "brick", "ny",1,1);
+      prefs->brick_args->nx = lua_get_table_int(prefs->L, "brick", "nx",1);
+      prefs->brick_args->ny = lua_get_table_int(prefs->L, "brick", "ny",1);
       prefs->brick_args->periodic_x = lua_get_table_int(prefs->L, "brick",
-          "periodic_x",1,1);
+          "periodic_x",1);
       prefs->brick_args->periodic_y = lua_get_table_int(prefs->L, "brick",
-          "periodic_y",1,1);
+          "periodic_y",1);
     }
     else
     {
@@ -298,7 +289,6 @@ new_prefs(const char *prefs_filename)
   BFAM_ABORT_IF(prefs->conn_fn == NULL && prefs->brick_args == NULL,
       "no connectivity");
   lua_pop(L, 1);
-
   return prefs;
 }
 
@@ -345,7 +335,6 @@ init_domain(beard_t *beard, prefs_t *prefs)
   else if(prefs->conn_fn != NULL)
     beard->conn = prefs->conn_fn();
   else BFAM_ABORT("no connectivity");
-
 }
 
 static void
