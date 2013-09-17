@@ -62,6 +62,100 @@ typedef struct beard
 /*
  * Lua helper functions
  */
+/*
+ * Helper function for calling a lua function. Based on generic call function of
+ * Listing 25.4-25.6 of
+ * @book{Ierusalimschy2006Lua,
+ *  author = {Ierusalimschy, Roberto},
+ *  title = {Programming in Lua, Second Edition},
+ *  year = {2006},
+ *  isbn = {8590379825},
+ *  publisher = {Lua.Org},
+ * }
+ */
+static int
+lua_global_function_call(lua_State *L, const char *name, const char *sig, ...)
+{
+  va_list vl;
+  int num_arg = 0;
+  int num_res = 0;
+
+  va_start(vl,sig);
+
+  lua_getglobal(L,name);
+
+  if(!lua_isfunction(L,-1))
+  {
+    BFAM_ROOT_WARNING("function `%s' not found in lua file", name);
+    lua_pop(L,1);
+    return 1;
+  }
+
+  for(num_arg = 0; sig[num_arg] && sig[num_arg] != '>'; num_arg++)
+  {
+    luaL_checkstack(L,1,"too many arguments");
+
+    switch(sig[num_arg])
+    {
+      case 'r':
+        lua_pushnumber(L,(double)va_arg(vl,bfam_real_t));
+        break;
+      case 'i':
+        lua_pushinteger(L,va_arg(vl,int));
+        break;
+      case 's':
+        lua_pushstring(L,va_arg(vl,char *));
+        break;
+      case '>':
+        break;
+      default:
+        BFAM_ABORT("function '%s' invalid input argument (%c)",name,
+            sig[num_arg]);
+    }
+  }
+
+  BFAM_ABORT_IF_NOT(sig[num_arg] == '>',"arguments for '%s' does not contain "
+      " a '>' character",name);
+
+  num_res = strlen(sig) - num_arg - 1;
+
+  BFAM_ABORT_IF_NOT(lua_pcall(L,num_arg,num_res,0) == 0,
+      "error running function %s: %s", name,lua_tostring(L,-1));
+
+  for(int n = 0; n < num_res;n++)
+  {
+    switch(sig[num_arg+1+n])
+    {
+      case 'r':
+        BFAM_ABORT_IF_NOT(lua_isnumber(L,n-num_res),
+            "for '%s' return %d expected number got '%s'",
+            name, n, lua_tostring(L,n-num_res));
+        *va_arg(vl, bfam_real_t*) = (bfam_real_t)lua_tonumber(L,n-num_res);
+        break;
+      case 'i':
+        BFAM_ABORT_IF_NOT(lua_isnumber(L,n-num_res),
+            "for '%s' return %d expected number got '%s'",
+            name, n, lua_tostring(L,n-num_res));
+        *va_arg(vl, int*) = lua_tointeger(L,n-num_res);
+        break;
+      case 's':
+        BFAM_ABORT_IF_NOT(lua_isstring(L,n-num_res),
+            "for '%s' return %d expected string got '%s'",
+            name, n, lua_tostring(L,n-num_res));
+        *va_arg(vl, const char **) = lua_tostring(L,n-num_res);
+        break;
+      default:
+        BFAM_ABORT("function '%s' invalid output argument (%c)",name,
+            sig[num_arg]);
+    }
+  }
+
+  lua_pop(L,num_res);
+
+  va_end(vl);
+  return 0;
+}
+
 static int
 lua_get_global_int(lua_State *L, const char *name, int def, int warning)
 {
@@ -251,6 +345,7 @@ init_domain(beard_t *beard, prefs_t *prefs)
   else if(prefs->conn_fn != NULL)
     beard->conn = prefs->conn_fn();
   else BFAM_ABORT("no connectivity");
+
 }
 
 static void
