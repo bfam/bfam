@@ -1,6 +1,5 @@
 -- refinement parameters
-min_refine_level = 2
-max_refine_level = 4
+max_level = 3
 
 -- connectivity info
 connectivity = "brick"
@@ -40,11 +39,21 @@ function refinement_function(
   x2,y2,z2,x3,y3,z3,
   level, treeid)
 
-  if(level < treeid/4) then
-    return 1
-  else
+  if level >= max_level or level > treeid/4 then
     return 0
+  else
+    return 1
   end
+end
+
+function element_order(
+  x0,y0,z0,x1,y1,z1,
+  x2,y2,z2,x3,y3,z3,
+  level, treeid)
+
+  N = treeid/3+1
+
+  return N
 end
 
 -- time stepper to use
