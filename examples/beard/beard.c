@@ -328,6 +328,7 @@ init_mpi(beard_t *beard, MPI_Comm mpicomm)
 static void
 init_domain(beard_t *beard, prefs_t *prefs)
 {
+  /* Set up the connectivity */
   if(prefs->brick_args != NULL)
     beard->conn = p4est_connectivity_new_brick(
         prefs->brick_args->nx        ,prefs->brick_args->ny,
@@ -335,11 +336,31 @@ init_domain(beard_t *beard, prefs_t *prefs)
   else if(prefs->conn_fn != NULL)
     beard->conn = prefs->conn_fn();
   else BFAM_ABORT("no connectivity");
+
+  /* let the user modify the connectivity vertices */
+  for(int i = 0; i < beard->conn->num_vertices; i++)
+  {
+    bfam_real_t x = beard->conn->vertices[i*3+0];
+    bfam_real_t y = beard->conn->vertices[i*3+1];
+    bfam_real_t z = 0;
+    int result = lua_global_function_call(prefs->L,"connectivity_vertices",
+        "rrr>rrr",x,y,z,&x,&y,&z);
+    if(result != 0) break;
+    beard->conn->vertices[i*3+0] = x;
+    beard->conn->vertices[i*3+1] = y;
+  }
+  /* create the domain */
+  beard->domain = bfam_domain_p4est_new(beard->mpicomm, beard->conn);
+
+  /* dump the p4est mesh */
+  p4est_vtk_write_file(beard->domain->p4est, NULL, "p4est_mesh");
 }
 
 static void
 shave_beard(beard_t *beard,prefs_t *prefs)
 {
+  bfam_domain_p4est_free(beard->domain);
+  bfam_free(beard->domain);
   p4est_connectivity_destroy(beard->conn);
 }
 
