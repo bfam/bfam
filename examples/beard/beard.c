@@ -325,6 +325,33 @@ init_mpi(beard_t *beard, MPI_Comm mpicomm)
   BFAM_MPI_CHECK(MPI_Comm_size(mpicomm, &beard->mpisize));
 }
 
+static int
+refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
+    p4est_quadrant_t * quadrant)
+{
+  lua_State *L = (lua_State*)p4est->user_pointer;
+
+  double vxyz[4*3];
+
+  for(int ix = 0; ix < 2; ix++)
+    for(int iy = 0; iy < 2; iy++)
+    {
+      int ox = ix*(1 << (P4EST_MAXLEVEL-quadrant->level));
+      int oy = iy*(1 << (P4EST_MAXLEVEL-quadrant->level));
+      p4est_qcoord_to_vertex (p4est->connectivity, which_tree,
+          quadrant->x+ox, quadrant->y+oy,&vxyz[iy + ix*2]);
+    }
+
+  int val = 0;
+  int result = lua_global_function_call(L,"refinement_function",
+      "rrr" "rrr" "rrr" "rrr" "ii" ">" "i",
+      vxyz[0], vxyz[1], vxyz[2], vxyz[3], vxyz[ 4], vxyz[ 5],
+      vxyz[6], vxyz[7], vxyz[8], vxyz[9], vxyz[10], vxyz[11],
+      quadrant->level, which_tree, &val);
+  BFAM_ASSERT(result == 0);
+
+  return val;
+}
 static void
 init_domain(beard_t *beard, prefs_t *prefs)
 {
@@ -351,6 +378,22 @@ init_domain(beard_t *beard, prefs_t *prefs)
   }
   /* create the domain */
   beard->domain = bfam_domain_p4est_new(beard->mpicomm, beard->conn);
+
+  /* call user refinement function */
+  lua_getglobal(prefs->L,"refinement_function");
+  if(lua_isfunction(prefs->L,-1))
+  {
+    lua_pop(prefs->L, 1);
+    void *current_user_pointer = beard->domain->p4est->user_pointer;
+    beard->domain->p4est->user_pointer = prefs->L;
+    p4est_refine(beard->domain->p4est, 2, refine_fn, NULL);
+    beard->domain->p4est->user_pointer = current_user_pointer;
+  }
+  else BFAM_ROOT_WARNING("function `%s' not found in lua file",
+      "refinement_function");
+
+  p4est_balance(beard->domain->p4est, P4EST_CONNECT_CORNER, NULL);
+  p4est_partition(beard->domain->p4est, NULL);
 
   /* dump the p4est mesh */
   p4est_vtk_write_file(beard->domain->p4est, NULL, "p4est_mesh");
