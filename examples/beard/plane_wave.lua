@@ -51,10 +51,24 @@ function element_order(
   x2,y2,z2,x3,y3,z3,
   level, treeid)
 
-  N = treeid/3+1
+  N = treeid%3+1
 
   return N
 end
+
+-- initial values
+rho = 1
+lam = 1
+mu  = 1
+v1  = 0
+v2  = 0
+v3  = 0
+S11 = 0
+S22 = 0
+S33 = 0
+S12 = 0
+S13 = 0
+S23 = 0
 
 -- time stepper to use
 lsrk_method  = "KC54"

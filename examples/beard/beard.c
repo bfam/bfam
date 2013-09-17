@@ -409,6 +409,50 @@ split_domain(beard_t *beard, prefs_t *prefs)
   bfam_free(N);
 }
 
+static void
+field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(field, 32);
+  bfam_real_t val = 0;
+
+  lua_State *L = (lua_State*) arg;
+  lua_getglobal(L,name);
+
+  if(lua_isfunction(L,-1))
+  {
+    lua_pop(L,1);
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      lua_global_function_call(L, name, "rrr>r", x[n],y[n],z[n],&field[n]);
+    return;
+  }
+  else if(lua_isnumber(L,-1)) val = (bfam_real_t)lua_tonumber(L,-1);
+  else BFAM_WARNING("Did not find '%s' in lua as a function or number using 0:"
+                    " lua message: '%s'", name,lua_tostring(L,-1));
+  lua_pop(L,1);
+
+  for(bfam_locidx_t n=0; n < npoints; ++n)
+    field[n] = val;
+}
+
+static void
+domain_add_fields(beard_t *beard, prefs_t *prefs)
+{
+  const char *volume[] = {"_volume",NULL};
+  const char *fields[] = {"rho", "lam", "mu", "v1", "v2", "v3", "S11", "S22",
+    "S33", "S12", "S13", "S23",NULL};
+  bfam_domain_t *domain = (bfam_domain_t*)beard->domain;
+  for(int f = 0; fields[f] != NULL; f++)
+  {
+    bfam_domain_add_field (domain, BFAM_DOMAIN_OR, volume, fields[f]);
+    bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, fields[f], 0,
+        field_set_val, prefs->L);
+  }
+}
 
 static void
 init_domain(beard_t *beard, prefs_t *prefs)
@@ -458,6 +502,9 @@ init_domain(beard_t *beard, prefs_t *prefs)
 
   /* split the domain */
   split_domain(beard,prefs);
+
+  /* split the domain */
+  domain_add_fields(beard,prefs);
 }
 
 static void
