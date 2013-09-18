@@ -506,7 +506,6 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
     bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, fields_aux[f], 0,
         field_set_val_aux, NULL);
   }
-
 }
 
 static void
@@ -558,7 +557,7 @@ init_domain(beard_t *beard, prefs_t *prefs)
   /* split the domain */
   split_domain(beard,prefs);
 
-  /* split the domain */
+  /* add fields to the domnain */
   domain_add_fields(beard,prefs);
 }
 
