@@ -1,5 +1,11 @@
 # ISSUES
 
+## dump lua and include files
+dump the lua file to the screen as well as any included lua files
+
+## output handling with lua
+Make it so that lua can set up different output types
+
 ## material projection stability
 Check stability if projected material properties are used.
 
