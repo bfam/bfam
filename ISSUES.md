@@ -1,5 +1,11 @@
 # ISSUES
 
+## material projection stability
+Check stability if projected material properties are used.
+
+## boundary conditions
+Fix it so that multiple boundary conditions can be handled
+
 ## communicator prefix
 need to pass field prefix through to the get / put functions
 
