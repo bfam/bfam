@@ -468,6 +468,7 @@ field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t time,
 
   if(lua_isfunction(L,-1))
   {
+    BFAM_ROOT_INFO("field_set_val: using '%s' as lua callback function",name);
     lua_pop(L,1);
     for(bfam_locidx_t n=0; n < npoints; ++n)
       lua_global_function_call(L, name, "rrr>r", x[n],y[n],z[n],&field[n]);
@@ -477,6 +478,9 @@ field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t time,
   else BFAM_WARNING("Did not find '%s' in lua as a function or number using 0: "
                     "lua message: '%s'", name,lua_tostring(L,-1));
   lua_pop(L,1);
+
+  BFAM_ROOT_INFO("field_set_val: using '%s' with value %"BFAM_REAL_FMTe,
+      name,val);
 
   for(bfam_locidx_t n=0; n < npoints; ++n)
     field[n] = val;
