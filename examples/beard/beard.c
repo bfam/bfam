@@ -919,10 +919,47 @@ compute_dt(bfam_locidx_t npoints, const char *name, bfam_real_t time,
   }
 }
 
+static bfam_real_t
+compute_energy(beard_t *beard, prefs_t *prefs, bfam_real_t t,
+    const char *prefix)
+{
+  const char *tags[] = {"_volume",NULL};
+  bfam_subdomain_t *subs[beard->domain->base.numSubdomains];
+  bfam_locidx_t num_subs = 0;
+  bfam_domain_get_subdomains((bfam_domain_t*) beard->domain,
+      BFAM_DOMAIN_OR,tags,beard->domain->base.numSubdomains,
+      subs,&num_subs);
+  bfam_real_t energy = 0;
+  bfam_real_t energy_local = 0;
+  for(bfam_locidx_t s = 0; s<num_subs; s++)
+  {
+    bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*) subs[s];
+#define X(order) \
+    case order: beard_dgx_energy_##order(sub->N,&energy_local, \
+                    sub,prefix); break;
+
+    switch(sub->N)
+    {
+      BFAM_LIST_OF_DGX_QUAD_NORDERS
+      default:
+        beard_dgx_energy_(sub->N,&energy_local,sub,prefix);
+        break;
+    }
+#undef X
+  }
+  BFAM_MPI_CHECK(MPI_Reduce(&energy_local,&energy,1,BFAM_REAL_MPI,
+         MPI_SUM,0,beard->mpicomm));
+  if(beard->mpirank == 0)
+    energy = BFAM_REAL_SQRT(energy);
+  return energy;
+}
+
 static void
 run_simulation(beard_t *beard,prefs_t *prefs)
 {
   const char *volume[] = {"_volume",NULL};
+
+  /* compute the time step information */
   bfam_real_t ldt = INFINITY;
   bfam_domain_init_field((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR, volume,
       "_grid_JI", 0, compute_dt, &ldt);
@@ -947,6 +984,31 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   BFAM_ROOT_INFO("ndisp    = %d",ndisp);
   BFAM_ROOT_INFO("noutput  = %d",noutput);
 
+  /* compute the initial energy */
+  bfam_real_t initial_energy = compute_energy(beard,prefs,0,"");
+  bfam_real_t energy = initial_energy;
+
+  for(int s = 1; s <= nsteps; s++)
+  {
+    beard->lsrk->base.step((bfam_ts_t*) beard->lsrk,dt);
+    if(s%ndisp == 0)
+    {
+      bfam_real_t new_energy = compute_energy(beard,prefs,s*dt,"");
+      int color = 32;
+      if(new_energy > energy) color = 31;
+      BFAM_ROOT_INFO("\x1B[%dm"
+          "time: %"BFAM_REAL_FMTe" normalized energy: %"BFAM_REAL_FMTe
+          " current delta energy: %+"BFAM_REAL_FMTe
+          " initial delta energy: %+"BFAM_REAL_FMTe
+          "\x1B[0m",
+          color,
+          s*dt,
+          new_energy/initial_energy,
+          (new_energy-energy)/initial_energy,
+          energy/initial_energy-1);
+      energy = new_energy;
+    }
+  }
 }
 
 static void
