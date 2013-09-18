@@ -867,6 +867,89 @@ init_domain(beard_t *beard, prefs_t *prefs)
 }
 
 static void
+compute_dt(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict JI)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(JI, 32);
+  bfam_real_t *dt = (bfam_real_t*)arg;
+
+  bfam_real_t *restrict Jrx =
+    bfam_dictionary_get_value_ptr(&s->fields, "_grid_Jrx");
+  BFAM_ASSUME_ALIGNED(Jrx, 32);
+
+  bfam_real_t *restrict Jry =
+    bfam_dictionary_get_value_ptr(&s->fields, "_grid_Jry");
+  BFAM_ASSUME_ALIGNED(Jry, 32);
+
+  bfam_real_t *restrict Jsx =
+    bfam_dictionary_get_value_ptr(&s->fields, "_grid_Jsx");
+  BFAM_ASSUME_ALIGNED(Jsx, 32);
+
+  bfam_real_t *restrict Jsy =
+    bfam_dictionary_get_value_ptr(&s->fields, "_grid_Jsy");
+  BFAM_ASSUME_ALIGNED(Jsy, 32);
+
+  bfam_real_t *restrict mu =
+    bfam_dictionary_get_value_ptr(&s->fields, "mu");
+  BFAM_ASSUME_ALIGNED(mu, 32);
+
+  bfam_real_t *restrict lam =
+    bfam_dictionary_get_value_ptr(&s->fields, "lam");
+  BFAM_ASSUME_ALIGNED(lam, 32);
+
+  bfam_real_t *restrict rho =
+    bfam_dictionary_get_value_ptr(&s->fields, "rho");
+  BFAM_ASSUME_ALIGNED(rho, 32);
+
+  bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t *) s;
+  bfam_real_t p2 = sub->N*sub->N;
+
+  for(int n = 0; n < npoints; n++)
+  {
+    bfam_real_t cp = BFAM_REAL_SQRT((lam[n]+2*mu[n])/rho[n]);
+    bfam_real_t hs =
+      1.0/BFAM_REAL_SQRT(JI[n]*JI[n]*(Jsy[n]*Jsy[n]+Jsx[n]*Jsx[n]));
+    bfam_real_t hr =
+      1.0/BFAM_REAL_SQRT(JI[n]*JI[n]*(Jry[n]*Jry[n]+Jrx[n]*Jrx[n]));
+    dt[0] = BFAM_MIN(dt[0], BFAM_MIN(hs,hr)/cp/p2);
+  }
+}
+
+static void
+run_simulation(beard_t *beard,prefs_t *prefs)
+{
+  const char *volume[] = {"_volume",NULL};
+  bfam_real_t ldt = INFINITY;
+  bfam_domain_init_field((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR, volume,
+      "_grid_JI", 0, compute_dt, &ldt);
+  bfam_real_t dt = 0;
+  BFAM_INFO("local dt = %"BFAM_REAL_FMTe, ldt);
+  BFAM_MPI_CHECK(MPI_Allreduce(&ldt,&dt,1,BFAM_REAL_MPI, MPI_MIN,
+        beard->mpicomm));
+
+  int nsteps  = 0;
+  int ndisp   = 0;
+  int noutput = 0;
+
+  int result = lua_global_function_call(prefs->L,"time_step_parameters",
+      "r>riii",dt,&dt,&nsteps,&ndisp,&noutput);
+  BFAM_ABORT_IF_NOT(result == 0,
+      "problem with lua call to 'time_step_parameters': "
+      "should be a function that takes dt "
+      "and returns dt, nsteps, ndisp, noutput");
+
+  BFAM_ROOT_INFO("dt       = %"BFAM_REAL_FMTe,dt);
+  BFAM_ROOT_INFO("nsteps   = %d",nsteps);
+  BFAM_ROOT_INFO("ndisp    = %d",ndisp);
+  BFAM_ROOT_INFO("noutput  = %d",noutput);
+
+}
+
+static void
 shave_beard(beard_t *beard,prefs_t *prefs)
 {
   bfam_free(beard->comm_args);
@@ -890,6 +973,8 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   init_domain(&beard, prefs);
 
   init_lsrk(&beard, prefs);
+
+  run_simulation(&beard, prefs);
 
   shave_beard(&beard,prefs);
 }

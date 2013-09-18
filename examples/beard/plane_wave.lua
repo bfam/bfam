@@ -58,18 +58,31 @@ end
 
 -- initial values
 rho = 1
-lam = 1
-mu  = 1
-v1  = 0
-v2  = 0
-v3  = 0
-S11 = 0
-S22 = 0
-S33 = 0
-S12 = 0
-S13 = 0
-S23 = 0
+lam = 2
+mu  = 3
+v1  = 4
+v2  = 5
+v3  = 6
+S11 = 7
+S22 = 8
+S33 = 9
+S12 = 10
+S13 = 11
+S23 = 12
+
 
 -- time stepper to use
 lsrk_method  = "KC54"
 
+function time_step_parameters(dt)
+  tout  = 0.1
+  tdisp = 0.1
+  tend  = 1;
+
+  dt      = 0.5*dt
+  noutput = math.ceil(tout / dt)
+  dt      = tout / noutput
+  ndisp   = tdisp / dt
+  nstesp  = tend / dt
+  return dt,nstesp, ndisp, noutput
+end
