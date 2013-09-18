@@ -97,6 +97,9 @@ lua_global_function_call(lua_State *L, const char *name, const char *sig, ...)
 
     switch(sig[num_arg])
     {
+      case 'd':
+        lua_pushnumber(L,va_arg(vl,double));
+        break;
       case 'r':
         lua_pushnumber(L,(double)va_arg(vl,bfam_real_t));
         break;
@@ -344,7 +347,7 @@ refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
 
   int val = 0;
   int result = lua_global_function_call(L,"refinement_function",
-      "rrr" "rrr" "rrr" "rrr" "ii" ">" "i",
+      "ddd" "ddd" "ddd" "ddd" "ii" ">" "i",
       vxyz[0], vxyz[1], vxyz[2], vxyz[3], vxyz[ 4], vxyz[ 5],
       vxyz[6], vxyz[7], vxyz[8], vxyz[9], vxyz[10], vxyz[11],
       quadrant->level, which_tree, &val);
@@ -378,7 +381,7 @@ get_element_order(p4est_iter_volume_info_t *info, void *arg)
 
   int N = 0;
   int result = lua_global_function_call(data->L,"element_order",
-      "rrr" "rrr" "rrr" "rrr" "ii" ">" "i",
+      "ddd" "ddd" "ddd" "ddd" "ii" ">" "i",
       vxyz[0], vxyz[1], vxyz[2], vxyz[3], vxyz[ 4], vxyz[ 5],
       vxyz[6], vxyz[7], vxyz[8], vxyz[9], vxyz[10], vxyz[11],
       info->quad->level, info->treeid, &N);
@@ -431,8 +434,8 @@ field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t time,
     return;
   }
   else if(lua_isnumber(L,-1)) val = (bfam_real_t)lua_tonumber(L,-1);
-  else BFAM_WARNING("Did not find '%s' in lua as a function or number using 0:"
-                    " lua message: '%s'", name,lua_tostring(L,-1));
+  else BFAM_WARNING("Did not find '%s' in lua as a function or number using 0: "
+                    "lua message: '%s'", name,lua_tostring(L,-1));
   lua_pop(L,1);
 
   for(bfam_locidx_t n=0; n < npoints; ++n)
