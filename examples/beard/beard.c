@@ -2,6 +2,25 @@
 #include "beard_dgx_rhs.h"
 #include <p4est_iterate.h>
 
+#define BFAM_LOAD_FIELD_RESTRICT_ALIGNED(field,prefix,base,dictionary)         \
+bfam_real_t *restrict field;                                                   \
+{                                                                              \
+  char bfam_load_field_name[BFAM_BUFSIZ];                                      \
+  snprintf(bfam_load_field_name,BFAM_BUFSIZ,"%s%s",(prefix),(base));           \
+  field = bfam_dictionary_get_value_ptr(dictionary, bfam_load_field_name);     \
+  BFAM_ASSERT(field != NULL);                                                  \
+}                                                                              \
+BFAM_ASSUME_ALIGNED(field,32);
+#define BFAM_LOAD_FIELD_ALIGNED(field,prefix,base,dictionary)                  \
+bfam_real_t *field;                                                            \
+{                                                                              \
+  char bfam_load_field_name[BFAM_BUFSIZ];                                      \
+  snprintf(bfam_load_field_name,BFAM_BUFSIZ,"%s%s",(prefix),(base));           \
+  field = bfam_dictionary_get_value_ptr(dictionary, bfam_load_field_name);     \
+  BFAM_ASSERT(field != NULL);                                                  \
+}                                                                              \
+BFAM_ASSUME_ALIGNED(field,32);
+
 struct conn_table {
   const char *name;
   p4est_connectivity_t * (*conn_fn) (void);
@@ -443,6 +462,31 @@ field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t time,
 }
 
 static void
+field_set_val_aux(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(field, 32);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rho,"","rho",&s->fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(lam,"","lam",&s->fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED( mu,"", "mu",&s->fields);
+
+  if(strcmp(name,"rho_inv") == 0)
+    for(bfam_locidx_t n=0; n < npoints; ++n) field[n] = 1/rho[n];
+  else if(strcmp(name,"Zs") == 0)
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      field[n] = BFAM_REAL_SQRT(rho[n]*mu[n]);
+  else if(strcmp(name,"Zp") == 0)
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      field[n] = BFAM_REAL_SQRT(rho[n]*(lam[n]+2*mu[n]));
+  else BFAM_ABORT("Unknown auxilary field: '%s'",name);
+}
+
+static void
 domain_add_fields(beard_t *beard, prefs_t *prefs)
 {
   const char *volume[] = {"_volume",NULL};
@@ -455,6 +499,14 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
     bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, fields[f], 0,
         field_set_val, prefs->L);
   }
+  const char *fields_aux[] = {"rho_inv", "Zs", "Zp",NULL};
+  for(int f = 0; fields_aux[f] != NULL; f++)
+  {
+    bfam_domain_add_field (domain, BFAM_DOMAIN_OR, volume, fields_aux[f]);
+    bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, fields_aux[f], 0,
+        field_set_val_aux, NULL);
+  }
+
 }
 
 static void
