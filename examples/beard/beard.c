@@ -2,6 +2,14 @@
 #include "beard_dgx_rhs.h"
 #include <p4est_iterate.h>
 
+const char *comm_args_face_scalars[]      = {NULL};
+const char *comm_args_scalars[]           = {NULL};
+const char *comm_args_vectors[]           = {"v",NULL};
+const char *comm_args_vector_components[] = {"v1","v2","v3",NULL};
+const char *comm_args_tensors[]           = {"T",NULL};
+const char *comm_args_tensor_components[] = {"S11","S12","S13",
+                                             "S22","S23","S33",NULL};
+
 #define BFAM_LOAD_FIELD_RESTRICT_ALIGNED(field,prefix,base,dictionary)         \
 bfam_real_t *restrict field;                                                   \
 {                                                                              \
@@ -506,6 +514,79 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
     bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, fields_aux[f], 0,
         field_set_val_aux, NULL);
   }
+
+  /* add glue fields */
+  const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
+  for(int f = 0 ; comm_args_scalars[f] != NULL; f++)
+  {
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue,
+        comm_args_scalars[f]);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue,
+        comm_args_scalars[f]);
+  }
+  for(int f = 0 ; comm_args_vectors[f] != NULL; f++)
+  {
+    char name[BFAM_BUFSIZ];
+    snprintf(name,BFAM_BUFSIZ, "%sn",comm_args_vectors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+    snprintf(name,BFAM_BUFSIZ, "%sp1",comm_args_vectors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+    snprintf(name,BFAM_BUFSIZ, "%sp2",comm_args_vectors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+    snprintf(name,BFAM_BUFSIZ, "%sp3",comm_args_vectors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+  }
+  for(int f = 0 ; comm_args_tensors[f] != NULL; f++)
+  {
+    char name[BFAM_BUFSIZ];
+    snprintf(name,BFAM_BUFSIZ, "%sn",comm_args_tensors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+    snprintf(name,BFAM_BUFSIZ, "%sp1",comm_args_tensors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+    snprintf(name,BFAM_BUFSIZ, "%sp2",comm_args_tensors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+    snprintf(name,BFAM_BUFSIZ, "%sp3",comm_args_tensors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+  }
+
+  /* exchange material properties to glue */
+  const char *glue_mat[] = {"Zs","Zp",NULL};
+  for(bfam_locidx_t g = 0; glue_mat[g] != NULL; g++)
+  {
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, glue_mat[g]);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, glue_mat[g]);
+  }
+  bfam_communicator_t material_comm;
+
+  bfam_subdomain_comm_args_t mat_args;
+  const char * mat_NULL[]      = {NULL};
+  mat_args.scalars_m           = glue_mat;
+  mat_args.vectors_m           = mat_NULL;
+  mat_args.vector_components_m = mat_NULL;
+  mat_args.tensors_m           = mat_NULL;
+  mat_args.tensor_components_m = mat_NULL;
+  mat_args.face_scalars_m      = mat_NULL;
+
+  mat_args.scalars_p           = glue_mat;
+  mat_args.vectors_p           = mat_NULL;
+  mat_args.vector_components_p = mat_NULL;
+  mat_args.tensors_p           = mat_NULL;
+  mat_args.tensor_components_p = mat_NULL;
+  mat_args.face_scalars_p      = mat_NULL;
+
+  bfam_communicator_init(&material_comm,domain,BFAM_DOMAIN_OR,glue,
+      beard->mpicomm,10,&mat_args);
+  bfam_communicator_start( &material_comm);
+  bfam_communicator_finish(&material_comm);
+  bfam_communicator_free(  &material_comm);
 }
 
 static void
