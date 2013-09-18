@@ -64,6 +64,9 @@ bfam_vtk_write_struc_file(bfam_domain_t *domain, bfam_domain_match_t match,
  *                        written in binary
  * \param [in] compress   boolean to indicate if the data should be compressed
  *                        when writing a binary data
+ * \param [in] Np_write   Number of points to write out in each dimension of
+ *                        element (poorman's high-order viz): Np_write = 0 means
+ *                        use element Np
  *
  *
  * \note That a domain will only output scalars and vectors that it contains.
