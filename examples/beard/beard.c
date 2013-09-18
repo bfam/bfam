@@ -369,7 +369,7 @@ refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
       int ox = ix*(1 << (P4EST_MAXLEVEL-quadrant->level));
       int oy = iy*(1 << (P4EST_MAXLEVEL-quadrant->level));
       p4est_qcoord_to_vertex (p4est->connectivity, which_tree,
-          quadrant->x+ox, quadrant->y+oy,&vxyz[iy + ix*2]);
+          quadrant->x+ox, quadrant->y+oy,&vxyz[3*(iy + ix*2)]);
     }
 
   int val = 0;
@@ -403,7 +403,7 @@ get_element_order(p4est_iter_volume_info_t *info, void *arg)
       int ox = ix*(1 << (P4EST_MAXLEVEL-info->quad->level));
       int oy = iy*(1 << (P4EST_MAXLEVEL-info->quad->level));
       p4est_qcoord_to_vertex (info->p4est->connectivity, info->treeid,
-          info->quad->x+ox, info->quad->y+oy,&vxyz[iy + ix*2]);
+          info->quad->x+ox, info->quad->y+oy,&vxyz[3*(iy + ix*2)]);
     }
 
   int N = 0;
