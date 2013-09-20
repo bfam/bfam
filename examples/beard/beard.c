@@ -987,6 +987,14 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   /* compute the initial energy */
   bfam_real_t initial_energy = compute_energy(beard,prefs,0,"");
   bfam_real_t energy = initial_energy;
+  {
+    char output[BFAM_BUFSIZ];
+    const char *fields[] = {"rho", "lam", "mu", "v1", "v2", "v3", "S11", "S22",
+      "S33", "S12", "S13", "S23",NULL};
+    snprintf(output,BFAM_BUFSIZ,"solution_%05d",0);
+    bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
+        volume, "", output, (0)*dt, fields, NULL, NULL, 0, 0,0);
+  }
 
   for(int s = 1; s <= nsteps; s++)
   {
