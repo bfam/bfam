@@ -453,7 +453,7 @@ field_zero(bfam_locidx_t npoints, const char *name, bfam_real_t time,
 }
 
 static void
-field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t t,
     bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
     struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
 {
@@ -471,7 +471,7 @@ field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t time,
     BFAM_ROOT_INFO("field_set_val: using '%s' as lua callback function",name);
     lua_pop(L,1);
     for(bfam_locidx_t n=0; n < npoints; ++n)
-      lua_global_function_call(L, name, "rrr>r", x[n],y[n],z[n],&field[n]);
+      lua_global_function_call(L, name, "rrrr>r", x[n],y[n],z[n],t,&field[n]);
     return;
   }
   else if(lua_isnumber(L,-1)) val = (bfam_real_t)lua_tonumber(L,-1);
@@ -1007,6 +1007,15 @@ run_simulation(beard_t *beard,prefs_t *prefs)
           (new_energy-energy)/initial_energy,
           energy/initial_energy-1);
       energy = new_energy;
+    }
+    if(s%noutput == 0)
+    {
+      char output[BFAM_BUFSIZ];
+      const char *fields[] = {"v1", "v2", "v3",
+        "S11", "S22", "S33", "S12", "S13", "S23",NULL};
+      snprintf(output,BFAM_BUFSIZ,"solution_%05d",s);
+      bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
+          volume, "", output, (s)*dt, fields, NULL, NULL, 0, 0,0);
     }
   }
 }
