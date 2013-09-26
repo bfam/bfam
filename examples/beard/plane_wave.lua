@@ -1,6 +1,7 @@
 -- refinement parameters
 min_level = 2
 max_level = 4
+output_prefix = "solution"
 
 -- connectivity info
 connectivity = "brick"

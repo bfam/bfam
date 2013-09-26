@@ -65,6 +65,8 @@ typedef struct prefs
 {
   lua_State *L;
 
+  char output_prefix[BFAM_BUFSIZ];
+
   p4est_connectivity_t * (*conn_fn) (void);
   brick_args_t* brick_args;
 
@@ -239,6 +241,17 @@ new_prefs(const char *prefs_filename)
 
   BFAM_ASSERT(lua_gettop(L)==0);
 
+  /* get output prefix */
+  lua_getglobal(L,"output_prefix");
+  strncpy(prefs->output_prefix,"solution",BFAM_BUFSIZ);
+  if(lua_isstring(L, -1))
+  {
+    const char *output_prefix = lua_tostring(L, -1);
+    strncpy(prefs->output_prefix,output_prefix,BFAM_BUFSIZ);
+  }
+  else
+    BFAM_ROOT_WARNING("using default 'output_prefix': %s",prefs->output_prefix);
+
   /* get the time stepper type */
   lua_getglobal(L, "lsrk_method");
   prefs->lsrk_method = lsrk_table[0].lsrk_method;
@@ -333,6 +346,7 @@ static void
 print_prefs(prefs_t *prefs)
 {
   BFAM_ROOT_INFO("----------Preferences----------");
+  BFAM_ROOT_INFO(" Output prefix            = %s",prefs->output_prefix);
   BFAM_ROOT_INFO(" Low Storage Time Stepper = %s",prefs->lsrk_name);
   BFAM_ROOT_INFO(" Connectivity             = %s",prefs->conn_name);
   if(prefs->brick_args != NULL)
@@ -991,7 +1005,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     char output[BFAM_BUFSIZ];
     const char *fields[] = {"rho", "lam", "mu", "v1", "v2", "v3", "S11", "S22",
       "S33", "S12", "S13", "S23",NULL};
-    snprintf(output,BFAM_BUFSIZ,"solution_%05d",0);
+    snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,0);
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
         volume, "", output, (0)*dt, fields, NULL, NULL, 0, 0,0);
   }
@@ -1021,7 +1035,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       char output[BFAM_BUFSIZ];
       const char *fields[] = {"v1", "v2", "v3",
         "S11", "S22", "S33", "S12", "S13", "S23",NULL};
-      snprintf(output,BFAM_BUFSIZ,"solution_%05d",s);
+      snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
           volume, "", output, (s)*dt, fields, NULL, NULL, 0, 0,0);
     }
