@@ -500,6 +500,40 @@ field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t t,
     field[n] = val;
 }
 
+typedef struct check_error_args
+{
+  char *field_prefix;
+  lua_State *L;
+} check_error_args_t;
+
+static void
+check_error(bfam_locidx_t npoints, const char *name, bfam_real_t t,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict err)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(err, 32);
+
+  check_error_args_t* err_args = (check_error_args_t*)arg;
+  lua_State *L = err_args->L;
+  lua_getglobal(L,name+6);
+  BFAM_ABORT_IF_NOT(lua_isfunction(L,-1),
+      "no callback function for initial condition and error: %s",name+6);
+  lua_pop(L,1);
+  char fname[BFAM_BUFSIZ];
+  snprintf(fname,BFAM_BUFSIZ,"%s%s",err_args->field_prefix,name+6);
+  bfam_real_t *restrict fld = bfam_dictionary_get_value_ptr(&s->fields, fname);
+  BFAM_ABORT_IF(fld == NULL, "field '%s' not in fields for %s",fname,s->name);
+
+  for(bfam_locidx_t n=0; n < npoints; ++n)
+  {
+    lua_global_function_call(L, name+6, "rrrr>r", x[n],y[n],z[n],t,&err[n]);
+    err[n] -= fld[n];
+  }
+}
+
 static void
 field_set_val_aux(bfam_locidx_t npoints, const char *name, bfam_real_t time,
     bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
@@ -992,11 +1026,23 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       "problem with lua call to 'time_step_parameters': "
       "should be a function that takes dt "
       "and returns dt, nsteps, ndisp, noutput");
+  int nerr = 0;
+  result = lua_global_function_call(prefs->L,"nerr","r>i",dt,&nerr);
+  if(nerr > 0)
+  {
+      const char *err_flds[] = { "error_v1",  "error_v2",  "error_v3",
+                                "error_S11", "error_S22", "error_S33",
+                                "error_S12", "error_S13", "error_S23", NULL};
+      for(int f = 0; err_flds[f] != NULL; f++)
+        bfam_domain_add_field ((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
+            volume, err_flds[f]);
+  }
 
   BFAM_ROOT_INFO("dt       = %"BFAM_REAL_FMTe,dt);
   BFAM_ROOT_INFO("nsteps   = %d",nsteps);
   BFAM_ROOT_INFO("ndisp    = %d",ndisp);
   BFAM_ROOT_INFO("noutput  = %d",noutput);
+  BFAM_ROOT_INFO("nerr     = %d",nerr);
 
   /* compute the initial energy */
   bfam_real_t initial_energy = compute_energy(beard,prefs,0,"");
@@ -1032,12 +1078,32 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     }
     if(s%noutput == 0)
     {
-      char output[BFAM_BUFSIZ];
       const char *fields[] = {"v1", "v2", "v3",
         "S11", "S22", "S33", "S12", "S13", "S23",NULL};
+      char output[BFAM_BUFSIZ];
       snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
           volume, "", output, (s)*dt, fields, NULL, NULL, 0, 0,0);
+    }
+    if(nerr > 0 && s%nerr == 0)
+    {
+      check_error_args_t err_args;
+      err_args.L = prefs->L;
+      char prefix[] = "";
+      err_args.field_prefix = prefix;
+      const char *err_flds[] = { "error_v1",  "error_v2",  "error_v3",
+                                "error_S11", "error_S22", "error_S33",
+                                "error_S12", "error_S13", "error_S23", NULL};
+      for(int f = 0; err_flds[f] != NULL; f++)
+        bfam_domain_init_field((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
+            volume, err_flds[f], s*dt, check_error, &err_args);
+      bfam_real_t error = compute_energy(beard,prefs,s*dt,"error_");
+      BFAM_ROOT_INFO(
+          "time: %"BFAM_REAL_FMTe" error: %"BFAM_REAL_FMTe, s*dt, error);
+      char err_output[BFAM_BUFSIZ];
+      snprintf(err_output,BFAM_BUFSIZ,"%s_error_%05d",prefs->output_prefix,s);
+      bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
+          volume, "", err_output, (s)*dt, err_flds, NULL, NULL, 0, 0,0);
     }
   }
 }
