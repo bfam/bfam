@@ -119,13 +119,9 @@ end
 -- time stepper to use
 lsrk_method  = "KC54"
 
--- tend  = Lx*5/c_s
--- tout  = tend/100
--- tdisp = tend/100
--- terr  = tend/100
-tend  = 5*Lx/c_s
+tend  = 0.1*Lx/c_s
 tout  = 2*tend
-tdisp = tend
+tdisp = 2*tend
 terr  = tend
 
 function time_step_parameters(dt)

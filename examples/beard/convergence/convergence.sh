@@ -1,5 +1,12 @@
 #!/bin/bash
 
+if [ $# != 3 ]
+then
+  echo "convergence.sh BEARD NUM_PROCS DG_N"
+  exit
+fi
+
+
 error_token="error:"
 err1=0
 err2=0
