@@ -1,5 +1,9 @@
 # ISSUES
 
+## mass projection
+mass projecting between every glue shows slightly lower order convergence. Check
+why.
+
 ## dump lua and include files
 dump the lua file to the screen as well as any included lua files
 

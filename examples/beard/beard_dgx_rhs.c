@@ -844,7 +844,7 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
 
     /* check to tee if projection */
     /* locked */
-    if(0)
+    if(1)
     {
       TpS_m = TpS_g;
       TnS_m = TnS_g;
