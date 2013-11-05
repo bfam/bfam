@@ -37,8 +37,8 @@ function(ispc_compile filename)
 endfunction()
 
 find_package(Git)
-find_package(BLAS REQUIRED)
-find_package(LAPACK REQUIRED)
+# find_package(BLAS REQUIRED)
+# find_package(LAPACK REQUIRED)
 find_package(MPI REQUIRED)
 
 # Directory where customize cmake files reside
