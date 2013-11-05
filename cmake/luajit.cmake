@@ -136,6 +136,10 @@ if(APPLE)
   set(LUAJIT_LINK_FLAGS "-pagezero_size 10000 -image_base 100000000")
 endif(APPLE)
 
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  set(LUAJIT_LINK_FLAGS "-ldl")
+endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
 message (STATUS "Use LuaJIT includes: ${LUAJIT_INCLUDE}")
 message (STATUS "Use LuaJIT library: ${LUAJIT_LIB}")
 message (STATUS "Use LuaJIT link flags: ${LUAJIT_LINK_FLAGS}")
