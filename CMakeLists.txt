@@ -276,6 +276,7 @@ endif(WITH_VECTOR_VERBOSE)
 ##
 ## Look for header files
 ##
+INCLUDE (CheckIncludeFiles)
 check_include_files(sysexits.h BFAM_HAVE_SYSEXITS_H)
 check_include_files(sys/sysexits.h BFAM_HAVE_SYS_SYSEXITS_H)
 check_include_files(time.h BFAM_HAVE_TIME_H)
@@ -287,7 +288,9 @@ if(${APPLE})
 else(${APPLE})
   set(CMAKE_REQUIRED_DEFINITIONS ${CMAKE_REQUIRED_DEFINITIONS} -D_XOPEN_SOURCE=600)
 endif(${APPLE})
+INCLUDE (CheckSymbolExists)
 check_symbol_exists(CLOCK_MONOTONIC "time.h;sys/time.h" BFAM_HAVE_CLOCK_MONOTONIC)
+INCLUDE (CheckFunctionExists)
 check_function_exists(gettimeofday BFAM_HAVE_GETTIMEOFDAY)
 cmake_pop_check_state()
 if(UNIX AND NOT APPLE)
