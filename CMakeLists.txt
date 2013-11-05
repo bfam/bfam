@@ -369,6 +369,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_Fortran_LINK_FLAGS}"
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LAPACK_LINKER_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${BLAS_LINKER_FLAGS}")
 
+find_library(MATH_LIB m)
 target_link_libraries(bfam ${MPI_C_LIBRARIES}
                            ${MPI_Fortran_LIBRARIES}
                            ${P4EST_LIBRARIES}
@@ -376,7 +377,8 @@ target_link_libraries(bfam ${MPI_C_LIBRARIES}
                            ${ZLIB_LIBRARIES}
                            ${LAPACK_LIBRARIES}
                            ${BLAS_LIBRARIES}
-                           ${TIME_LIBRARIES})
+                           ${TIME_LIBRARIES}
+                           ${MATH_LIB})
 if(OPENCL_FOUND)
   target_link_libraries(bfam ${OPENCL_LIBRARIES})
 endif(OPENCL_FOUND)
