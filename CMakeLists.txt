@@ -533,40 +533,40 @@ target_link_libraries(bfam_test_mesh_dgquad bfam)
 
 add_test(bfam_test_mesh_dgquad_1
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
-  ${MPIEXEC_PREFLAGS} bfam_test_mesh_dgquad ${MPIEXEC_POSTFLAGS})
+  ${MPIEXEC_PREFLAGS} ./bfam_test_mesh_dgquad ${MPIEXEC_POSTFLAGS})
 
 add_test(bfam_test_mesh_dgquad_2
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
-  ${MPIEXEC_PREFLAGS} bfam_test_mesh_dgquad ${MPIEXEC_POSTFLAGS})
+  ${MPIEXEC_PREFLAGS} ./bfam_test_mesh_dgquad ${MPIEXEC_POSTFLAGS})
 
 add_test(bfam_test_mesh_dgquad_3
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
-  ${MPIEXEC_PREFLAGS} bfam_test_mesh_dgquad ${MPIEXEC_POSTFLAGS})
+  ${MPIEXEC_PREFLAGS} ./bfam_test_mesh_dgquad ${MPIEXEC_POSTFLAGS})
 
 add_test(bfam_test_sbp_test_1
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
-  ${MPIEXEC_PREFLAGS} bfam_test_sbp ${MPIEXEC_POSTFLAGS})
+  ${MPIEXEC_PREFLAGS} ./bfam_test_sbp ${MPIEXEC_POSTFLAGS})
 
 add_test(bfam_test_sbp_test_2
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
-  ${MPIEXEC_PREFLAGS} bfam_test_sbp ${MPIEXEC_POSTFLAGS})
+  ${MPIEXEC_PREFLAGS} ./bfam_test_sbp ${MPIEXEC_POSTFLAGS})
 
 add_test(bfam_test_sbp_test_4
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 4
-  ${MPIEXEC_PREFLAGS} bfam_test_sbp ${MPIEXEC_POSTFLAGS})
+  ${MPIEXEC_PREFLAGS} ./bfam_test_sbp ${MPIEXEC_POSTFLAGS})
 
 add_test(bfam_test_sbp_test_25
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 25
-  ${MPIEXEC_PREFLAGS} bfam_test_sbp ${MPIEXEC_POSTFLAGS})
+  ${MPIEXEC_PREFLAGS} ./bfam_test_sbp ${MPIEXEC_POSTFLAGS})
 
 add_test(bfam_test_communicator_test
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
-  ${MPIEXEC_PREFLAGS} bfam_test_communicator ${MPIEXEC_POSTFLAGS})
+  ${MPIEXEC_PREFLAGS} ./bfam_test_communicator ${MPIEXEC_POSTFLAGS})
 
 
 add_test(bfam_test_mpi_test
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
-  ${MPIEXEC_PREFLAGS} bfam_test_mpi ${MPIEXEC_POSTFLAGS})
+  ${MPIEXEC_PREFLAGS} ./bfam_test_mpi ${MPIEXEC_POSTFLAGS})
 
 file2header(${CMAKE_SOURCE_DIR}/tests/bfam_test_opencl_kernels.cl
             ${CMAKE_BINARY_DIR}/bfam_test_opencl_kernels.h)
