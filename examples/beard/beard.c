@@ -1098,12 +1098,16 @@ run_simulation(beard_t *beard,prefs_t *prefs)
         bfam_domain_init_field((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
             volume, err_flds[f], s*dt, check_error, &err_args);
       bfam_real_t error = compute_energy(beard,prefs,s*dt,"error_");
+      bfam_real_t new_energy = compute_energy(beard,prefs,s*dt,"");
       BFAM_ROOT_INFO(
-          "time: %"BFAM_REAL_FMTe" error: %"BFAM_REAL_FMTe, s*dt, error);
+          "time: %"BFAM_REAL_FMTe" error: %"BFAM_REAL_FMTe
+          " d_energy: %"BFAM_REAL_FMTe,
+          s*dt, error,(new_energy-energy)/initial_energy);
       char err_output[BFAM_BUFSIZ];
       snprintf(err_output,BFAM_BUFSIZ,"%s_error_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
           volume, "", err_output, (s)*dt, err_flds, NULL, NULL, 0, 0,0);
+      energy = new_energy;
     }
   }
 }

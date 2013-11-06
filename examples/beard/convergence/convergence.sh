@@ -8,6 +8,7 @@ fi
 
 
 error_token="error:"
+energy_token="d_energy:"
 err1=0
 err2=0
 
@@ -22,10 +23,16 @@ for num in {1..5}; do
   do
     if [ "$RES" == "1" ]; then
       err1=$(echo ${token} | sed 's/e/\*10\^/' | sed 's/+//')
+    elif [ "$RES" == "2" ]; then
+      energy=$(echo ${token} | sed 's/e/\*10\^/' | sed 's/+//')
     fi
 
     if [ "$token" == "$error_token" ]; then
       RES="1"
+    elif [ "$token" == "$energy_token" ]; then
+      RES="2"
+    else
+      RES="0"
     fi
   done
 
@@ -33,9 +40,9 @@ for num in {1..5}; do
   if [[ $err2 > 0 ]]; then
     rate=$(echo "l(($err1)/($err2))/l(0.5)" | bc -l)
 
-    echo "level: $num error: $err1 rate: $rate"
+    echo "level: $num denergy: $energy error: $err1 rate: $rate"
   else
-    echo "level: $num error: $err1"
+    echo "level: $num denergy: $energy error: $err1"
   fi
 
   err2=$err1
