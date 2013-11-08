@@ -69,6 +69,8 @@ typedef struct bfam_communicator
  * \param [in] tags       \c NULL terminated array of the tags to match
  *                        glue grids doing the communication
  * \param [in] comm       MPI communicator
+ * \param [in] tag        user specified communicator tag
+ * \param [in] userdata   user custom data to pass through
  *
  * \return the newly created communicator
  */
@@ -87,6 +89,8 @@ bfam_communicator_new(bfam_domain_t *domain, bfam_domain_match_t match,
  * \param [in]     tags         \c NULL terminated array of the tags to match
  *                              glue grids doing the communication
  * \param [in]     comm         MPI communicator
+ * \param [in]     tag          user specified communicator tag
+ * \param [in]     userdata     user custom data to pass through
  */
 void
 bfam_communicator_init(bfam_communicator_t* communicator,
