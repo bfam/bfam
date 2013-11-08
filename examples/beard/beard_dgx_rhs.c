@@ -844,7 +844,7 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
 
     /* check to tee if projection */
     /* locked */
-    if(1)
+    if(0)
     {
       TpS_m = TpS_g;
       TnS_m = TnS_g;
@@ -868,10 +868,16 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
       bfam_locidx_t iM = sub_m->vmapM[f];
       bfam_real_t nm[] = {n1[f],n2[f],0};
 
+      bfam_real_t sq_sJ;
+      if(sub_g->EToHm[le] == 1 || sub_g->EToHm[le] == 2)
+        sq_sJ = BFAM_REAL_SQRT(2.0*sJ[f]);
+      else
+        sq_sJ = BFAM_REAL_SQRT(sJ[f]);
+
       beard_dgx_add_flux(1,
           TnS_m[pnt],&TpS_m[3*pnt],vnS_m[pnt],&vpS_m[3*pnt],iM,
           dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
-          lam[iM],mu[iM],rhoi[iM],nm,BFAM_REAL_SQRT(sJ[f]),JI[iM],wi[0]);
+          lam[iM],mu[iM],rhoi[iM],nm,sq_sJ,JI[iM],wi[0]);
     }
   }
 }
