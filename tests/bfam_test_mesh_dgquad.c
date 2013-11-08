@@ -402,11 +402,14 @@ build_mesh(MPI_Comm mpicomm)
   const char *comm_args_face_scalars[]      = {NULL};
   const char *comm_args_scalars[]           = {"p1", "p2", "p3",
                                                "p4", "p5", "p6", NULL};
-  const char *comm_args_vectors[]           = {"v",NULL};
-  const char *comm_args_vector_components[] = {"p1","p2","p3",NULL};
-  const char *comm_args_tensors[]           = {"T",NULL};
+  const char *comm_args_vectors[]           = {"v","u",NULL};
+  const char *comm_args_vector_components[] = {"p1","p2","p3",
+                                               "p4","p5","p6",NULL};
+  const char *comm_args_tensors[]           = {"T","S",NULL};
   const char *comm_args_tensor_components[] = {"p1", "p2", "p3",
-                                               "p4", "p5", "p6", NULL};
+                                               "p4", "p5", "p6",
+                                               "p1", "p3", "p5",
+                                               "p2", "p4", "p6", NULL};
   commargs.scalars_m           = comm_args_scalars;
   commargs.scalars_p           = comm_args_scalars;
 
@@ -549,6 +552,15 @@ build_mesh(MPI_Comm mpicomm)
         check_pm((bfam_subdomain_dgx_quad_glue_t*)subdomains[s], "Tp3", -1);
 
       failures +=
+        check_pm((bfam_subdomain_dgx_quad_glue_t*)subdomains[s], "Sn",   1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_quad_glue_t*)subdomains[s], "Sp1", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_quad_glue_t*)subdomains[s], "Sp2", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_quad_glue_t*)subdomains[s], "Sp3", -1);
+
+      failures +=
         check_pm((bfam_subdomain_dgx_quad_glue_t*)subdomains[s], "vn", -1);
       failures +=
         check_pm((bfam_subdomain_dgx_quad_glue_t*)subdomains[s], "vp1", 1);
@@ -556,6 +568,15 @@ build_mesh(MPI_Comm mpicomm)
         check_pm((bfam_subdomain_dgx_quad_glue_t*)subdomains[s], "vp2", 1);
       failures +=
         check_pm((bfam_subdomain_dgx_quad_glue_t*)subdomains[s], "vp3", 1);
+
+      failures +=
+        check_pm((bfam_subdomain_dgx_quad_glue_t*)subdomains[s], "un", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_quad_glue_t*)subdomains[s], "up1", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_quad_glue_t*)subdomains[s], "up2", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_quad_glue_t*)subdomains[s], "up3", 1);
     }
 
     bfam_free(subdomains);
