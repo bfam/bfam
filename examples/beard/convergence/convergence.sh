@@ -1,8 +1,8 @@
 #!/bin/bash
 
-if [ $# != 3 ]
+if [ $# != 4 ]
 then
-  echo "convergence.sh BEARD NUM_PROCS DG_N"
+  echo "convergence.sh BEARD NUM_PROCS DG_N LP"
   exit
 fi
 
@@ -12,8 +12,10 @@ energy_token="d_energy:"
 err1=0
 err2=0
 
-for num in {1..5}; do
-  cat convergence.lua | sed "\$amin_level=$num\nmax_level=$num\nN = $3" > tmp.lua
+for num in {1..8}; do
+  cat convergence.lua |                                                         \
+    sed "\$amin_level=0\nmax_level=min_level+$4\nN=$3\nstatic_refinement=$num-1"\
+    > tmp.lua
 
   OUT=$(mpirun -n $2 $1 tmp.lua | grep error:)
 

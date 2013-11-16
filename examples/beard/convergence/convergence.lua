@@ -8,8 +8,8 @@ output_prefix = "solution"
 connectivity = "brick"
 brick =
 {
-  nx = 5,
-  ny = 5,
+  nx = 2,
+  ny = 2,
   periodic_x = 1,
   periodic_y = 1,
 }
@@ -18,10 +18,10 @@ brick =
 Lx = 25
 Ly = 25
 function connectivity_vertices(x, y, z)
-  if x > 0 and x < brick.nx and y > 0 and y < brick.ny then
-    x = x + 0.5*(math.random()-0.5)
-    y = y + 0.5*(math.random()-0.5)
-  end
+  --if x > 0 and x < brick.nx and y > 0 and y < brick.ny then
+  --  x = x + 0.5*(math.random()-0.5)
+  --  y = y + 0.5*(math.random()-0.5)
+  --end
 
   xout = Lx*x
   yout = Ly*y
@@ -37,12 +37,10 @@ function refinement_function(
 
   if level < min_level then
     return 1
-  -- elseif level >= max_level or level > treeid/4 then
-  --   return 0
-  -- else
-  --   return 1
-  else
+  elseif level >= max_level or x0+x1-y0-y1 < 0 then
     return 0
+  else
+    return 1
   end
 end
 
@@ -51,12 +49,16 @@ function element_order(
   x2,y2,z2,x3,y3,z3,
   level, treeid)
 
-  return N
+  if treeid < brick.nx*brick.ny/2 then
+    return N
+  else
+    return N
+  end
 end
 
 -- initial values
 rho = 1
-lam = 1
+lam = 2
 mu  = 1
 S11 = 0
 S22 = 0
@@ -128,7 +130,7 @@ end
 -- time stepper to use
 lsrk_method  = "KC54"
 
-tend  = 0.1*Lx/c_s
+tend  = 4*Lx/c_s
 tout  = 2*tend
 tdisp = 2*tend
 terr  = tend
