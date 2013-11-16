@@ -370,6 +370,13 @@ init_mpi(beard_t *beard, MPI_Comm mpicomm)
 }
 
 static int
+static_refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
+    p4est_quadrant_t * quadrant)
+{
+  return 1;
+}
+
+static int
 refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
     p4est_quadrant_t * quadrant)
 {
@@ -896,13 +903,24 @@ init_domain(beard_t *beard, prefs_t *prefs)
     void *current_user_pointer = beard->domain->p4est->user_pointer;
     beard->domain->p4est->user_pointer = prefs->L;
     p4est_refine(beard->domain->p4est, 2, refine_fn, NULL);
+
     beard->domain->p4est->user_pointer = current_user_pointer;
   }
   else BFAM_ROOT_WARNING("function `%s' not found in lua file",
       "refinement_function");
 
   p4est_balance(beard->domain->p4est, P4EST_CONNECT_CORNER, NULL);
+
+  /*
+   * This is to statically refine all cells of a balanced mesh, since it's
+   * already balanced it will remain balanced
+   */
+  int stat_ref = lua_get_global_int(prefs->L, "static_refinement", 0);
+  for(int i = 0; i < stat_ref; i++)
+    p4est_refine(beard->domain->p4est, 0, static_refine_fn, NULL);
+
   p4est_partition(beard->domain->p4est, NULL);
+
 
   /* dump the p4est mesh */
   p4est_vtk_write_file(beard->domain->p4est, NULL, "p4est_mesh");
