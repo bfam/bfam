@@ -8,8 +8,8 @@ output_prefix = "solution"
 connectivity = "brick"
 brick =
 {
-  nx = 2,
-  ny = 2,
+  nx = 4,
+  ny = 4,
   periodic_x = 1,
   periodic_y = 1,
 }
@@ -18,10 +18,10 @@ brick =
 Lx = 25
 Ly = 25
 function connectivity_vertices(x, y, z)
-  --if x > 0 and x < brick.nx and y > 0 and y < brick.ny then
-  --  x = x + 0.5*(math.random()-0.5)
-  --  y = y + 0.5*(math.random()-0.5)
-  --end
+  if x > 0 and x < brick.nx and y > 0 and y < brick.ny then
+    x = x + 0.5*(math.random()-0.5)
+    y = y + 0.5*(math.random()-0.5)
+  end
 
   xout = Lx*x
   yout = Ly*y
