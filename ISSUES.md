@@ -1,8 +1,7 @@
 # ISSUES
 
-## mass projection
-mass projecting between every glue shows slightly lower order convergence. Check
-why.
+## Legendre-Gauss
+Add the LG points to bfam.
 
 ## dump lua and include files
 dump the lua file to the screen as well as any included lua files
