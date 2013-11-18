@@ -12,12 +12,12 @@ energy_token="d_energy:"
 err1=0
 err2=0
 
-for num in {1..8}; do
+for num in {1..10}; do
   cat convergence.lua |                                                         \
     sed "\$amin_level=0\nmax_level=min_level+$4\nN=$3\nstatic_refinement=$num-1"\
-    > tmp.lua
+    > tmp_$2_$3_$4.lua
 
-  OUT=$(mpirun -n $2 $1 tmp.lua | grep error:)
+  OUT=$(mpirun -n $2 $1 tmp_$2_$3_$4.lua | grep error:)
 
   RES="0"
 
