@@ -48,7 +48,44 @@ project_flux(bfam_real_t *Tns,       bfam_real_t *Tps,
         bfam_locidx_t  Nfp_in,     bfam_locidx_t  Npg,
        const bfam_real_t *Tng, const bfam_real_t *Tpg,
        const bfam_real_t *vng, const bfam_real_t *vpg,
-       const bfam_real_t * MP, const bfam_real_t  *wi)
+       const bfam_real_t * Pr)
+{
+#ifdef USE_GENERIC
+  const int Nfp = Nfp_in;
+#endif
+  /* zero out the components */
+  for(int i = 0; i < Nfp; i++)
+  {
+    for(int k = 0; k < 3; k++)
+    {
+      Tps[3*i+k] = 0;
+      vps[3*i+k] = 0;
+    }
+    Tns[i] = 0;
+    vns[i] = 0;
+  }
+  for(int j = 0; j < Npg; j++)
+  {
+    for(int i = 0; i < Nfp; i++)
+    {
+      for(int k = 0; k < 3; k++)
+      {
+        Tps[3*i+k] += Pr[i+j*Nfp]*Tpg[3*j+k];
+        vps[3*i+k] += Pr[i+j*Nfp]*vpg[3*j+k];
+      }
+      Tns[i] += Pr[i+j*Nfp]*Tng[j];
+      vns[i] += Pr[i+j*Nfp]*vng[j];
+    }
+  }
+}
+
+static inline void
+massproject_flux(bfam_real_t *Tns,       bfam_real_t *Tps,
+                 bfam_real_t *vns,       bfam_real_t *vps,
+            bfam_locidx_t  Nfp_in,     bfam_locidx_t  Npg,
+           const bfam_real_t *Tng, const bfam_real_t *Tpg,
+           const bfam_real_t *vng, const bfam_real_t *vpg,
+           const bfam_real_t * MP, const bfam_real_t  *wi)
 {
 #ifdef USE_GENERIC
   const int Nfp = Nfp_in;
@@ -858,8 +895,12 @@ void BFAM_APPEND_EXPAND(beard_dgx_inter_rhs_interface_,NORDER)(
       TnS_m = TnS_m_STORAGE;
       vpS_m = vpS_m_STORAGE;
       vnS_m = vnS_m_STORAGE;
+      massproject_flux(TnS_m, TpS_m, vnS_m, vpS_m, Nfp, Np_g, TnS_g, TpS_g,
+          vnS_g, vpS_g, sub_g->massprojection[sub_g->EToHm[le]], wi);
+      /*
       project_flux(TnS_m, TpS_m, vnS_m, vpS_m, Nfp, Np_g, TnS_g, TpS_g, vnS_g,
-          vpS_g, sub_g->massprojection[sub_g->EToHm[le]], wi);
+          vpS_g, sub_g->projection[sub_g->EToHm[le]]);
+      */
     }
 
     for(bfam_locidx_t pnt = 0; pnt < Nfp; pnt++)
