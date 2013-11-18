@@ -387,6 +387,8 @@ set(bfam_dgx_quad_norders  1  2  3  4  5  6  7  8  9 10
                           11 12 13 14 15 16 17 18 19 20
                           21 22 23 24)
 
+set(bfam_dimensions  0 1 2 3)
+
 function(bfam_multiple_build define_name define_vals lib_name lib_src target)
   foreach(val ${define_vals})
     set(full_lib_name "${lib_name}_${val}")
@@ -433,6 +435,11 @@ target_link_libraries(bfam_exam_clock bfam)
 
 add_executable(beard
   examples/beard/beard.c)
+
+bfam_multiple_build("BFAM_DIM" "${bfam_dimensions}"
+  bfam_subdomain_dgx
+  src/bfam_subdomain_dgx.c
+  bfam)
 
 bfam_multiple_build("NORDER" "${bfam_dgx_quad_norders}"
   beard_dgx_rhs
@@ -652,6 +659,9 @@ join("${BFAM_COMPILE_LIST}" "" BFAM_COMPILE_INFO)
 
 set(slash "\\")
 join("${bfam_dgx_quad_norders}" ") X(" BFAM_DGX_QUAD_NORDERS_MID)
+
+set(slash "\\")
+join("${bfam_dimensions}" ") X(" BFAM_DIMENSIONS_MID)
 
 ##
 ## Write BFAM config file
