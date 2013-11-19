@@ -12,6 +12,33 @@
 #define DIM (BFAM_DGX_DIMENSION)
 #endif
 
+/* calculate the integer power of a function using exponential by squaring
+ * method, taken from
+ * http://stackoverflow.com/questions/101439/the-most-efficient-way-to-implement-an-integer-based-power-function-powint-int
+ * accessed on 11/19/13
+ */
+static inline int
+ipow(int base, int exp)
+{
+  BFAM_ASSERT(exp >= 0);
+
+  int result = 1;
+  while (exp)
+  {
+    /* check is odd */
+    if (exp & 1)
+      result *= base;
+
+    /* divide by 2 */
+    exp >>= 1;
+
+    base *= base;
+  }
+
+  return result;
+}
+
+
 void
 BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
                               bfam_subdomain_dgx_t *subdomain,
@@ -32,6 +59,9 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
   const int DIM = inDIM;
 #endif
   BFAM_ASSERT(DIM == inDIM);
+  BFAM_ABORT_IF(DIM < 0, "dimension %d is not possible in bfam",DIM);
+  BFAM_ABORT_IF(DIM == 0 && N != 0,
+                "if DIM < 1 then N must be zero (i.e., constant");
 
   bfam_subdomain_init(&subdomain->base, id, name);
   bfam_subdomain_add_tag(&subdomain->base, "_subdomain_dgx");
@@ -46,6 +76,19 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
   // subdomain->base.field_add = bfam_subdomain_dgx_quad_field_add;
   // subdomain->base.field_face_add = bfam_subdomain_dgx_quad_field_face_add;
   // subdomain->base.field_init = bfam_subdomain_dgx_quad_field_init;
+
+  const int Np = ipow(N+1,DIM);
+  const int Nfp = (DIM>0) ? ipow(N+1,DIM-1) : 0;
+  const int Nfaces = 2*DIM;
+  const int Ncorners = ipow(2,DIM);
+  const int Nh = (DIM>1) ? 1+ipow(2,DIM-1) : 1;
+
+  int               No = 1;
+  if(DIM == 2)      No = 2;
+  else if(DIM == 3) No = 8;
+  else if(DIM > 3)  BFAM_ABORT("no orientation number for DIM = %d", DIM);
+
+  const int Nrp = N+1;
 
 }
 
