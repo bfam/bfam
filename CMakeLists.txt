@@ -535,6 +535,11 @@ target_link_libraries(bfam_test_mesh_dgquad_geo bfam)
 
 add_test(bfam_test_mesh_dgquad_geo bfam_test_mesh_dgquad_geo)
 
+add_executable(bfam_test_dgx tests/bfam_test_dgx.c)
+target_link_libraries(bfam_test_dgx bfam)
+
+add_test(bfam_test_dgx bfam_test_dgx)
+
 add_executable(bfam_test_mesh_dgquad tests/bfam_test_mesh_dgquad.c)
 target_link_libraries(bfam_test_mesh_dgquad bfam)
 
