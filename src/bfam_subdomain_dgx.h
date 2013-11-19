@@ -195,6 +195,13 @@ bfam_subdomain_dgx_init_(bfam_subdomain_dgx_t *subdomain,
                         const int8_t              *EToF,
                         const int                  dim);
 
+/** free up the memory allocated by the subdomain
+ *
+ * \param [in,out] subdomain subdomain to clean up
+ */
+void
+bfam_subdomain_dgx_free_(bfam_subdomain_t *subdomain);
+
 #define X(dg_dim) \
 bfam_subdomain_dgx_t*                                         \
 bfam_subdomain_dgx_new_##dg_dim(const bfam_locidx_t      id,  \
@@ -220,7 +227,9 @@ bfam_subdomain_dgx_init_##dg_dim(bfam_subdomain_dgx_t *subdomain, \
                         const bfam_locidx_t       *EToV,          \
                         const bfam_locidx_t       *EToE,          \
                         const int8_t              *EToF,          \
-                        const int                  dim);
+                        const int                  dim);          \
+void                                                                \
+bfam_subdomain_dgx_free_##dg_dim(bfam_subdomain_t *subdomain);
 BFAM_LIST_OF_BGX_DIMENSIONS
 #undef X
 
