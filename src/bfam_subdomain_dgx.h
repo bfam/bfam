@@ -45,9 +45,11 @@ typedef struct bfam_subdomain_dgx
 
   int              N;          /* 1D Polynomial Order */
   int              Np;         /* Number of points in the element */
-  int              Nfp;        /* Number of points on a face of the element */
-  int             *Ngeo;       /* geometry based quantities:
-                                * corners, faces, edges, etc.
+  int             *Ngp;        /* Number of geometry points */
+
+  int              numg;       /* number of geometry types */
+  int             *Ng;         /* geometry based quantities:
+                                * faces, edges, corners, etc.
                                 */
   int              Nh;         /* Number of interpolations to glue */
   int              No;         /* Number of orientations */
@@ -69,7 +71,7 @@ typedef struct bfam_subdomain_dgx
   bfam_locidx_t    *vmapP;   /* Mapping into the volume for the plus  side of
                                 the face mesh */
 
-  int             **fmask;   /* face mask */
+  int            ***gmask;   /* face mask */
 
   /* glue quantities
    * all glue quantities are postfixed with _m for minus side or _p for plus

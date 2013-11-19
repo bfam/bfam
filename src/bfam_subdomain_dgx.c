@@ -68,6 +68,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
   char dim_str[BFAM_BUFSIZ];
   snprintf(dim_str,BFAM_BUFSIZ,"_dimension_%d",DIM);
   bfam_subdomain_add_tag(&subdomain->base, dim_str);
+  subdomain->dim = DIM;
 
   subdomain->base.free =
               BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,BFAM_DGX_DIMENSION);
@@ -77,19 +78,77 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
   // subdomain->base.field_face_add = bfam_subdomain_dgx_quad_field_face_add;
   // subdomain->base.field_init = bfam_subdomain_dgx_quad_field_init;
 
-  const int Np = ipow(N+1,DIM);
-  const int Nfp = (DIM>0) ? ipow(N+1,DIM-1) : 0;
-  const int Nfaces = 2*DIM;
-  const int Ncorners = ipow(2,DIM);
-  const int Nh = (DIM>1) ? 1+ipow(2,DIM-1) : 1;
+  subdomain->numg = DIM;
+  const int numg = subdomain->numg;
 
-  int               No = 1;
-  if(DIM == 2)      No = 2;
-  else if(DIM == 3) No = 8;
-  else if(DIM > 3)  BFAM_ABORT("no orientation number for DIM = %d", DIM);
+  int *Ng  = NULL;
+  if(numg > 0) Ng  = bfam_malloc_aligned(sizeof(int)*numg);
+  subdomain->Ng = Ng;
+
+  int *Ngp  = NULL;
+  if(numg > 0) Ngp = bfam_malloc_aligned(sizeof(int)*numg);
+  subdomain->Ngp = Ngp;
 
   const int Nrp = N+1;
 
+  /* this could probably be made generic for arbitrary dimensions, but until
+   * that's needed... */
+  switch(DIM)
+  {
+    case 0:
+      subdomain->Np = 1;
+      break;
+
+    case 1:
+      subdomain->Np = Nrp;
+
+      /* just corners */
+      Ng [0]  = 2;
+      Ngp[0]  = 1;
+      break;
+
+    case 2:
+      subdomain->Np = Nrp*Nrp;
+
+      /* edges */
+      Ng [0]  = 4;
+      Ngp[0]  = Nrp;
+
+      /* corners */
+      Ng [1]  = 4;
+      Ngp[1]  = 1;
+      break;
+
+    case 3:
+      subdomain->Np = Nrp*Nrp*Nrp;
+
+      /* faces */
+      Ng [0]  = 8;
+      Ngp[0]  = Nrp*Nrp;
+
+      /* edges */
+      Ng [1]  = 12;
+      Ngp[1]  = Nrp;
+
+      /* corners */
+      Ng [2]  = 8;
+      Ngp[2]  = 1;
+      break;
+
+    default:
+      BFAM_ABORT("cannot handle dim = %d",DIM);
+  }
+
+  const int Np = subdomain->Np;
+
+  subdomain->gmask = NULL;
+  if(numg > 0) subdomain->gmask = bfam_malloc_aligned(numg * sizeof(int**));
+  for(int g = 0; g < numg; g++)
+  {
+    subdomain->gmask[g] = bfam_malloc_aligned(Ng[g] * sizeof(int*));
+    for(int i = 0; i < Ng[g]; i++)
+      subdomain->gmask[g][i] = bfam_malloc_aligned(Ngp[g] * sizeof(int));
+  }
 }
 
 bfam_subdomain_dgx_t*
@@ -125,7 +184,7 @@ void
 BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,BFAM_DGX_DIMENSION)(
     bfam_subdomain_t *thisSubdomain)
 {
-  // bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*) thisSubdomain;
+  bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*) thisSubdomain;
 
   // bfam_dictionary_allprefixed_ptr(&sub->base.fields,"",
   //     &bfam_subdomain_dgx_free_fields,NULL);
@@ -146,8 +205,22 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,BFAM_DGX_DIMENSION)(
   // bfam_free_aligned(sub->wi);
 
   // for(int f = 0; f < sub->Nfaces; ++f)
-  //   bfam_free_aligned(sub->fmask[f]);
+  //    bfam_free_aligned(sub->fmask[f]);
   // bfam_free_aligned(sub->fmask);
+
+  if(sub->gmask)
+  {
+    for(int g = 0; g < sub->numg; g++)
+    {
+      for(int i = 0; i < sub->Ng[g]; i++)
+        bfam_free_aligned(sub->gmask[g][i]);
+      bfam_free_aligned(sub->gmask[g]);
+    }
+    bfam_free_aligned(sub->gmask);
+    sub->gmask = NULL;
+  }
+  if(sub->Ng ) bfam_free_aligned(sub->Ng ); sub->Ng  = NULL;
+  if(sub->Ngp) bfam_free_aligned(sub->Ngp); sub->Ngp = NULL;
 
   // bfam_free_aligned(sub->vmapP);
   // bfam_free_aligned(sub->vmapM);
