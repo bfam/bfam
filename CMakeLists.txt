@@ -436,7 +436,7 @@ target_link_libraries(bfam_exam_clock bfam)
 add_executable(beard
   examples/beard/beard.c)
 
-bfam_multiple_build("BFAM_DIM" "${bfam_dimensions}"
+bfam_multiple_build("BFAM_DGX_DIMENSION" "${bfam_dimensions}"
   bfam_subdomain_dgx
   src/bfam_subdomain_dgx.c
   bfam)
@@ -661,7 +661,7 @@ set(slash "\\")
 join("${bfam_dgx_quad_norders}" ") X(" BFAM_DGX_QUAD_NORDERS_MID)
 
 set(slash "\\")
-join("${bfam_dimensions}" ") X(" BFAM_DIMENSIONS_MID)
+join("${bfam_dimensions}" ") X(" BFAM_DGX_DIMENSIONS_MID)
 
 ##
 ## Write BFAM config file
