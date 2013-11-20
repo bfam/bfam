@@ -12,30 +12,171 @@
 #define DIM (BFAM_DGX_DIMENSION)
 #endif
 
-/* calculate the integer power of a function using exponential by squaring
- * method, taken from
- * http://stackoverflow.com/questions/101439/the-most-efficient-way-to-implement-an-integer-based-power-function-powint-int
- * accessed on 11/19/13
- */
-static inline int
-ipow(int base, int exp)
+static inline int***
+BFAM_APPEND_EXPAND(bfam_subdomain_dgx_gmask_set_,BFAM_DGX_DIMENSION)
+         (const int numg, const int N, int *Np, int *Ng, int *Ngp, int inDIM)
 {
-  BFAM_ASSERT(exp >= 0);
+#ifdef USE_GENERIC_DGX_DIMENSION
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_gmask_set");
+  const int DIM = inDIM;
+#endif
+  BFAM_ABORT_IF(DIM > 3 || DIM < 0,
+      "bfam_subdomain_dgx_gmask_set cannot handle dim = %d",DIM);
 
-  int result = 1;
-  while (exp)
+  if(DIM == 0)
   {
-    /* check is odd */
-    if (exp & 1)
-      result *= base;
-
-    /* divide by 2 */
-    exp >>= 1;
-
-    base *= base;
+    *Np = 1;
+    return NULL;
   }
 
-  return result;
+
+  /* this could probably be made generic for arbitrary dimensions, but until
+   * that's needed... */
+  switch(DIM)
+  {
+    case 1:
+      *Np = N+1;
+
+      /* just corners */
+      Ng [0]  = 2;
+      Ngp[0]  = 1;
+      break;
+
+    case 2:
+      *Np = (N+1)*(N+1);
+
+      /* edges */
+      Ng [0]  = 4;
+      Ngp[0]  = N+1;
+
+      /* corners */
+      Ng [1]  = 4;
+      Ngp[1]  = 1;
+      break;
+
+    case 3:
+      *Np = (N+1)*(N+1)*(N+1);
+
+      /* faces */
+      Ng [0]  = 6;
+      Ngp[0]  = (N+1)*(N+1);
+
+      /* edges */
+      Ng [1]  = 12;
+      Ngp[1]  = N+1;
+
+      /* corners */
+      Ng [2]  = 8;
+      Ngp[2]  = 1;
+      break;
+
+    default:
+      BFAM_ABORT("cannot handle dim = %d",DIM);
+  }
+
+  int ***gmask = bfam_malloc_aligned(numg * sizeof(int**));
+  for(int g = 0; g < numg; g++)
+  {
+    gmask[g] = bfam_malloc_aligned(Ng[g] * sizeof(int*));
+    for(int i = 0; i < Ng[g]; i++)
+      gmask[g][i] = bfam_malloc_aligned(Ngp[g] * sizeof(int));
+  }
+
+  switch(DIM)
+  {
+    case 1:
+      gmask[0][0][0] = 0;
+      gmask[0][1][0] = N;
+      break;
+
+    case 2:
+      /* edges */
+      for(int i = 0; i < N+1; ++i) gmask[0][0][i] = i*(N+1);
+      for(int i = 0; i < N+1; ++i) gmask[0][1][i] = (i+1)*(N+1)-1;
+      for(int i = 0; i < N+1; ++i) gmask[0][2][i] = i;
+      for(int i = 0; i < N+1; ++i) gmask[0][3][i] = (N+1)*N + i;
+
+      /* corners */
+      for(int j = 0; j < 2; ++j)
+        for(int i = 0; i < 2; ++i)
+          gmask[1][i+j*2][0] = i*N + j*(N+1);
+      break;
+
+    case 3:
+      /* This could all probably be cleaned up... */
+
+      /* faces */
+      {
+        int n,i,j,k,f=-1;
+
+        n = 0; i = 0; f++;
+        for(k = 0; k < N+1; k++) for(j = 0; j < N+1; j++)
+          gmask[0][f][n++] = i+j*(N+1)+k*(N+1)*(N+1);
+
+        n = 0; i = N; f++;
+        for(k = 0; k < N+1; k++) for(j = 0; j < N+1; j++)
+          gmask[0][f][n++] = i+j*(N+1)+k*(N+1)*(N+1);
+
+        n = 0; j = 0; f++;
+        for(k = 0; k < N+1; k++) for(i = 0; i < N+1; i++)
+          gmask[0][f][n++] = i+j*(N+1)+k*(N+1)*(N+1);
+
+        n = 0; j = N; f++;
+        for(k = 0; k < N+1; k++) for(i = 0; i < N+1; i++)
+          gmask[0][f][n++] = i+j*(N+1)+k*(N+1)*(N+1);
+
+        n = 0; k = 0; f++;
+        for(j = 0; j < N+1; j++) for(i = 0; i < N+1; i++)
+          gmask[0][f][n++] = i+j*(N+1)+k*(N+1)*(N+1);
+
+        n = 0; k = N; f++;
+        for(j = 0; j < N+1; j++) for(i = 0; i < N+1; i++)
+          gmask[0][f][n++] = i+j*(N+1)+k*(N+1)*(N+1);
+      }
+
+      /* edges */
+      {
+        int n,i,j,k,e = 0;
+
+        for(k = 0; k < N+1;k+=N)
+          for(j = 0; j < N+1;j+=N)
+          {
+            n = 0;
+            for(i = 0; i < N+1; i++)
+              gmask[1][e][n++] = i+j*(N+1)+k*(N+1)*(N+1);
+            e++;
+          }
+        for(k = 0; k < N+1;k+=N)
+          for(i = 0; i < N+1;i+=N)
+          {
+            n = 0;
+            for(j = 0; j < N+1; j++)
+              gmask[1][e][n++] = i+j*(N+1)+k*(N+1)*(N+1);
+            e++;
+          }
+        for(j = 0; j < N+1;j+=N)
+          for(i = 0; i < N+1;i+=N)
+          {
+            n = 0;
+            for(k = 0; k < N+1; k++)
+              gmask[1][e][n++] = i+j*(N+1)+k*(N+1)*(N+1);
+            e++;
+          }
+      }
+
+      /* corners */
+      for(int k = 0, c = 0; k < N+1; k+=N)
+        for(int j = 0; j < N+1;j+=N)
+          for(int i = 0; i < N+1;i+=N)
+            gmask[2][c++][0] = i+j*(N+1)+k*(N+1)*(N+1);
+
+      break;
+
+    default:
+      BFAM_ABORT("cannot handle dim = %d",DIM);
+  }
+
+  return gmask;
 }
 
 
@@ -89,66 +230,13 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
   if(numg > 0) Ngp = bfam_malloc_aligned(sizeof(int)*numg);
   subdomain->Ngp = Ngp;
 
-  const int Nrp = N+1;
 
-  /* this could probably be made generic for arbitrary dimensions, but until
-   * that's needed... */
-  switch(DIM)
-  {
-    case 0:
-      subdomain->Np = 1;
-      break;
 
-    case 1:
-      subdomain->Np = Nrp;
-
-      /* just corners */
-      Ng [0]  = 2;
-      Ngp[0]  = 1;
-      break;
-
-    case 2:
-      subdomain->Np = Nrp*Nrp;
-
-      /* edges */
-      Ng [0]  = 4;
-      Ngp[0]  = Nrp;
-
-      /* corners */
-      Ng [1]  = 4;
-      Ngp[1]  = 1;
-      break;
-
-    case 3:
-      subdomain->Np = Nrp*Nrp*Nrp;
-
-      /* faces */
-      Ng [0]  = 8;
-      Ngp[0]  = Nrp*Nrp;
-
-      /* edges */
-      Ng [1]  = 12;
-      Ngp[1]  = Nrp;
-
-      /* corners */
-      Ng [2]  = 8;
-      Ngp[2]  = 1;
-      break;
-
-    default:
-      BFAM_ABORT("cannot handle dim = %d",DIM);
-  }
+  subdomain->gmask =
+    BFAM_APPEND_EXPAND(bfam_subdomain_dgx_gmask_set_,BFAM_DGX_DIMENSION)(
+                       numg, N, &subdomain->Np, Ng, Ngp, DIM);
 
   const int Np = subdomain->Np;
-
-  subdomain->gmask = NULL;
-  if(numg > 0) subdomain->gmask = bfam_malloc_aligned(numg * sizeof(int**));
-  for(int g = 0; g < numg; g++)
-  {
-    subdomain->gmask[g] = bfam_malloc_aligned(Ng[g] * sizeof(int*));
-    for(int i = 0; i < Ng[g]; i++)
-      subdomain->gmask[g][i] = bfam_malloc_aligned(Ngp[g] * sizeof(int));
-  }
 }
 
 bfam_subdomain_dgx_t*
