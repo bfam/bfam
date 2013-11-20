@@ -54,9 +54,9 @@ typedef struct bfam_subdomain_dgx
   //JK int              Nh;         /* Number of interpolations to glue */
   //JK int              No;         /* Number of orientations */
 
-  //JK bfam_real_t     *r;          /* 1D LGL Nodal Point in [-1,1] */
-  //JK bfam_real_t     *w;          /* 1D LGL Weights */
-  //JK bfam_real_t     *wi;         /* inverse of 1D LGL Weights */
+  bfam_real_t     *r;          /* 1D LGL Nodal Point in [-1,1] */
+  bfam_real_t     *w;          /* 1D LGL Weights */
+  bfam_real_t     *wi;         /* inverse of 1D LGL Weights */
   //JK bfam_real_t     *exact_mass; /* exact mass matrix for this grid */
 
 
@@ -64,7 +64,7 @@ typedef struct bfam_subdomain_dgx
 
   bfam_long_real_t *V;       /* 1D Vandermonde matrix for this N */
 
-  //JK bfam_locidx_t     K;       /* Number of elements in the subdomain */
+  bfam_locidx_t     K;       /* Number of elements in the subdomain */
 
   //JK bfam_locidx_t    *vmapM;   /* Mapping into the volume for the minus side of
   //JK                               the face mesh */

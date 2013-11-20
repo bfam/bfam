@@ -245,11 +245,11 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
 
     bfam_jacobi_gauss_lobatto_quadrature(0, 0, N, lr, lw);
 
-    bfam_long_real_t **li =
+    bfam_long_real_t **lxi =
       bfam_malloc_aligned(num_Vi*sizeof(bfam_long_real_t*));
 
     for(int i = 0;i < num_Vi;i++)
-      li[i] = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
+      lxi[i] = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
 
     /* Loop over all the elements and set up the grid*/
     int Ncorners = Ng[numg-1];
@@ -265,10 +265,10 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
           w[1] = 1+lr[n];
           for(int i = 0; i < num_Vi;i++)
           {
-            li[i][Np*k + n] = 0;
+            lxi[i][Np*k + n] = 0;
             for(int c = 0; c < Ncorners; c++)
-              li[i][Np*k + n] += w[c]*Vi[i][v[c]];
-            li[i][Np*k + n] /= Ncorners;
+              lxi[i][Np*k + n] += w[c]*Vi[i][v[c]];
+            lxi[i][Np*k + n] /= Ncorners;
           }
         }
       else if(DIM == 2)
@@ -281,10 +281,10 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
             w[3] = (1+lr[m])*(1+lr[n]);
             for(int i = 0; i < num_Vi;i++)
             {
-              li[i][Np*k + n] = 0;
+              lxi[i][Np*k + n] = 0;
               for(int c = 0; c < Ncorners; c++)
-                li[i][Np*k + n] += w[c]*Vi[i][v[c]];
-              li[i][Np*k + n] /= Ncorners;
+                lxi[i][Np*k + n] += w[c]*Vi[i][v[c]];
+              lxi[i][Np*k + n] /= Ncorners;
             }
         }
       else if(DIM == 3)
@@ -302,10 +302,10 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
               w[7] = (1+lr[m])*(1+lr[n])*(1-lr[l]);
               for(int i = 0; i < num_Vi;i++)
               {
-                li[i][Np*k + n] = 0;
+                lxi[i][Np*k + n] = 0;
                 for(int c = 0; c < Ncorners; c++)
-                  li[i][Np*k + n] += w[c]*Vi[i][v[c]];
-                li[i][Np*k + n] /= Ncorners;
+                  lxi[i][Np*k + n] += w[c]*Vi[i][v[c]];
+                lxi[i][Np*k + n] /= Ncorners;
               }
             }
       else BFAM_ABORT("not setup of dim = %d",DIM);
@@ -327,19 +327,68 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
 
     bfam_jacobi_p_mass(0, 0, N, V, M);
 
+
+    bfam_long_real_t **lJrx =
+      bfam_malloc_aligned(num_Vi*DIM*sizeof(bfam_long_real_t*));
+    for(int n = 0; n < num_Vi*DIM; n++)
+      lJrx[n] = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
+
+    bfam_long_real_t *lJ = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
+
+    /* Ng[0] = number of faces, Ngp[0] = number of face points */
+    bfam_long_real_t **ln =
+      bfam_malloc_aligned(num_Vi*Ng[0]*sizeof(bfam_long_real_t*));
+    for(int n = 0; n < num_Vi*Ng[0]; n++)
+      ln[n] = bfam_malloc_aligned(K*Ng[0]*Ngp[0]*sizeof(bfam_long_real_t));
+
+    bfam_long_real_t *lsJ =
+      bfam_malloc_aligned(K*Ng[0]*Ngp[0]*sizeof(bfam_long_real_t));
+
+    /*
+    bfam_subdomain_dgx_geo(N, K, subdomain->gmask, lxi, D, lJrx, lJ, ln, lsJ,
+        DIM);
+    */
+
+    subdomain->r = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
+    subdomain->w = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
+    subdomain->wi = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
+
+    for(int n = 0; n<Nrp; ++n)
+    {
+      subdomain->r[n]  = (bfam_real_t) lr[n];
+      subdomain->w[n]  = (bfam_real_t) lw[n];
+      subdomain->wi[n] = (bfam_real_t) (1.0l/lw[n]);
+    }
+
+    subdomain->K = K;
+
     /* free stuff */
+    bfam_free_aligned(lsJ);
+    for(int n = 0; n < num_Vi*Ng[0]; n++)
+      bfam_free_aligned(ln[n]);
+    bfam_free_aligned(ln);
+
+    bfam_free_aligned(lJ);
+
+    for(int n = 0; n < num_Vi*DIM; n++)
+      bfam_free_aligned(lJrx[n]);
+    bfam_free_aligned(lJrx);
+
     bfam_free_aligned(D);
     bfam_free_aligned(M);
 
     bfam_free_aligned(lr);
     bfam_free_aligned(lw);
 
-    for(int i = 0;i < num_Vi;i++) bfam_free_aligned(li[i]);
-    bfam_free_aligned(li);
+    for(int i = 0;i < num_Vi;i++) bfam_free_aligned(lxi[i]);
+    bfam_free_aligned(lxi);
   }
   else
   {
-    subdomain->V = NULL;
+    subdomain->V  = NULL;
+    subdomain->r  = NULL;
+    subdomain->w  = NULL;
+    subdomain->wi = NULL;
   }
 }
 
@@ -392,9 +441,9 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,BFAM_DGX_DIMENSION)(
   // bfam_free_aligned(sub->Dr);
   if(sub->V) bfam_free_aligned(sub->V); sub->V = NULL;
 
-  // bfam_free_aligned(sub->r);
-  // bfam_free_aligned(sub->w);
-  // bfam_free_aligned(sub->wi);
+  if(sub->r ) bfam_free_aligned(sub->r ); sub->r  = NULL;
+  if(sub->w ) bfam_free_aligned(sub->w ); sub->w  = NULL;
+  if(sub->wi) bfam_free_aligned(sub->wi); sub->wi = NULL;
 
   // for(int f = 0; f < sub->Nfaces; ++f)
   //    bfam_free_aligned(sub->fmask[f]);
