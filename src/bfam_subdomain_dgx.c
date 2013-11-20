@@ -404,6 +404,15 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
 
     /* store the face stuff */
 
+    subdomain->Dr = bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_real_t));
+    for(int n = 0; n < Nrp*Nrp; ++n) subdomain->Dr[n] = (bfam_real_t) D[n];
+
+    //JK subdomain->vmapP = bfam_malloc_aligned(K*Nfp*Nfaces*sizeof(bfam_locidx_t));
+    //JK subdomain->vmapM = bfam_malloc_aligned(K*Nfp*Nfaces*sizeof(bfam_locidx_t));
+
+    //JK bfam_subdomain_dgx_quad_buildmaps(K, Np, Nfp, Nfaces, EToE, EToF,
+    //JK     subdomain->fmask, subdomain->vmapP, subdomain->vmapM);
+
     /* free stuff */
     bfam_free_aligned(lsJ);
     for(int n = 0; n < num_Vi*Ng[0]; n++)
@@ -427,6 +436,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
   }
   else
   {
+    subdomain->Dr = NULL;
     subdomain->V  = NULL;
     subdomain->r  = NULL;
     subdomain->w  = NULL;
@@ -489,8 +499,8 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,BFAM_DGX_DIMENSION)(
 
   bfam_subdomain_free(thisSubdomain);
 
-  // bfam_free_aligned(sub->Dr);
-  if(sub->V) bfam_free_aligned(sub->V); sub->V = NULL;
+  if(sub->Dr) bfam_free_aligned(sub->Dr); sub->Dr = NULL;
+  if(sub->V ) bfam_free_aligned(sub->V ); sub->V  = NULL;
 
   if(sub->r ) bfam_free_aligned(sub->r ); sub->r  = NULL;
   if(sub->w ) bfam_free_aligned(sub->w ); sub->w  = NULL;

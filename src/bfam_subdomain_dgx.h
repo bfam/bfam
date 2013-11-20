@@ -60,7 +60,7 @@ typedef struct bfam_subdomain_dgx
   //JK bfam_real_t     *exact_mass; /* exact mass matrix for this grid */
 
 
-  //JK bfam_real_t      *Dr;      /* 1D LGL differentiation matrix */
+  bfam_real_t      *Dr;      /* 1D LGL differentiation matrix */
 
   bfam_long_real_t *V;       /* 1D Vandermonde matrix for this N */
 
