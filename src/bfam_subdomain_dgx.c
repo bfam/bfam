@@ -12,6 +12,30 @@
 #define DIM (BFAM_DGX_DIMENSION)
 #endif
 
+static int
+bfam_subdomain_dgx_field_add(bfam_subdomain_t *subdomain, const char *name)
+{
+  bfam_subdomain_dgx_t *s = (bfam_subdomain_dgx_t*) subdomain;
+
+  if(bfam_dictionary_get_value_ptr(&s->base.fields,name))
+    return 1;
+
+  size_t fieldSize = s->Np*s->K*sizeof(bfam_real_t);
+  bfam_real_t *field = bfam_malloc_aligned(fieldSize);
+#ifdef BFAM_DEBUG
+  for(int i = 0; i < s->Np*s->K;i++) field[i] = bfam_real_nan("");
+#endif
+
+  int rval = bfam_dictionary_insert_ptr(&s->base.fields, name, field);
+
+  BFAM_ASSERT(rval != 1);
+
+  if(rval == 0)
+    bfam_free_aligned(field);
+
+  return rval;
+}
+
 static inline int***
 BFAM_APPEND_EXPAND(bfam_subdomain_dgx_gmask_set_,BFAM_DGX_DIMENSION)
          (const int numg, const int N, int *Np, int *Ng, int *Ngp, int inDIM)
@@ -215,7 +239,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
               BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,BFAM_DGX_DIMENSION);
   // subdomain->base.vtk_write_vtu_piece =
   //   bfam_subdomain_dgx_quad_vtk_write_vtu_piece;
-  // subdomain->base.field_add = bfam_subdomain_dgx_quad_field_add;
+  subdomain->base.field_add = bfam_subdomain_dgx_field_add;
   // subdomain->base.field_face_add = bfam_subdomain_dgx_quad_field_face_add;
   // subdomain->base.field_init = bfam_subdomain_dgx_quad_field_init;
 
@@ -362,6 +386,24 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
 
     subdomain->K = K;
 
+    /* store the volume stuff */
+    /* store the grid */
+    for(int i = 0; i < num_Vi; i++)
+    {
+      char name[BFAM_BUFSIZ];
+      snprintf(name,BFAM_BUFSIZ,"_grid_x%d",i);
+      int rval = bfam_subdomain_dgx_field_add(&subdomain->base, name);
+      BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s",name);
+      bfam_real_t *restrict xi =
+        bfam_dictionary_get_value_ptr(&subdomain->base.fields, name);
+      for(int n = 0; n < K*Np; ++n)
+        xi[n] = (bfam_real_t) lxi[i][n];
+    }
+
+    /* store the metric stuff */
+
+    /* store the face stuff */
+
     /* free stuff */
     bfam_free_aligned(lsJ);
     for(int n = 0; n < num_Vi*Ng[0]; n++)
@@ -421,20 +463,29 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_new_,BFAM_DGX_DIMENSION)(
   return newSubdomain;
 }
 
+static int
+bfam_subdomain_dgx_free_fields(const char * key, void *val,
+    void *arg)
+{
+  bfam_free_aligned(val);
+
+  return 1;
+}
+
 void
 BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,BFAM_DGX_DIMENSION)(
     bfam_subdomain_t *thisSubdomain)
 {
   bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*) thisSubdomain;
 
-  // bfam_dictionary_allprefixed_ptr(&sub->base.fields,"",
-  //     &bfam_subdomain_dgx_free_fields,NULL);
-  // bfam_dictionary_allprefixed_ptr(&sub->base.fields_p,"",
-  //     &bfam_subdomain_dgx_free_fields,NULL);
-  // bfam_dictionary_allprefixed_ptr(&sub->base.fields_m,"",
-  //     &bfam_subdomain_dgx_free_fields,NULL);
-  // bfam_dictionary_allprefixed_ptr(&sub->base.fields_face,"",
-  //     &bfam_subdomain_dgx_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields,"",
+      &bfam_subdomain_dgx_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_p,"",
+      &bfam_subdomain_dgx_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_m,"",
+      &bfam_subdomain_dgx_free_fields,NULL);
+  bfam_dictionary_allprefixed_ptr(&sub->base.fields_face,"",
+      &bfam_subdomain_dgx_free_fields,NULL);
 
   bfam_subdomain_free(thisSubdomain);
 
