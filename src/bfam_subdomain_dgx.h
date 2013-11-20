@@ -51,25 +51,25 @@ typedef struct bfam_subdomain_dgx
   int             *Ng;         /* geometry based quantities:
                                 * faces, edges, corners, etc.
                                 */
-  int              Nh;         /* Number of interpolations to glue */
-  int              No;         /* Number of orientations */
+  //JK int              Nh;         /* Number of interpolations to glue */
+  //JK int              No;         /* Number of orientations */
 
-  bfam_real_t     *r;          /* 1D LGL Nodal Point in [-1,1] */
-  bfam_real_t     *w;          /* 1D LGL Weights */
-  bfam_real_t     *wi;         /* inverse of 1D LGL Weights */
-  bfam_real_t     *exact_mass; /* exact mass matrix for this grid */
+  //JK bfam_real_t     *r;          /* 1D LGL Nodal Point in [-1,1] */
+  //JK bfam_real_t     *w;          /* 1D LGL Weights */
+  //JK bfam_real_t     *wi;         /* inverse of 1D LGL Weights */
+  //JK bfam_real_t     *exact_mass; /* exact mass matrix for this grid */
 
 
-  bfam_real_t      *Dr;      /* 1D LGL differentiation matrix */
+  //JK bfam_real_t      *Dr;      /* 1D LGL differentiation matrix */
 
   bfam_long_real_t *V;       /* 1D Vandermonde matrix for this N */
 
-  bfam_locidx_t     K;       /* Number of elements in the subdomain */
+  //JK bfam_locidx_t     K;       /* Number of elements in the subdomain */
 
-  bfam_locidx_t    *vmapM;   /* Mapping into the volume for the minus side of
-                                the face mesh */
-  bfam_locidx_t    *vmapP;   /* Mapping into the volume for the plus  side of
-                                the face mesh */
+  //JK bfam_locidx_t    *vmapM;   /* Mapping into the volume for the minus side of
+  //JK                               the face mesh */
+  //JK bfam_locidx_t    *vmapP;   /* Mapping into the volume for the plus  side of
+  //JK                               the face mesh */
 
   int            ***gmask;   /* face mask */
 
@@ -78,55 +78,55 @@ typedef struct bfam_subdomain_dgx
    * side. All _p quantities are arrays to allow for multiple plus side
    * subdomains
    */
-  int             num_p;    /* number of plus sides */
-  int               N_m;    /* 1D Polynomial Order on the minus side */
-  int              *N_p;    /* 1D Polynomial Order on the plus  side */
+  //JK int             num_p;    /* number of plus sides */
+  //JK int               N_m;    /* 1D Polynomial Order on the minus side */
+  //JK int              *N_p;    /* 1D Polynomial Order on the plus  side */
 
-  bfam_locidx_t     rank_m; /* Rank of the subdomain on the minus side */
-  bfam_locidx_t    *rank_p; /* Rank of the subdomain on the plus  side;
-                             * if set to -1 then the subdomain is not
-                             * connected on the plus side (i.e., it is
-                             * a boundary subdomain).
-                             */
+  //JK bfam_locidx_t     rank_m; /* Rank of the subdomain on the minus side */
+  //JK bfam_locidx_t    *rank_p; /* Rank of the subdomain on the plus  side;
+  //JK                            * if set to -1 then the subdomain is not
+  //JK                            * connected on the plus side (i.e., it is
+  //JK                            * a boundary subdomain).
+  //JK                            */
 
-  bfam_locidx_t     id_m;   /* Sort Id of the subdomain on the minus side */
-  bfam_locidx_t    *id_p;   /* Sort Id of the subdomain on the plus  side */
+  //JK bfam_locidx_t     id_m;   /* Sort Id of the subdomain on the minus side */
+  //JK bfam_locidx_t    *id_p;   /* Sort Id of the subdomain on the plus  side */
 
-  bfam_locidx_t     s_m;    /* Id of the subdomain on the minus side */
-  bfam_locidx_t    *s_p;    /* Id of the subdomain on the plus  side */
+  //JK bfam_locidx_t     s_m;    /* Id of the subdomain on the minus side */
+  //JK bfam_locidx_t    *s_p;    /* Id of the subdomain on the plus  side */
 
-  struct bfam_subdomain_dgx *sub_m;  /* Local neighboring subdomain */
+  //JK struct bfam_subdomain_dgx *sub_m;  /* Local neighboring subdomain */
 
-  int                      Nh_m;    /* number of interpolation operators from
-                                     * minus side
-                                     */
+  //JK int                      Nh_m;    /* number of interpolation operators from
+  //JK                                    * minus side
+  //JK                                    */
 
-  bfam_real_t     **interpolation_m; /* array of interpolation operators;
-                                      * the first is for non-hanging faces
-                                      * the rest are for the hanging faces;
-                                      * if the operator is NULL it is assumed
-                                      * to be the identity operator.
-                                      */
+  //JK bfam_real_t     **interpolation_m; /* array of interpolation operators;
+  //JK                                     * the first is for non-hanging faces
+  //JK                                     * the rest are for the hanging faces;
+  //JK                                     * if the operator is NULL it is assumed
+  //JK                                     * to be the identity operator.
+  //JK                                     */
 
-  bfam_real_t     **projection_m;   /* array of projection operators;
-                                     * the first is for non-hanging faces
-                                     * the rest are for the hanging faces;
-                                     * if the operator is NULL it is assumed
-                                     * to be the identity operator.
-                                     */
+  //JK bfam_real_t     **projection_m;   /* array of projection operators;
+  //JK                                    * the first is for non-hanging faces
+  //JK                                    * the rest are for the hanging faces;
+  //JK                                    * if the operator is NULL it is assumed
+  //JK                                    * to be the identity operator.
+  //JK                                    */
 
-  bfam_real_t     **massprojection_m; /* array of mass projection operators;
-                                       * the first is for non-hanging faces
-                                       * the rest are for the hanging faces;
-                                       * if the operator is NULL it is assumed
-                                       * to be the identity operator.
-                                       */
+  //JK bfam_real_t     **massprojection_m; /* array of mass projection operators;
+  //JK                                      * the first is for non-hanging faces
+  //JK                                      * the rest are for the hanging faces;
+  //JK                                      * if the operator is NULL it is assumed
+  //JK                                      * to be the identity operator.
+  //JK                                      */
 
-  bfam_locidx_t   **EToE_p; /* Element     number on neighboring glue */
-  bfam_locidx_t    *EToE_m; /* Element     number on local subdomain */
-  int8_t           *EToF_m; /* Face        number on local subdomain */
-  int8_t           *EToH_m; /* Hanging     number on local subdomain */
-  int8_t           *EToO_m; /* Orientation number on local subdomain */
+  //JK bfam_locidx_t   **EToE_p; /* Element     number on neighboring glue */
+  //JK bfam_locidx_t    *EToE_m; /* Element     number on local subdomain */
+  //JK int8_t           *EToF_m; /* Face        number on local subdomain */
+  //JK int8_t           *EToH_m; /* Hanging     number on local subdomain */
+  //JK int8_t           *EToO_m; /* Orientation number on local subdomain */
 } bfam_subdomain_dgx_t;
 
 /** create a dgx subdomain.
