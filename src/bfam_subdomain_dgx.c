@@ -230,13 +230,35 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
   if(numg > 0) Ngp = bfam_malloc_aligned(sizeof(int)*numg);
   subdomain->Ngp = Ngp;
 
-
-
   subdomain->gmask =
     BFAM_APPEND_EXPAND(bfam_subdomain_dgx_gmask_set_,BFAM_DGX_DIMENSION)(
                        numg, N, &subdomain->Np, Ng, Ngp, DIM);
 
   const int Np = subdomain->Np;
+
+  if(DIM > 0)
+  {
+    const int Nrp = N+1;
+    bfam_long_real_t *lr, *lw;
+    lr = bfam_malloc_aligned(Nrp*sizeof(bfam_long_real_t));
+    lw = bfam_malloc_aligned(Nrp*sizeof(bfam_long_real_t));
+
+    bfam_jacobi_gauss_lobatto_quadrature(0, 0, N, lr, lw);
+
+    bfam_long_real_t **li =
+      bfam_malloc_aligned(num_Vi*sizeof(bfam_long_real_t*));
+
+    for(int i = 0;i < num_Vi;i++)
+      li[i] = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
+
+
+    /* free stuff */
+    bfam_free_aligned(lr);
+    bfam_free_aligned(lw);
+
+    for(int i = 0;i < num_Vi;i++) bfam_free_aligned(li[i]);
+    bfam_free_aligned(li);
+  }
 }
 
 bfam_subdomain_dgx_t*
