@@ -1,45 +1,131 @@
 #include <bfam.h>
 
 int
-main (int argc, char *argv[])
+test_0d()
 {
-  const bfam_long_real_t  Vx[] = {0,1,2,0,1,2,0,1,2,0,1,2};
-  const bfam_long_real_t  Vy[] = {0,0,0,1,1,1,0,0,0,1,1,1};
-  const bfam_long_real_t  Vz[] = {0,0,0,0,0,0,1,1,1,1,1,1};
-  const bfam_long_real_t *Vi[] = {Vx,Vy,Vz};
-
   bfam_subdomain_dgx_t *d0 =
     bfam_subdomain_dgx_new_0(1, "dim0", 0, 1, 1, NULL, 1, NULL, NULL, NULL, 0);
 
-  bfam_subdomain_dgx_t *d1_1d =
-    bfam_subdomain_dgx_new_1(2, "dim1", 8,  3, 1, Vi, 1, NULL, NULL, NULL, 1);
+  d0->base.free((bfam_subdomain_t*)d0);
+  bfam_free(d0);
+  return 0;
+}
 
-  bfam_subdomain_dgx_t *d1_2d =
-    bfam_subdomain_dgx_new_1(2, "dim1", 8,  3, 2, Vi, 1, NULL, NULL, NULL, 1);
+int
+test_1d()
+{
+  const bfam_long_real_t  Vx[] = {-1.2,0,3.4};
+  const bfam_long_real_t  Vy[] = {-1,0,-1};
+  const bfam_long_real_t  Vz[] = {1,2,3};
+  const bfam_long_real_t *Vi[] = {Vx,Vy,Vz};
 
-  bfam_subdomain_dgx_t *d1_3d =
-    bfam_subdomain_dgx_new_1(2, "dim1", 8,  3, 3, Vi, 1, NULL, NULL, NULL, 1);
+  const bfam_locidx_t EToV[] = {0,1,1,2};
+  const bfam_locidx_t EToE[] = {0,1,0,1};
+  const int8_t        EToF[] = {0,0,1,1};
 
-  bfam_subdomain_dgx_t *d2_2d =
-    bfam_subdomain_dgx_new_2(3, "dim2", 6,  6, 2, Vi, 1, NULL, NULL, NULL, 2);
+  for(int d = 0;d < 3;d++)
+  {
+    bfam_subdomain_dgx_t *d1 =
+      bfam_subdomain_dgx_new_1(0, "1d", 8, 3, d+1, Vi, 2, EToV, EToE, EToF, 1);
+    d1->base.free((bfam_subdomain_t*)d1);
+    bfam_free(d1);
+  }
+  return 0;
+}
 
-  bfam_subdomain_dgx_t *d2_3d =
-    bfam_subdomain_dgx_new_2(3, "dim2", 6,  6, 3, Vi, 1, NULL, NULL, NULL, 2);
+int
+test_2d()
+{
+  const bfam_locidx_t   EToV[] = {0,1,3,4,
+                                  1,2,4,5,
+                                  4,5,3,6};
+  const bfam_locidx_t   EToE[] = {0,1,0,2,
+                                  0,1,1,2,
+                                  0,2,1,2};
+  const int8_t          EToF[] = {0,0,2,0+4,
+                                  1,1,2,2,
+                                  3+4,1,3,3};
+  const bfam_locidx_t      K   =  3;
 
-  bfam_subdomain_dgx_t *d3 =
-    bfam_subdomain_dgx_new_3(5, "dim3", 4, 12, 3, Vi, 1, NULL, NULL, NULL, 3);
+  const bfam_long_real_t  Vx[] = {  0,0.25,  1,  0,0.25,0.5,   0};
+  const bfam_long_real_t  Vy[] = {  0,   0,  0,0.5,0.25,0.5,   1};
+  const bfam_long_real_t  Vz[] = {0.1,-0.1,0.1,0.2,-0.2,0.3,-0.1};
+  const bfam_long_real_t *Vi[] = {Vx,Vy,Vz};
+  const int               nV   =  7;
 
-  d0->base.free((bfam_subdomain_t*)d0); bfam_free(d0);
+  const int                N   = 8;
 
-  d1_1d->base.free((bfam_subdomain_t*)d1_1d); bfam_free(d1_1d);
-  d1_2d->base.free((bfam_subdomain_t*)d1_2d); bfam_free(d1_2d);
-  d1_3d->base.free((bfam_subdomain_t*)d1_3d); bfam_free(d1_3d);
-
-  d2_2d->base.free((bfam_subdomain_t*)d2_2d); bfam_free(d2_2d);
-  d2_3d->base.free((bfam_subdomain_t*)d2_3d); bfam_free(d2_3d);
-
-  d3->base.free((bfam_subdomain_t*)d3); bfam_free(d3);
+  for(int d = 1;d < 3;d++)
+  {
+    bfam_subdomain_dgx_t *d2 =
+      bfam_subdomain_dgx_new_2(0, "2d", N, nV, d+1, Vi, K, EToV, EToE, EToF, 2);
+    d2->base.free((bfam_subdomain_t*)d2);
+    bfam_free(d2);
+  }
 
   return 0;
+}
+
+int
+test_3d()
+{
+  /* connectivity from p8est_connectivity_new_rotcubes */
+  const bfam_locidx_t K = 6;
+  const bfam_locidx_t EToV[6 * 8] = {
+    0, 17, 3, 4, 15, 11, 13, 14,
+    7, 2, 6, 17, 9, 12, 8, 11,
+    2, 12, 5, 10, 17, 11, 4, 14,
+    19, 13, 18, 14, 16, 15, 1, 11,
+    14, 11, 21, 25, 18, 1, 22, 23,
+    21, 20, 25, 24, 14, 10, 11, 12,
+  };
+  const bfam_locidx_t EToE[6 * 6] = {
+    0, 2, 0, 0, 0, 3,
+    1, 2, 1, 1, 1, 1,
+    2, 5, 1, 2, 2, 0,
+    3, 0, 3, 4, 3, 3,
+    4, 4, 3, 4, 5, 4,
+    4, 5, 5, 5, 5, 2,
+  };
+  const int8_t EToF[6 * 6] = {
+    0, 5, 2, 3, 4, 13,
+    0, 2, 2, 3, 4, 5,
+    0, 23, 1, 3, 4, 1,
+    0, 17, 2, 8, 4, 5,
+    0, 1, 9, 3, 12, 5,
+    16, 1, 2, 3, 4, 19,
+  };
+
+  const bfam_long_real_t Vx[26] =
+    {0,1,2,0,1,2,1,2,1,2,2,1,2,0,1,0,0,1,1,0,2.5,2,2,2,2.5,2};
+  const bfam_long_real_t Vy[26] =
+    {0,0,0,1,1,1,-1,-1,-1,-1,1,0,0,1,1,0,0,0,1,1,1.5,1.5,1.5,.5,.5,.5};
+  const bfam_long_real_t Vz[26] =
+    {0,2,0,0,0,0,0,0,1,1,1,1,1,1,1,1,2,0,2,2,2,2,2.5,2.5,2,2};
+  const bfam_long_real_t *Vi[] = {Vx,Vy,Vz};
+  const int nV = 26;
+
+  const int N = 8;
+
+  bfam_subdomain_dgx_t *d3 =
+    bfam_subdomain_dgx_new_3(0, "3d", N, nV, 3, Vi, K, EToV, EToE, EToF, 3);
+  d3->base.free((bfam_subdomain_t*)d3);
+  bfam_free(d3);
+
+  return 0;
+}
+
+int
+main (int argc, char *argv[])
+{
+
+  int check = 0;
+
+  check += test_0d();
+  check += test_1d();
+  check += test_2d();
+  check += test_3d();
+
+  return check;
 }
 
