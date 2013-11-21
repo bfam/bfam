@@ -53,7 +53,9 @@ bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
         Np_write);
 
     N_vtk  = Np_write - 1;
-    Np_vtk = Np_write*Np_write;
+    Np_vtk = Np_write;
+    if(sub->dim > 1) Np_vtk *= Np_write;
+    if(sub->dim > 2) Np_vtk *= Np_write;
 
     interp = bfam_malloc_aligned(sizeof(bfam_real_t)*(sub->N+1)*(N_vtk+1));
 
@@ -81,7 +83,9 @@ bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
 
   const int Ncorners = sub->Ng[sub->numg-1];
 
-  const bfam_locidx_t Ncells = K * N_vtk * N_vtk;
+  bfam_locidx_t Ncells = K * N_vtk;
+  if(sub->dim > 1) Ncells *= N_vtk;
+  if(sub->dim > 2) Ncells *= N_vtk;
   const bfam_locidx_t Ntotal = K * Np_vtk;
 
   bfam_real_t *restrict x =
@@ -288,8 +292,16 @@ bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
     size_t typesSize = Ncells*sizeof(uint8_t);
     uint8_t *types = bfam_malloc_aligned(typesSize);
 
-    for(bfam_locidx_t i = 0; i < Ncells; ++i)
-      types[i] = 8; /* VTK_PIXEL */
+    if(sub->dim == 1)
+      for(bfam_locidx_t i = 0; i < Ncells; ++i)
+        types[i] = 3; /* VTK_LINE */
+    else if(sub->dim == 2)
+      for(bfam_locidx_t i = 0; i < Ncells; ++i)
+        types[i] = 8; /* VTK_PIXEL */
+    else if(sub->dim == 3)
+      for(bfam_locidx_t i = 0; i < Ncells; ++i)
+        types[i] = 11; /* VTK_VOXEL */
+    else BFAM_ABORT("cannot handle dim = %d",sub->dim);
 
     int rval =
       bfam_vtk_write_binary_data(writeCompressed, file, (char*)types,
@@ -303,7 +315,10 @@ bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
   {
     for(bfam_locidx_t i = 0, sk = 1; i < Ncells; ++i, ++sk)
     {
-      fprintf(file, " 8"); /* VTK_PIXEL */
+      if(sub->dim==1) fprintf(file, " 3"); /* VTK_LINE */
+      else if(sub->dim==2) fprintf(file, " 8"); /* VTK_PIXEL */
+      else if(sub->dim==3) fprintf(file, " 11"); /* VTK_VOXEL */
+      else BFAM_ABORT("cannot handle dim = %d",sub->dim);
       if (!(sk % 20) && i != (Ncells - 1))
         fprintf(file, "\n         ");
     }
