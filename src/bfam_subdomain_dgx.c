@@ -12,6 +12,483 @@
 #define DIM (BFAM_DGX_DIMENSION)
 #endif
 
+static void
+bfam_subdomain_dgx_vtk_interp(bfam_locidx_t K,
+    int N_d,       bfam_real_t * restrict d,
+    int N_s, const bfam_real_t * restrict s,
+    const bfam_real_t *restrict interp)
+{
+  BFAM_ABORT("interp not implemented");
+}
+
+static int
+bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
+    FILE *file, bfam_real_t time, const char **scalars, const char **vectors,
+    const char **components, int writeBinary, int writeCompressed,
+    int rank, bfam_locidx_t id, int Np_write)
+{
+  bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*) subdomain;
+
+  const char *format;
+
+  if(writeBinary)
+    format = "binary";
+  else
+    format = "ascii";
+
+  const bfam_locidx_t  K  = sub->K;
+  int              N_vtk  = sub->N;
+  int              Np_vtk = sub->Np;
+  bfam_real_t *interp = NULL;
+
+  bfam_real_t *restrict stor1 = NULL;
+  bfam_real_t *restrict stor2 = NULL;
+  bfam_real_t *restrict stor3 = NULL;
+
+  BFAM_INFO("Np_write = %d", Np_write);
+
+  if(Np_write > 0)
+  {
+    BFAM_ABORT_IF_NOT(Np_write > 1, "Np_write = %d is not valid",
+        Np_write);
+
+    N_vtk  = Np_write - 1;
+    Np_vtk = Np_write*Np_write;
+
+    interp = bfam_malloc_aligned(sizeof(bfam_real_t)*(sub->N+1)*(N_vtk+1));
+
+    bfam_long_real_t *calc_interp =
+      bfam_malloc_aligned(sizeof(bfam_long_real_t)*(sub->N+1)*(N_vtk+1));
+    bfam_long_real_t *lr =
+      bfam_malloc_aligned(sizeof(bfam_long_real_t)*Np_write);
+
+    for(int r = 0; r < Np_write; r++)
+      lr[r] = -1 + 2*(bfam_long_real_t)r/(Np_write-1);
+
+    bfam_jacobi_p_interpolation(0, 0, sub->N, Np_write, lr, sub->V,
+        calc_interp);
+
+    for(int n = 0; n < (sub->N+1)*(N_vtk+1); n++)
+      interp[n] = (bfam_real_t)calc_interp[n];
+
+    stor1 = bfam_malloc_aligned(sizeof(bfam_real_t)*Np_vtk*K);
+    stor2 = bfam_malloc_aligned(sizeof(bfam_real_t)*Np_vtk*K);
+    stor3 = bfam_malloc_aligned(sizeof(bfam_real_t)*Np_vtk*K);
+
+    bfam_free_aligned(lr);
+    bfam_free_aligned(calc_interp);
+  }
+
+  const int Ncorners = sub->Ng[sub->numg-1];
+
+  const bfam_locidx_t Ncells = K * N_vtk * N_vtk;
+  const bfam_locidx_t Ntotal = K * Np_vtk;
+
+  bfam_real_t *restrict x =
+    bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_x0");
+  bfam_real_t *restrict y =
+    bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_x1");
+  bfam_real_t *restrict z =
+    bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_x2");
+
+  if(interp == NULL)
+  {
+    stor1 = x;
+    stor2 = y;
+    stor3 = z;
+  }
+  else
+  {
+    bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor1,sub->N,x,interp);
+    bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor2,sub->N,y,interp);
+    bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor3,sub->N,z,interp);
+  }
+
+  fprintf(file,
+           "    <Piece NumberOfPoints=\"%jd\" NumberOfCells=\"%jd\">\n",
+           (intmax_t) Ntotal, (intmax_t) Ncells);
+
+  /*
+   * Points
+   */
+  fprintf (file, "      <Points>\n");
+
+  bfam_vtk_write_real_vector_data_array(file, "Position", writeBinary,
+      writeCompressed, Ntotal, stor1, stor2, stor3);
+
+  fprintf(file, "      </Points>\n");
+
+  /*
+   * Cells
+   */
+  fprintf(file, "      <Cells>\n");
+
+  /*
+   * Connectivity
+   */
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"connectivity\""
+          " format=\"%s\">\n", BFAM_LOCIDX_VTK, format);
+  if(writeBinary)
+  {
+    size_t cellsSize = Ncells*Ncorners*sizeof(bfam_locidx_t);
+    bfam_locidx_t *cells = bfam_malloc_aligned(cellsSize);
+
+    if(sub->dim == 1)
+      for(bfam_locidx_t k = 0, i = 0; k < K; ++k)
+      {
+        for(int n = 0; n < N_vtk; ++n)
+        {
+          cells[i++] = Np_vtk * k + (n + 0);
+          cells[i++] = Np_vtk * k + (n + 1);
+        }
+      }
+    else if(sub->dim == 2)
+      for(bfam_locidx_t k = 0, i = 0; k < K; ++k)
+      {
+        for(int m = 0; m < N_vtk; ++m)
+        {
+          for(int n = 0; n < N_vtk; ++n)
+          {
+            cells[i++] = Np_vtk * k + (N_vtk + 1) * (m + 0) + (n + 0);
+            cells[i++] = Np_vtk * k + (N_vtk + 1) * (m + 0) + (n + 1);
+            cells[i++] = Np_vtk * k + (N_vtk + 1) * (m + 1) + (n + 0);
+            cells[i++] = Np_vtk * k + (N_vtk + 1) * (m + 1) + (n + 1);
+          }
+        }
+      }
+    else if(sub->dim == 3)
+      for(bfam_locidx_t k = 0, i = 0; k < K; ++k)
+      {
+        for(int l = 0; l < N_vtk; ++l)
+        {
+          for(int m = 0; m < N_vtk; ++m)
+          {
+            for(int n = 0; n < N_vtk; ++n)
+            {
+              cells[i++] = Np_vtk*k +
+                (N_vtk+1)*(N_vtk+1)*(l+0) + (N_vtk+1)*(m+0) + (n+0);
+              cells[i++] = Np_vtk*k +
+                (N_vtk+1)*(N_vtk+1)*(l+0) + (N_vtk+1)*(m+0) + (n+1);
+              cells[i++] = Np_vtk*k +
+                (N_vtk+1)*(N_vtk+1)*(l+0) + (N_vtk+1)*(m+1) + (n+0);
+              cells[i++] = Np_vtk*k +
+                (N_vtk+1)*(N_vtk+1)*(l+0) + (N_vtk+1)*(m+1) + (n+1);
+              cells[i++] = Np_vtk*k +
+                (N_vtk+1)*(N_vtk+1)*(l+1) + (N_vtk+1)*(m+0) + (n+0);
+              cells[i++] = Np_vtk*k +
+                (N_vtk+1)*(N_vtk+1)*(l+1) + (N_vtk+1)*(m+0) + (n+1);
+              cells[i++] = Np_vtk*k +
+                (N_vtk+1)*(N_vtk+1)*(l+1) + (N_vtk+1)*(m+1) + (n+0);
+              cells[i++] = Np_vtk*k +
+                (N_vtk+1)*(N_vtk+1)*(l+1) + (N_vtk+1)*(m+1) + (n+1);
+            }
+          }
+        }
+      }
+    else BFAM_ABORT("not implemented for dim = %d", sub->dim);
+
+    fprintf(file, "          ");
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)cells,
+          cellsSize);
+    fprintf(file, "\n");
+    if(rval)
+      BFAM_WARNING("Error encoding cells");
+
+    bfam_free_aligned(cells);
+  }
+  else
+  {
+    if(sub->dim == 1)
+      for(bfam_locidx_t k = 0; k < K; ++k)
+        for(int n = 0; n < N_vtk; ++n)
+          fprintf(file,
+              "          %8jd %8jd\n",
+              (intmax_t) Np_vtk * k + (n + 0),
+              (intmax_t) Np_vtk * k + (n + 1));
+    if(sub->dim == 2)
+      for(bfam_locidx_t k = 0; k < K; ++k)
+        for(int m = 0; m < N_vtk; ++m)
+          for(int n = 0; n < N_vtk; ++n)
+            fprintf(file,
+                "          %8jd %8jd %8jd %8jd\n",
+                (intmax_t) Np_vtk * k + (N_vtk + 1) * (m + 0) + (n + 0),
+                (intmax_t) Np_vtk * k + (N_vtk + 1) * (m + 0) + (n + 1),
+                (intmax_t) Np_vtk * k + (N_vtk + 1) * (m + 1) + (n + 0),
+                (intmax_t) Np_vtk * k + (N_vtk + 1) * (m + 1) + (n + 1));
+    if(sub->dim == 3)
+      for(bfam_locidx_t k = 0; k < K; ++k)
+        for(int l = 0; l < N_vtk; ++l)
+          for(int m = 0; m < N_vtk; ++m)
+            for(int n = 0; n < N_vtk; ++n)
+              fprintf(file,
+                  "          %8jd %8jd %8jd %8jd %8jd %8jd %8jd %8jd\n",
+                  (intmax_t) Np_vtk*k
+                      +(N_vtk+1)*(N_vtk+1)*(l+0) + (N_vtk+1)*(m+0) + (n+0),
+                  (intmax_t) Np_vtk*k
+                      +(N_vtk+1)*(N_vtk+1)*(l+0) + (N_vtk+1)*(m+0) + (n+1),
+                  (intmax_t) Np_vtk*k
+                      +(N_vtk+1)*(N_vtk+1)*(l+0) + (N_vtk+1)*(m+1) + (n+0),
+                  (intmax_t) Np_vtk*k
+                      +(N_vtk+1)*(N_vtk+1)*(l+0) + (N_vtk+1)*(m+1) + (n+1),
+                  (intmax_t) Np_vtk*k
+                      +(N_vtk+1)*(N_vtk+1)*(l+1) + (N_vtk+1)*(m+0) + (n+0),
+                  (intmax_t) Np_vtk*k
+                      +(N_vtk+1)*(N_vtk+1)*(l+1) + (N_vtk+1)*(m+0) + (n+1),
+                  (intmax_t) Np_vtk*k
+                      +(N_vtk+1)*(N_vtk+1)*(l+1) + (N_vtk+1)*(m+1) + (n+0),
+                  (intmax_t) Np_vtk*k
+                      +(N_vtk+1)*(N_vtk+1)*(l+1) + (N_vtk+1)*(m+1) + (n+1));
+    else BFAM_ABORT("not implemented for dim = %d", sub->dim);
+  }
+  fprintf(file, "        </DataArray>\n");
+
+  /*
+   * Offsets
+   */
+  fprintf (file, "        <DataArray type=\"%s\" Name=\"offsets\""
+           " format=\"%s\">\n", BFAM_LOCIDX_VTK, format);
+  fprintf(file, "          ");
+  if(writeBinary)
+  {
+    size_t offsetsSize = Ncells*sizeof(bfam_locidx_t);
+    bfam_locidx_t *offsets = bfam_malloc_aligned(offsetsSize);
+
+    for(bfam_locidx_t i = 1; i <= Ncells; ++i)
+      offsets[i - 1] = Ncorners * i;
+
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)offsets,
+          offsetsSize);
+    if(rval)
+      BFAM_WARNING("Error encoding offsets");
+
+    bfam_free_aligned(offsets);
+  }
+  else
+  {
+    for(bfam_locidx_t i = 1, sk = 1; i <= Ncells; ++i, ++sk)
+    {
+      fprintf(file, " %8jd", (intmax_t) (Ncorners * i));
+      if(!(sk % 20) && i != Ncells)
+        fprintf(file, "\n          ");
+    }
+  }
+  fprintf(file, "\n");
+  fprintf(file, "        </DataArray>\n");
+
+  /*
+   * Types
+   */
+  fprintf(file, "        <DataArray type=\"UInt8\" Name=\"types\""
+           " format=\"%s\">\n", format);
+  fprintf(file, "          ");
+  if(writeBinary)
+  {
+    size_t typesSize = Ncells*sizeof(uint8_t);
+    uint8_t *types = bfam_malloc_aligned(typesSize);
+
+    for(bfam_locidx_t i = 0; i < Ncells; ++i)
+      types[i] = 8; /* VTK_PIXEL */
+
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)types,
+          typesSize);
+    if(rval)
+      BFAM_WARNING("Error encoding types");
+
+    bfam_free_aligned(types);
+  }
+  else
+  {
+    for(bfam_locidx_t i = 0, sk = 1; i < Ncells; ++i, ++sk)
+    {
+      fprintf(file, " 8"); /* VTK_PIXEL */
+      if (!(sk % 20) && i != (Ncells - 1))
+        fprintf(file, "\n         ");
+    }
+  }
+  fprintf(file, "\n");
+  fprintf(file, "        </DataArray>\n");
+  fprintf(file, "      </Cells>\n");
+
+  /*
+   * Cell Data
+   */
+  fprintf(file, "      <CellData Scalars=\"time,mpirank,subdomain_id\">\n");
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"time\""
+           " format=\"%s\">\n", BFAM_REAL_VTK, format);
+  fprintf(file, "          ");
+  if(writeBinary)
+  {
+    size_t timesize = Ncells*sizeof(bfam_real_t);
+    bfam_real_t *times = bfam_malloc_aligned(timesize);
+
+    for(bfam_locidx_t i = 0; i < Ncells; ++i)
+      times[i] = time;
+
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)times,
+          timesize);
+    if(rval)
+      BFAM_WARNING("Error encoding times");
+
+    bfam_free_aligned(times);
+  }
+  else
+  {
+    for(bfam_locidx_t i = 0, sk = 1; i < Ncells; ++i, ++sk)
+    {
+      fprintf(file, " %"BFAM_REAL_FMTe, time);
+      if (!(sk % 8) && i != (Ncells - 1))
+        fprintf(file, "\n         ");
+    }
+  }
+  fprintf(file, "\n");
+  fprintf(file, "        </DataArray>\n");
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"mpirank\""
+           " format=\"%s\">\n", BFAM_LOCIDX_VTK, format);
+  fprintf(file, "          ");
+  if(writeBinary)
+  {
+    size_t ranksSize = Ncells*sizeof(bfam_locidx_t);
+    bfam_locidx_t *ranks = bfam_malloc_aligned(ranksSize);
+
+    for(bfam_locidx_t i = 0; i < Ncells; ++i)
+      ranks[i] = rank;
+
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)ranks,
+          ranksSize);
+    if(rval)
+      BFAM_WARNING("Error encoding ranks");
+
+    bfam_free_aligned(ranks);
+  }
+  else
+  {
+    for(bfam_locidx_t i = 0, sk = 1; i < Ncells; ++i, ++sk)
+    {
+      fprintf(file, " %6jd", (intmax_t)rank);
+      if (!(sk % 8) && i != (Ncells - 1))
+        fprintf(file, "\n         ");
+    }
+  }
+  fprintf(file, "\n");
+  fprintf(file, "        </DataArray>\n");
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"subdomain_id\""
+           " format=\"%s\">\n", BFAM_LOCIDX_VTK, format);
+  fprintf(file, "          ");
+  if(writeBinary)
+  {
+    size_t idsSize = Ncells*sizeof(bfam_locidx_t);
+    bfam_locidx_t *ids = bfam_malloc_aligned(idsSize);
+
+    for(bfam_locidx_t i = 0; i < Ncells; ++i)
+      ids[i] = id;
+
+    int rval =
+      bfam_vtk_write_binary_data(writeCompressed, file, (char*)ids,
+          idsSize);
+    if(rval)
+      BFAM_WARNING("Error encoding ids");
+
+    bfam_free_aligned(ids);
+  }
+  else
+  {
+    for(bfam_locidx_t i = 0, sk = 1; i < Ncells; ++i, ++sk)
+    {
+      fprintf(file, " %6jd", (intmax_t)id);
+      if (!(sk % 8) && i != (Ncells - 1))
+        fprintf(file, "\n         ");
+    }
+  }
+  fprintf(file, "\n");
+  fprintf(file, "        </DataArray>\n");
+
+  fprintf(file, "      </CellData>\n");
+
+  char pointscalars[BFAM_BUFSIZ];
+  bfam_util_strcsl(pointscalars, scalars);
+
+  char pointvectors[BFAM_BUFSIZ];
+  bfam_util_strcsl(pointvectors, vectors);
+
+  fprintf(file, "      <PointData Scalars=\"%s\" Vectors=\"%s\">\n",
+      pointscalars, pointvectors);
+
+  if(scalars)
+  {
+    for(size_t s = 0; scalars[s]; ++s)
+    {
+      bfam_real_t *sdata = bfam_dictionary_get_value_ptr(&subdomain->fields,
+          scalars[s]);
+      BFAM_ABORT_IF(sdata == NULL, "VTK: Field %s not in subdomain %s",
+          scalars[s], subdomain->name);
+      if(interp == NULL)
+      {
+        stor1 = sdata;
+      }
+      else
+      {
+        bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor1,sub->N,sdata,interp);
+      }
+
+      bfam_vtk_write_real_scalar_data_array(file, scalars[s],
+          writeBinary, writeCompressed, Ntotal, stor1);
+    }
+  }
+
+  if(vectors)
+  {
+    for(size_t v = 0; vectors[v]; ++v)
+    {
+
+      bfam_real_t *v1 =
+        bfam_dictionary_get_value_ptr(&subdomain->fields, components[3*v+0]);
+      bfam_real_t *v2 =
+        bfam_dictionary_get_value_ptr(&subdomain->fields, components[3*v+1]);
+      bfam_real_t *v3 =
+        bfam_dictionary_get_value_ptr(&subdomain->fields, components[3*v+2]);
+
+      BFAM_ABORT_IF(v1 == NULL, "VTK: Field %s not in subdomain %s",
+          components[3*v+0], subdomain->name);
+      BFAM_ABORT_IF(v2 == NULL, "VTK: Field %s not in subdomain %s",
+          components[3*v+1], subdomain->name);
+      BFAM_ABORT_IF(v3 == NULL, "VTK: Field %s not in subdomain %s",
+          components[3*v+2], subdomain->name);
+      if(interp == NULL)
+      {
+        stor1 = v1;
+        stor2 = v2;
+        stor3 = v3;
+      }
+      else
+      {
+        bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor1,sub->N,v1,interp);
+        bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor2,sub->N,v2,interp);
+        bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor3,sub->N,v3,interp);
+      }
+
+      bfam_vtk_write_real_vector_data_array(file, vectors[v],
+          writeBinary, writeCompressed, Ntotal, stor1, stor2, stor3);
+    }
+  }
+
+  fprintf(file, "      </PointData>\n");
+  fprintf(file, "    </Piece>\n");
+
+  if(interp != NULL)
+  {
+    bfam_free_aligned(interp);
+    bfam_free_aligned(stor1);
+    bfam_free_aligned(stor2);
+    bfam_free_aligned(stor3);
+  }
+  return 1;
+}
+
 static int
 bfam_subdomain_dgx_field_add(bfam_subdomain_t *subdomain, const char *name)
 {
@@ -237,8 +714,8 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
 
   subdomain->base.free =
               BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,BFAM_DGX_DIMENSION);
-  // subdomain->base.vtk_write_vtu_piece =
-  //   bfam_subdomain_dgx_quad_vtk_write_vtu_piece;
+  subdomain->base.vtk_write_vtu_piece =
+    bfam_subdomain_dgx_vtk_write_vtu_piece;
   subdomain->base.field_add = bfam_subdomain_dgx_field_add;
   // subdomain->base.field_face_add = bfam_subdomain_dgx_quad_field_face_add;
   // subdomain->base.field_init = bfam_subdomain_dgx_quad_field_init;

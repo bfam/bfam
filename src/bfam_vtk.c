@@ -305,9 +305,9 @@ bfam_vtk_write_real_vector_data_array(FILE* file, const char *name,
 
     for(bfam_locidx_t n = 0; n < Ntotal; ++n)
     {
-      v[3*n + 0] = v1[n];
-      v[3*n + 1] = v2[n];
-      v[3*n + 2] = v3[n];
+      v[3*n + 0] = (v1 != NULL) ? v1[n] : 0;
+      v[3*n + 1] = (v2 != NULL) ? v2[n] : 0;
+      v[3*n + 2] = (v3 != NULL) ? v3[n] : 0;
     }
 
     fprintf(file, "          ");
@@ -323,11 +323,14 @@ bfam_vtk_write_real_vector_data_array(FILE* file, const char *name,
   {
     for(bfam_locidx_t n = 0; n < Ntotal; ++n)
     {
+      bfam_real_t a = (v1 != NULL) ? v1[n] : 0;
+      bfam_real_t b = (v2 != NULL) ? v2[n] : 0;
+      bfam_real_t c = (v3 != NULL) ? v3[n] : 0;
+
       fprintf(file, "         %"BFAM_REAL_FMTe
                             " %"BFAM_REAL_FMTe
                             " %"BFAM_REAL_FMTe
-                            "\n",
-                            v1[n], v2[n], v3[n]);
+                            "\n", a, b, c);
     }
   }
 

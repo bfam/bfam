@@ -105,10 +105,21 @@ test_3d()
   const bfam_long_real_t *Vi[] = {Vx,Vy,Vz};
   const int nV = 26;
 
-  const int N = 8;
+  const int N = 1;
+
+  bfam_domain_t domain;
+  bfam_domain_init(&domain,MPI_COMM_WORLD);
 
   bfam_subdomain_dgx_t *d3 =
     bfam_subdomain_dgx_new_3(0, "3d", N, nV, 3, Vi, K, EToV, EToE, EToF, 3);
+
+  bfam_domain_add_subdomain(&domain,(bfam_subdomain_t*)d3);
+
+  const char *volume[] = {NULL};
+  const char *ps[] = {"_grid_x0", NULL};
+  bfam_vtk_write_file(&domain, BFAM_DOMAIN_AND, volume,
+                       "","d3",0, ps, NULL, NULL, 0, 0, 0);
+
   d3->base.free((bfam_subdomain_t*)d3);
   bfam_free(d3);
 
@@ -118,6 +129,9 @@ test_3d()
 int
 main (int argc, char *argv[])
 {
+  int rank;
+  BFAM_MPI_CHECK(MPI_Init(&argc,&argv));
+  BFAM_MPI_CHECK(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
 
   int check = 0;
 
@@ -126,6 +140,7 @@ main (int argc, char *argv[])
   check += test_2d();
   check += test_3d();
 
+  BFAM_MPI_CHECK(MPI_Finalize());
   return check;
 }
 
