@@ -285,30 +285,32 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
       if(DIM == 1)
         for(int n = 0; n < Nrp; ++n)
         {
+          int offset = n;
           w[0] = 1-lr[n];
           w[1] = 1+lr[n];
           for(int i = 0; i < num_Vi;i++)
           {
-            lxi[i][Np*k + n] = 0;
+            lxi[i][Np*k + offset] = 0;
             for(int c = 0; c < Ncorners; c++)
-              lxi[i][Np*k + n] += w[c]*Vi[i][v[c]];
-            lxi[i][Np*k + n] /= Ncorners;
+              lxi[i][Np*k + offset] += w[c]*Vi[i][v[c]];
+            lxi[i][Np*k + offset] /= Ncorners;
           }
         }
       else if(DIM == 2)
         for(int n = 0; n < Nrp; ++n)
           for(int m = 0; m < Nrp; ++m)
           {
+            int offset = n*Nrp+m;
             w[0] = (1-lr[m])*(1-lr[n]);
             w[1] = (1+lr[m])*(1-lr[n]);
             w[2] = (1-lr[m])*(1+lr[n]);
             w[3] = (1+lr[m])*(1+lr[n]);
             for(int i = 0; i < num_Vi;i++)
             {
-              lxi[i][Np*k + n] = 0;
+              lxi[i][Np*k + offset] = 0;
               for(int c = 0; c < Ncorners; c++)
-                lxi[i][Np*k + n] += w[c]*Vi[i][v[c]];
-              lxi[i][Np*k + n] /= Ncorners;
+                lxi[i][Np*k + offset] += w[c]*Vi[i][v[c]];
+              lxi[i][Np*k + offset] /= Ncorners;
             }
         }
       else if(DIM == 3)
@@ -316,20 +318,21 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
           for(int m = 0; m < Nrp; ++m)
             for(int l = 0; l < Nrp; ++l)
             {
+              int offset = n*Nrp*Nrp+l*Nrp+m;
               w[0] = (1-lr[m])*(1-lr[n])*(1-lr[l]);
               w[1] = (1+lr[m])*(1-lr[n])*(1-lr[l]);
               w[2] = (1-lr[m])*(1+lr[n])*(1-lr[l]);
               w[3] = (1+lr[m])*(1+lr[n])*(1-lr[l]);
-              w[4] = (1-lr[m])*(1-lr[n])*(1-lr[l]);
-              w[5] = (1+lr[m])*(1-lr[n])*(1-lr[l]);
-              w[6] = (1-lr[m])*(1+lr[n])*(1-lr[l]);
-              w[7] = (1+lr[m])*(1+lr[n])*(1-lr[l]);
+              w[4] = (1-lr[m])*(1-lr[n])*(1+lr[l]);
+              w[5] = (1+lr[m])*(1-lr[n])*(1+lr[l]);
+              w[6] = (1-lr[m])*(1+lr[n])*(1+lr[l]);
+              w[7] = (1+lr[m])*(1+lr[n])*(1+lr[l]);
               for(int i = 0; i < num_Vi;i++)
               {
-                lxi[i][Np*k + n] = 0;
+                lxi[i][Np*k + offset] = 0;
                 for(int c = 0; c < Ncorners; c++)
-                  lxi[i][Np*k + n] += w[c]*Vi[i][v[c]];
-                lxi[i][Np*k + n] /= Ncorners;
+                  lxi[i][Np*k + offset] += w[c]*Vi[i][v[c]];
+                lxi[i][Np*k + offset] /= Ncorners;
               }
             }
       else BFAM_ABORT("not setup of dim = %d",DIM);
@@ -387,6 +390,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
     subdomain->K = K;
 
     /* store the volume stuff */
+    subdomain->N = N;
     /* store the grid */
     for(int i = 0; i < num_Vi; i++)
     {
@@ -397,7 +401,9 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
       bfam_real_t *restrict xi =
         bfam_dictionary_get_value_ptr(&subdomain->base.fields, name);
       for(int n = 0; n < K*Np; ++n)
+      {
         xi[n] = (bfam_real_t) lxi[i][n];
+      }
     }
 
     /* store the metric stuff */
