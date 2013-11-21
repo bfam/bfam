@@ -13,6 +13,33 @@
 #endif
 
 static void
+bfam_subdomain_dgx_field_init(bfam_subdomain_t *subdomain,
+    const char *name, bfam_real_t time, bfam_subdomain_init_field_t init_field,
+    void *arg)
+{
+  bfam_subdomain_dgx_t *s = (bfam_subdomain_dgx_t*) subdomain;
+
+  bfam_real_t *field = bfam_dictionary_get_value_ptr(&s->base.fields,name);
+
+  BFAM_ABORT_IF(field==NULL, "Init: Field %s not found in subdomain %s",
+      name, subdomain->name);
+
+  size_t fieldLength = s->Np*s->K;
+
+  bfam_real_t *restrict x0 =
+    bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_x0");
+  bfam_real_t *restrict x1 =
+    bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_x1");
+  bfam_real_t *restrict x2 =
+    bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_x2");
+  /* this is just to check is we need to update the init function */
+  BFAM_ASSERT(NULL == bfam_dictionary_get_value_ptr(&subdomain->fields,
+                                                      "_grid_x3"));
+
+  init_field(fieldLength, name, time, x0,x1,x2, subdomain, arg, field);
+}
+
+static void
 bfam_subdomain_dgx_vtk_interp(bfam_locidx_t K,
     int N_d,       bfam_real_t * restrict d,
     int N_s, const bfam_real_t * restrict s,
@@ -733,7 +760,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
     bfam_subdomain_dgx_vtk_write_vtu_piece;
   subdomain->base.field_add = bfam_subdomain_dgx_field_add;
   // subdomain->base.field_face_add = bfam_subdomain_dgx_quad_field_face_add;
-  // subdomain->base.field_init = bfam_subdomain_dgx_quad_field_init;
+  subdomain->base.field_init = bfam_subdomain_dgx_field_init;
 
   subdomain->numg = DIM;
   const int numg = subdomain->numg;
