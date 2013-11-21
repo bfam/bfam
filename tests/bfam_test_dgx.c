@@ -25,10 +25,25 @@ test_1d()
 
   for(int d = 0;d < 3;d++)
   {
+    bfam_domain_t domain;
+    bfam_domain_init(&domain,MPI_COMM_WORLD);
+
     bfam_subdomain_dgx_t *d1 =
       bfam_subdomain_dgx_new_1(0, "1d", 8, 3, d+1, Vi, 2, EToV, EToE, EToF, 1);
-    d1->base.free((bfam_subdomain_t*)d1);
-    bfam_free(d1);
+
+    bfam_domain_add_subdomain(&domain,(bfam_subdomain_t*)d1);
+
+    const char *volume[] = {NULL};
+    const char *ps[] = {"_grid_x0", NULL};
+    const char *ve[] = {"g", NULL};
+    const char *vc[] = {"_grid_x0", "_grid_x0", "_grid_x0", NULL};
+
+    char name[BFAM_BUFSIZ];
+    snprintf(name,BFAM_BUFSIZ,"d1_%d",d);
+    bfam_vtk_write_file(&domain, BFAM_DOMAIN_AND, volume,
+        "",name,0, ps, ve, vc, 1, 0, 0);
+
+    bfam_domain_free(&domain);
   }
   return 0;
 }
@@ -57,10 +72,26 @@ test_2d()
 
   for(int d = 1;d < 3;d++)
   {
+
+    bfam_domain_t domain;
+    bfam_domain_init(&domain,MPI_COMM_WORLD);
+
     bfam_subdomain_dgx_t *d2 =
       bfam_subdomain_dgx_new_2(0, "2d", N, nV, d+1, Vi, K, EToV, EToE, EToF, 2);
-    d2->base.free((bfam_subdomain_t*)d2);
-    bfam_free(d2);
+
+    bfam_domain_add_subdomain(&domain,(bfam_subdomain_t*)d2);
+
+    const char *volume[] = {NULL};
+    const char *ps[] = {"_grid_x0", NULL};
+    const char *ve[] = {"g", NULL};
+    const char *vc[] = {"_grid_x0", "_grid_x1", "_grid_x1", NULL};
+
+    char name[BFAM_BUFSIZ];
+    snprintf(name,BFAM_BUFSIZ,"d2_%d",d);
+    bfam_vtk_write_file(&domain, BFAM_DOMAIN_AND, volume,
+        "",name,0, ps, ve, vc, 1, 0, 0);
+
+    bfam_domain_free(&domain);
   }
 
   return 0;
@@ -105,7 +136,7 @@ test_3d()
   const bfam_long_real_t *Vi[] = {Vx,Vy,Vz};
   const int nV = 26;
 
-  const int N = 1;
+  const int N = 4;
 
   bfam_domain_t domain;
   bfam_domain_init(&domain,MPI_COMM_WORLD);
@@ -117,11 +148,12 @@ test_3d()
 
   const char *volume[] = {NULL};
   const char *ps[] = {"_grid_x0", NULL};
+  const char *ve[] = {"g", NULL};
+  const char *vc[] = {"_grid_x0", "_grid_x1", "_grid_x2", NULL};
   bfam_vtk_write_file(&domain, BFAM_DOMAIN_AND, volume,
-                       "","d3",0, ps, NULL, NULL, 0, 0, 0);
+                       "","d3",0, ps, ve, vc, 1, 0, 0);
 
-  d3->base.free((bfam_subdomain_t*)d3);
-  bfam_free(d3);
+  bfam_domain_free(&domain);
 
   return 0;
 }
