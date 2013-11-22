@@ -1238,6 +1238,72 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
     }
 
     /* store the metric stuff */
+    if(lJ)
+    {
+      for(int d = 0; d < DIM; d++)
+      {
+        for(int v = 0; v < num_Vi; v++)
+        {
+          char name[BFAM_BUFSIZ];
+          snprintf(name,BFAM_BUFSIZ,"_grid_Jr%dx%d",d,v);
+          int rval = bfam_subdomain_dgx_field_add(&subdomain->base, name);
+          BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s",name);
+          bfam_real_t *restrict Jrx =
+            bfam_dictionary_get_value_ptr(&subdomain->base.fields, name);
+          for(int n = 0; n < K*Np; ++n)
+            Jrx[n] = (bfam_real_t) lJrx[v+d*num_Vi][n];
+        }
+      }
+      {
+        char name[] = "_grid_J";
+        int rval = bfam_subdomain_dgx_field_add(&subdomain->base, name);
+        BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s",name);
+        bfam_real_t *restrict J =
+          bfam_dictionary_get_value_ptr(&subdomain->base.fields, name);
+        for(int n = 0; n < K*Np; ++n)
+          J[n] = (bfam_real_t) lJ[n];
+      }
+      BFAM_ASSERT(lni != NULL && lsJ != NULL);
+      for(int v = 0; v < num_Vi;v++)
+      {
+        char name[BFAM_BUFSIZ];
+        snprintf(name,BFAM_BUFSIZ,"_grid_lnx%d",v);
+        int rval = bfam_subdomain_dgx_field_face_add(&subdomain->base, name);
+        BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s",name);
+        bfam_real_t *restrict ni =
+          bfam_dictionary_get_value_ptr(&subdomain->base.fields_face, name);
+        for(int n = 0; n < K*Ng[0]*Ngp[0]; ++n)
+          ni[n] = (bfam_real_t) lni[v][n];
+      }
+      {
+        char name[] = "_grid_sJ";
+        int rval = bfam_subdomain_dgx_field_face_add(&subdomain->base, name);
+        BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s",name);
+        bfam_real_t *restrict sJ =
+          bfam_dictionary_get_value_ptr(&subdomain->base.fields_face, name);
+        for(int n = 0; n < K*Ng[0]*Ngp[0]; ++n)
+          sJ[n] = (bfam_real_t) lsJ[n];
+      }
+    }
+    else
+    {
+      /* In this Jrx really has dx/dr */
+      for(int v = 0; v < num_Vi; v++)
+      {
+        for(int d = 0; d < DIM; d++)
+        {
+          char name[BFAM_BUFSIZ];
+          snprintf(name,BFAM_BUFSIZ,"_grid_x%dr%d",v,d);
+          int rval = bfam_subdomain_dgx_field_add(&subdomain->base, name);
+          BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s",name);
+          bfam_real_t *restrict xr =
+            bfam_dictionary_get_value_ptr(&subdomain->base.fields, name);
+          for(int n = 0; n < K*Np; ++n)
+            xr[n] = (bfam_real_t) lJrx[d+v*DIM][n];
+        }
+      }
+      BFAM_ASSERT(lni == NULL && lsJ == NULL);
+    }
 
     /* store the face stuff */
 
