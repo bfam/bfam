@@ -376,7 +376,7 @@ bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
 
     interp = bfam_malloc_aligned(sizeof(bfam_real_t)*(sub->N+1)*(N_vtk+1));
 
-    bfam_long_real_t *calc_interp =
+    bfam_long_real_t *cal_interp =
       bfam_malloc_aligned(sizeof(bfam_long_real_t)*(sub->N+1)*(N_vtk+1));
     bfam_long_real_t *lr =
       bfam_malloc_aligned(sizeof(bfam_long_real_t)*Np_write);
@@ -384,18 +384,17 @@ bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
     for(int r = 0; r < Np_write; r++)
       lr[r] = -1 + 2*(bfam_long_real_t)r/(Np_write-1);
 
-    bfam_jacobi_p_interpolation(0, 0, sub->N, Np_write, lr, sub->V,
-        calc_interp);
+    bfam_jacobi_p_interpolation(0, 0, sub->N, Np_write, lr, sub->V,cal_interp);
 
     for(int n = 0; n < (sub->N+1)*(N_vtk+1); n++)
-      interp[n] = (bfam_real_t)calc_interp[n];
+      interp[n] = (bfam_real_t)cal_interp[n];
 
     stor1 = bfam_malloc_aligned(sizeof(bfam_real_t)*Np_vtk*K);
     stor2 = bfam_malloc_aligned(sizeof(bfam_real_t)*Np_vtk*K);
     stor3 = bfam_malloc_aligned(sizeof(bfam_real_t)*Np_vtk*K);
 
     bfam_free_aligned(lr);
-    bfam_free_aligned(calc_interp);
+    bfam_free_aligned(cal_interp);
   }
 
   const int Ncorners = sub->Ng[sub->numg-1];
