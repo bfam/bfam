@@ -234,7 +234,7 @@ bfam_subdomain_dgx_geo(int N, bfam_locidx_t K, int Np, int ***gmask,
 
           /* face 0 */
           ni[0][fidx0] = -Jrx[0][vidx0]; /* -Jrx/sJ */
-          ni[1][fidx0] = -Jrx[1][vidx0]; /* -Jrz/sJ */
+          ni[1][fidx0] = -Jrx[1][vidx0]; /* -Jry/sJ */
           ni[2][fidx0] = -Jrx[2][vidx0]; /* -Jrz/sJ */
 
           /* face 1 */
@@ -244,7 +244,7 @@ bfam_subdomain_dgx_geo(int N, bfam_locidx_t K, int Np, int ***gmask,
 
           /* face 2 */
           ni[0][fidx2] = -Jrx[3][vidx2]; /* -Jsx/sJ */
-          ni[1][fidx2] = -Jrx[4][vidx2]; /* -Jsz/sJ */
+          ni[1][fidx2] = -Jrx[4][vidx2]; /* -Jsy/sJ */
           ni[2][fidx2] = -Jrx[5][vidx2]; /* -Jsz/sJ */
 
           /* face 3 */
@@ -254,7 +254,7 @@ bfam_subdomain_dgx_geo(int N, bfam_locidx_t K, int Np, int ***gmask,
 
           /* face 4 */
           ni[0][fidx4] = -Jrx[6][vidx4]; /* -Jtx/sJ */
-          ni[1][fidx4] = -Jrx[7][vidx4]; /* -Jtz/sJ */
+          ni[1][fidx4] = -Jrx[7][vidx4]; /* -Jty/sJ */
           ni[2][fidx4] = -Jrx[8][vidx4]; /* -Jtz/sJ */
 
           /* face 5 */
