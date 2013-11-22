@@ -21,7 +21,7 @@ bfam_subdomain_dgx_geo(int N, bfam_locidx_t K, int Np, int ***gmask,
                     /*const*/ bfam_long_real_t  *restrict Dr,
                               bfam_long_real_t **restrict Jrx,
                               bfam_long_real_t  *restrict J,
-                              bfam_long_real_t **restrict n,
+                              bfam_long_real_t **restrict ni,
                               bfam_long_real_t *restrict sJ,
                               const int inDIM)
 {
@@ -29,10 +29,10 @@ bfam_subdomain_dgx_geo(int N, bfam_locidx_t K, int Np, int ***gmask,
   BFAM_WARNING("Using generic bfam_subdomain_dgx_geo");
   const int DIM = inDIM;
 #endif
-  BFAM_ABORT_IF(num_Vi != DIM && !(J == NULL && n == NULL && sJ == NULL),
-      "[J,n,sJ] != NULL not implemented for this case");
-  BFAM_ABORT_IF_NOT((J == NULL) == (n == NULL) && (J == NULL) == (sJ == NULL),
-      "[J,n,sJ] must all be NULL or not NULL");
+  BFAM_ABORT_IF(num_Vi != DIM && !(J == NULL && ni == NULL && sJ == NULL),
+      "[J,ni,sJ] != NULL not implemented for this case");
+  BFAM_ABORT_IF_NOT((J == NULL) == (ni == NULL) && (J == NULL) == (sJ == NULL),
+      "[J,ni,sJ] must all be NULL or not NULL");
 
   const int Nfaces = Ng[0];
   const int Nfp    = Ngp[0];
@@ -75,8 +75,32 @@ bfam_subdomain_dgx_geo(int N, bfam_locidx_t K, int Np, int ***gmask,
     if(J)
     {
       if(DIM == 1)
+      {
         for(int n = 0; n < Np; ++n) J[n+vsk] = Jrx[0][n+vsk];
+        for(int n = 0; n < Nfp; ++n)
+        {
+          const bfam_locidx_t fidx0 = fsk + 0 * Nfp + n;
+          const bfam_locidx_t fidx1 = fsk + 1 * Nfp + n;
+
+          const bfam_locidx_t vidx0 = vsk + gmask[0][0][n];
+          const bfam_locidx_t vidx1 = vsk + gmask[0][1][n];
+
+          /* face 0 */
+          ni[0][fidx0] = -Jrx[0][vidx0]; /* -sy */
+
+          /* face 1 */
+          ni[0][fidx1] =  Jrx[0][vidx1]; /*  sy */
+
+
+          sJ[fidx0] = BFAM_LONG_REAL_ABS(ni[0][fidx0]);
+          sJ[fidx1] = BFAM_LONG_REAL_ABS(ni[0][fidx1]);
+
+          ni[0][fidx0] /= sJ[fidx0];
+          ni[0][fidx1] /= sJ[fidx1];
+        }
+      }
       else if(DIM == 2)
+      {
         for(int n = 0; n < Np; ++n)
         {
           bfam_locidx_t idx = n + vsk;
@@ -101,7 +125,53 @@ bfam_subdomain_dgx_geo(int N, bfam_locidx_t K, int Np, int ***gmask,
           /* J*sy = xr */
           Jrx[3][idx] =  xr;
         }
+        for(int n = 0; n < Nfp; ++n)
+        {
+          const bfam_locidx_t fidx0 = fsk + 0 * Nfp + n;
+          const bfam_locidx_t fidx1 = fsk + 1 * Nfp + n;
+          const bfam_locidx_t fidx2 = fsk + 2 * Nfp + n;
+          const bfam_locidx_t fidx3 = fsk + 3 * Nfp + n;
+
+          const bfam_locidx_t vidx0 = vsk + gmask[0][0][n];
+          const bfam_locidx_t vidx1 = vsk + gmask[0][1][n];
+          const bfam_locidx_t vidx2 = vsk + gmask[0][2][n];
+          const bfam_locidx_t vidx3 = vsk + gmask[0][3][n];
+
+          /* rx = 0; ry = 1; sx = 2; sy = 3 */
+
+          /* face 0 */
+          ni[0][fidx0] = -Jrx[0][vidx0]; /* -Jrx/sJ */
+          ni[1][fidx0] = -Jrx[1][vidx0]; /* -Jry/sJ */
+
+          /* face 1 */
+          ni[0][fidx1] =  Jrx[0][vidx1]; /*  Jrx/sJ */
+          ni[1][fidx1] =  Jrx[1][vidx1]; /*  Jry/sJ */
+
+          /* face 2 */
+          ni[0][fidx2] = -Jrx[2][vidx2]; /* -Jsx/sJ */
+          ni[1][fidx2] = -Jrx[3][vidx2]; /* -Jsy/sJ */
+
+          /* face 3 */
+          ni[0][fidx3] =  Jrx[2][vidx3]; /*  Jsx/sJ */
+          ni[1][fidx3] =  Jrx[3][vidx3]; /*  Jsy/sJ */
+
+          sJ[fidx0] = BFAM_LONG_REAL_HYPOT(ni[0][fidx0],ni[1][fidx0]);
+          sJ[fidx1] = BFAM_LONG_REAL_HYPOT(ni[0][fidx1],ni[1][fidx1]);
+          sJ[fidx2] = BFAM_LONG_REAL_HYPOT(ni[0][fidx2],ni[1][fidx2]);
+          sJ[fidx3] = BFAM_LONG_REAL_HYPOT(ni[0][fidx3],ni[1][fidx3]);
+
+          ni[0][fidx0] /= sJ[fidx0];
+          ni[1][fidx0] /= sJ[fidx0];
+          ni[0][fidx1] /= sJ[fidx1];
+          ni[1][fidx1] /= sJ[fidx1];
+          ni[0][fidx2] /= sJ[fidx2];
+          ni[1][fidx2] /= sJ[fidx2];
+          ni[0][fidx3] /= sJ[fidx3];
+          ni[1][fidx3] /= sJ[fidx3];
+        }
+      }
       else if(DIM == 3)
+      {
         for(int n = 0; n < Np; ++n)
         {
           bfam_locidx_t idx = n + vsk;
@@ -115,6 +185,7 @@ bfam_subdomain_dgx_geo(int N, bfam_locidx_t K, int Np, int ***gmask,
           const bfam_long_real_t zr = Jrx[6][idx];
           const bfam_long_real_t zs = Jrx[7][idx];
           const bfam_long_real_t zt = Jrx[8][idx];
+
           /* xr*(ys*zt-yt*zs) - xs*(yr*zt-yt*zr) + xt*(yr*zs-ys*zr) */
           J[idx] = xr*(ys*zt-yt*zs) - xs*(yr*zt-yt*zr) + xt*(yr*zs-ys*zr);
 
@@ -145,50 +216,86 @@ bfam_subdomain_dgx_geo(int N, bfam_locidx_t K, int Np, int ***gmask,
           /* J*tz =  ( xr * ys - xt * ys ) */
           Jrx[8][idx] =  ( xr * ys - xt * ys );
         }
+        for(int n = 0; n < Nfp; ++n)
+        {
+          const bfam_locidx_t fidx0 = fsk + 0 * Nfp + n;
+          const bfam_locidx_t fidx1 = fsk + 1 * Nfp + n;
+          const bfam_locidx_t fidx2 = fsk + 2 * Nfp + n;
+          const bfam_locidx_t fidx3 = fsk + 3 * Nfp + n;
+          const bfam_locidx_t fidx4 = fsk + 4 * Nfp + n;
+          const bfam_locidx_t fidx5 = fsk + 5 * Nfp + n;
+
+          const bfam_locidx_t vidx0 = vsk + gmask[0][0][n];
+          const bfam_locidx_t vidx1 = vsk + gmask[0][1][n];
+          const bfam_locidx_t vidx2 = vsk + gmask[0][2][n];
+          const bfam_locidx_t vidx3 = vsk + gmask[0][3][n];
+          const bfam_locidx_t vidx4 = vsk + gmask[0][4][n];
+          const bfam_locidx_t vidx5 = vsk + gmask[0][5][n];
+
+          /* face 0 */
+          ni[0][fidx0] = -Jrx[0][vidx0]; /* -Jrx/sJ */
+          ni[1][fidx0] = -Jrx[1][vidx0]; /* -Jrz/sJ */
+          ni[2][fidx0] = -Jrx[2][vidx0]; /* -Jrz/sJ */
+
+          /* face 1 */
+          ni[0][fidx1] =  Jrx[0][vidx1]; /*  Jrx/sJ */
+          ni[1][fidx1] =  Jrx[1][vidx1]; /*  Jry/sJ */
+          ni[2][fidx1] =  Jrx[2][vidx1]; /*  Jrz/sJ */
+
+          /* face 2 */
+          ni[0][fidx2] = -Jrx[3][vidx2]; /* -Jsx/sJ */
+          ni[1][fidx2] = -Jrx[4][vidx2]; /* -Jsz/sJ */
+          ni[2][fidx2] = -Jrx[5][vidx2]; /* -Jsz/sJ */
+
+          /* face 3 */
+          ni[0][fidx3] =  Jrx[3][vidx3]; /*  Jsx/sJ */
+          ni[1][fidx3] =  Jrx[4][vidx3]; /*  Jsy/sJ */
+          ni[2][fidx3] =  Jrx[5][vidx3]; /*  Jsz/sJ */
+
+          /* face 4 */
+          ni[0][fidx4] = -Jrx[6][vidx4]; /* -Jtx/sJ */
+          ni[1][fidx4] = -Jrx[7][vidx4]; /* -Jtz/sJ */
+          ni[2][fidx4] = -Jrx[8][vidx4]; /* -Jtz/sJ */
+
+          /* face 5 */
+          ni[0][fidx5] =  Jrx[6][vidx5]; /*  Jtx/sJ */
+          ni[1][fidx5] =  Jrx[7][vidx5]; /*  Jty/sJ */
+          ni[2][fidx5] =  Jrx[8][vidx5]; /*  Jtz/sJ */
+
+          sJ[fidx0] = BFAM_LONG_REAL_HYPOT(ni[0][fidx0],
+                        BFAM_LONG_REAL_HYPOT(ni[1][fidx0],ni[2][fidx0]));
+          sJ[fidx1] = BFAM_LONG_REAL_HYPOT(ni[0][fidx1],
+                        BFAM_LONG_REAL_HYPOT(ni[1][fidx1],ni[2][fidx1]));
+          sJ[fidx2] = BFAM_LONG_REAL_HYPOT(ni[0][fidx2],
+                        BFAM_LONG_REAL_HYPOT(ni[1][fidx2],ni[2][fidx2]));
+          sJ[fidx3] = BFAM_LONG_REAL_HYPOT(ni[0][fidx3],
+                        BFAM_LONG_REAL_HYPOT(ni[1][fidx3],ni[2][fidx3]));
+          sJ[fidx4] = BFAM_LONG_REAL_HYPOT(ni[0][fidx4],
+                        BFAM_LONG_REAL_HYPOT(ni[1][fidx4],ni[2][fidx4]));
+          sJ[fidx5] = BFAM_LONG_REAL_HYPOT(ni[0][fidx5],
+                        BFAM_LONG_REAL_HYPOT(ni[1][fidx5],ni[2][fidx5]));
+
+          ni[0][fidx0] /= sJ[fidx0];
+          ni[1][fidx0] /= sJ[fidx0];
+          ni[2][fidx0] /= sJ[fidx0];
+          ni[0][fidx1] /= sJ[fidx1];
+          ni[1][fidx1] /= sJ[fidx1];
+          ni[2][fidx1] /= sJ[fidx1];
+          ni[0][fidx2] /= sJ[fidx2];
+          ni[1][fidx2] /= sJ[fidx2];
+          ni[2][fidx2] /= sJ[fidx2];
+          ni[0][fidx3] /= sJ[fidx3];
+          ni[1][fidx3] /= sJ[fidx3];
+          ni[2][fidx3] /= sJ[fidx3];
+          ni[0][fidx4] /= sJ[fidx4];
+          ni[1][fidx4] /= sJ[fidx4];
+          ni[2][fidx4] /= sJ[fidx4];
+          ni[0][fidx5] /= sJ[fidx5];
+          ni[1][fidx5] /= sJ[fidx5];
+          ni[2][fidx5] /= sJ[fidx5];
+        }
+      }
     }
-
-  //JK   for(int n = 0; n < Nrp; ++n)
-  //JK   {
-  //JK     const bfam_locidx_t fidx0 = fsk + 0 * Nrp + n;
-  //JK     const bfam_locidx_t fidx1 = fsk + 1 * Nrp + n;
-  //JK     const bfam_locidx_t fidx2 = fsk + 2 * Nrp + n;
-  //JK     const bfam_locidx_t fidx3 = fsk + 3 * Nrp + n;
-
-  //JK     const bfam_locidx_t vidx0 = vsk + fmask[0][n];
-  //JK     const bfam_locidx_t vidx1 = vsk + fmask[1][n];
-  //JK     const bfam_locidx_t vidx2 = vsk + fmask[2][n];
-  //JK     const bfam_locidx_t vidx3 = vsk + fmask[3][n];
-
-  //JK     /* face 0 */
-  //JK     nx[fidx0] = -Jrx[vidx0]; /* -sy */
-  //JK     ny[fidx0] = -Jry[vidx0]; /*  sx */
-
-  //JK     /* face 1 */
-  //JK     nx[fidx1] =  Jrx[vidx1]; /*  sy */
-  //JK     ny[fidx1] =  Jry[vidx1]; /* -sx */
-
-  //JK     /* face 2 */
-  //JK     nx[fidx2] = -Jsx[vidx2]; /*  ry */
-  //JK     ny[fidx2] = -Jsy[vidx2]; /* -rx */
-
-  //JK     /* face 3 */
-  //JK     nx[fidx3] =  Jsx[vidx3]; /* -sx */
-  //JK     ny[fidx3] =  Jsy[vidx3]; /* -sx */
-
-  //JK     sJ[fidx0] = BFAM_LONG_REAL_HYPOT(nx[fidx0],ny[fidx0]);
-  //JK     sJ[fidx1] = BFAM_LONG_REAL_HYPOT(nx[fidx1],ny[fidx1]);
-  //JK     sJ[fidx2] = BFAM_LONG_REAL_HYPOT(nx[fidx2],ny[fidx2]);
-  //JK     sJ[fidx3] = BFAM_LONG_REAL_HYPOT(nx[fidx3],ny[fidx3]);
-
-  //JK     nx[fidx0] /= sJ[fidx0];
-  //JK     ny[fidx0] /= sJ[fidx0];
-  //JK     nx[fidx1] /= sJ[fidx1];
-  //JK     ny[fidx1] /= sJ[fidx1];
-  //JK     nx[fidx2] /= sJ[fidx2];
-  //JK     ny[fidx2] /= sJ[fidx2];
-  //JK     nx[fidx3] /= sJ[fidx3];
-  //JK     ny[fidx3] /= sJ[fidx3];
-  //JK   }
 
     vsk += Np;
     fsk += Nfaces*Nfp;
@@ -1084,22 +1191,22 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
       lJrx[n] = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
 
     bfam_long_real_t  *lJ  = NULL;
-    bfam_long_real_t **ln  = NULL;
+    bfam_long_real_t **lni  = NULL;
     bfam_long_real_t  *lsJ = NULL;
     if(DIM == num_Vi)
     {
       lJ = bfam_malloc_aligned(K*Np*sizeof(bfam_long_real_t));
 
       /* Ng[0] = number of faces, Ngp[0] = number of face points */
-        ln = bfam_malloc_aligned(num_Vi*Ng[0]*sizeof(bfam_long_real_t*));
-      for(int n = 0; n < num_Vi*Ng[0]; n++)
-        ln[n] = bfam_malloc_aligned(K*Ng[0]*Ngp[0]*sizeof(bfam_long_real_t));
+      lni = bfam_malloc_aligned(num_Vi*sizeof(bfam_long_real_t*));
+      for(int n = 0; n < num_Vi; n++)
+        lni[n] = bfam_malloc_aligned(K*Ng[0]*Ngp[0]*sizeof(bfam_long_real_t));
 
       lsJ = bfam_malloc_aligned(K*Ng[0]*Ngp[0]*sizeof(bfam_long_real_t));
     }
 
     bfam_subdomain_dgx_geo(N, K, Np, subdomain->gmask, Ng, Ngp, num_Vi,
-        lxi, D, lJrx, lJ, ln, lsJ, DIM);
+        lxi, D, lJrx, lJ, lni, lsJ, DIM);
 
     subdomain->r  = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
     subdomain->w  = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
@@ -1146,11 +1253,11 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
 
     /* free stuff */
     if(lsJ) bfam_free_aligned(lsJ);
-    if(ln)
+    if(lni)
     {
-      for(int n = 0; n < num_Vi*Ng[0]; n++)
-        bfam_free_aligned(ln[n]);
-      bfam_free_aligned(ln);
+      for(int n = 0; n < num_Vi; n++)
+        bfam_free_aligned(lni[n]);
+      bfam_free_aligned(lni);
     }
 
     if(lJ) bfam_free_aligned(lJ);
