@@ -288,4 +288,106 @@
           (y)[(N) * bfam_kron_i + bfam_kron_j];                           \
   } while (0)
 
+/** $y = (A \otimes I \otimes I) x$.
+ *
+ * \param [in]  N number of rows and columns of $A$
+ * \param [in]  A column first representation of $A$
+ * \param [in]  x vector $x$
+ * \param [out] y vector $y$
+ */
+#define BFAM_KRON_AXIXI(N, A, x, y)                                    \
+  do                                                                   \
+  {                                                                    \
+    for(int bfam_kron_n = 0; bfam_kron_n < (N*)(N)*(N); ++bfam_kron_n) \
+      (y)[bfam_kron_n] = 0;                                            \
+    BFAM_KRON_AXIXI_PE(N,A,x,y);                                       \
+  } while (0)
+
+/** $y = (I \otimes A \otimes I) x$.
+ *
+ * \param [in]  N number of rows and columns of $A$
+ * \param [in]  A column first representation of $A$
+ * \param [in]  x vector $x$
+ * \param [out] y vector $y$
+ */
+#define BFAM_KRON_IXAXI(N, A, x, y)                                    \
+  do                                                                   \
+  {                                                                    \
+    for(int bfam_kron_n = 0; bfam_kron_n < (N*)(N)*(N); ++bfam_kron_n) \
+      (y)[bfam_kron_n] = 0;                                            \
+    BFAM_KRON_IXAXI_PE(N,A,x,y);                                       \
+  } while (0)
+
+/** $y = (I \otimes I \otimes A) x$.
+ *
+ * \param [in]  N number of rows and columns of $A$
+ * \param [in]  A column first representation of $A$
+ * \param [in]  x vector $x$
+ * \param [out] y vector $y$
+ */
+#define BFAM_KRON_IXIXA(N, A, x, y)                                    \
+  do                                                                   \
+  {                                                                    \
+    for(int bfam_kron_n = 0; bfam_kron_n < (N*)(N)*(N); ++bfam_kron_n) \
+      (y)[bfam_kron_n] = 0;                                            \
+    BFAM_KRON_IXIXA_PE(N,A,x,y);                                       \
+  } while (0)
+
+/** $y += (A \otimes I \otimes I) x$.
+ *
+ * \param [in]  N number of rows and columns of $A$
+ * \param [in]  A column first representation of $A$
+ * \param [in]  x vector $x$
+ * \param [out] y vector $y$
+ */
+#define BFAM_KRON_AXIXI_PE(N, A, x, y)                                \
+  do                                                                  \
+  {                                                                   \
+    for(int bfam_kron_i = 0; bfam_kron_i < (N); ++bfam_kron_i)        \
+      for(int bfam_kron_l = 0; bfam_kron_l < (N); ++bfam_kron_l)      \
+        for(int bfam_kron_k = 0; bfam_kron_k < (N); ++bfam_kron_k)    \
+          for(int bfam_kron_j = 0; bfam_kron_j < (N); ++bfam_kron_j)  \
+            (y)[(N)*((N)*bfam_kron_l + bfam_kron_k) + bfam_kron_j] += \
+              (A)[(N) * bfam_kron_i + bfam_kron_l] *                  \
+              (x)[(N)*((N)*bfam_kron_i + bfam_kron_k) + bfam_kron_j]; \
+  } while (0)
+
+/** $y += (I \otimes A \otimes I) x$.
+ *
+ * \param [in]  N number of rows and columns of $A$
+ * \param [in]  A column first representation of $A$
+ * \param [in]  x vector $x$
+ * \param [out] y vector $y$
+ */
+#define BFAM_KRON_IXAXI_PE(N, A, x, y)                                \
+  do                                                                  \
+  {                                                                   \
+    for(int bfam_kron_i = 0; bfam_kron_i < (N); ++bfam_kron_i)        \
+      for(int bfam_kron_l = 0; bfam_kron_l < (N); ++bfam_kron_l)      \
+        for(int bfam_kron_k = 0; bfam_kron_k < (N); ++bfam_kron_k)    \
+          for(int bfam_kron_j = 0; bfam_kron_j < (N); ++bfam_kron_j)  \
+            (y)[(N)*((N)*bfam_kron_l + bfam_kron_k) + bfam_kron_j] += \
+              (A)[(N) * bfam_kron_i + bfam_kron_k] *                  \
+              (x)[(N)*((N)*bfam_kron_l + bfam_kron_i) + bfam_kron_j]; \
+  } while (0)
+
+/** $y += (I \otimes I \otimes A) x$.
+ *
+ * \param [in]  N number of rows and columns of $A$
+ * \param [in]  A column first representation of $A$
+ * \param [in]  x vector $x$
+ * \param [out] y vector $y$
+ */
+#define BFAM_KRON_IXIXA_PE(N, A, x, y)                                \
+  do                                                                  \
+  {                                                                   \
+    for(int bfam_kron_i = 0; bfam_kron_i < (N); ++bfam_kron_i)        \
+      for(int bfam_kron_l = 0; bfam_kron_l < (N); ++bfam_kron_l)      \
+        for(int bfam_kron_k = 0; bfam_kron_k < (N); ++bfam_kron_k)    \
+          for(int bfam_kron_j = 0; bfam_kron_j < (N); ++bfam_kron_j)  \
+            (y)[(N)*((N)*bfam_kron_l + bfam_kron_k) + bfam_kron_j] += \
+              (A)[(N) * bfam_kron_i + bfam_kron_j] *                  \
+              (x)[(N)*((N)*bfam_kron_l + bfam_kron_k) + bfam_kron_i]; \
+  } while (0)
+
 #endif
