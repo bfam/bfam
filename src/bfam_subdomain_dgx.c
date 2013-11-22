@@ -895,7 +895,6 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
 
     bfam_jacobi_p_mass(0, 0, N, V, M);
 
-
     bfam_long_real_t **lJrx =
       bfam_malloc_aligned(num_Vi*DIM*sizeof(bfam_long_real_t*));
     for(int n = 0; n < num_Vi*DIM; n++)
@@ -917,8 +916,8 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
         DIM);
     */
 
-    subdomain->r = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
-    subdomain->w = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
+    subdomain->r  = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
+    subdomain->w  = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
     subdomain->wi = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
 
     for(int n = 0; n<Nrp; ++n)

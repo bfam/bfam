@@ -71,7 +71,7 @@ typedef struct bfam_subdomain_dgx
   //JK bfam_locidx_t    *vmapP;   /* Mapping into the volume for the plus  side of
   //JK                               the face mesh */
 
-  int            ***gmask;   /* face mask */
+  int            ***gmask;   /* geometry mask: same order as Ng */
 
   /* glue quantities
    * all glue quantities are postfixed with _m for minus side or _p for plus
