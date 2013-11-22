@@ -298,7 +298,7 @@
 #define BFAM_KRON_AXIXI(N, A, x, y)                                    \
   do                                                                   \
   {                                                                    \
-    for(int bfam_kron_n = 0; bfam_kron_n < (N*)(N)*(N); ++bfam_kron_n) \
+    for(int bfam_kron_n = 0; bfam_kron_n < (N)*(N)*(N); ++bfam_kron_n) \
       (y)[bfam_kron_n] = 0;                                            \
     BFAM_KRON_AXIXI_PE(N,A,x,y);                                       \
   } while (0)
@@ -313,7 +313,7 @@
 #define BFAM_KRON_IXAXI(N, A, x, y)                                    \
   do                                                                   \
   {                                                                    \
-    for(int bfam_kron_n = 0; bfam_kron_n < (N*)(N)*(N); ++bfam_kron_n) \
+    for(int bfam_kron_n = 0; bfam_kron_n < (N)*(N)*(N); ++bfam_kron_n) \
       (y)[bfam_kron_n] = 0;                                            \
     BFAM_KRON_IXAXI_PE(N,A,x,y);                                       \
   } while (0)
@@ -328,7 +328,7 @@
 #define BFAM_KRON_IXIXA(N, A, x, y)                                    \
   do                                                                   \
   {                                                                    \
-    for(int bfam_kron_n = 0; bfam_kron_n < (N*)(N)*(N); ++bfam_kron_n) \
+    for(int bfam_kron_n = 0; bfam_kron_n < (N)*(N)*(N); ++bfam_kron_n) \
       (y)[bfam_kron_n] = 0;                                            \
     BFAM_KRON_IXIXA_PE(N,A,x,y);                                       \
   } while (0)
