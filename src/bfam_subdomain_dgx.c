@@ -186,35 +186,35 @@ bfam_subdomain_dgx_geo(int N, bfam_locidx_t K, int Np, int ***gmask,
           const bfam_long_real_t zs = Jrx[7][idx];
           const bfam_long_real_t zt = Jrx[8][idx];
 
-          /* xr*(ys*zt-yt*zs) - xs*(yr*zt-yt*zr) + xt*(yr*zs-ys*zr) */
+          /*       xr*(ys*zt-yt*zs) - xs*(yr*zt-yt*zr) + xt*(yr*zs-ys*zr) */
           J[idx] = xr*(ys*zt-yt*zs) - xs*(yr*zt-yt*zr) + xt*(yr*zs-ys*zr);
 
-          /* J*rx =  ( ys * zt - yt * zs ) */
+          /* J*rx     =  ( ys * zt - yt * zs ) */
           Jrx[0][idx] =  ( ys * zt - yt * zs );
 
-          /* J*sx = -( xs * zt - xt * zs ) */
+          /* J*ry     = -( xs * zt - xt * zs ) */
           Jrx[1][idx] = -( xs * zt - xt * zs );
 
-          /* J*tx =  ( xs * yt - xt * ys ) */
+          /* J*rz     =  ( xs * yt - xt * ys ) */
           Jrx[2][idx] =  ( xs * yt - xt * ys );
 
-          /* J*ry = -( yr * zt - yt * zr ) */
+          /* J*sx     = -( yr * zt - yt * zr ) */
           Jrx[3][idx] = -( yr * zt - yt * zr );
 
-          /* J*sy =  ( xr * zt - xt * zr ) */
+          /* J*sy     =  ( xr * zt - xt * zr ) */
           Jrx[4][idx] =  ( xr * zt - xt * zr );
 
-          /* J*ty = -( xr * yt - xt * yr ) */
+          /* J*sz     = -( xr * yt - xt * yr ) */
           Jrx[5][idx] = -( xr * yt - xt * yr );
 
-          /* J*rz =  ( yr * zs - yt * zs ) */
-          Jrx[6][idx] =  ( yr * zs - yt * zs );
+          /* J*tx     =  ( yr * zs - ys * zr ) */
+          Jrx[6][idx] =  ( yr * zs - ys * zr );
 
-          /* J*sz = -( xr * zs - xt * zs ) */
-          Jrx[7][idx] = -( xr * zs - xt * zs );
+          /* J*ty     = -( xr * zs - xs * zr ) */
+          Jrx[7][idx] = -( xr * zs - xs * zr );
 
-          /* J*tz =  ( xr * ys - xt * ys ) */
-          Jrx[8][idx] =  ( xr * ys - xt * ys );
+          /* J*tz     =  ( xr * ys - xs * yr ) */
+          Jrx[8][idx] =  ( xr * ys - xs * yr );
         }
         for(int n = 0; n < Nfp; ++n)
         {
