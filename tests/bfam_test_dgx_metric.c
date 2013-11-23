@@ -129,6 +129,38 @@ test_2d()
                                              Vz[2] ,  0.5*(            Vz[2]+Vz[3]),           Vz[3]};
   const bfam_real_t     *vex[] = {xex,yex,zex};
 
+  const bfam_real_t       xr[] = {0.50*(Vx[1]      -Vx[0]      ),0.50*(Vx[1]      -Vx[0]      ),0.50*(Vx[1]      -Vx[0]      ),
+                                  0.25*(Vx[1]+Vx[3]-Vx[0]-Vx[2]),0.25*(Vx[1]+Vx[3]-Vx[0]-Vx[2]),0.25*(Vx[1]+Vx[3]-Vx[0]-Vx[2]),
+                                  0.50*(      Vx[3]      -Vx[2]),0.50*(      Vx[3]      -Vx[2]),0.50*(      Vx[3]      -Vx[2])};
+  const bfam_real_t       xs[] = {0.50*(Vx[2]      -Vx[0]      ),0.25*(Vx[2]+Vx[3]-Vx[0]-Vx[1]),0.50*(      Vx[3]      -Vx[1]),
+                                  0.50*(Vx[2]      -Vx[0]      ),0.25*(Vx[2]+Vx[3]-Vx[0]-Vx[1]),0.50*(      Vx[3]      -Vx[1]),
+                                  0.50*(Vx[2]      -Vx[0]      ),0.25*(Vx[2]+Vx[3]-Vx[0]-Vx[1]),0.50*(      Vx[3]      -Vx[1])};
+
+  const bfam_real_t       yr[] = {0.50*(Vy[1]      -Vy[0]      ),0.50*(Vy[1]      -Vy[0]      ),0.50*(Vy[1]      -Vy[0]      ),
+                                  0.25*(Vy[1]+Vy[3]-Vy[0]-Vy[2]),0.25*(Vy[1]+Vy[3]-Vy[0]-Vy[2]),0.25*(Vy[1]+Vy[3]-Vy[0]-Vy[2]),
+                                  0.50*(      Vy[3]      -Vy[2]),0.50*(      Vy[3]      -Vy[2]),0.50*(      Vy[3]      -Vy[2])};
+  const bfam_real_t       ys[] = {0.50*(Vy[2]      -Vy[0]      ),0.25*(Vy[2]+Vy[3]-Vy[0]-Vy[1]),0.50*(      Vy[3]      -Vy[1]),
+                                  0.50*(Vy[2]      -Vy[0]      ),0.25*(Vy[2]+Vy[3]-Vy[0]-Vy[1]),0.50*(      Vy[3]      -Vy[1]),
+                                  0.50*(Vy[2]      -Vy[0]      ),0.25*(Vy[2]+Vy[3]-Vy[0]-Vy[1]),0.50*(      Vy[3]      -Vy[1])};
+
+  const bfam_real_t       zr[] = {0.50*(Vz[1]      -Vz[0]      ),0.50*(Vz[1]      -Vz[0]      ),0.50*(Vz[1]      -Vz[0]      ),
+                                  0.25*(Vz[1]+Vz[3]-Vz[0]-Vz[2]),0.25*(Vz[1]+Vz[3]-Vz[0]-Vz[2]),0.25*(Vz[1]+Vz[3]-Vz[0]-Vz[2]),
+                                  0.50*(      Vz[3]      -Vz[2]),0.50*(      Vz[3]      -Vz[2]),0.50*(      Vz[3]      -Vz[2])};
+  const bfam_real_t       zs[] = {0.50*(Vz[2]      -Vz[0]      ),0.25*(Vz[2]+Vz[3]-Vz[0]-Vz[1]),0.50*(      Vz[3]      -Vz[1]),
+                                  0.50*(Vz[2]      -Vz[0]      ),0.25*(Vz[2]+Vz[3]-Vz[0]-Vz[1]),0.50*(      Vz[3]      -Vz[1]),
+                                  0.50*(Vz[2]      -Vz[0]      ),0.25*(Vz[2]+Vz[3]-Vz[0]-Vz[1]),0.50*(      Vz[3]      -Vz[1])};
+  const bfam_real_t    *xrex[] = {xr,xs,yr,ys,zr,zs};
+
+  bfam_real_t J[9],Jrx[9],Jry[9],Jsx[9],Jsy[9];
+  for(int n = 0; n<9; n++)
+  {
+    J[n]   = xr[n]*ys[n]-xs[n]*yr[n];
+    Jrx[n] = ys[n];
+    Jry[n] =-xs[n];
+    Jsx[n] =-yr[n];
+    Jsy[n] = xr[n];
+  }
+
   for(int d = 1;d < 3;d++)
   {
     bfam_subdomain_dgx_t *d2 =
@@ -138,6 +170,26 @@ test_2d()
       char name[BFAM_BUFSIZ];
       snprintf(name,BFAM_BUFSIZ,"_grid_x%d",v);
       failures += check_field((bfam_subdomain_t*)d2, name, vex[v]);
+    }
+    if(d > 1)
+    {
+      for(int v = 0;v < d+1;v++)
+      {
+        for(int i = 0;i < 2;i++)
+        {
+          char name[BFAM_BUFSIZ];
+          snprintf(name,BFAM_BUFSIZ,"_grid_x%dr%d",v,i);
+          failures += check_field((bfam_subdomain_t*)d2, name, xrex[i+v*2]);
+        }
+      }
+    }
+    else
+    {
+      failures += check_field((bfam_subdomain_t*)d2, "_grid_J"    , J  );
+      failures += check_field((bfam_subdomain_t*)d2, "_grid_Jr0x0", Jrx);
+      failures += check_field((bfam_subdomain_t*)d2, "_grid_Jr0x1", Jry);
+      failures += check_field((bfam_subdomain_t*)d2, "_grid_Jr1x0", Jsx);
+      failures += check_field((bfam_subdomain_t*)d2, "_grid_Jr1x1", Jsy);
     }
 
     bfam_subdomain_free((bfam_subdomain_t*)d2);
