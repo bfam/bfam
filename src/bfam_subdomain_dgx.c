@@ -1149,15 +1149,15 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
           for(int m = 0; m < Nrp; ++m)
             for(int l = 0; l < Nrp; ++l)
             {
-              int offset = n*Nrp*Nrp+l*Nrp+m;
-              w[0] = (1-lr[m])*(1-lr[n])*(1-lr[l]);
-              w[1] = (1+lr[m])*(1-lr[n])*(1-lr[l]);
-              w[2] = (1-lr[m])*(1+lr[n])*(1-lr[l]);
-              w[3] = (1+lr[m])*(1+lr[n])*(1-lr[l]);
-              w[4] = (1-lr[m])*(1-lr[n])*(1+lr[l]);
-              w[5] = (1+lr[m])*(1-lr[n])*(1+lr[l]);
-              w[6] = (1-lr[m])*(1+lr[n])*(1+lr[l]);
-              w[7] = (1+lr[m])*(1+lr[n])*(1+lr[l]);
+              int offset = n*Nrp*Nrp+m*Nrp+l;
+              w[0] = (1-lr[l])*(1-lr[m])*(1-lr[n]);
+              w[1] = (1+lr[l])*(1-lr[m])*(1-lr[n]);
+              w[2] = (1-lr[l])*(1+lr[m])*(1-lr[n]);
+              w[3] = (1+lr[l])*(1+lr[m])*(1-lr[n]);
+              w[4] = (1-lr[l])*(1-lr[m])*(1+lr[n]);
+              w[5] = (1+lr[l])*(1-lr[m])*(1+lr[n]);
+              w[6] = (1-lr[l])*(1+lr[m])*(1+lr[n]);
+              w[7] = (1+lr[l])*(1+lr[m])*(1+lr[n]);
               for(int i = 0; i < num_Vi;i++)
               {
                 lxi[i][Np*k + offset] = 0;
