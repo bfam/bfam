@@ -76,7 +76,8 @@ bfam_subdomain_dgx_geo(int N, bfam_locidx_t K, int Np, int ***gmask,
     {
       if(DIM == 1)
       {
-        for(int n = 0; n < Np; ++n) J[n+vsk] = Jrx[0][n+vsk];
+        for(int n = 0; n < Np; ++n)
+          J[n+vsk] = BFAM_LONG_REAL_ABS(Jrx[0][n+vsk]);
         for(int n = 0; n < Nfp; ++n)
         {
           const bfam_locidx_t fidx0 = fsk + 0 * Nfp + n;
