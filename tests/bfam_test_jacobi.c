@@ -8,7 +8,8 @@ check_approx_eq(bfam_long_real_t eps, size_t nx, bfam_long_real_t *P,
   bfam_long_real_t diff = 0;
   for (size_t i=0; i<nx; ++i)
   {
-    diff = BFAM_MAX(BFAM_LONG_REAL_ABS(P[i] - Pexact[i]), diff);
+    diff = BFAM_MAX(BFAM_LONG_REAL_ABS(P[i] - Pexact[i])
+        /BFAM_MAX(BFAM_LONG_REAL_ABS(P[i]),BFAM_MAX(Pexact[i],1)), diff);
   }
 
   if (diff > eps)
