@@ -1268,7 +1268,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
       for(int v = 0; v < num_Vi;v++)
       {
         char name[BFAM_BUFSIZ];
-        snprintf(name,BFAM_BUFSIZ,"_grid_lnx%d",v);
+        snprintf(name,BFAM_BUFSIZ,"_grid_nx%d",v);
         int rval = bfam_subdomain_dgx_field_face_add(&subdomain->base, name);
         BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s",name);
         bfam_real_t *restrict ni =
