@@ -29,7 +29,7 @@ bfam_domain_free(bfam_domain_t *thisDomain)
     thisDomain->subdomains[i]->free(thisDomain->subdomains[i]);
     bfam_free(thisDomain->subdomains[i]);
   }
-  thisDomain->comm = NULL;
+  thisDomain->comm = MPI_COMM_NULL;
   thisDomain->numSubdomains = 0;
   thisDomain->sizeSubdomains = 0;
   bfam_free(thisDomain->subdomains);
