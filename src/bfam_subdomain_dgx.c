@@ -1062,6 +1062,29 @@ bfam_subdomain_dgx_buildmaps(bfam_locidx_t K, int Np, int Nfp, int Nfaces,
   }
 }
 
+/* set all subdomain values to something logical */
+static void
+bfam_subdomain_dgx_null_all_values(bfam_subdomain_dgx_t *sub)
+{
+  sub->K       =  0;
+  sub->N       = -1;
+  sub->Np      =  0;
+  sub->Ngp     = NULL;
+  sub->numg    =  0;
+  sub->Ng      = NULL;
+  sub->r       = NULL;
+  sub->w       = NULL;
+  sub->wi      = NULL;
+  sub->Dr      = NULL;
+  sub->V       = NULL;
+  sub->K       =  0;
+  sub->vmapM   = NULL;
+  sub->vmapP   = NULL;
+  sub->gmask   = NULL;
+  sub->glue_m  = NULL;
+  sub->glues_p = NULL;
+}
+
 void
 BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
                               bfam_subdomain_dgx_t *subdomain,
@@ -1081,6 +1104,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
   BFAM_WARNING("Using generic bfam_subdomain_dgx_init");
   const int DIM = inDIM;
 #endif
+
   BFAM_ASSERT(DIM == inDIM);
   BFAM_ABORT_IF(DIM < 0, "dimension %d is not possible in bfam",DIM);
   BFAM_ABORT_IF(DIM == 0 && N != 0,
@@ -1091,6 +1115,9 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
   char dim_str[BFAM_BUFSIZ];
   snprintf(dim_str,BFAM_BUFSIZ,"_dimension_%d",DIM);
   bfam_subdomain_add_tag(&subdomain->base, dim_str);
+
+  bfam_subdomain_dgx_null_all_values(subdomain);
+
   subdomain->dim = DIM;
 
   subdomain->base.free =
@@ -1368,16 +1395,6 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
     for(int i = 0;i < num_Vi;i++) bfam_free_aligned(lxi[i]);
     bfam_free_aligned(lxi);
   }
-  else
-  {
-    subdomain->Dr = NULL;
-    subdomain->V  = NULL;
-    subdomain->r  = NULL;
-    subdomain->w  = NULL;
-    subdomain->wi = NULL;
-    subdomain->vmapP = NULL;
-    subdomain->vmapM = NULL;
-  }
 }
 
 bfam_subdomain_dgx_t*
@@ -1458,4 +1475,6 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,BFAM_DGX_DIMENSION)(
 
   if(sub->vmapP) bfam_free_aligned(sub->vmapP); sub->vmapP = NULL;
   if(sub->vmapM) bfam_free_aligned(sub->vmapM); sub->vmapM = NULL;
+
+  bfam_subdomain_dgx_null_all_values(sub);
 }
