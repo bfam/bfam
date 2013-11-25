@@ -66,10 +66,10 @@ typedef struct bfam_subdomain_dgx
 
   bfam_locidx_t     K;       /* Number of elements in the subdomain */
 
-  //JK bfam_locidx_t    *vmapM;   /* Mapping into the volume for the minus side of
-  //JK                               the face mesh */
-  //JK bfam_locidx_t    *vmapP;   /* Mapping into the volume for the plus  side of
-  //JK                               the face mesh */
+  bfam_locidx_t    *vmapM;   /* Mapping into the volume for the minus side of
+                                the face mesh */
+  bfam_locidx_t    *vmapP;   /* Mapping into the volume for the plus  side of
+                                the face mesh */
 
   int            ***gmask;   /* geometry mask: same order as Ng */
 
