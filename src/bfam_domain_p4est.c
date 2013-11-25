@@ -1073,11 +1073,11 @@ bfam_domain_p4est_split_dgx_quad_subdomains(bfam_domain_p4est_t *domain,
        * between them based on id.  So we have decided to use a minus sign
        * to distinguish between the two different glue grids.
        */
-      bfam_locidx_t sign_m = 1;
+      // bfam_locidx_t sign_m = 1;
       bfam_locidx_t sign_p = 1;
       if(id_m == id_p)
       {
-       sign_m = (r) ? -1 :  1;
+       // sign_m = (r) ? -1 :  1;
        sign_p = (r) ?  1 : -1;
       }
 
