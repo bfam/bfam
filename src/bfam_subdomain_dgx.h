@@ -37,6 +37,48 @@
 
 struct bfam_subdomain_dgx;
 
+typedef struct bfam_subdomain_dgx_glue_data
+{
+  int               N;    /* 1D Polynomial Order on this side */
+  bfam_locidx_t     rank; /* Rank of the subdomain on this side */
+
+  bfam_locidx_t     id;   /* Sort Id of the subdomain on this side */
+
+  bfam_locidx_t     s;    /* Id of the subdomain on this side */
+
+  bfam_locidx_t    *EToE; /* Element number on connected subdomain */
+
+  /* The following pointers should only be \ne NULL on the minus side */
+
+  int8_t           *EToF; /* Face        number on local subdomain */
+  int8_t           *EToH; /* Hanging     number on local subdomain */
+  int8_t           *EToO; /* Orientation number on local subdomain */
+
+  struct bfam_subdomain_dgx *sub_m;  /* Local neighboring subdomain */
+
+  bfam_real_t     **interpolation_m; /* array of interpolation operators;
+                                      * the first is for non-hanging faces
+                                      * the rest are for the hanging faces;
+                                      * if the operator is NULL it is assumed
+                                      * to be the identity operator.
+                                      */
+
+  bfam_real_t     **projection_m;   /* array of projection operators;
+                                     * the first is for non-hanging faces
+                                     * the rest are for the hanging faces;
+                                     * if the operator is NULL it is assumed
+                                     * to be the identity operator.
+                                     */
+
+  bfam_real_t     **massprojection_m; /* array of mass projection operators;
+                                       * the first is for non-hanging faces
+                                       * the rest are for the hanging faces;
+                                       * if the operator is NULL it is assumed
+                                       * to be the identity operator.
+                                       */
+
+} bfam_subdomain_dgx_glue_data_t;
+
 typedef struct bfam_subdomain_dgx
 {
   bfam_subdomain_t base;
@@ -73,60 +115,12 @@ typedef struct bfam_subdomain_dgx
 
   int            ***gmask;   /* geometry mask: same order as Ng */
 
-  /* glue quantities
-   * all glue quantities are postfixed with _m for minus side or _p for plus
-   * side. All _p quantities are arrays to allow for multiple plus side
-   * subdomains
-   */
-  //JK int             num_p;    /* number of plus sides */
-  //JK int               N_m;    /* 1D Polynomial Order on the minus side */
-  //JK int              *N_p;    /* 1D Polynomial Order on the plus  side */
-
-  //JK bfam_locidx_t     rank_m; /* Rank of the subdomain on the minus side */
-  //JK bfam_locidx_t    *rank_p; /* Rank of the subdomain on the plus  side;
-  //JK                            * if set to -1 then the subdomain is not
-  //JK                            * connected on the plus side (i.e., it is
-  //JK                            * a boundary subdomain).
-  //JK                            */
-
-  //JK bfam_locidx_t     id_m;   /* Sort Id of the subdomain on the minus side */
-  //JK bfam_locidx_t    *id_p;   /* Sort Id of the subdomain on the plus  side */
-
-  //JK bfam_locidx_t     s_m;    /* Id of the subdomain on the minus side */
-  //JK bfam_locidx_t    *s_p;    /* Id of the subdomain on the plus  side */
-
-  //JK struct bfam_subdomain_dgx *sub_m;  /* Local neighboring subdomain */
-
-  //JK int                      Nh_m;    /* number of interpolation operators from
-  //JK                                    * minus side
-  //JK                                    */
-
-  //JK bfam_real_t     **interpolation_m; /* array of interpolation operators;
-  //JK                                     * the first is for non-hanging faces
-  //JK                                     * the rest are for the hanging faces;
-  //JK                                     * if the operator is NULL it is assumed
-  //JK                                     * to be the identity operator.
-  //JK                                     */
-
-  //JK bfam_real_t     **projection_m;   /* array of projection operators;
-  //JK                                    * the first is for non-hanging faces
-  //JK                                    * the rest are for the hanging faces;
-  //JK                                    * if the operator is NULL it is assumed
-  //JK                                    * to be the identity operator.
-  //JK                                    */
-
-  //JK bfam_real_t     **massprojection_m; /* array of mass projection operators;
-  //JK                                      * the first is for non-hanging faces
-  //JK                                      * the rest are for the hanging faces;
-  //JK                                      * if the operator is NULL it is assumed
-  //JK                                      * to be the identity operator.
-  //JK                                      */
-
-  //JK bfam_locidx_t   **EToE_p; /* Element     number on neighboring glue */
-  //JK bfam_locidx_t    *EToE_m; /* Element     number on local subdomain */
-  //JK int8_t           *EToF_m; /* Face        number on local subdomain */
-  //JK int8_t           *EToH_m; /* Hanging     number on local subdomain */
-  //JK int8_t           *EToO_m; /* Orientation number on local subdomain */
+  /* glue quantities */
+  bfam_subdomain_dgx_glue_data_t *glue_m;
+  bfam_dictionary_t              *glues_p; /* a pointer to a dictionary storing
+                                            * pointers to the glue data for the
+                                            * plus side
+                                            */
 } bfam_subdomain_dgx_t;
 
 /** create a dgx subdomain.
