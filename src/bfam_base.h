@@ -75,6 +75,13 @@
 #include <p4est_lnodes.h>
 #include <p4est_mesh.h>
 #include <p4est_vtk.h>
+#include <p8est.h>
+#include <p8est_bits.h>
+#include <p8est_extended.h>
+#include <p8est_ghost.h>
+#include <p8est_lnodes.h>
+#include <p8est_mesh.h>
+#include <p8est_vtk.h>
 #pragma clang diagnostic pop
 
 #if defined __GNUC__ && !defined __GNUC_PREREQ
