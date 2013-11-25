@@ -7,7 +7,7 @@ test_insert()
   bfam_domain_t* domain;
 
   // Test new domain
-  domain = bfam_domain_new(NULL);
+  domain = bfam_domain_new(MPI_COMM_WORLD);
 
   static const char *elems[] =
       {"a", "aa", "b", "bb", "ab", "ba", "aba", "bab",
