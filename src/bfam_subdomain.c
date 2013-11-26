@@ -199,7 +199,10 @@ bfam_subdomain_field_minus_add(bfam_subdomain_t *thisSubdomain,
   if(thisSubdomain->field_minus_add)
     return thisSubdomain->field_minus_add(thisSubdomain, name);
   else
+  {
+    BFAM_WARNING("%s: no minus add function",thisSubdomain->name);
     return 0;
+  }
 }
 
 int
@@ -209,7 +212,10 @@ bfam_subdomain_field_face_add(bfam_subdomain_t *thisSubdomain,
   if(thisSubdomain->field_face_add)
     return thisSubdomain->field_face_add(thisSubdomain, name);
   else
+  {
+    BFAM_WARNING("%s: no plus add function",thisSubdomain->name);
     return 0;
+  }
 }
 
 void
