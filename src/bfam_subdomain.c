@@ -82,6 +82,15 @@ bfam_subdomain_face_recv_cmp(const void* a, const void*b)
   BFAM_ABORT("We should never reach here.");
 }
 
+
+void
+bfam_subdomain_glue_init(bfam_subdomain_glue_data_t *glue,
+    const bfam_locidx_t rank, bfam_subdomain_t *sub_m)
+{
+  glue->rank  = rank;
+  glue->sub_m = sub_m;
+}
+
 void
 bfam_subdomain_init(bfam_subdomain_t *thisSubdomain, bfam_locidx_t id,
     const char* name)
@@ -116,7 +125,7 @@ bfam_subdomain_init(bfam_subdomain_t *thisSubdomain, bfam_locidx_t id,
   thisSubdomain->glue_get_recv_buffer = NULL;
 
   thisSubdomain->glue_m  = NULL;
-  thisSubdomain->glues_p = NULL;
+  thisSubdomain->glue_p  = NULL;
 }
 
 void
@@ -132,19 +141,22 @@ bfam_subdomain_free(bfam_subdomain_t *thisSubdomain)
 
   thisSubdomain->tags.root = NULL;
 
-  thisSubdomain->vtk_write_vtu_piece  = NULL;
-  thisSubdomain->vtk_write_vts_piece  = NULL;
+  thisSubdomain->vtk_write_vtu_piece   = NULL;
+  thisSubdomain->vtk_write_vts_piece   = NULL;
   thisSubdomain->vtk_write_pvts_pieces = NULL;
-  thisSubdomain->vtk_write_suffix    = NULL;
-  thisSubdomain->field_add            = NULL;
-  thisSubdomain->field_plus_add       = NULL;
-  thisSubdomain->field_minus_add      = NULL;
-  thisSubdomain->field_face_add       = NULL;
-  thisSubdomain->field_init           = NULL;
+  thisSubdomain->vtk_write_suffix      = NULL;
+  thisSubdomain->field_add             = NULL;
+  thisSubdomain->field_plus_add        = NULL;
+  thisSubdomain->field_minus_add       = NULL;
+  thisSubdomain->field_face_add        = NULL;
+  thisSubdomain->field_init            = NULL;
 
   thisSubdomain->glue_comm_info       = NULL;
   thisSubdomain->glue_put_send_buffer = NULL;
   thisSubdomain->glue_get_recv_buffer = NULL;
+
+  BFAM_ASSERT(thisSubdomain->glue_m  == NULL);
+  BFAM_ASSERT(thisSubdomain->glue_p  == NULL);
 }
 
 void

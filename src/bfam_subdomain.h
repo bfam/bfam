@@ -143,10 +143,7 @@ typedef struct bfam_subdomain
 
   /* glue quantities */
   bfam_subdomain_glue_data_t *glue_m;
-  bfam_dictionary_t          *glues_p; /* a pointer to a dictionary storing
-                                        * pointers to the glue data for the
-                                        * plus side
-                                        */
+  bfam_subdomain_glue_data_t *glue_p;
 
   /* This storage is depreciated and will be removed in the future */
   bfam_dictionary_t fields_m; /**< a dictionary storing minus fields */
@@ -227,8 +224,8 @@ typedef struct bfam_subdomain
 
 /** initializes a subdomain
  *
- * There no new function for subdomains since these are really just a base class
- * and a concrete grid and physics type should be defined
+ * There is no new function for subdomains since these are really just a base
+ * class and a concrete grid and physics type should be defined
  *
  * \param [in,out] thisSubdomain pointer to the subdomain
  * \param [in]     id   Unique id number for this subdomain
@@ -237,6 +234,19 @@ typedef struct bfam_subdomain
 void
 bfam_subdomain_init(bfam_subdomain_t *subdomain, bfam_locidx_t id,
     const char* name);
+
+/** initializes a subdomain glue data
+ *
+ * There is no new function for subdomains glue data since these are really just
+ * a base class and a concrete grid and physics type should be defined
+ *
+ * \param [in,out] thisGlue pointer to the subdomain glue data
+ * \param [in]     mpirank for this glue subdomain data
+ * \param [in]     pointer to the minus side subdomain (can be \c NULL);
+ */
+void
+bfam_subdomain_glue_init(bfam_subdomain_glue_data_t *glue,
+    const bfam_locidx_t rank, bfam_subdomain_t *sub_m);
 
 /** free up the memory allocated by the subdomain
  * 

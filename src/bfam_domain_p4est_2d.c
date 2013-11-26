@@ -1085,15 +1085,17 @@ bfam_domain_p4est_2d_split_dgx_subdomains(bfam_domain_p4est_2d_t *domain,
       bfam_subdomain_dgx_t *glue =
         bfam_subdomain_dgx_glue_new_1(id,
                                       glueName,
-                                      BFAM_MAX(N[id_m],N[id_p]),
                                       N[id_m],
+                                      N[id_p],
                                       rank_m,
+                                      rank_p,
+                                      sign_p * (id_m+1),
+                                      sign_p * (id_p+1),
                                       subdomains[id_m],
                                       ktosubk,
                                       Kglue,
+                                      ifmapping + ifk,
                                       1);
-
-      // JK NEED TO ADD PLUS SIDE!
 
       bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue");
       bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue_local");
@@ -1148,14 +1150,16 @@ bfam_domain_p4est_2d_split_dgx_subdomains(bfam_domain_p4est_2d_t *domain,
       bfam_subdomain_dgx_glue_new_1(id,
                                     glueName,
                                     N[id_m],
-                                    N[id_m],
+                                    N[id_p],
                                     rank_m,
+                                    rank_p,
+                                    id_m+1,
+                                    id_p+1,
                                     subdomains[id_m],
                                     ktosubk,
                                     Kglue,
+                                    bfmapping + bfk,
                                     1);
-
-    // JK NEED TO ADD PLUS SIDE!
 
     bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue");
     bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue_boundary");
@@ -1206,15 +1210,17 @@ bfam_domain_p4est_2d_split_dgx_subdomains(bfam_domain_p4est_2d_t *domain,
     bfam_subdomain_dgx_t *glue =
       bfam_subdomain_dgx_glue_new_1(id,
                                     glueName,
-                                    BFAM_MAX(N[id_m],N[id_p]),
                                     N[id_m],
+                                    ghostN[gid_p],
                                     rank_m,
+                                    rank_p,
+                                    id_m+1,
+                                    id_p+1,
                                     subdomains[id_m],
                                     ktosubk,
                                     Kglue,
+                                    pfmapping + pfk,
                                     1);
-
-    // JK NEED TO ADD PLUS SIDE!
 
     bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue");
     bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue_parallel");
