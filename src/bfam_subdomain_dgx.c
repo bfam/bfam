@@ -352,19 +352,30 @@ bfam_subdomain_dgx_vtk_interp(bfam_locidx_t K,
     const bfam_locidx_t o_s = elem * Np_s;
 
     for(bfam_locidx_t n = 0; n < Np_d; n++) d[o_d+n] = 0;
-#if(DIM==1)
-    BFAM_ABORT("interp not implemented");
-#elif(DIM==2)
-    for(int l = 0; l < N_s+1; l++)
-      for(int k = 0; k < N_s+1; k++)
-        for(int j = 0; j < N_d+1; j++)
-          for(int i = 0; i < N_d+1; i++)
-            d[o_d+j*(N_d+1)+i] +=
-              interp[(N_d+1)*l+j]*interp[(N_d+1)*k+i]
-              *s[o_s+l*(N_s+1)+k];
-#elif(DIM==3)
-    BFAM_ABORT("interp not implemented");
-#endif
+    if(DIM==1)
+      for(int l = 0; l < N_s+1; l++)
+        for(int i = 0; i < N_d+1; i++)
+          d[o_d+i] += interp[(N_d+1)*l+i]*s[o_s+l];
+    else if(DIM==2)
+      for(int m = 0; m < N_s+1; m++)
+        for(int l = 0; l < N_s+1; l++)
+          for(int j = 0; j < N_d+1; j++)
+            for(int i = 0; i < N_d+1; i++)
+              d[o_d+j*(N_d+1)+i] +=
+                interp[(N_d+1)*m+j]*interp[(N_d+1)*l+i]
+                *s[o_s+m*(N_s+1)+l];
+    else if(DIM==3)
+      for(int n = 0; n < N_s+1; n++)
+        for(int m = 0; m < N_s+1; m++)
+          for(int l = 0; l < N_s+1; l++)
+            for(int k = 0; k < N_d+1; k++)
+              for(int j = 0; j < N_d+1; j++)
+                for(int i = 0; i < N_d+1; i++)
+                  d[o_d+k*(N_d+1)*(N_d+1)+j*(N_d+1)+i] +=
+                    interp[(N_d+1)*l+i]*interp[(N_d+1)*m+j]*interp[(N_d+1)*n+k]
+                    *s[o_s+n*(N_s+1)*(N_s+1)+m*(N_s+1)+l];
+    else
+      BFAM_ABORT("Cannot handle dim = %d",DIM);
   }
 }
 
