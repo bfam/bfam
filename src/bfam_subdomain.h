@@ -113,8 +113,8 @@ typedef void (*bfam_subdomain_init_field_t) (bfam_locidx_t npoints,
 typedef struct bfam_subdomain_glue_data
 {
   bfam_locidx_t     rank; /* Rank of the subdomain on this side */
-  // bfam_locidx_t     id;   /* Sort Id of the subdomain on this side */
-  // bfam_locidx_t     s;    /* Id of the subdomain on this side */
+  bfam_locidx_t     id_s; /* Sort Id of the subdomain on this side */
+  bfam_locidx_t       id; /* Id of the subdomain on this side */
 
   bfam_dictionary_t fields; /**< a dictionary storing glue fields */
 
@@ -241,12 +241,15 @@ bfam_subdomain_init(bfam_subdomain_t *subdomain, bfam_locidx_t id,
  * a base class and a concrete grid and physics type should be defined
  *
  * \param [in,out] thisGlue pointer to the subdomain glue data
+ * \param [in]     id of this side
+ * \param [in]     sort id of this side
  * \param [in]     mpirank for this glue subdomain data
  * \param [in]     pointer to the minus side subdomain (can be \c NULL);
  */
 void
 bfam_subdomain_glue_init(bfam_subdomain_glue_data_t *glue,
-    const bfam_locidx_t rank, bfam_subdomain_t *sub_m);
+    const bfam_locidx_t rank, const bfam_locidx_t id, const bfam_locidx_t id_s,
+    bfam_subdomain_t *sub_m);
 
 /** free up the memory allocated by the subdomain
  * 

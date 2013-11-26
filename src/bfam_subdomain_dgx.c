@@ -1513,8 +1513,66 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,BFAM_DGX_DIMENSION)(
 
   bfam_subdomain_dgx_null_all_values(sub);
 
-  BFAM_ASSERT(sub->base.glue_m == NULL);
-  BFAM_ASSERT(sub->base.glue_p == NULL);
+  if(sub->base.glue_m)
+  {
+    bfam_subdomain_dgx_glue_data_t *glue =
+      (bfam_subdomain_dgx_glue_data_t*) sub->base.glue_m;
+
+    if(glue->num_interp > 0)
+    {
+      for(int i = 0; i < glue->num_interp;i++)
+      {
+        if(glue->interpolation[i])
+          bfam_free_aligned(glue->interpolation[i]);
+        if(glue->massprojection[i])
+          bfam_free_aligned(glue->massprojection[i]);
+        if(glue->projection[i])
+          bfam_free_aligned(glue->projection[i]);
+      }
+      bfam_free_aligned(glue->interpolation);
+      bfam_free_aligned(glue->massprojection);
+      bfam_free_aligned(glue->projection);
+    }
+    if(glue->exact_mass) bfam_free_aligned(glue->exact_mass);
+
+    if(glue->EToEp) bfam_free_aligned(glue->EToEp);
+    if(glue->EToEm) bfam_free_aligned(glue->EToEm);
+    if(glue->EToFm) bfam_free_aligned(glue->EToFm);
+    if(glue->EToHm) bfam_free_aligned(glue->EToHm);
+    if(glue->EToOm) bfam_free_aligned(glue->EToOm);
+
+    bfam_free(sub->base.glue_m);
+  }
+  if(sub->base.glue_p)
+  {
+    bfam_subdomain_dgx_glue_data_t *glue =
+      (bfam_subdomain_dgx_glue_data_t*) sub->base.glue_p;
+
+    if(glue->num_interp > 0)
+    {
+      for(int i = 0; i < glue->num_interp;i++)
+      {
+        if(glue->interpolation[i])
+          bfam_free_aligned(glue->interpolation[i]);
+        if(glue->massprojection[i])
+          bfam_free_aligned(glue->massprojection[i]);
+        if(glue->projection[i])
+          bfam_free_aligned(glue->projection[i]);
+      }
+      bfam_free_aligned(glue->interpolation);
+      bfam_free_aligned(glue->massprojection);
+      bfam_free_aligned(glue->projection);
+    }
+    if(glue->exact_mass) bfam_free_aligned(glue->exact_mass);
+
+    if(glue->EToEp) bfam_free_aligned(glue->EToEp);
+    if(glue->EToEm) bfam_free_aligned(glue->EToEm);
+    if(glue->EToFm) bfam_free_aligned(glue->EToFm);
+    if(glue->EToHm) bfam_free_aligned(glue->EToHm);
+    if(glue->EToOm) bfam_free_aligned(glue->EToOm);
+
+    bfam_free(sub->base.glue_p);
+  }
 }
 
 bfam_subdomain_dgx_t*
@@ -1559,7 +1617,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
                               const bfam_locidx_t              rank_p,
                               const bfam_locidx_t              id_m,
                               const bfam_locidx_t              id_p,
-                              bfam_subdomain_dgx_t       *sub_m,
+                              bfam_subdomain_dgx_t            *sub_m,
                               bfam_locidx_t                   *ktok_m,
                               const bfam_locidx_t              K,
                               bfam_subdomain_face_map_entry_t *mapping,
@@ -1570,6 +1628,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
   const int DIM = inDIM;
 #endif
   BFAM_ASSERT(DIM == inDIM);
+  BFAM_ASSERT(DIM > 0);
 
   bfam_subdomain_dgx_generic_init(subdomain, id, name, BFAM_MAX(N_m,N_p), K,
       inDIM);
@@ -1578,15 +1637,219 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
 
   BFAM_ASSERT(subdomain->base.glue_m == NULL);
 
-  // subdomain->base.glue_m = bfam_malloc(sizeof(bfam_subdomain_dgx_glue_data_t));
-  // bfam_subdomain_dgx_glue_data_t *glue_m =
-  //   (bfam_subdomain_dgx_glue_data_t*) subdomain->base.glue_m;
-  // bfam_subdomain_glue_init(&glue_m->base, rank_m, (bfam_subdomain_t*) sub_m);
-  // glue_m->N = N_m;
+  subdomain->base.glue_m = bfam_malloc(sizeof(bfam_subdomain_dgx_glue_data_t));
+  bfam_subdomain_dgx_glue_data_t *glue_m =
+    (bfam_subdomain_dgx_glue_data_t*) subdomain->base.glue_m;
+  bfam_subdomain_glue_init(&glue_m->base, rank_m, id_m, imaxabs(id_m)-1,
+                           (bfam_subdomain_t*) sub_m);
+  glue_m->N = N_m;
 
-  // glue_m->EToE  = NULL;
-  // glue_m->EToEm = NULL;
-  // glue_m->EToFm = NULL;
-  // glue_m->EToHm = NULL;
-  // glue_m->EToOm = NULL;
+  subdomain->base.glue_p = bfam_malloc(sizeof(bfam_subdomain_dgx_glue_data_t));
+  bfam_subdomain_dgx_glue_data_t *glue_p =
+    (bfam_subdomain_dgx_glue_data_t*) subdomain->base.glue_p;
+  bfam_subdomain_glue_init(&glue_p->base, rank_p, id_p, imaxabs(id_p)-1, NULL);
+  glue_p->N = N_p;
+
+  const int N         = subdomain->N;
+  const int Nrp = N+1;
+  const int sub_m_Nrp = N_m+1;
+
+  const int num_interp = 3;
+  const bfam_long_real_t projection_scale[3] = {BFAM_LONG_REAL(1.0),
+                                                BFAM_LONG_REAL(0.5),
+                                                BFAM_LONG_REAL(0.5)};
+
+  bfam_long_real_t **lr;
+  lr = bfam_malloc_aligned(num_interp*sizeof(bfam_long_real_t*));
+
+  for(int i = 0; i < num_interp; ++i)
+    lr[i] = bfam_malloc_aligned(Nrp*sizeof(bfam_long_real_t));
+
+  bfam_long_real_t *restrict lw;
+  lw = bfam_malloc_aligned(Nrp*sizeof(bfam_long_real_t));
+
+  bfam_jacobi_gauss_lobatto_quadrature(0, 0, N, lr[0], lw);
+
+  const bfam_long_real_t half = BFAM_LONG_REAL(0.5);
+  for(int n = 0; n < Nrp; ++n)
+  {
+    lr[1][n] = -half + half * lr[0][n];
+    lr[2][n] =  half + half * lr[0][n];
+  }
+
+  bfam_long_real_t *restrict sub_m_lr, *restrict sub_m_lw;
+  sub_m_lr = bfam_malloc_aligned(sub_m_Nrp*sizeof(bfam_long_real_t));
+  sub_m_lw = bfam_malloc_aligned(sub_m_Nrp*sizeof(bfam_long_real_t));
+
+  bfam_jacobi_gauss_lobatto_quadrature(0, 0, N_m, sub_m_lr, sub_m_lw);
+
+  bfam_long_real_t *restrict sub_m_V;
+  sub_m_V = bfam_malloc_aligned(sub_m_Nrp*sub_m_Nrp*sizeof(bfam_long_real_t));
+
+  bfam_jacobi_p_vandermonde(0, 0, N_m, N_m+1, sub_m_lr, sub_m_V);
+
+  bfam_long_real_t **interpolation =
+    bfam_malloc_aligned(num_interp*sizeof(bfam_long_real_t*));
+
+  for(int i = 0; i < num_interp; ++i)
+  {
+    interpolation[i] =
+      bfam_malloc_aligned(Nrp*sub_m_Nrp*sizeof(bfam_long_real_t));
+
+    bfam_jacobi_p_interpolation(0, 0, N_m, Nrp, lr[i], sub_m_V,
+        interpolation[i]);
+  }
+
+  bfam_long_real_t **massprojection =
+    bfam_malloc_aligned(num_interp*sizeof(bfam_long_real_t*));
+
+  bfam_long_real_t *restrict V;
+  V = bfam_malloc_aligned(Nrp*Nrp*sizeof(bfam_long_real_t));
+  bfam_jacobi_p_vandermonde(0, 0, N, N+1, lr[0], V);
+
+  bfam_long_real_t *restrict mass =
+      bfam_malloc_aligned(Nrp*Nrp*sizeof(bfam_long_real_t));
+  bfam_jacobi_p_mass(0, 0, N, V, mass);
+
+  for(int i = 0; i < num_interp; ++i)
+  {
+    massprojection[i] =
+      bfam_malloc_aligned(Nrp*sub_m_Nrp*sizeof(bfam_long_real_t));
+    for(int n = 0; n < Nrp*sub_m_Nrp; n++) massprojection[i][n] = 0;
+
+    bfam_util_mTmmult(sub_m_Nrp, Nrp, Nrp, interpolation[i], Nrp,
+        mass, Nrp, massprojection[i], sub_m_Nrp);
+    for(int n = 0; n < Nrp*sub_m_Nrp; n++)
+      massprojection[i][n] *= projection_scale[i];
+  }
+
+  bfam_long_real_t **projection =
+    bfam_malloc_aligned(num_interp*sizeof(bfam_long_real_t*));
+
+  bfam_long_real_t *Vt_MP =
+    bfam_malloc_aligned(Nrp*sub_m_Nrp*sizeof(bfam_long_real_t));
+
+  for(int i = 0; i < num_interp; ++i)
+  {
+    projection[i] =
+      bfam_malloc_aligned(Nrp*sub_m_Nrp*sizeof(bfam_long_real_t));
+    for(int n = 0; n < Nrp*sub_m_Nrp; n++) projection[i][n] = 0;
+    for(int n = 0; n < Nrp*sub_m_Nrp; n++) Vt_MP[n] = 0;
+
+    bfam_util_mTmmult(sub_m_Nrp, Nrp, sub_m_Nrp, sub_m_V, sub_m_Nrp,
+        massprojection[i], sub_m_Nrp, Vt_MP, sub_m_Nrp);
+    bfam_util_mmmult (sub_m_Nrp, Nrp, sub_m_Nrp, sub_m_V, sub_m_Nrp,
+        Vt_MP, sub_m_Nrp, projection[i], sub_m_Nrp);
+  }
+
+  glue_p->num_interp     = 0;
+  glue_p->interpolation  = NULL;
+  glue_p->projection     = NULL;
+  glue_p->massprojection = NULL;
+  glue_p->exact_mass     = NULL;
+
+  glue_m->num_interp = num_interp;
+  glue_m->interpolation =
+    bfam_malloc_aligned(glue_m->num_interp * sizeof(bfam_real_t*));
+
+  glue_m->massprojection =
+    bfam_malloc_aligned(glue_m->num_interp * sizeof(bfam_real_t*));
+
+  glue_m->projection =
+    bfam_malloc_aligned(glue_m->num_interp * sizeof(bfam_real_t*));
+
+  glue_m->exact_mass =
+    bfam_malloc_aligned(Nrp*Nrp*sizeof(bfam_real_t));
+  for(int n = 0; n < Nrp*Nrp; ++n)
+    glue_m->exact_mass[n] = (bfam_real_t) mass[n];
+
+  for(int i = 0; i < glue_m->num_interp; ++i)
+  {
+    if(i == 0 && N_m == N)
+    {
+      /*
+       * Identity interpolation and projection operator
+       */
+      glue_m->interpolation[i] = NULL;
+    }
+    else
+    {
+      glue_m->interpolation[i] =
+        bfam_malloc_aligned(Nrp * sub_m_Nrp * sizeof(bfam_real_t));
+      for(int n = 0; n < Nrp*sub_m_Nrp; ++n)
+        glue_m->interpolation[i][n] = (bfam_real_t) interpolation[i][n];
+    }
+
+    glue_m->massprojection[i] =
+        bfam_malloc_aligned(Nrp * sub_m_Nrp * sizeof(bfam_real_t));
+
+    for(int n = 0; n < Nrp*sub_m_Nrp; ++n)
+      glue_m->massprojection[i][n] = (bfam_real_t) massprojection[i][n];
+
+    glue_m->projection[i] =
+        bfam_malloc_aligned(Nrp * sub_m_Nrp * sizeof(bfam_real_t));
+
+    for(int n = 0; n < Nrp*sub_m_Nrp; ++n)
+      glue_m->projection[i][n] = (bfam_real_t) projection[i][n];
+  }
+
+  glue_m->EToEp = NULL;
+  glue_m->EToEm = NULL;
+  glue_m->EToFm = NULL;
+  glue_m->EToHm = NULL;
+  glue_m->EToOm = NULL;
+
+  glue_p->EToEp = bfam_malloc_aligned(K*sizeof(bfam_locidx_t));
+  glue_p->EToEm = bfam_malloc_aligned(K*sizeof(bfam_locidx_t));
+  glue_p->EToFm = bfam_malloc_aligned(K*sizeof(int8_t));
+  glue_p->EToHm = bfam_malloc_aligned(K*sizeof(int8_t));
+  glue_p->EToOm = bfam_malloc_aligned(K*sizeof(int8_t));
+
+  qsort(mapping, K, sizeof(bfam_subdomain_face_map_entry_t),
+      bfam_subdomain_face_send_cmp);
+
+  for(bfam_locidx_t k = 0; k < K; ++k)
+    mapping[k].i = k;
+
+  qsort(mapping, K, sizeof(bfam_subdomain_face_map_entry_t),
+      bfam_subdomain_face_recv_cmp);
+
+  for(bfam_locidx_t k = 0; k < K; ++k)
+  {
+    glue_p->EToEm[k] = ktok_m[mapping[k].k];
+    glue_p->EToFm[k] = mapping[k].f;
+    glue_p->EToHm[k] = mapping[k].h;
+    glue_p->EToOm[k] = mapping[k].o;
+
+    glue_p->EToEp[k] = mapping[k].i;
+  }
+
+#ifdef BFAM_DEBUG
+  for(bfam_locidx_t k = 0; k < K; ++k)
+    BFAM_ASSERT(mapping[k].s  == glue_m->base.id_s &&
+                mapping[k].ns == glue_p->base.id_s);
+#endif
+
+  for(int i = 0; i < num_interp; ++i)
+  {
+    bfam_free_aligned(lr[i]);
+    bfam_free_aligned(interpolation[i]);
+    bfam_free_aligned(massprojection[i]);
+    bfam_free_aligned(projection[i]);
+  }
+
+  bfam_free_aligned(V);
+  bfam_free_aligned(mass);
+
+  bfam_free_aligned(lr);
+  bfam_free_aligned(lw);
+
+  bfam_free_aligned(interpolation);
+  bfam_free_aligned(massprojection);
+  bfam_free_aligned(projection);
+
+  bfam_free_aligned(sub_m_lr);
+  bfam_free_aligned(sub_m_lw);
+  bfam_free_aligned(sub_m_V);
+  bfam_free_aligned(Vt_MP);
 }

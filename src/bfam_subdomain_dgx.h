@@ -43,33 +43,37 @@ typedef struct bfam_subdomain_dgx_glue_data
 
   int               N;    /* 1D Polynomial Order on this side */
 
-  bfam_locidx_t    *EToE;  /* Element     number on connected subdomain */
+  bfam_locidx_t    *EToEp; /* Element     number on connected subdomain */
   bfam_locidx_t    *EToEm; /* Element     number on local subdomain */
   int8_t           *EToFm; /* Face        number on local subdomain */
   int8_t           *EToHm; /* Hanging     number on local subdomain */
   int8_t           *EToOm; /* Orientation number on local subdomain */
 
   /* The following pointers should only be \ne NULL on the minus side */
-  bfam_real_t     **interpolation_m; /* array of interpolation operators;
+  int                  num_interp;   /* number of interpolation operators */
+
+  bfam_real_t     **interpolation;   /* array of interpolation operators;
                                       * the first is for non-hanging faces
                                       * the rest are for the hanging faces;
                                       * if the operator is NULL it is assumed
                                       * to be the identity operator.
                                       */
 
-  bfam_real_t     **projection_m;   /* array of projection operators;
+  bfam_real_t     **projection;     /* array of projection operators;
                                      * the first is for non-hanging faces
                                      * the rest are for the hanging faces;
                                      * if the operator is NULL it is assumed
                                      * to be the identity operator.
                                      */
 
-  bfam_real_t     **massprojection_m; /* array of mass projection operators;
+  bfam_real_t     **massprojection;   /* array of mass projection operators;
                                        * the first is for non-hanging faces
                                        * the rest are for the hanging faces;
                                        * if the operator is NULL it is assumed
                                        * to be the identity operator.
                                        */
+
+  bfam_real_t     *exact_mass;         /* exact mass matrix for this grid */
 
 } bfam_subdomain_dgx_glue_data_t;
 
@@ -93,7 +97,6 @@ typedef struct bfam_subdomain_dgx
   bfam_real_t     *r;          /* 1D LGL Nodal Point in [-1,1] */
   bfam_real_t     *w;          /* 1D LGL Weights */
   bfam_real_t     *wi;         /* inverse of 1D LGL Weights */
-  //JK bfam_real_t     *exact_mass; /* exact mass matrix for this grid */
 
 
   bfam_real_t      *Dr;      /* 1D LGL differentiation matrix */

@@ -85,10 +85,13 @@ bfam_subdomain_face_recv_cmp(const void* a, const void*b)
 
 void
 bfam_subdomain_glue_init(bfam_subdomain_glue_data_t *glue,
-    const bfam_locidx_t rank, bfam_subdomain_t *sub_m)
+    const bfam_locidx_t rank, const bfam_locidx_t id, const bfam_locidx_t id_s,
+    bfam_subdomain_t *sub_m)
 {
   glue->rank  = rank;
   glue->sub_m = sub_m;
+  glue->id    = id;
+  glue->id_s  = id_s;
 }
 
 void
@@ -155,8 +158,16 @@ bfam_subdomain_free(bfam_subdomain_t *thisSubdomain)
   thisSubdomain->glue_put_send_buffer = NULL;
   thisSubdomain->glue_get_recv_buffer = NULL;
 
-  BFAM_ASSERT(thisSubdomain->glue_m  == NULL);
-  BFAM_ASSERT(thisSubdomain->glue_p  == NULL);
+  if(thisSubdomain->glue_m)
+  {
+    thisSubdomain->glue_m->rank  = -1;
+    thisSubdomain->glue_m->sub_m = NULL;
+  }
+  if(thisSubdomain->glue_p)
+  {
+    thisSubdomain->glue_p->rank  = -1;
+    thisSubdomain->glue_p->sub_m = NULL;
+  }
 }
 
 void
