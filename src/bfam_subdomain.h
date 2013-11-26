@@ -101,6 +101,28 @@ typedef void (*bfam_subdomain_init_field_t) (bfam_locidx_t npoints,
 
 
 /**
+ * base structure for to store glue data for a subdomain, i.e., plus and minus
+ * sides stuff. It should also be included as first member with the name base
+ * \code{.c}
+ * typedef struct new_subdomain_glue_data_type
+ * {
+ *   bfam_subdomain_t base;
+ *   ...
+ * }
+ */
+typedef struct bfam_subdomain_glue_data
+{
+  bfam_locidx_t     rank; /* Rank of the subdomain on this side */
+  // bfam_locidx_t     id;   /* Sort Id of the subdomain on this side */
+  // bfam_locidx_t     s;    /* Id of the subdomain on this side */
+
+  bfam_dictionary_t fields; /**< a dictionary storing glue fields */
+
+  /* The following pointers should only be \ne NULL on the minus side */
+  struct bfam_subdomain *sub_m;  /* Local neighboring subdomain */
+} bfam_subdomain_glue_data_t;
+
+/**
  * base structure for all subdomains types. Any new subdomain should have this
  * as its first member with the name base, i.e.,
  * \code{.c}
@@ -116,9 +138,20 @@ typedef struct bfam_subdomain
   char*           name;     /**< Name of the subdomain */
   bfam_critbit0_tree_t tags; /**< critbit for tags for the subdomain */
   bfam_dictionary_t fields; /**< a dictionary storing pointers to fields */
+
+  bfam_dictionary_t fields_face; /**< a dictionary storing face fields */
+
+  /* glue quantities */
+  bfam_subdomain_glue_data_t *glue_m;
+  bfam_dictionary_t          *glues_p; /* a pointer to a dictionary storing
+                                        * pointers to the glue data for the
+                                        * plus side
+                                        */
+
+  /* This storage is depreciated and will be removed in the future */
   bfam_dictionary_t fields_m; /**< a dictionary storing minus fields */
   bfam_dictionary_t fields_p; /**< a dictionary storing plus fields */
-  bfam_dictionary_t fields_face; /**< a dictionary storing face fields */
+
 
   /* Function pointers that domain will need to call */
   void (*free)                (struct bfam_subdomain *thisSubdomain);

@@ -12,7 +12,6 @@
 #define DIM (BFAM_DGX_DIMENSION)
 #endif
 
-
 static void
 bfam_subdomain_dgx_geo(int N, bfam_locidx_t K, int Np, int ***gmask,
                         const int *restrict Ng, const int *restrict Ngp,
@@ -1079,8 +1078,6 @@ bfam_subdomain_dgx_null_all_values(bfam_subdomain_dgx_t *sub)
   sub->vmapM   = NULL;
   sub->vmapP   = NULL;
   sub->gmask   = NULL;
-  sub->glue_m  = NULL;
-  sub->glues_p = NULL;
 }
 
 void

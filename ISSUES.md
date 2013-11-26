@@ -1,5 +1,9 @@
 # ISSUES
 
+## fields_m and fields_p
+This storage needs to be removed from bfam_subdomain once dgx_quad is completely
+removed
+
 ## Legendre-Gauss
 Add the LG points to bfam.
 

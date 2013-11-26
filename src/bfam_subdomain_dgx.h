@@ -39,12 +39,9 @@ struct bfam_subdomain_dgx;
 
 typedef struct bfam_subdomain_dgx_glue_data
 {
+  bfam_subdomain_glue_data_t base;
+
   int               N;    /* 1D Polynomial Order on this side */
-  bfam_locidx_t     rank; /* Rank of the subdomain on this side */
-
-  bfam_locidx_t     id;   /* Sort Id of the subdomain on this side */
-
-  bfam_locidx_t     s;    /* Id of the subdomain on this side */
 
   bfam_locidx_t    *EToE; /* Element number on connected subdomain */
 
@@ -53,8 +50,6 @@ typedef struct bfam_subdomain_dgx_glue_data
   int8_t           *EToF; /* Face        number on local subdomain */
   int8_t           *EToH; /* Hanging     number on local subdomain */
   int8_t           *EToO; /* Orientation number on local subdomain */
-
-  struct bfam_subdomain_dgx *sub_m;  /* Local neighboring subdomain */
 
   bfam_real_t     **interpolation_m; /* array of interpolation operators;
                                       * the first is for non-hanging faces
@@ -115,12 +110,6 @@ typedef struct bfam_subdomain_dgx
 
   int            ***gmask;   /* geometry mask: same order as Ng */
 
-  /* glue quantities */
-  bfam_subdomain_dgx_glue_data_t *glue_m;
-  bfam_dictionary_t              *glues_p; /* a pointer to a dictionary storing
-                                            * pointers to the glue data for the
-                                            * plus side
-                                            */
 } bfam_subdomain_dgx_t;
 
 /** create a dgx subdomain.
