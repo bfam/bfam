@@ -345,8 +345,107 @@ bfam_real_t sJex[] = {
    0.500000000000000,
 };
 
+/*
+ * arbitrary dimension dgx test
+ */
 static int
-check_field_face(bfam_subdomain_t *s, const char *name, bfam_real_t *ex)
+check_field_face_dgx(bfam_subdomain_t *s, const char *name, bfam_real_t *ex)
+{
+  bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t *) s;
+  int failures = 0;
+  bfam_real_t *field =
+    bfam_dictionary_get_value_ptr(&sub->base.fields_face, name);
+
+  for(bfam_locidx_t i = 0; i < sub->K; ++i)
+  {
+    for(int j=0; j<sub->Ngp[0]*sub->Ng[0]; ++j)
+    {
+      size_t idx = i*sub->Ngp[0]*sub->Ng[0] + j;
+
+      int fail = !REAL_APPROX_EQ(field[idx], ex[idx], 10);
+
+      if(fail)
+        BFAM_INFO("Fail match (%s) %d %25.15"BFAM_REAL_PRIe
+            " %25.15"BFAM_REAL_PRIe " %d", name, idx,
+            field[idx], ex[idx],
+            BFAM_REAL_ABS(field[idx]-ex[idx]) < BFAM_REAL_MIN);
+
+      failures += fail;
+    }
+  }
+
+  return failures;
+}
+
+static int
+check_field_dgx(bfam_subdomain_t *s, const char *name, bfam_real_t *ex)
+{
+  bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t *) s;
+  int failures = 0;
+  bfam_real_t *field =
+    bfam_dictionary_get_value_ptr(&sub->base.fields, name);
+
+  for(bfam_locidx_t i = 0; i < sub->K; ++i)
+  {
+    for(int j=0; j<sub->Np; ++j)
+    {
+      size_t idx = i*sub->Np + j;
+
+      int fail = !REAL_APPROX_EQ(field[idx], ex[idx], 10);
+
+      if(fail)
+        BFAM_INFO("Fail match (%s) %d %25.15"BFAM_REAL_PRIe
+            " %25.15"BFAM_REAL_PRIe " %d", name, idx,
+            field[idx], ex[idx],
+            BFAM_REAL_ABS(field[idx]-ex[idx]) < BFAM_REAL_MIN);
+
+      failures += fail;
+    }
+  }
+
+  return failures;
+}
+
+static int
+test_geo_dgx(MPI_Comm mpicomm)
+{
+  int failures = 0;
+  int rank;
+  BFAM_MPI_CHECK(MPI_Comm_rank(mpicomm, &rank));
+
+  p4est_connectivity_t *conn = p4est_connectivity_new_star();
+
+  for(p4est_topidx_t n = 0; n < conn->num_vertices; ++n)
+    BFAM_INFO("%jd %25.15e %25.15e", (intmax_t) n+1,
+       conn->vertices[n*3+0], conn->vertices[n*3+1]);
+
+  bfam_domain_p4est_2d_t* domain = bfam_domain_p4est_2d_new(mpicomm, conn);
+
+  p4est_balance(domain->p4est, P4EST_CONNECT_CORNER, NULL);
+  p4est_partition(domain->p4est, NULL);
+
+  bfam_locidx_t numSubdomains = 1;
+  int N = 1;
+
+  bfam_locidx_t *subdomainID =
+    bfam_calloc(domain->p4est->local_num_quadrants, sizeof(bfam_locidx_t));
+
+  bfam_domain_p4est_2d_split_dgx_subdomains(domain, numSubdomains,
+      subdomainID, &N);
+
+  bfam_domain_p4est_2d_free(domain);
+  bfam_free(domain);
+
+  p4est_connectivity_destroy(conn);
+  return failures;
+}
+
+/*
+ * old dgx_quad test
+ */
+static int
+check_field_face_dgx_quad(bfam_subdomain_t *s,
+                          const char *name, bfam_real_t *ex)
 {
 
   bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t *) s;
@@ -376,7 +475,7 @@ check_field_face(bfam_subdomain_t *s, const char *name, bfam_real_t *ex)
 }
 
 static int
-check_field(bfam_subdomain_t *s, const char *name, bfam_real_t *ex)
+check_field_dgx_quad(bfam_subdomain_t *s, const char *name, bfam_real_t *ex)
 {
 
   bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t *) s;
@@ -406,7 +505,7 @@ check_field(bfam_subdomain_t *s, const char *name, bfam_real_t *ex)
 }
 
 static int
-test_geo(MPI_Comm mpicomm)
+test_geo_dgx_quad(MPI_Comm mpicomm)
 {
   int failures = 0;
   int rank;
@@ -442,18 +541,18 @@ test_geo(MPI_Comm mpicomm)
 
   BFAM_ABORT_IF_NOT(numSubdomains==1, "We should only have one subdomain");
 
-  failures += check_field(subdomains[0], "_grid_x", xex);
-  failures += check_field(subdomains[0], "_grid_y", yex);
+  failures += check_field_dgx_quad(subdomains[0], "_grid_x", xex);
+  failures += check_field_dgx_quad(subdomains[0], "_grid_y", yex);
 
-  failures += check_field(subdomains[0], "_grid_Jrx", Jrxex);
-  failures += check_field(subdomains[0], "_grid_Jry", Jryex);
+  failures += check_field_dgx_quad(subdomains[0], "_grid_Jrx", Jrxex);
+  failures += check_field_dgx_quad(subdomains[0], "_grid_Jry", Jryex);
 
-  failures += check_field(subdomains[0], "_grid_Jsx", Jsxex);
-  failures += check_field(subdomains[0], "_grid_Jsy", Jsyex);
+  failures += check_field_dgx_quad(subdomains[0], "_grid_Jsx", Jsxex);
+  failures += check_field_dgx_quad(subdomains[0], "_grid_Jsy", Jsyex);
 
-  failures += check_field(subdomains[0], "_grid_J", Jex);
+  failures += check_field_dgx_quad(subdomains[0], "_grid_J", Jex);
 
-  failures += check_field_face(subdomains[0], "_grid_nx", nxex);
+  failures += check_field_face_dgx_quad(subdomains[0], "_grid_nx", nxex);
 
   bfam_free(subdomainID);
   bfam_free(subdomains);
@@ -528,14 +627,20 @@ main (int argc, char *argv[])
   p4est_init(NULL, scLogPriorities);
 
   BFAM_MPI_CHECK(MPI_Barrier(comm));
-  BFAM_ROOT_INFO("Test Geo\n");
-  failures += test_geo(comm);
+  BFAM_ROOT_INFO("Test Geo DGX quad\n");
+  failures += test_geo_dgx_quad(comm);
+  BFAM_MPI_CHECK(MPI_Barrier(comm));
 
+  BFAM_ROOT_INFO("Test Geo DGX\n");
+  // failures += test_geo_dgx(comm);
+  BFAM_MPI_CHECK(MPI_Barrier(comm));
+  BFAM_INFO("%d",failures);
 
   sc_finalize();
   BFAM_MPI_CHECK(MPI_Finalize());
 
   bfam_gopt_free(options);
+
 
   return failures;
 }
