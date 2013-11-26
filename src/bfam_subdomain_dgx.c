@@ -1080,20 +1080,13 @@ bfam_subdomain_dgx_null_all_values(bfam_subdomain_dgx_t *sub)
   sub->gmask   = NULL;
 }
 
-void
-BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
-                              bfam_subdomain_dgx_t *subdomain,
-                        const bfam_locidx_t         id,
-                        const char                 *name,
-                        const int                   N,
-                        const bfam_locidx_t         Nv,
-                        const int                   num_Vi,
-                        const bfam_long_real_t    **Vi,
-                        const bfam_locidx_t         K,
-                        const bfam_locidx_t        *EToV,
-                        const bfam_locidx_t        *EToE,
-                        const int8_t               *EToF,
-                        const int                   inDIM)
+static void
+bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
+                          const bfam_locidx_t         id,
+                          const char                 *name,
+                          const int                   N,
+                          const bfam_locidx_t         K,
+                          const int                   inDIM)
 {
 #ifdef USE_GENERIC_DGX_DIMENSION
   BFAM_WARNING("Using generic bfam_subdomain_dgx_init");
@@ -1135,9 +1128,83 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
   subdomain->Ngp = Ngp;
 
   subdomain->gmask =
-    BFAM_APPEND_EXPAND(bfam_subdomain_dgx_gmask_set_,BFAM_DGX_DIMENSION)(
-                       numg, N, &subdomain->Np, Ng, Ngp, DIM);
+    bfam_subdomain_dgx_gmask_set(numg, N, &subdomain->Np, Ng, Ngp, DIM);
 
+  if(DIM > 0)
+  {
+    const int Nrp = N+1;
+    bfam_long_real_t *lr, *lw;
+    lr = bfam_malloc_aligned(Nrp*sizeof(bfam_long_real_t));
+    lw = bfam_malloc_aligned(Nrp*sizeof(bfam_long_real_t));
+
+    bfam_jacobi_gauss_lobatto_quadrature(0, 0, N, lr, lw);
+
+    subdomain->V = bfam_malloc_aligned(Nrp*Nrp*sizeof(bfam_long_real_t));
+    bfam_long_real_t *restrict V = subdomain->V;
+
+    bfam_jacobi_p_vandermonde(0, 0, N, Nrp, lr, V);
+
+    bfam_long_real_t *restrict D =
+      bfam_malloc_aligned(Nrp*Nrp*sizeof(bfam_long_real_t));
+
+    bfam_jacobi_p_differentiation(0, 0, N, Nrp, lr, V, D);
+
+    bfam_long_real_t *restrict M =
+      bfam_malloc_aligned(Nrp*Nrp*sizeof(bfam_long_real_t));
+
+    bfam_jacobi_p_mass(0, 0, N, V, M);
+
+    subdomain->r  = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
+    subdomain->w  = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
+    subdomain->wi = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
+
+    for(int n = 0; n<Nrp; ++n)
+    {
+      subdomain->r[n]  = (bfam_real_t) lr[n];
+      subdomain->w[n]  = (bfam_real_t) lw[n];
+      subdomain->wi[n] = (bfam_real_t) (1.0l/lw[n]);
+    }
+
+    subdomain->K = K;
+
+    /* store the volume stuff */
+    subdomain->N = N;
+
+    subdomain->Dr = bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_real_t));
+    for(int n = 0; n < Nrp*Nrp; ++n) subdomain->Dr[n] = (bfam_real_t) D[n];
+
+    bfam_free_aligned(D);
+    bfam_free_aligned(M);
+
+    bfam_free_aligned(lr);
+    bfam_free_aligned(lw);
+  }
+}
+
+void
+BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
+                              bfam_subdomain_dgx_t *subdomain,
+                        const bfam_locidx_t         id,
+                        const char                 *name,
+                        const int                   N,
+                        const bfam_locidx_t         Nv,
+                        const int                   num_Vi,
+                        const bfam_long_real_t    **Vi,
+                        const bfam_locidx_t         K,
+                        const bfam_locidx_t        *EToV,
+                        const bfam_locidx_t        *EToE,
+                        const int8_t               *EToF,
+                        const int                   inDIM)
+{
+#ifdef USE_GENERIC_DGX_DIMENSION
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_init");
+  const int DIM = inDIM;
+#endif
+  bfam_subdomain_dgx_generic_init(subdomain, id, name, N, K, inDIM);
+
+  const int *Ng  = subdomain->Ng;
+  const int *Ngp = subdomain->Ngp;
+  const int numg = subdomain->numg;
   const int Np = subdomain->Np;
 
   if(DIM > 0)
@@ -1219,20 +1286,12 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
 
     }
 
-    subdomain->V = bfam_malloc_aligned(Nrp*Nrp*sizeof(bfam_long_real_t));
     bfam_long_real_t *restrict V = subdomain->V;
-
-    bfam_jacobi_p_vandermonde(0, 0, N, Nrp, lr, V);
 
     bfam_long_real_t *restrict D =
       bfam_malloc_aligned(Nrp*Nrp*sizeof(bfam_long_real_t));
 
     bfam_jacobi_p_differentiation(0, 0, N, Nrp, lr, V, D);
-
-    bfam_long_real_t *restrict M =
-      bfam_malloc_aligned(Nrp*Nrp*sizeof(bfam_long_real_t));
-
-    bfam_jacobi_p_mass(0, 0, N, V, M);
 
     bfam_long_real_t **lJrx =
       bfam_malloc_aligned(num_Vi*DIM*sizeof(bfam_long_real_t*));
@@ -1257,21 +1316,6 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
     bfam_subdomain_dgx_geo(N, K, Np, subdomain->gmask, Ng, Ngp, num_Vi,
         lxi, D, lJrx, lJ, lni, lsJ, DIM);
 
-    subdomain->r  = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
-    subdomain->w  = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
-    subdomain->wi = bfam_malloc_aligned(Nrp*sizeof(bfam_real_t));
-
-    for(int n = 0; n<Nrp; ++n)
-    {
-      subdomain->r[n]  = (bfam_real_t) lr[n];
-      subdomain->w[n]  = (bfam_real_t) lw[n];
-      subdomain->wi[n] = (bfam_real_t) (1.0l/lw[n]);
-    }
-
-    subdomain->K = K;
-
-    /* store the volume stuff */
-    subdomain->N = N;
     /* store the grid */
     for(int i = 0; i < num_Vi; i++)
     {
@@ -1357,9 +1401,6 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
 
     /* store the face stuff */
 
-    subdomain->Dr = bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_real_t));
-    for(int n = 0; n < Nrp*Nrp; ++n) subdomain->Dr[n] = (bfam_real_t) D[n];
-
     subdomain->vmapP = bfam_malloc_aligned(K*Ngp[0]*Ng[0]*sizeof(bfam_locidx_t));
     subdomain->vmapM = bfam_malloc_aligned(K*Ngp[0]*Ng[0]*sizeof(bfam_locidx_t));
 
@@ -1382,7 +1423,6 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
     bfam_free_aligned(lJrx);
 
     bfam_free_aligned(D);
-    bfam_free_aligned(M);
 
     bfam_free_aligned(lr);
     bfam_free_aligned(lw);
