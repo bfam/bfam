@@ -169,8 +169,8 @@ check_back(bfam_subdomain_dgx_quad_glue_t *sub, const char *name)
   int failures = 0;
   bfam_real_t *f_m = bfam_dictionary_get_value_ptr(&sub->base.fields_m, name);
   bfam_real_t *f_p = bfam_dictionary_get_value_ptr(&sub->base.fields_p, name);
-  bfam_real_t *sub_m_f   = bfam_dictionary_get_value_ptr(&sub->sub_m->base.fields,
-                                                   name);
+  bfam_real_t *sub_m_f = bfam_dictionary_get_value_ptr(&sub->sub_m->base.fields,
+                                                       name);
 
   BFAM_ASSERT(f_m != NULL);
   BFAM_ASSERT(f_p != NULL);
