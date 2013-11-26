@@ -368,9 +368,7 @@ bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
         Np_write);
 
     N_vtk  = Np_write - 1;
-    Np_vtk = Np_write;
-    if(sub->dim > 1) Np_vtk *= Np_write;
-    if(sub->dim > 2) Np_vtk *= Np_write;
+    Np_vtk = bfam_ipow(Np_write, sub->dim);
 
     interp = bfam_malloc_aligned(sizeof(bfam_real_t)*(sub->N+1)*(N_vtk+1));
 
@@ -397,9 +395,7 @@ bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
 
   const int Ncorners = sub->Ng[sub->numg-1];
 
-  bfam_locidx_t Ncells = K * N_vtk;
-  if(sub->dim > 1) Ncells *= N_vtk;
-  if(sub->dim > 2) Ncells *= N_vtk;
+  const bfam_locidx_t Ncells = K * bfam_ipow(N_vtk, sub->dim);
   const bfam_locidx_t Ntotal = K * Np_vtk;
 
   bfam_real_t *restrict x =
