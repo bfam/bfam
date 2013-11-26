@@ -333,9 +333,39 @@ static void
 bfam_subdomain_dgx_vtk_interp(bfam_locidx_t K,
     int N_d,       bfam_real_t * restrict d,
     int N_s, const bfam_real_t * restrict s,
-    const bfam_real_t *restrict interp)
+    const bfam_real_t *restrict interp, int inDIM)
 {
-  BFAM_ABORT("interp not implemented");
+#ifdef USE_GENERIC_DGX_DIMENSION
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_gmask_set");
+  const int DIM = inDIM;
+#endif
+
+  BFAM_ASSUME_ALIGNED(d,32);
+  BFAM_ASSUME_ALIGNED(s,32);
+  BFAM_ASSUME_ALIGNED(interp,32);
+  for(bfam_locidx_t elem = 0; elem < K; ++elem)
+  {
+    const int Np_d = bfam_ipow(N_d+1,DIM);
+    const int Np_s = bfam_ipow(N_s+1,DIM);
+
+    const bfam_locidx_t o_d = elem * Np_d;
+    const bfam_locidx_t o_s = elem * Np_s;
+
+    for(bfam_locidx_t n = 0; n < Np_d; n++) d[o_d+n] = 0;
+#if(DIM==1)
+    BFAM_ABORT("interp not implemented");
+#elif(DIM==2)
+    for(int l = 0; l < N_s+1; l++)
+      for(int k = 0; k < N_s+1; k++)
+        for(int j = 0; j < N_d+1; j++)
+          for(int i = 0; i < N_d+1; i++)
+            d[o_d+j*(N_d+1)+i] +=
+              interp[(N_d+1)*l+j]*interp[(N_d+1)*k+i]
+              *s[o_s+l*(N_s+1)+k];
+#elif(DIM==3)
+    BFAM_ABORT("interp not implemented");
+#endif
+  }
 }
 
 static int
@@ -413,9 +443,9 @@ bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
   }
   else
   {
-    bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor1,sub->N,x,interp);
-    bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor2,sub->N,y,interp);
-    bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor3,sub->N,z,interp);
+    bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor1,sub->N,x,interp,sub->dim);
+    bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor2,sub->N,y,interp,sub->dim);
+    bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor3,sub->N,z,interp,sub->dim);
   }
 
   fprintf(file,
@@ -757,7 +787,8 @@ bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
       }
       else
       {
-        bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor1,sub->N,sdata,interp);
+        bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor1,sub->N,sdata,interp,
+            sub->dim);
       }
 
       bfam_vtk_write_real_scalar_data_array(file, scalars[s],
@@ -791,9 +822,9 @@ bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
       }
       else
       {
-        bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor1,sub->N,v1,interp);
-        bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor2,sub->N,v2,interp);
-        bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor3,sub->N,v3,interp);
+        bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor1,sub->N,v1,interp,sub->dim);
+        bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor2,sub->N,v2,interp,sub->dim);
+        bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor3,sub->N,v3,interp,sub->dim);
       }
 
       bfam_vtk_write_real_vector_data_array(file, vectors[v],
