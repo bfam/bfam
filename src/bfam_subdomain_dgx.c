@@ -1478,6 +1478,7 @@ bfam_subdomain_dgx_t*
 BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_new_,BFAM_DGX_DIMENSION)(
                              const bfam_locidx_t              id,
                              const char                      *name,
+                             const int                        N,
                              const int                        N_m,
                              const bfam_locidx_t              rank_m,
                              bfam_subdomain_dgx_t            *sub_m,
@@ -1495,7 +1496,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_new_,BFAM_DGX_DIMENSION)(
     bfam_malloc(sizeof(bfam_subdomain_dgx_t));
 
   BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
-      newSubdomain,id,name,N_m,rank_m,sub_m,ktok_m,K,DIM);
+      newSubdomain,id,name,N,N_m,rank_m,sub_m,ktok_m,K,DIM);
   return newSubdomain;
 }
 
@@ -1504,6 +1505,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
                              bfam_subdomain_dgx_t            *subdomain,
                              const bfam_locidx_t              id,
                              const char                      *name,
+                             const int                        N,
                              const int                        N_m,
                              const bfam_locidx_t              rank_m,
                              bfam_subdomain_dgx_t            *sub_m,

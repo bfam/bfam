@@ -198,6 +198,7 @@ bfam_subdomain_dgx_init_(bfam_subdomain_dgx_t *subdomain,
 bfam_subdomain_dgx_t*
 bfam_subdomain_dgx_glue_new_(const bfam_locidx_t              id,
                              const char                      *name,
+                             const int                        N,
                              const int                        N_m,
                              const bfam_locidx_t              rank_m,
                              bfam_subdomain_dgx_t            *sub_m,
@@ -223,6 +224,7 @@ void
 bfam_subdomain_dgx_glue_init_(bfam_subdomain_dgx_t  *subdomain,
                               const bfam_locidx_t              id,
                               const char                      *name,
+                              const int                        N,
                               const int                        N_m,
                               const bfam_locidx_t              rank_m,
                               bfam_subdomain_dgx_t            *sub_m,
@@ -268,21 +270,23 @@ bfam_subdomain_dgx_free_##dg_dim(bfam_subdomain_t *subdomain); \
 bfam_subdomain_dgx_t*                                                          \
 bfam_subdomain_dgx_glue_new_##dg_dim(const bfam_locidx_t              id,      \
                                      const char                      *name,    \
+                                     const int                        N,       \
                                      const int                        N_m,     \
                                      const bfam_locidx_t              rank_m,  \
                                      bfam_subdomain_dgx_t            *sub_m,   \
                                      bfam_locidx_t                   *ktok_m,  \
                                      const bfam_locidx_t              K,       \
                                      const int                        inDIM);  \
-void                                                                        \
-bfam_subdomain_dgx_glue_init_##dg_dim(bfam_subdomain_dgx_t  *subdomain,     \
-                                 const bfam_locidx_t              id,       \
-                                 const char                      *name,     \
-                                 const int                        N_m,      \
-                                 const bfam_locidx_t              rank_m,   \
-                                 bfam_subdomain_dgx_t            *sub_m,    \
-                                 bfam_locidx_t                   *ktok_m,   \
-                                 const bfam_locidx_t              K,        \
+void                                                                       \
+bfam_subdomain_dgx_glue_init_##dg_dim(bfam_subdomain_dgx_t  *subdomain,    \
+                                 const bfam_locidx_t              id,      \
+                                 const char                      *name,    \
+                                 const int                        N,       \
+                                 const int                        N_m,     \
+                                 const bfam_locidx_t              rank_m,  \
+                                 bfam_subdomain_dgx_t            *sub_m,   \
+                                 bfam_locidx_t                   *ktok_m,  \
+                                 const bfam_locidx_t              K,       \
                                  const int                        inDIM);
 BFAM_LIST_OF_BGX_DIMENSIONS
 #undef X
