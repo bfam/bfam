@@ -206,6 +206,11 @@ main (int argc, char *argv[])
 
   failures += check_approx_eq(BFAM_LONG_REAL_EPS*100, M*N, BfA, BfA_ex);
 
+  failures += (bfam_ipow(2,3) != 8);
+  failures += (bfam_ipow(3,2) != 9);
+  failures += (bfam_ipow(3,0) != 1);
+  failures += (bfam_ipow(3,1) != 3);
+
   if(failures)
     return EXIT_FAILURE;
   else

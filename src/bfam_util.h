@@ -179,4 +179,8 @@ void bfam_util_linear_blend(
     const bfam_gloidx_t *gxtmp, const bfam_long_real_t *xc,
     const bfam_long_real_t *yc, const bfam_long_real_t *zc);
 
+/** Integer power routine
+ */
+int bfam_ipow(int base, int exp);
+
 #endif

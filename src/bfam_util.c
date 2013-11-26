@@ -313,3 +313,23 @@ void bfam_util_linear_blend(
         if(z != NULL) z[ix] += c*((1-b)*((1-a)*zc[4]+a*zc[5]) + b*((1-a)*zc[6]+a*zc[7]));
       }
 }
+
+/*
+ * Integer power routine from:
+ *   http://stackoverflow.com/questions/101439/the-most-efficient-way-to-implement-an-integer-based-power-function-powint-int
+ */
+int bfam_ipow(int base, int exp)
+{
+  BFAM_ASSERT(exp >= 0);
+
+  int result = 1;
+  while (exp)
+  {
+    if(exp & 1)
+      result *= base;
+    exp >>= 1;
+    base *= base;
+  }
+
+  return result;
+}
