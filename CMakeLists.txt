@@ -536,6 +536,11 @@ target_link_libraries(bfam_test_mesh_dgquad_geo bfam)
 
 add_test(bfam_test_mesh_dgquad_geo bfam_test_mesh_dgquad_geo)
 
+add_executable(bfam_test_mesh_dgx_geo tests/bfam_test_mesh_dgx_geo.c)
+target_link_libraries(bfam_test_mesh_dgx_geo bfam)
+
+add_test(bfam_test_mesh_dgx_geo bfam_test_mesh_dgx_geo)
+
 add_executable(bfam_test_dgx tests/bfam_test_dgx.c)
 target_link_libraries(bfam_test_dgx bfam)
 
@@ -560,6 +565,21 @@ add_test(bfam_test_mesh_dgquad_2
 add_test(bfam_test_mesh_dgquad_3
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
   ${MPIEXEC_PREFLAGS} ./bfam_test_mesh_dgquad ${MPIEXEC_POSTFLAGS})
+
+add_executable(bfam_test_mesh_dgx tests/bfam_test_mesh_dgx.c)
+target_link_libraries(bfam_test_mesh_dgx bfam)
+
+add_test(bfam_test_mesh_dgx_1
+  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
+  ${MPIEXEC_PREFLAGS} ./bfam_test_mesh_dgx ${MPIEXEC_POSTFLAGS})
+
+add_test(bfam_test_mesh_dgx_2
+  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
+  ${MPIEXEC_PREFLAGS} ./bfam_test_mesh_dgx ${MPIEXEC_POSTFLAGS})
+
+add_test(bfam_test_mesh_dgx_3
+  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
+  ${MPIEXEC_PREFLAGS} ./bfam_test_mesh_dgx ${MPIEXEC_POSTFLAGS})
 
 # add_test(bfam_test_sbp_test_1
 #   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
