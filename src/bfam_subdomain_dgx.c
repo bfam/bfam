@@ -1478,10 +1478,12 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,BFAM_DGX_DIMENSION)(
 
   bfam_dictionary_allprefixed_ptr(&sub->base.fields,"",
       &bfam_subdomain_dgx_free_fields,NULL);
-  bfam_dictionary_allprefixed_ptr(&sub->base.fields_p,"",
-      &bfam_subdomain_dgx_free_fields,NULL);
-  bfam_dictionary_allprefixed_ptr(&sub->base.fields_m,"",
-      &bfam_subdomain_dgx_free_fields,NULL);
+  if(sub->base.glue_p)
+    bfam_dictionary_allprefixed_ptr(&sub->base.glue_p->fields,"",
+        &bfam_subdomain_dgx_free_fields,NULL);
+  if(sub->base.glue_m)
+    bfam_dictionary_allprefixed_ptr(&sub->base.glue_m->fields,"",
+        &bfam_subdomain_dgx_free_fields,NULL);
   bfam_dictionary_allprefixed_ptr(&sub->base.fields_face,"",
       &bfam_subdomain_dgx_free_fields,NULL);
 
@@ -1606,6 +1608,63 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_new_,BFAM_DGX_DIMENSION)(
   return newSubdomain;
 }
 
+static int
+bfam_subdomain_dgx_glue_field_minus_add(bfam_subdomain_t *subdomain,
+    const char *name)
+{
+  BFAM_ASSERT(subdomain->glue_m);
+
+  bfam_subdomain_dgx_t *s =
+    (bfam_subdomain_dgx_t*) subdomain;
+
+  if(bfam_dictionary_get_value_ptr(&s->base.glue_m->fields,name))
+    return 1;
+
+  size_t fieldSize = s->Np*s->K*sizeof(bfam_real_t);
+  bfam_real_t *field = bfam_malloc_aligned(fieldSize);
+#ifdef BFAM_DEBUG
+  for(int i = 0; i < s->Np*s->K;i++) field[i] = bfam_real_nan("");
+#endif
+
+  int rval = bfam_dictionary_insert_ptr(&s->base.glue_m->fields, name, field);
+
+  BFAM_ASSERT(rval != 1);
+
+  if(rval == 0)
+    bfam_free_aligned(field);
+
+  return rval;
+}
+
+
+static int
+bfam_subdomain_dgx_glue_field_plus_add(bfam_subdomain_t *subdomain,
+    const char *name)
+{
+  BFAM_ASSERT(subdomain->glue_p);
+
+  bfam_subdomain_dgx_t *s =
+    (bfam_subdomain_dgx_t*) subdomain;
+
+  if(bfam_dictionary_get_value_ptr(&s->base.glue_p->fields,name))
+    return 1;
+
+  size_t fieldSize = s->Np*s->K*sizeof(bfam_real_t);
+  bfam_real_t *field = bfam_malloc_aligned(fieldSize);
+#ifdef BFAM_DEBUG
+  for(int i = 0; i < s->Np*s->K;i++) field[i] = bfam_real_nan("");
+#endif
+
+  int rval = bfam_dictionary_insert_ptr(&s->base.glue_p->fields, name, field);
+
+  BFAM_ASSERT(rval != 1);
+
+  if(rval == 0)
+    bfam_free_aligned(field);
+
+  return rval;
+}
+
 void
 BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
                               bfam_subdomain_dgx_t            *subdomain,
@@ -1632,6 +1691,10 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
 
   bfam_subdomain_dgx_generic_init(subdomain, id, name, BFAM_MAX(N_m,N_p), K,
       inDIM);
+
+  subdomain->base.field_minus_add =
+    bfam_subdomain_dgx_glue_field_minus_add;
+  subdomain->base.field_plus_add = bfam_subdomain_dgx_glue_field_plus_add;
 
   bfam_subdomain_add_tag(&subdomain->base, "_subdomain_dgx");
 

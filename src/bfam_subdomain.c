@@ -92,6 +92,7 @@ bfam_subdomain_glue_init(bfam_subdomain_glue_data_t *glue,
   glue->sub_m = sub_m;
   glue->id    = id;
   glue->id_s  = id_s;
+  bfam_dictionary_init(&glue->fields);
 }
 
 void
@@ -160,13 +161,19 @@ bfam_subdomain_free(bfam_subdomain_t *thisSubdomain)
 
   if(thisSubdomain->glue_m)
   {
+    bfam_dictionary_clear(&thisSubdomain->glue_m->fields);
     thisSubdomain->glue_m->rank  = -1;
     thisSubdomain->glue_m->sub_m = NULL;
+    thisSubdomain->glue_m->id    = -1;
+    thisSubdomain->glue_m->id_s  = -1;
   }
   if(thisSubdomain->glue_p)
   {
+    bfam_dictionary_clear(&thisSubdomain->glue_p->fields);
     thisSubdomain->glue_p->rank  = -1;
     thisSubdomain->glue_p->sub_m = NULL;
+    thisSubdomain->glue_p->id    = -1;
+    thisSubdomain->glue_p->id_s  = -1;
   }
 }
 
