@@ -363,8 +363,6 @@ bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
   bfam_real_t *restrict stor2 = NULL;
   bfam_real_t *restrict stor3 = NULL;
 
-  BFAM_INFO("Np_write = %d", Np_write);
-
   if(Np_write > 0)
   {
     BFAM_ABORT_IF_NOT(Np_write > 1, "Np_write = %d is not valid",
@@ -527,7 +525,7 @@ bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
               "          %8jd %8jd\n",
               (intmax_t) Np_vtk * k + (n + 0),
               (intmax_t) Np_vtk * k + (n + 1));
-    if(sub->dim == 2)
+    else if(sub->dim == 2)
       for(bfam_locidx_t k = 0; k < K; ++k)
         for(int m = 0; m < N_vtk; ++m)
           for(int n = 0; n < N_vtk; ++n)
@@ -537,7 +535,7 @@ bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
                 (intmax_t) Np_vtk * k + (N_vtk + 1) * (m + 0) + (n + 1),
                 (intmax_t) Np_vtk * k + (N_vtk + 1) * (m + 1) + (n + 0),
                 (intmax_t) Np_vtk * k + (N_vtk + 1) * (m + 1) + (n + 1));
-    if(sub->dim == 3)
+    else if(sub->dim == 3)
       for(bfam_locidx_t k = 0; k < K; ++k)
         for(int l = 0; l < N_vtk; ++l)
           for(int m = 0; m < N_vtk; ++m)
@@ -560,7 +558,7 @@ bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
                       +(N_vtk+1)*(N_vtk+1)*(l+1) + (N_vtk+1)*(m+1) + (n+0),
                   (intmax_t) Np_vtk*k
                       +(N_vtk+1)*(N_vtk+1)*(l+1) + (N_vtk+1)*(m+1) + (n+1));
-    else BFAM_ABORT("not implemented for dim = %d", sub->dim);
+    else BFAM_ABORT("not implemented for dim = %d %d", sub->dim);
   }
   fprintf(file, "        </DataArray>\n");
 
