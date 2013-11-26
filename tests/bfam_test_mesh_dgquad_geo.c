@@ -433,6 +433,33 @@ test_geo_dgx(MPI_Comm mpicomm)
   bfam_domain_p4est_2d_split_dgx_subdomains(domain, numSubdomains,
       subdomainID, &N);
 
+  bfam_subdomain_t **subdomains =
+    bfam_malloc(domain->base.numSubdomains*sizeof(bfam_subdomain_t**));
+
+  const char* volume[] = {"_volume", NULL};
+  bfam_domain_get_subdomains((bfam_domain_t*)domain, BFAM_DOMAIN_OR,
+      volume, domain->base.numSubdomains, subdomains, &numSubdomains);
+
+  BFAM_ABORT_IF_NOT(numSubdomains==1, "We should only have one subdomain");
+
+  failures += check_field_dgx(subdomains[0], "_grid_x0", xex);
+  failures += check_field_dgx(subdomains[0], "_grid_x1", yex);
+
+  failures += check_field_dgx(subdomains[0], "_grid_Jr0x0", Jrxex);
+  failures += check_field_dgx(subdomains[0], "_grid_Jr0x1", Jryex);
+
+  failures += check_field_dgx(subdomains[0], "_grid_Jr1x0", Jsxex);
+  failures += check_field_dgx(subdomains[0], "_grid_Jr1x1", Jsyex);
+
+  failures += check_field_dgx(subdomains[0], "_grid_J", Jex);
+
+  failures += check_field_face_dgx(subdomains[0], "_grid_nx0", nxex);
+  failures += check_field_face_dgx(subdomains[0], "_grid_nx1", nyex);
+
+  bfam_free(subdomainID);
+  bfam_free(subdomains);
+
+
   bfam_domain_p4est_2d_free(domain);
   bfam_free(domain);
 
@@ -553,6 +580,7 @@ test_geo_dgx_quad(MPI_Comm mpicomm)
   failures += check_field_dgx_quad(subdomains[0], "_grid_J", Jex);
 
   failures += check_field_face_dgx_quad(subdomains[0], "_grid_nx", nxex);
+  failures += check_field_face_dgx_quad(subdomains[0], "_grid_ny", nyex);
 
   bfam_free(subdomainID);
   bfam_free(subdomains);
@@ -632,7 +660,7 @@ main (int argc, char *argv[])
   BFAM_MPI_CHECK(MPI_Barrier(comm));
 
   BFAM_ROOT_INFO("Test Geo DGX\n");
-  // failures += test_geo_dgx(comm);
+  failures += test_geo_dgx(comm);
   BFAM_MPI_CHECK(MPI_Barrier(comm));
   BFAM_INFO("%d",failures);
 
