@@ -1478,3 +1478,58 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,BFAM_DGX_DIMENSION)(
 
   bfam_subdomain_dgx_null_all_values(sub);
 }
+
+bfam_subdomain_dgx_t*
+BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_new_,BFAM_DGX_DIMENSION)(
+                             const bfam_locidx_t              id,
+                             const char                      *name,
+                             const int                        N_m,
+                             const bfam_locidx_t              rank_m,
+                             bfam_subdomain_dgx_t            *sub_m,
+                             bfam_locidx_t                   *ktok_m,
+                             const bfam_locidx_t              K,
+                             const int                        inDIM)
+{
+#ifdef USE_GENERIC_DGX_DIMENSION
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_glue_new");
+  const int DIM = inDIM;
+#endif
+  BFAM_ASSERT(DIM == inDIM);
+
+  bfam_subdomain_dgx_t* newSubdomain =
+    bfam_malloc(sizeof(bfam_subdomain_dgx_t));
+
+  BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
+      newSubdomain,id,name,N_m,rank_m,sub_m,ktok_m,K,DIM);
+  return newSubdomain;
+}
+
+void
+BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
+                             bfam_subdomain_dgx_t            *subdomain,
+                             const bfam_locidx_t              id,
+                             const char                      *name,
+                             const int                        N_m,
+                             const bfam_locidx_t              rank_m,
+                             bfam_subdomain_dgx_t            *sub_m,
+                             bfam_locidx_t                   *ktok_m,
+                             const bfam_locidx_t              K,
+                             const int                        inDIM)
+{
+#ifdef USE_GENERIC_DGX_DIMENSION
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_glue_init");
+  const int DIM = inDIM;
+#endif
+  BFAM_ASSERT(DIM == inDIM);
+
+  BFAM_ABORT_IF(DIM < 0, "dimension %d is not possible in bfam",DIM);
+
+  bfam_subdomain_init(&subdomain->base, id, name);
+  bfam_subdomain_add_tag(&subdomain->base, "_subdomain_dgx");
+  bfam_subdomain_add_tag(&subdomain->base, "_subdomain_dgx_glue");
+  char dim_str[BFAM_BUFSIZ];
+  snprintf(dim_str,BFAM_BUFSIZ,"_dimension_%d",DIM);
+  bfam_subdomain_add_tag(&subdomain->base, dim_str);
+
+  bfam_subdomain_dgx_null_all_values(subdomain);
+}

@@ -191,6 +191,56 @@ bfam_subdomain_dgx_init_(bfam_subdomain_dgx_t *subdomain,
                         const int8_t              *EToF,
                         const int                  dim);
 
+/** create a dgx glue subdomain.
+ *
+ * \param [in]     id          unique id number for this subdomain
+ * \param [in]     name        name of this subdomain
+ * \param [in]     N_m         minus side polynomial order of elements in each
+ *                             dimension
+ * \param [in]     rank_m      minus side processor rank
+ * \param [in]     subdomain_m minus side subdomain pointer
+ * \param [in]     ktok_m      map: element number -> minus side element number
+ * \param [in]     K           number of elements in the glue grid
+ * \param [in]     inDIM        dimension of the subdomain
+ *
+ * \return Initialized dg quad glue subdomain
+ *
+ */
+bfam_subdomain_dgx_t*
+bfam_subdomain_dgx_glue_new_(const bfam_locidx_t              id,
+                             const char                      *name,
+                             const int                        N_m,
+                             const bfam_locidx_t              rank_m,
+                             bfam_subdomain_dgx_t            *sub_m,
+                             bfam_locidx_t                   *ktok_m,
+                             const bfam_locidx_t              K,
+                             const int                        inDIM);
+
+/** initializes a dg glue subdomain.
+ *
+ * \param [out]    subdomain    pointer to the subdomain to initialize
+ * \param [in]     id           unique id number for this subdomain
+ * \param [in]     name         name of this subdomain
+ * \param [in]     N_m          minus side polynomial order of elements in each
+ *                              dimension
+ * \param [in]     rank_m       minus side processor rank
+ * \param [in]     subdomain_m  minus side subdomain pointer
+ * \param [in]     ktok_m       map: element number -> minus side element number
+ * \param [in]     K            number of elements in the glue grid
+ * \param [in]     inDIM        dimension of the subdomain
+ *
+ */
+void
+bfam_subdomain_dgx_glue_init_(bfam_subdomain_dgx_t  *subdomain,
+                              const bfam_locidx_t              id,
+                              const char                      *name,
+                              const int                        N_m,
+                              const bfam_locidx_t              rank_m,
+                              bfam_subdomain_dgx_t            *sub_m,
+                              bfam_locidx_t                   *ktok_m,
+                              const bfam_locidx_t              K,
+                              const int                        inDIM);
+
 /** free up the memory allocated by the subdomain
  *
  * \param [in,out] subdomain subdomain to clean up
@@ -224,8 +274,27 @@ bfam_subdomain_dgx_init_##dg_dim(bfam_subdomain_dgx_t *subdomain, \
                         const bfam_locidx_t       *EToE,          \
                         const int8_t              *EToF,          \
                         const int                  dim);          \
-void                                                                \
-bfam_subdomain_dgx_free_##dg_dim(bfam_subdomain_t *subdomain);
+void                                                           \
+bfam_subdomain_dgx_free_##dg_dim(bfam_subdomain_t *subdomain); \
+bfam_subdomain_dgx_t*                                                          \
+bfam_subdomain_dgx_glue_new_##dg_dim(const bfam_locidx_t              id,      \
+                                     const char                      *name,    \
+                                     const int                        N_m,     \
+                                     const bfam_locidx_t              rank_m,  \
+                                     bfam_subdomain_dgx_t            *sub_m,   \
+                                     bfam_locidx_t                   *ktok_m,  \
+                                     const bfam_locidx_t              K,       \
+                                     const int                        inDIM);  \
+void                                                                        \
+bfam_subdomain_dgx_glue_init_##dg_dim(bfam_subdomain_dgx_t  *subdomain,     \
+                                 const bfam_locidx_t              id,       \
+                                 const char                      *name,     \
+                                 const int                        N_m,      \
+                                 const bfam_locidx_t              rank_m,   \
+                                 bfam_subdomain_dgx_t            *sub_m,    \
+                                 bfam_locidx_t                   *ktok_m,   \
+                                 const bfam_locidx_t              K,        \
+                                 const int                        inDIM);
 BFAM_LIST_OF_BGX_DIMENSIONS
 #undef X
 
