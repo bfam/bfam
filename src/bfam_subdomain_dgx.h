@@ -318,7 +318,7 @@ bfam_subdomain_dgx_glue_init_##dg_dim(bfam_subdomain_dgx_t  *subdomain,    \
                               const bfam_locidx_t              K,          \
                               bfam_subdomain_face_map_entry_t *mapping,    \
                               const int                        inDIM);
-BFAM_LIST_OF_BGX_DIMENSIONS
+BFAM_LIST_OF_DGX_DIMENSIONS
 #undef X
 
 #endif
