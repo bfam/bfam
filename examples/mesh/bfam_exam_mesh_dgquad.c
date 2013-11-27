@@ -1,4 +1,5 @@
 #include <bfam.h>
+#include <bfam_domain_p4est.h>
 
 static int          refine_level = 0;
 

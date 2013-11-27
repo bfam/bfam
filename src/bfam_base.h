@@ -69,24 +69,6 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wcast-align"
-#include <p4est.h>
-#include <p4est_bits.h>
-#include <p4est_extended.h>
-#include <p4est_ghost.h>
-#include <p4est_lnodes.h>
-#include <p4est_mesh.h>
-#include <p4est_vtk.h>
-#include <p8est.h>
-#include <p8est_bits.h>
-#include <p8est_extended.h>
-#include <p8est_ghost.h>
-#include <p8est_lnodes.h>
-#include <p8est_mesh.h>
-#include <p8est_vtk.h>
-#pragma clang diagnostic pop
-
 #if defined __GNUC__ && !defined __GNUC_PREREQ
 # ifndef __GNUC_MINOR__
 #    define __GNUC_PREREQ(maj, min) 0

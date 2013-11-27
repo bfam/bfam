@@ -1,4 +1,5 @@
 #include <bfam.h>
+#include <bfam_domain_p4est_2d.h>
 
 #define REAL_APPROX_EQ(x, y, K)                                              \
   BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, BFAM_REAL_EPS)

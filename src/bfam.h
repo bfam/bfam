@@ -15,9 +15,6 @@
 #include <bfam_subdomain_dgx_quad.h>
 #include <bfam_subdomain_dgx.h>
 #include <bfam_domain.h>
-#include <bfam_domain_p4est.h>
-#include <bfam_domain_p4est_2d.h>
-#include <bfam_domain_p8est.h>
 #include <bfam_vtk.h>
 #include <bfam_timestep.h>
 #include <bfam_timestep_lsrk.h>

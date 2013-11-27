@@ -1,4 +1,5 @@
 #include <bfam.h>
+#include <bfam_domain_p4est.h>
 #include "beard_dgx_rhs.h"
 #include <p4est_iterate.h>
 

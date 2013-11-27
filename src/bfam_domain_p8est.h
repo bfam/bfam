@@ -4,6 +4,18 @@
 #include <bfam_base.h>
 #include <bfam_domain.h>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-align"
+#include <p4est_to_p8est.h>
+#include <p8est.h>
+#include <p8est_bits.h>
+#include <p8est_extended.h>
+#include <p8est_ghost.h>
+#include <p8est_lnodes.h>
+#include <p8est_mesh.h>
+#include <p8est_vtk.h>
+#pragma clang diagnostic pop
+
 /**
  * structure containing a domain managed by p8est
  */

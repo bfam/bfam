@@ -1,5 +1,16 @@
 #include <bfam.h>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-align"
+#include <p4est.h>
+#include <p4est_bits.h>
+#include <p4est_extended.h>
+#include <p4est_ghost.h>
+#include <p4est_lnodes.h>
+#include <p4est_mesh.h>
+#include <p4est_vtk.h>
+#pragma clang diagnostic pop
+
 static int          refine_level = 0;
 
 static int
