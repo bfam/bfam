@@ -1,7 +1,7 @@
 #include <bfam.h>
 
 #define REAL_APPROX_EQ(x, y, K)                                              \
-  BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, 10*BFAM_REAL_EPS)
+  BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, 1000*BFAM_REAL_EPS)
 
 static int
 check_field_face(bfam_subdomain_t *s, const char *name, const bfam_real_t *ex)
