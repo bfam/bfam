@@ -273,6 +273,11 @@ if(WITH_VECTOR_VERBOSE)
   endif("${CMAKE_C_COMPILER_ID}" MATCHES "PGI")
 endif(WITH_VECTOR_VERBOSE)
 
+option(WITH_LONG_DOUBLE "Use long double for bfam_long_real_t" ON)
+if(WITH_LONG_DOUBLE)
+  set(BFAM_USE_LONG_DOUBLE TRUE)
+endif(WITH_LONG_DOUBLE)
+
 ##
 ## Look for header files
 ##

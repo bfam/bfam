@@ -196,6 +196,7 @@
   ((abs)((x)-(y)) < (min) + (K) * (eps) * BFAM_MAX((abs)((x)),(abs)((y))))
 
 /* Type for setup computations */
+#ifdef BFAM_USE_LONG_DOUBLE
 typedef long double bfam_long_real_t;
 #define BFAM_LONG_REAL(x) BFAM_APPEND(x, L)
 #define BFAM_LONG_REAL_PRIe "Le"
@@ -216,6 +217,28 @@ typedef long double bfam_long_real_t;
 
 #define BFAM_LONG_REAL_EPS LDBL_EPSILON
 #define BFAM_LONG_REAL_MIN LDBL_MIN
+#else
+typedef double bfam_long_real_t;
+#define BFAM_LONG_REAL(x) x
+#define BFAM_LONG_REAL_PRIe "e"
+#define BFAM_LONG_REAL_PRIf "f"
+#define BFAM_LONG_REAL_PRIg "g"
+
+#define BFAM_LONG_REAL_ABS      fabs
+#define BFAM_LONG_REAL_ATAN     atan
+#define BFAM_LONG_REAL_COS       cos
+#define BFAM_LONG_REAL_LGAMMA lgamma
+#define BFAM_LONG_REAL_LOG       log
+#define BFAM_LONG_REAL_EXP       exp
+#define BFAM_LONG_REAL_HYPOT   hypot
+#define BFAM_LONG_REAL_SQRT     sqrt
+#define BFAM_LONG_REAL_SIN       sin
+#define BFAM_LONG_REAL_TAN       tan
+
+
+#define BFAM_LONG_REAL_EPS DBL_EPSILON
+#define BFAM_LONG_REAL_MIN DBL_MIN
+#endif
 #define BFAM_LONG_REAL_PI  (4*BFAM_LONG_REAL_ATAN(1))
 
 #define BFAM_LONG_REAL_APPROX_EQ(x, y, K)                               \
