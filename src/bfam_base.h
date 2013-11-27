@@ -9,6 +9,9 @@
 
 #include <bfam_config.h>
 
+#include <float.h>
+#include <math.h>
+
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
