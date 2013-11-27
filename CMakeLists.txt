@@ -438,15 +438,15 @@ target_link_libraries(bfam_exam_clock bfam)
 add_executable(beard
   examples/beard/beard.c)
 
-bfam_multiple_build("BFAM_DGX_DIMENSION" "${bfam_dimensions}"
-  bfam_subdomain_dgx
-  src/bfam_subdomain_dgx.c
-  bfam)
-
-
 bfam_multiple_build("BFAM_PXEST_DIMENSION" "${pxest_dimensions}"
   bfam_domain_pxest
   src/bfam_domain_pxest.c
+  bfam)
+
+
+bfam_multiple_build("BFAM_DGX_DIMENSION" "${bfam_dimensions}"
+  bfam_subdomain_dgx
+  src/bfam_subdomain_dgx.c
   bfam)
 
 
