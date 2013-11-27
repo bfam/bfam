@@ -19,8 +19,10 @@
 #define BFAM_PXEST_RELATIVE_ORIENTATIONS 2
 #define BDIM 1
 #define BFAM_PXEST_CONNECT P4EST_CONNECT_FACE
+#define BFAM_PXEST_ORIENTATION(n,nf,o) (o)
 #elif DIM==3
 #define BFAM_PXEST_RELATIVE_ORIENTATIONS 4
+#define BFAM_PXEST_ORIENTATION(n,nf,o) BFAM_P8EST_ORIENTATION(n,nf,o)
 #define BDIM 2
 #define BFAM_PXEST_CONNECT P8EST_CONNECT_FACE
 #else
@@ -181,7 +183,7 @@ bfam_domain_pxest_parallel_face_mapping(p4est_mesh_t *mesh,
           mapping[sk].k  = k;
           mapping[sk].f  = f;
           mapping[sk].h  = 0;
-          mapping[sk].o  = o;
+          mapping[sk].o  = BFAM_PXEST_ORIENTATION(f,ghostf,o);
           ++sk;
         }
       }
@@ -217,7 +219,7 @@ bfam_domain_pxest_parallel_face_mapping(p4est_mesh_t *mesh,
             mapping[sk].k  = k;
             mapping[sk].f  = f;
             mapping[sk].h  = h + 1;
-            mapping[sk].o  = o;
+            mapping[sk].o  = BFAM_PXEST_ORIENTATION(f,ghostf,o);
             ++sk;
           }
         }
@@ -722,7 +724,7 @@ bfam_domain_pxest_inter_subdomain_face_mapping(bfam_locidx_t rank,
             mapping[sk].k  = k;
             mapping[sk].f  = f;
             mapping[sk].h  = 0;
-            mapping[sk].o  = o;
+            mapping[sk].o  = BFAM_PXEST_ORIENTATION(f,nf,o);
 
             mapping[sk].i  = -1;
             mapping[sk].gi = -1;
@@ -759,7 +761,7 @@ bfam_domain_pxest_inter_subdomain_face_mapping(bfam_locidx_t rank,
             mapping[sk].k  = k;
             mapping[sk].f  = f;
             mapping[sk].h  = h + 1;
-            mapping[sk].o  = o;
+            mapping[sk].o  = BFAM_PXEST_ORIENTATION(f,nf,o);
 
             mapping[sk].i  = -1;
             mapping[sk].gi = -1;
