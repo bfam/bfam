@@ -2075,7 +2075,7 @@ bfam_subdomain_dgx_quad_glue_get_face_scalar_fields_m(const char * key,
   return 0;
 }
 
-void
+static void
 bfam_subdomain_dgx_quad_glue_put_send_buffer(bfam_subdomain_t *thisSubdomain,
     void *buffer, size_t send_sz, void *comm_args)
 {
@@ -2174,7 +2174,7 @@ bfam_subdomain_dgx_quad_glue_put_scalar_fields_p(const char * key, void *val,
   return 0;
 }
 
-void
+static void
 bfam_subdomain_dgx_quad_glue_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
     void *buffer, size_t recv_sz, void* comm_args)
 {
@@ -2286,7 +2286,7 @@ bfam_subdomain_dgx_quad_glue_init(bfam_subdomain_dgx_quad_glue_t  *subdomain,
     bfam_subdomain_dgx_quad_glue_put_send_buffer;
   subdomain->base.glue_get_recv_buffer =
     bfam_subdomain_dgx_quad_glue_get_recv_buffer;
-    subdomain->base.field_add = bfam_subdomain_dgx_quad_glue_field_add;
+  subdomain->base.field_add = bfam_subdomain_dgx_quad_glue_field_add;
   subdomain->base.field_init = bfam_subdomain_dgx_quad_glue_field_init;
   subdomain->base.field_minus_add =
     bfam_subdomain_dgx_quad_glue_field_minus_add;
