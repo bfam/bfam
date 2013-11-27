@@ -190,6 +190,8 @@
 #endif
 #endif
 
+#define BFAM_KEYVALUE_SPLIT '\255'
+
 #define BFAM_APPROX_EQ(x, y, K, abs, eps, min) \
   ((abs)((x)-(y)) < (min) + (K) * (eps) * BFAM_MAX((abs)((x)),(abs)((y))))
 
@@ -211,7 +213,6 @@ typedef long double bfam_long_real_t;
 #define BFAM_LONG_REAL_SIN       sinl
 #define BFAM_LONG_REAL_TAN       tanl
 
-#define BFAM_KEYVALUE_SPLIT '\255'
 
 #define BFAM_LONG_REAL_EPS LDBL_EPSILON
 #define BFAM_LONG_REAL_MIN LDBL_MIN
