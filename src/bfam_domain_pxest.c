@@ -1,42 +1,80 @@
 #include <bfam_base.h>
-#include <bfam_domain_p8est.h>
+
+#ifdef BFAM_PXEST_DIMENSION
+
+#if   BFAM_PXEST_DIMENSION==2
+#include <bfam_domain_pxest_2.h>
+#elif BFAM_PXEST_DIMENSION==3
+#include <bfam_domain_pxest_3.h>
+#else
+#error "Bad Dimension"
+#endif
+
 #include <bfam_log.h>
 #include <bfam_subdomain_dgx.h>
 
-bfam_domain_p8est_t*
-bfam_domain_p8est_new(MPI_Comm domComm,
-                      p8est_connectivity_t *conn)
+#define DIM BFAM_PXEST_DIMENSION
+
+#if   DIM==2
+#define BFAM_PXEST_RELATIVE_ORIENTATIONS 2
+#define BDIM 1
+#define BFAM_PXEST_CONNECT P4EST_CONNECT_FACE
+#elif DIM==3
+#define BFAM_PXEST_RELATIVE_ORIENTATIONS 4
+#define BDIM 2
+#define BFAM_PXEST_CONNECT P8EST_CONNECT_FACE
+#else
+#error "Bad Dimension"
+#endif
+
+#define              bfam_domain_pxest_t \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_t_,DIM)
+#define              bfam_domain_pxest_new \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_new_,DIM)
+#define              bfam_domain_pxest_init \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_init_,DIM)
+#define              bfam_domain_pxest_free \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_free_,DIM)
+#define              bfam_subdomain_dgx_new \
+  BFAM_APPEND_EXPAND(bfam_subdomain_dgx_new_,DIM)
+#define              bfam_subdomain_dgx_glue_new \
+  BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_new_,BDIM)
+#define              bfam_domain_pxest_split_dgx_subdomains \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_split_dgx_subdomains_,DIM)
+
+bfam_domain_pxest_t*
+bfam_domain_pxest_new(MPI_Comm domComm, p4est_connectivity_t *conn)
 {
-  bfam_domain_p8est_t* newDomain = bfam_malloc(sizeof(bfam_domain_p8est_t));
-  bfam_domain_p8est_init(newDomain,domComm,conn);
+  bfam_domain_pxest_t* newDomain = bfam_malloc(sizeof(bfam_domain_pxest_t));
+  bfam_domain_pxest_init(newDomain,domComm,conn);
   return newDomain;
 }
 
 void
-bfam_domain_p8est_init(bfam_domain_p8est_t *domain, MPI_Comm domComm,
-                       p8est_connectivity_t *conn)
+bfam_domain_pxest_init(bfam_domain_pxest_t *domain, MPI_Comm domComm,
+                       p4est_connectivity_t *conn)
 {
   bfam_domain_init(&domain->base,domComm);
 
   domain->conn = conn;
-  domain->p8est = p8est_new(domComm,conn,0,NULL,NULL);
+  domain->pxest = p4est_new(domComm,conn,0,NULL,NULL);
 }
 
 void
-bfam_domain_p8est_free(bfam_domain_p8est_t *domain)
+bfam_domain_pxest_free(bfam_domain_pxest_t *domain)
 {
   /* Memory we don't manage */
   domain->conn = NULL;
 
   /* Memory we do manage */
-  p8est_destroy(domain->p8est);
-  domain->p8est = NULL;
+  p4est_destroy(domain->pxest);
+  domain->pxest = NULL;
 
   bfam_domain_free(&domain->base);
 }
 
 static bfam_locidx_t
-bfam_domain_p8est_num_parallel_faces(p8est_mesh_t *mesh)
+bfam_domain_pxest_num_parallel_faces(p4est_mesh_t *mesh)
 {
   const p4est_locidx_t K = mesh->local_num_quadrants;
 
@@ -44,10 +82,10 @@ bfam_domain_p8est_num_parallel_faces(p8est_mesh_t *mesh)
 
   for(p4est_locidx_t k = 0; k < K; ++k)
   {
-    for (int f = 0; f < P8EST_FACES; ++f)
+    for (int f = 0; f < P4EST_FACES; ++f)
     {
-      const p4est_locidx_t ck = mesh->quad_to_quad[P8EST_FACES * k + f];
-      const int            cf = mesh->quad_to_face[P8EST_FACES * k + f];
+      const p4est_locidx_t ck = mesh->quad_to_quad[P4EST_FACES * k + f];
+      const int            cf = mesh->quad_to_face[P4EST_FACES * k + f];
 
       if(cf >= 0)
       {
@@ -65,7 +103,7 @@ bfam_domain_p8est_num_parallel_faces(p8est_mesh_t *mesh)
         p4est_locidx_t *cks;
         cks = sc_array_index(mesh->quad_to_half, ck);
 
-        for(int h = 0; h < P8EST_HALF; ++h)
+        for(int h = 0; h < P4EST_HALF; ++h)
           if(cks[h] >= mesh->local_num_quadrants)
             ++numParallelFaces;
       }
@@ -77,34 +115,33 @@ bfam_domain_p8est_num_parallel_faces(p8est_mesh_t *mesh)
   return numParallelFaces;
 }
 
-#define BFAM_P8EST_RELATIVE_ORIENTATIONS 4
 
 /** Build the parallel face mapping array.
  *
  * This array is used to determine the order in which data is sent
  * and received around the forest.  The order can be obtained by sorting
  * the mapping using \c bfam_subdomain_face_send_cmp
- * and \c bfam_domain_p8est_face_recv_cmp comparison
+ * and \c bfam_domain_pxest_face_recv_cmp comparison
  * functions.
  *
- * \param [in]  mesh             p8est mesh to build the mapping for.
+ * \param [in]  mesh             p4est mesh to build the mapping for.
  * \param [in]  numParallelFaces the number of parallel faces in the
- *                               p8est mesh.
+ *                               p4est mesh.
  * \param [out] mapping          the mapping array that will be filled.
  *
  */
 static void
-bfam_domain_p8est_parallel_face_mapping(p8est_mesh_t *mesh,
+bfam_domain_pxest_parallel_face_mapping(p4est_mesh_t *mesh,
     bfam_locidx_t numParallelFaces, bfam_subdomain_face_map_entry_t *mapping)
 {
   const p4est_locidx_t K = mesh->local_num_quadrants;
 
   for(p4est_locidx_t k = 0, sk = 0; k < K; ++k)
   {
-    for (int f = 0; f < P8EST_FACES; ++f)
+    for (int f = 0; f < P4EST_FACES; ++f)
     {
-      const p4est_locidx_t ck = mesh->quad_to_quad[P8EST_FACES * k + f];
-      const int            cf = mesh->quad_to_face[P8EST_FACES * k + f];
+      const p4est_locidx_t ck = mesh->quad_to_quad[P4EST_FACES * k + f];
+      const int            cf = mesh->quad_to_face[P4EST_FACES * k + f];
 
       if(cf >= 0)
       {
@@ -119,19 +156,19 @@ bfam_domain_p8est_parallel_face_mapping(p8est_mesh_t *mesh,
           int8_t         ghostf = cf;
           int8_t         ghosth = 0;
 
-          if(ghostf >= BFAM_P8EST_RELATIVE_ORIENTATIONS*P8EST_FACES)
+          if(ghostf >= BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES)
           {
-            ghostf -= BFAM_P8EST_RELATIVE_ORIENTATIONS*P8EST_FACES;
+            ghostf -= BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES;
 
-            ghosth = ghostf / (BFAM_P8EST_RELATIVE_ORIENTATIONS*P8EST_FACES) + 1;
-            ghostf = ghostf % (BFAM_P8EST_RELATIVE_ORIENTATIONS*P8EST_FACES);
+            ghosth = ghostf / (BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + 1;
+            ghostf = ghostf % (BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES);
 
-            BFAM_ASSERT(ghosth >= 0 && ghosth <= P8EST_HALF);
+            BFAM_ASSERT(ghosth >= 0 && ghosth <= P4EST_HALF);
           }
 
-          int8_t o = ghostf/P8EST_FACES;
+          int8_t o = ghostf/P4EST_FACES;
 
-          ghostf = ghostf%P8EST_FACES;
+          ghostf = ghostf%P4EST_FACES;
 
           mapping[sk].np = ghostp;
           mapping[sk].ns = 0;
@@ -156,18 +193,18 @@ bfam_domain_p8est_parallel_face_mapping(p8est_mesh_t *mesh,
         p4est_locidx_t *cks;
         cks = sc_array_index(mesh->quad_to_half, ck);
 
-        for(int8_t h = 0; h < P8EST_HALF; ++h)
+        for(int8_t h = 0; h < P4EST_HALF; ++h)
         {
           if(cks[h] >= mesh->local_num_quadrants)
           {
             p4est_locidx_t ghostid = cks[h]-mesh->local_num_quadrants;
             p4est_locidx_t ghostp  = mesh->ghost_to_proc[ghostid];
             p4est_locidx_t ghostk  = mesh->ghost_to_index[ghostid];
-            int8_t         ghostf  = ((BFAM_P8EST_RELATIVE_ORIENTATIONS*P8EST_FACES) + cf)%
-                                       P8EST_FACES;
+            int8_t         ghostf  = ((BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + cf)%
+                                       P4EST_FACES;
             int8_t         ghosth  = 0;
-            int8_t         o       = ((BFAM_P8EST_RELATIVE_ORIENTATIONS*P8EST_FACES) + cf)/
-                                       P8EST_FACES;
+            int8_t         o       = ((BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + cf)/
+                                       P4EST_FACES;
 
             mapping[sk].np = ghostp;
             mapping[sk].ns = 0;
@@ -221,7 +258,7 @@ bfam_domain_p8est_parallel_face_mapping(p8est_mesh_t *mesh,
  * \returns the number of processor neighbors.
  */
 static bfam_locidx_t
-bfam_domain_p8est_parallel_face_num_neighbors(bfam_locidx_t numParallelFaces,
+bfam_domain_pxest_parallel_face_num_neighbors(bfam_locidx_t numParallelFaces,
     bfam_subdomain_face_map_entry_t *mapping)
 {
   qsort(mapping, numParallelFaces, sizeof(bfam_subdomain_face_map_entry_t),
@@ -249,7 +286,7 @@ bfam_domain_p8est_parallel_face_num_neighbors(bfam_locidx_t numParallelFaces,
  * \param [out] neighborRank     rank of the neighbor
  */
 static void
-bfam_domain_p8est_num_neighbor_faces(bfam_locidx_t numParallelFaces,
+bfam_domain_pxest_num_neighbor_faces(bfam_locidx_t numParallelFaces,
     bfam_subdomain_face_map_entry_t *mapping, bfam_locidx_t numNeighbors,
     bfam_locidx_t *numNeighborFaces, bfam_locidx_t *neighborRank)
 {
@@ -319,7 +356,7 @@ bfam_domain_p8est_num_neighbor_faces(bfam_locidx_t numParallelFaces,
  *
  */
 static void
-bfam_domain_p8est_parallel_face_send_recv(MPI_Comm comm,
+bfam_domain_pxest_parallel_face_send_recv(MPI_Comm comm,
     bfam_locidx_t numParallelFaces, bfam_subdomain_face_map_entry_t *mapping,
     bfam_locidx_t numNeighbors, bfam_locidx_t *numNeighborFaces,
     bfam_locidx_t *neighborRank, bfam_locidx_t entries,
@@ -383,7 +420,7 @@ bfam_domain_p8est_parallel_face_send_recv(MPI_Comm comm,
  *
  */
 static void
-bfam_domain_p8est_parallel_face_mapping_check(MPI_Comm comm,
+bfam_domain_pxest_parallel_face_mapping_check(MPI_Comm comm,
     bfam_locidx_t numParallelFaces, bfam_subdomain_face_map_entry_t *mapping,
     bfam_locidx_t numNeighbors, bfam_locidx_t *numNeighborFaces,
     bfam_locidx_t *neighborRank)
@@ -417,7 +454,7 @@ bfam_domain_p8est_parallel_face_mapping_check(MPI_Comm comm,
     sendBuffer[entries*i + 7] = mapping[i].h;
   }
 
-  bfam_domain_p8est_parallel_face_send_recv(comm, numParallelFaces, mapping,
+  bfam_domain_pxest_parallel_face_send_recv(comm, numParallelFaces, mapping,
       numNeighbors, numNeighborFaces, neighborRank, entries, sendBuffer,
       recvBuffer);
 
@@ -466,7 +503,7 @@ bfam_domain_p8est_parallel_face_mapping_check(MPI_Comm comm,
  *                                  the mesh
  */
 static void
-bfam_domain_p8est_fill_ghost_subdomain_ids(MPI_Comm comm,
+bfam_domain_pxest_fill_ghost_subdomain_ids(MPI_Comm comm,
     bfam_locidx_t numParallelFaces, bfam_subdomain_face_map_entry_t *mapping,
     bfam_locidx_t numNeighbors, bfam_locidx_t *numNeighborFaces,
     bfam_locidx_t *neighborRank, bfam_locidx_t *subdomainID,
@@ -495,7 +532,7 @@ bfam_domain_p8est_fill_ghost_subdomain_ids(MPI_Comm comm,
     sendBuffer[entries*i + 1] = N[s];
   }
 
-  bfam_domain_p8est_parallel_face_send_recv(comm, numParallelFaces, mapping,
+  bfam_domain_pxest_parallel_face_send_recv(comm, numParallelFaces, mapping,
       numNeighbors, numNeighborFaces, neighborRank, entries, sendBuffer,
       recvBuffer);
 
@@ -531,14 +568,14 @@ bfam_domain_p8est_fill_ghost_subdomain_ids(MPI_Comm comm,
  * they connect to the same subdomain.  This is because we will use a
  * glue grid to handle the nonconforming interfaces.
  *
- * \param [in]  mesh          p8est mesh of the elements
+ * \param [in]  mesh          p4est mesh of the elements
  * \param [in]  subdomainID   subdomain id of each element in the mesh
  *
  * \return number of total local inter-subdomain faces.
  *
  */
 static bfam_locidx_t
-bfam_domain_p8est_num_inter_subdomain_faces(p8est_mesh_t *mesh,
+bfam_domain_pxest_num_inter_subdomain_faces(p4est_mesh_t *mesh,
     bfam_locidx_t *subdomainID)
 {
   const p4est_locidx_t K = mesh->local_num_quadrants;
@@ -549,10 +586,10 @@ bfam_domain_p8est_num_inter_subdomain_faces(p8est_mesh_t *mesh,
   {
     const bfam_locidx_t  idk   = subdomainID[k];
 
-    for (int f = 0; f < P8EST_FACES; ++f)
+    for (int f = 0; f < P4EST_FACES; ++f)
     {
-      const p4est_locidx_t ck = mesh->quad_to_quad[P8EST_FACES * k + f];
-      const int            cf = mesh->quad_to_face[P8EST_FACES * k + f];
+      const p4est_locidx_t ck = mesh->quad_to_quad[P4EST_FACES * k + f];
+      const int            cf = mesh->quad_to_face[P4EST_FACES * k + f];
 
       if(cf >= 0)
       {
@@ -568,7 +605,7 @@ bfam_domain_p8est_num_inter_subdomain_faces(p8est_mesh_t *mesh,
 
           int hanging;
 
-          if(cf >= BFAM_P8EST_RELATIVE_ORIENTATIONS*P8EST_FACES)
+          if(cf >= BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES)
             hanging = 1;
           else
             hanging = 0;
@@ -587,7 +624,7 @@ bfam_domain_p8est_num_inter_subdomain_faces(p8est_mesh_t *mesh,
       {
         p4est_locidx_t *cks;
         cks = sc_array_index(mesh->quad_to_half, ck);
-        for(int8_t h = 0; h < P8EST_HALF; ++h)
+        for(int8_t h = 0; h < P4EST_HALF; ++h)
           if(cks[h] < mesh->local_num_quadrants)
             ++numInterSubdomainFaces;
       }
@@ -606,16 +643,16 @@ bfam_domain_p8est_num_inter_subdomain_faces(p8est_mesh_t *mesh,
  * functions.
  *
  * \param [in]  rank                   local MPI rank.
- * \param [in]  mesh                   p8est mesh to build the mapping for.
+ * \param [in]  mesh                   pxest mesh to build the mapping for.
  * \param [in]  subdomainID            subdomain id of each element in the mesh.
  * \param [in]  numInterSubdomainFaces the number of inter subdomain faces in
- *                                     the p8est mesh.
+ *                                     the pxest mesh.
  * \param [out] mapping                the mapping array that will be filled.
  *
  */
 static void
-bfam_domain_p8est_inter_subdomain_face_mapping(bfam_locidx_t rank,
-    p8est_mesh_t *mesh, bfam_locidx_t *subdomainID,
+bfam_domain_pxest_inter_subdomain_face_mapping(bfam_locidx_t rank,
+    p4est_mesh_t *mesh, bfam_locidx_t *subdomainID,
     bfam_locidx_t numInterSubdomainFaces,
     bfam_subdomain_face_map_entry_t *mapping)
 {
@@ -625,10 +662,10 @@ bfam_domain_p8est_inter_subdomain_face_mapping(bfam_locidx_t rank,
   {
     const bfam_locidx_t  idk   = subdomainID[k];
 
-    for (int f = 0; f < P8EST_FACES; ++f)
+    for (int f = 0; f < P4EST_FACES; ++f)
     {
-      const p4est_locidx_t ck = mesh->quad_to_quad[P8EST_FACES * k + f];
-      const int            cf = mesh->quad_to_face[P8EST_FACES * k + f];
+      const p4est_locidx_t ck = mesh->quad_to_quad[P4EST_FACES * k + f];
+      const int            cf = mesh->quad_to_face[P4EST_FACES * k + f];
 
       if(cf >= 0)
       {
@@ -644,7 +681,7 @@ bfam_domain_p8est_inter_subdomain_face_mapping(bfam_locidx_t rank,
 
           int hanging;
 
-          if(cf >= BFAM_P8EST_RELATIVE_ORIENTATIONS*P8EST_FACES)
+          if(cf >= BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES)
             hanging = 1;
           else
             hanging = 0;
@@ -652,17 +689,17 @@ bfam_domain_p8est_inter_subdomain_face_mapping(bfam_locidx_t rank,
           int8_t         nf = cf;
           int8_t         nh = 0;
 
-          if(nf >= BFAM_P8EST_RELATIVE_ORIENTATIONS*P8EST_FACES)
+          if(nf >= BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES)
           {
-            nf -= BFAM_P8EST_RELATIVE_ORIENTATIONS*P8EST_FACES;
+            nf -= BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES;
 
-            nh = nf / (BFAM_P8EST_RELATIVE_ORIENTATIONS*P8EST_FACES) + 1;
-            nf = nf % (BFAM_P8EST_RELATIVE_ORIENTATIONS*P8EST_FACES);
+            nh = nf / (BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + 1;
+            nf = nf % (BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES);
           }
 
-          int8_t o = nf/P8EST_FACES;
+          int8_t o = nf/P4EST_FACES;
 
-          nf = nf%P8EST_FACES;
+          nf = nf%P4EST_FACES;
 
           /*
            * Count intra and inter subdomain faces.
@@ -697,7 +734,7 @@ bfam_domain_p8est_inter_subdomain_face_mapping(bfam_locidx_t rank,
       {
         p4est_locidx_t *cks;
         cks = sc_array_index(mesh->quad_to_half, ck);
-        for(int8_t h = 0; h < P8EST_HALF; ++h)
+        for(int8_t h = 0; h < P4EST_HALF; ++h)
         {
           if(cks[h] < mesh->local_num_quadrants)
           {
@@ -705,11 +742,11 @@ bfam_domain_p8est_inter_subdomain_face_mapping(bfam_locidx_t rank,
 
             const bfam_locidx_t  idnk   = subdomainID[cks[h]];
 
-            int8_t         nf = ((BFAM_P8EST_RELATIVE_ORIENTATIONS*P8EST_FACES) + cf)%
-                                  P8EST_FACES;
+            int8_t         nf = ((BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + cf)%
+                                  P4EST_FACES;
             int8_t         nh = 0;
-            int8_t         o  = ((BFAM_P8EST_RELATIVE_ORIENTATIONS*P8EST_FACES) + cf)/
-                                  P8EST_FACES;
+            int8_t         o  = ((BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + cf)/
+                                  P4EST_FACES;
 
             mapping[sk].np = rank;
 
@@ -737,13 +774,13 @@ bfam_domain_p8est_inter_subdomain_face_mapping(bfam_locidx_t rank,
 
 /** Count the number of boundary faces.
  *
- * \param [in]  mesh p8est mesh of the elements
+ * \param [in]  mesh pxest mesh of the elements
  *
  * \return number of boundary faces.
  *
  */
 static bfam_locidx_t
-bfam_domain_p8est_num_boundary_faces(p8est_mesh_t *mesh)
+bfam_domain_pxest_num_boundary_faces(p4est_mesh_t *mesh)
 {
   const p4est_locidx_t K = mesh->local_num_quadrants;
 
@@ -751,10 +788,10 @@ bfam_domain_p8est_num_boundary_faces(p8est_mesh_t *mesh)
 
   for(p4est_locidx_t k = 0; k < K; ++k)
   {
-    for (int f = 0; f < P8EST_FACES; ++f)
+    for (int f = 0; f < P4EST_FACES; ++f)
     {
-      const p4est_locidx_t ck = mesh->quad_to_quad[P8EST_FACES * k + f];
-      const int            cf = mesh->quad_to_face[P8EST_FACES * k + f];
+      const p4est_locidx_t ck = mesh->quad_to_quad[P4EST_FACES * k + f];
+      const int            cf = mesh->quad_to_face[P4EST_FACES * k + f];
 
       if(k == ck && f == cf)
         ++numBoundaryFaces;
@@ -766,15 +803,15 @@ bfam_domain_p8est_num_boundary_faces(p8est_mesh_t *mesh)
 
 /** Build the boundary subdomain face mapping array.
  *
- * \param [in]  mesh             p8est mesh to build the mapping for.
+ * \param [in]  mesh             p4est mesh to build the mapping for.
  * \param [in]  subdomainID      subdomain id of each element in the mesh.
  * \param [in]  numBoundaryFaces the number of boundary subdomain faces in
- *                               the p8est mesh.
+ *                               the p4est mesh.
  * \param [out] mapping          the mapping array that will be filled.
  *
  */
 static void
-bfam_domain_p8est_boundary_subdomain_face_mapping(p8est_mesh_t *mesh,
+bfam_domain_pxest_boundary_subdomain_face_mapping(p4est_mesh_t *mesh,
     bfam_locidx_t *subdomainID, bfam_locidx_t numBoundaryFaces,
     bfam_subdomain_face_map_entry_t *mapping)
 {
@@ -784,10 +821,10 @@ bfam_domain_p8est_boundary_subdomain_face_mapping(p8est_mesh_t *mesh,
   {
     const bfam_locidx_t  idk   = subdomainID[k];
 
-    for (int f = 0; f < P8EST_FACES; ++f)
+    for (int f = 0; f < P4EST_FACES; ++f)
     {
-      const p4est_locidx_t ck = mesh->quad_to_quad[P8EST_FACES * k + f];
-      const int            cf = mesh->quad_to_face[P8EST_FACES * k + f];
+      const p4est_locidx_t ck = mesh->quad_to_quad[P4EST_FACES * k + f];
+      const int            cf = mesh->quad_to_face[P4EST_FACES * k + f];
 
       if(k == ck && f == cf)
       {
@@ -816,15 +853,15 @@ bfam_domain_p8est_boundary_subdomain_face_mapping(p8est_mesh_t *mesh,
 
 
 void
-bfam_domain_p8est_split_dgx_subdomains(bfam_domain_p8est_t *domain,
+bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
     bfam_locidx_t numSubdomains, bfam_locidx_t *subdomainID, int *N)
 {
-  BFAM_ROOT_LDEBUG("Begin splitting p8est domain into subdomains.");
-  const int         HF = P8EST_HALF * P8EST_FACES;
+  BFAM_ROOT_LDEBUG("Begin splitting p4est domain into subdomains.");
+  const int         HF = P4EST_HALF * P4EST_FACES;
 
-  p8est_t       *p8est = domain->p8est;
-  p8est_ghost_t *ghost = p8est_ghost_new(p8est, P8EST_CONNECT_FACE);
-  p8est_mesh_t  *mesh  = p8est_mesh_new(p8est, ghost, P8EST_CONNECT_FACE);
+  p4est_t       *pxest = domain->pxest;
+  p4est_ghost_t *ghost = p4est_ghost_new(pxest, BFAM_PXEST_CONNECT);
+  p4est_mesh_t  *mesh  = p4est_mesh_new(pxest, ghost, BFAM_PXEST_CONNECT);
 
   const p4est_locidx_t Nv = mesh->local_num_vertices;
 
@@ -847,16 +884,16 @@ bfam_domain_p8est_split_dgx_subdomains(bfam_domain_p8est_t *domain,
 
   bfam_locidx_t *ghostN = bfam_malloc(mesh->ghost_num_quadrants * sizeof(int));
 
-  bfam_locidx_t numParallelFaces = bfam_domain_p8est_num_parallel_faces(mesh);
+  bfam_locidx_t numParallelFaces = bfam_domain_pxest_num_parallel_faces(mesh);
 
   bfam_subdomain_face_map_entry_t *pfmapping
     = bfam_malloc_aligned(numParallelFaces*
         sizeof(bfam_subdomain_face_map_entry_t));
 
-  bfam_domain_p8est_parallel_face_mapping(mesh, numParallelFaces, pfmapping);
+  bfam_domain_pxest_parallel_face_mapping(mesh, numParallelFaces, pfmapping);
 
   bfam_locidx_t numNeighbors =
-    bfam_domain_p8est_parallel_face_num_neighbors(numParallelFaces, pfmapping);
+    bfam_domain_pxest_parallel_face_num_neighbors(numParallelFaces, pfmapping);
 
   bfam_locidx_t *numNeighborFaces =
     bfam_malloc_aligned(numNeighbors*sizeof(bfam_locidx_t));
@@ -864,21 +901,21 @@ bfam_domain_p8est_split_dgx_subdomains(bfam_domain_p8est_t *domain,
   bfam_locidx_t *neighborRank =
     bfam_malloc_aligned(numNeighbors*sizeof(bfam_locidx_t));
 
-  bfam_domain_p8est_num_neighbor_faces(numParallelFaces, pfmapping,
+  bfam_domain_pxest_num_neighbor_faces(numParallelFaces, pfmapping,
       numNeighbors, numNeighborFaces, neighborRank);
 
 #ifdef BFAM_DEBUG
-  bfam_domain_p8est_parallel_face_mapping_check(p8est->mpicomm,
+  bfam_domain_pxest_parallel_face_mapping_check(pxest->mpicomm,
       numParallelFaces, pfmapping, numNeighbors, numNeighborFaces,
       neighborRank);
 #endif
 
-  bfam_domain_p8est_fill_ghost_subdomain_ids(p8est->mpicomm, numParallelFaces,
+  bfam_domain_pxest_fill_ghost_subdomain_ids(pxest->mpicomm, numParallelFaces,
       pfmapping, numNeighbors, numNeighborFaces, neighborRank, subdomainID, N,
       ghostSubdomainID, ghostN);
 
   bfam_locidx_t numInterSubdomainFaces =
-    bfam_domain_p8est_num_inter_subdomain_faces(mesh, subdomainID);
+    bfam_domain_pxest_num_inter_subdomain_faces(mesh, subdomainID);
 
   BFAM_LDEBUG("numInterSubdomainFaces = %jd", (intmax_t) numInterSubdomainFaces);
 
@@ -887,14 +924,14 @@ bfam_domain_p8est_split_dgx_subdomains(bfam_domain_p8est_t *domain,
         sizeof(bfam_subdomain_face_map_entry_t));
 
   int rank;
-  BFAM_MPI_CHECK(MPI_Comm_rank(p8est->mpicomm, &rank));
+  BFAM_MPI_CHECK(MPI_Comm_rank(pxest->mpicomm, &rank));
 
-  bfam_domain_p8est_inter_subdomain_face_mapping(rank, mesh, subdomainID,
+  bfam_domain_pxest_inter_subdomain_face_mapping(rank, mesh, subdomainID,
       numInterSubdomainFaces, ifmapping);
 
 
   bfam_locidx_t numBoundaryFaces =
-    bfam_domain_p8est_num_boundary_faces(mesh);
+    bfam_domain_pxest_num_boundary_faces(mesh);
 
   BFAM_LDEBUG("numBoundaryFaces = %jd", (intmax_t) numBoundaryFaces);
 
@@ -902,7 +939,7 @@ bfam_domain_p8est_split_dgx_subdomains(bfam_domain_p8est_t *domain,
     = bfam_malloc_aligned(numBoundaryFaces*
         sizeof(bfam_subdomain_face_map_entry_t));
 
-  bfam_domain_p8est_boundary_subdomain_face_mapping(mesh, subdomainID,
+  bfam_domain_pxest_boundary_subdomain_face_mapping(mesh, subdomainID,
       numBoundaryFaces, bfmapping);
 
   /*
@@ -918,7 +955,7 @@ bfam_domain_p8est_split_dgx_subdomains(bfam_domain_p8est_t *domain,
   /*
    * Count the number of elements in each new subdomain
    */
-  for(p4est_locidx_t k = 0; k < p8est->local_num_quadrants; ++k)
+  for(p4est_locidx_t k = 0; k < pxest->local_num_quadrants; ++k)
   {
     bfam_locidx_t id = (bfam_locidx_t) subdomainID[k];
 
@@ -933,14 +970,14 @@ bfam_domain_p8est_split_dgx_subdomains(bfam_domain_p8est_t *domain,
     name[id] = bfam_malloc(BFAM_BUFSIZ*sizeof(char));
     snprintf(name[id], BFAM_BUFSIZ, "dg_quad_%05jd", (intmax_t) id);
 
-    EToV[id] = bfam_malloc(subK[id]*P8EST_CHILDREN*sizeof(bfam_locidx_t));
-    EToE[id] = bfam_malloc(subK[id]*P8EST_FACES*sizeof(bfam_locidx_t));
-    EToF[id] = bfam_malloc(subK[id]*P8EST_FACES*sizeof(int8_t));
+    EToV[id] = bfam_malloc(subK[id]*P4EST_CHILDREN*sizeof(bfam_locidx_t));
+    EToE[id] = bfam_malloc(subK[id]*P4EST_FACES*sizeof(bfam_locidx_t));
+    EToF[id] = bfam_malloc(subK[id]*P4EST_FACES*sizeof(int8_t));
   }
 
   const p4est_locidx_t K = mesh->local_num_quadrants;
 
-  BFAM_ASSERT(K == p8est->local_num_quadrants);
+  BFAM_ASSERT(K == pxest->local_num_quadrants);
 
   for(bfam_locidx_t id = 0; id < numSubdomains; ++id)
   {
@@ -955,7 +992,7 @@ bfam_domain_p8est_split_dgx_subdomains(bfam_domain_p8est_t *domain,
 
 
   /*
-   * Here we are decoding the p8est_mesh_t structure.  See p8est_mesh.h
+   * Here we are decoding the p4est_mesh_t structure.  See p4est_mesh.h
    * for more details on how the data is stored.
    */
 
@@ -970,16 +1007,16 @@ bfam_domain_p8est_split_dgx_subdomains(bfam_domain_p8est_t *domain,
   {
     const bfam_locidx_t  idk  = subdomainID[k];
 
-    for (int v = 0; v < P8EST_CHILDREN; ++v)
+    for (int v = 0; v < P4EST_CHILDREN; ++v)
     {
-      EToV[idk][P8EST_CHILDREN * subk[idk] + v] =
-        mesh->quad_to_vertex[P8EST_CHILDREN * k + v];
+      EToV[idk][P4EST_CHILDREN * subk[idk] + v] =
+        mesh->quad_to_vertex[P4EST_CHILDREN * k + v];
     }
 
-    for (int f = 0; f < P8EST_FACES; ++f)
+    for (int f = 0; f < P4EST_FACES; ++f)
     {
-      const p4est_locidx_t ck = mesh->quad_to_quad[P8EST_FACES * k + f];
-      const int            cf = mesh->quad_to_face[P8EST_FACES * k + f];
+      const p4est_locidx_t ck = mesh->quad_to_quad[P4EST_FACES * k + f];
+      const int            cf = mesh->quad_to_face[P4EST_FACES * k + f];
 
       int nk = k;
       int nf = f;
@@ -993,8 +1030,8 @@ bfam_domain_p8est_split_dgx_subdomains(bfam_domain_p8est_t *domain,
         nf = cf;
       }
 
-      EToE[idk][P8EST_FACES * subk[idk] + f] = ktosubk[nk];
-      EToF[idk][P8EST_FACES * subk[idk] + f] = nf;
+      EToE[idk][P4EST_FACES * subk[idk] + f] = ktosubk[nk];
+      EToF[idk][P4EST_FACES * subk[idk] + f] = nf;
     }
 
     ++subk[idk];
@@ -1007,17 +1044,17 @@ bfam_domain_p8est_split_dgx_subdomains(bfam_domain_p8est_t *domain,
   {
     const bfam_long_real_t *Vi[] = {VX, VY, VZ};
     subdomains[id] =
-      bfam_subdomain_dgx_new_3(id,
-                               name[id],
-                               N[id],
-                               Nv,
-                               3,
-                               Vi,
-                               subK[id],
-                               EToV[id],
-                               EToE[id],
-                               EToF[id],
-                               3);
+      bfam_subdomain_dgx_new(id,
+                             name[id],
+                             N[id],
+                             Nv,
+                             DIM,
+                             Vi,
+                             subK[id],
+                             EToV[id],
+                             EToE[id],
+                             EToF[id],
+                             DIM);
 
     bfam_subdomain_add_tag((bfam_subdomain_t *) subdomains[id], "_volume");
     bfam_domain_add_subdomain((bfam_domain_t    *) domain,
@@ -1078,30 +1115,30 @@ bfam_domain_p8est_split_dgx_subdomains(bfam_domain_p8est_t *domain,
        sign_p = (r) ?  1 : -1;
       }
 
-      // FIXME
-      // bfam_subdomain_dgx_quad_glue_t *glue =
-      //   bfam_subdomain_dgx_quad_glue_new(id,
-      //                                    glueName,
-      //                                    N[id_m],
-      //                                    N[id_p],
-      //                                    rank_m,
-      //                                    rank_p,
-      //                                    sign_p * (id_m+1),
-      //                                    sign_p * (id_p+1),
-      //                                    subdomains[id_m],
-      //                                    ktosubk,
-      //                                    Kglue,
-      //                                    ifmapping + ifk);
+      bfam_subdomain_dgx_t *glue =
+        bfam_subdomain_dgx_glue_new(id,
+                                    glueName,
+                                    N[id_m],
+                                    N[id_p],
+                                    rank_m,
+                                    rank_p,
+                                    sign_p * (id_m+1),
+                                    sign_p * (id_p+1),
+                                    subdomains[id_m],
+                                    ktosubk,
+                                    Kglue,
+                                    ifmapping + ifk,
+                                    DIM-1);
 
-      // bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue");
-      // bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue_local");
-      // char glue_num_tag[BFAM_BUFSIZ];
-      // snprintf(glue_num_tag,BFAM_BUFSIZ,"_glue_%d_%d",
-      //     BFAM_MIN(id_m,id_p),BFAM_MAX(id_m,id_p));
-      // bfam_subdomain_add_tag((bfam_subdomain_t *) glue, glue_num_tag);
+      bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue");
+      bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue_local");
+      char glue_num_tag[BFAM_BUFSIZ];
+      snprintf(glue_num_tag,BFAM_BUFSIZ,"_glue_%d_%d",
+          BFAM_MIN(id_m,id_p),BFAM_MAX(id_m,id_p));
+      bfam_subdomain_add_tag((bfam_subdomain_t *) glue, glue_num_tag);
 
-      // bfam_domain_add_subdomain((bfam_domain_t    *) domain,
-      //                           (bfam_subdomain_t *) glue);
+      bfam_domain_add_subdomain((bfam_domain_t    *) domain,
+                                (bfam_subdomain_t *) glue);
 
       numGlue += 1;
     }
@@ -1143,26 +1180,26 @@ bfam_domain_p8est_split_dgx_subdomains(bfam_domain_p8est_t *domain,
         (intmax_t) id, (intmax_t) id_m, (intmax_t) id_p);
 
 
-    // FIXME
-    // bfam_subdomain_dgx_quad_glue_t *glue =
-    //   bfam_subdomain_dgx_quad_glue_new(id,
-    //                                    glueName,
-    //                                    N[id_m],
-    //                                    N[id_p],
-    //                                    rank_m,
-    //                                    rank_p,
-    //                                    id_m+1,
-    //                                    id_p+1,
-    //                                    subdomains[id_m],
-    //                                    ktosubk,
-    //                                    Kglue,
-    //                                    bfmapping + bfk);
+    bfam_subdomain_dgx_t *glue =
+      bfam_subdomain_dgx_glue_new(id,
+                                  glueName,
+                                  N[id_m],
+                                  N[id_p],
+                                  rank_m,
+                                  rank_p,
+                                  id_m+1,
+                                  id_p+1,
+                                  subdomains[id_m],
+                                  ktosubk,
+                                  Kglue,
+                                  bfmapping + bfk,
+                                  DIM-1);
 
-    // bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue");
-    // bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue_boundary");
+    bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue");
+    bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue_boundary");
 
-    // bfam_domain_add_subdomain((bfam_domain_t    *) domain,
-    //                           (bfam_subdomain_t *) glue);
+    bfam_domain_add_subdomain((bfam_domain_t    *) domain,
+                              (bfam_subdomain_t *) glue);
 
     numGlue += 1;
     bfk += Kglue;
@@ -1204,30 +1241,30 @@ bfam_domain_p8est_split_dgx_subdomains(bfam_domain_p8est_t *domain,
         (intmax_t) id, (intmax_t) id_m, (intmax_t) id_p);
 
 
-    // FIXME
-    // bfam_subdomain_dgx_quad_glue_t *glue =
-    //   bfam_subdomain_dgx_quad_glue_new(id,
-    //                                    glueName,
-    //                                    N[id_m],
-    //                                    ghostN[gid_p],
-    //                                    rank_m,
-    //                                    rank_p,
-    //                                    id_m+1,
-    //                                    id_p+1,
-    //                                    subdomains[id_m],
-    //                                    ktosubk,
-    //                                    Kglue,
-    //                                    pfmapping + pfk);
+    bfam_subdomain_dgx_t *glue =
+      bfam_subdomain_dgx_glue_new(id,
+                                  glueName,
+                                  N[id_m],
+                                  ghostN[gid_p],
+                                  rank_m,
+                                  rank_p,
+                                  id_m+1,
+                                  id_p+1,
+                                  subdomains[id_m],
+                                  ktosubk,
+                                  Kglue,
+                                  pfmapping + pfk,
+                                  DIM-1);
 
-    // bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue");
-    // bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue_parallel");
-    //   char glue_num_tag[BFAM_BUFSIZ];
-    //   snprintf(glue_num_tag,BFAM_BUFSIZ,"_glue_%d_%d",
-    //       BFAM_MIN(id_m,id_p),BFAM_MAX(id_m,id_p));
-    //   bfam_subdomain_add_tag((bfam_subdomain_t *) glue, glue_num_tag);
+    bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue");
+    bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue_parallel");
+      char glue_num_tag[BFAM_BUFSIZ];
+      snprintf(glue_num_tag,BFAM_BUFSIZ,"_glue_%d_%d",
+          BFAM_MIN(id_m,id_p),BFAM_MAX(id_m,id_p));
+      bfam_subdomain_add_tag((bfam_subdomain_t *) glue, glue_num_tag);
 
-    // bfam_domain_add_subdomain((bfam_domain_t    *) domain,
-    //                           (bfam_subdomain_t *) glue);
+    bfam_domain_add_subdomain((bfam_domain_t    *) domain,
+                              (bfam_subdomain_t *) glue);
 
     numGlue += 1;
     pfk += Kglue;
@@ -1266,8 +1303,10 @@ bfam_domain_p8est_split_dgx_subdomains(bfam_domain_p8est_t *domain,
   bfam_free_aligned(VY);
   bfam_free_aligned(VZ);
 
-  p8est_mesh_destroy(mesh);
-  p8est_ghost_destroy(ghost);
+  p4est_mesh_destroy(mesh);
+  p4est_ghost_destroy(ghost);
 
-  BFAM_ROOT_LDEBUG("End splitting p8est domain into subdomains.");
+  BFAM_ROOT_LDEBUG("End splitting pxest domain into subdomains.");
 }
+
+#endif

@@ -1,8 +1,23 @@
 #include <bfam.h>
-#include <bfam_domain_p4est_2d.h>
+#include <bfam_domain_pxest_2.h>
 
 #define REAL_APPROX_EQ(x, y, K)                                              \
   BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, 10*BFAM_REAL_EPS)
+
+#define DIM 2
+
+#define              bfam_domain_pxest_t \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_t_,DIM)
+#define              bfam_domain_pxest_new \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_new_,DIM)
+#define              bfam_domain_pxest_init \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_init_,DIM)
+#define              bfam_domain_pxest_free \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_free_,DIM)
+#define              bfam_domain_pxest_split_dgx_subdomains \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_split_dgx_subdomains_,DIM)
+
+
 
 bfam_real_t xex[] = {
                  0.0,
@@ -420,18 +435,18 @@ test_geo_dgx(MPI_Comm mpicomm)
     BFAM_INFO("%jd %25.15e %25.15e", (intmax_t) n+1,
        conn->vertices[n*3+0], conn->vertices[n*3+1]);
 
-  bfam_domain_p4est_2d_t* domain = bfam_domain_p4est_2d_new(mpicomm, conn);
+  bfam_domain_pxest_t* domain = bfam_domain_pxest_new(mpicomm, conn);
 
-  p4est_balance(domain->p4est, P4EST_CONNECT_CORNER, NULL);
-  p4est_partition(domain->p4est, NULL);
+  p4est_balance(domain->pxest, P4EST_CONNECT_CORNER, NULL);
+  p4est_partition(domain->pxest, NULL);
 
   bfam_locidx_t numSubdomains = 1;
   int N = 1;
 
   bfam_locidx_t *subdomainID =
-    bfam_calloc(domain->p4est->local_num_quadrants, sizeof(bfam_locidx_t));
+    bfam_calloc(domain->pxest->local_num_quadrants, sizeof(bfam_locidx_t));
 
-  bfam_domain_p4est_2d_split_dgx_subdomains(domain, numSubdomains,
+  bfam_domain_pxest_split_dgx_subdomains(domain, numSubdomains,
       subdomainID, &N);
 
   bfam_subdomain_t **subdomains =
@@ -461,7 +476,7 @@ test_geo_dgx(MPI_Comm mpicomm)
   bfam_free(subdomains);
 
 
-  bfam_domain_p4est_2d_free(domain);
+  bfam_domain_pxest_free(domain);
   bfam_free(domain);
 
   p4est_connectivity_destroy(conn);

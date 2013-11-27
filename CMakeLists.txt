@@ -354,8 +354,6 @@ add_library(bfam
                  src/bfam_subdomain.c
                  src/bfam_domain.c
                  src/bfam_domain_p4est.c
-                 src/bfam_domain_p4est_2d.c
-                 src/bfam_domain_p8est.c
                  src/bfam_subdomain_dgx_quad.c
                  src/bfam_subdomain_sbp.c
                  src/bfam_vtk.c
@@ -388,6 +386,8 @@ endif(OPENCL_FOUND)
 set(bfam_dgx_quad_norders  1  2  3  4  5  6  7  8  9 10
                           11 12 13 14 15 16 17 18 19 20
                           21 22 23 24)
+
+set(pxest_dimensions 2 3)
 
 set(bfam_dimensions  0 1 2 3)
 
@@ -442,6 +442,13 @@ bfam_multiple_build("BFAM_DGX_DIMENSION" "${bfam_dimensions}"
   bfam_subdomain_dgx
   src/bfam_subdomain_dgx.c
   bfam)
+
+
+bfam_multiple_build("BFAM_PXEST_DIMENSION" "${pxest_dimensions}"
+  bfam_domain_pxest
+  src/bfam_domain_pxest.c
+  bfam)
+
 
 bfam_multiple_build("NORDER" "${bfam_dgx_quad_norders}"
   beard_dgx_rhs
@@ -709,6 +716,9 @@ join("${bfam_dgx_quad_norders}" ") X(" BFAM_DGX_QUAD_NORDERS_MID)
 
 set(slash "\\")
 join("${bfam_dimensions}" ") X(" BFAM_DGX_DIMENSIONS_MID)
+
+set(slash "\\")
+join("${pxest_dimensions}" ") X(" BFAM_PXEST_DIMENSIONS_MID)
 
 ##
 ## Write BFAM config file
