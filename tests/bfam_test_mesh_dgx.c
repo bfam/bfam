@@ -16,8 +16,6 @@ static int          refine_level = 0;
   BFAM_APPEND_EXPAND(bfam_domain_pxest_init_,DIM)
 #define              bfam_domain_pxest_free \
   BFAM_APPEND_EXPAND(bfam_domain_pxest_free_,DIM)
-#define              bfam_subdomain_dgx_new \
-  BFAM_APPEND_EXPAND(bfam_subdomain_dgx_new_,DIM)
 #define              bfam_domain_pxest_split_dgx_subdomains \
   BFAM_APPEND_EXPAND(bfam_domain_pxest_split_dgx_subdomains_,DIM)
 

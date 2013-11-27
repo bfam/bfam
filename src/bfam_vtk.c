@@ -2,6 +2,8 @@
 #include <bfam_vtk.h>
 #include <bfam_log.h>
 #include <bfam_util.h>
+#include <sc.h>
+#include <sc_io.h>
 
 #define BFAM_VTK_VTU_FORMAT "%s_%05d.vtu"
 #define BFAM_VTK_VTS_FORMAT "%s_%s_%s.vts"
