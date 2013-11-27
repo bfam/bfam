@@ -497,15 +497,15 @@ build_mesh(MPI_Comm mpicomm)
         name);
   }
 
-  //JK bfam_communicator_t* communicator =
-  //JK   bfam_communicator_new((bfam_domain_t*)domain, BFAM_DOMAIN_OR, glue,
-  //JK       mpicomm, 10, &commargs);
+  bfam_communicator_t* communicator =
+    bfam_communicator_new((bfam_domain_t*)domain, BFAM_DOMAIN_OR, glue,
+        mpicomm, 10, &commargs);
 
   /* start recv_send */
-  //JK bfam_communicator_start(communicator);
+  bfam_communicator_start(communicator);
 
   /* finish recv */
-  //JK bfam_communicator_finish(communicator);
+  bfam_communicator_finish(communicator);
 
   const char *ps[] = {"p1", "p2", "p3", "p4", "p5", "p6", NULL};
 
@@ -598,8 +598,8 @@ build_mesh(MPI_Comm mpicomm)
 
 
   /* clean up */
-  //JK bfam_communicator_free(communicator);
-  //JK bfam_free(communicator);
+  bfam_communicator_free(communicator);
+  bfam_free(communicator);
 
   bfam_free(subdomainID);
   bfam_free(N);
