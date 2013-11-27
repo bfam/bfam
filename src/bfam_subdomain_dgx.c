@@ -20,6 +20,31 @@ typedef struct bfam_subdomain_dgx_get_put_data
   size_t field;
 } bfam_subdomain_dgx_get_put_data_t;
 
+static int
+bfam_subdomain_dgx_put_scalar_fields_p(const char * key, void *val,
+    void *arg)
+{
+  bfam_subdomain_dgx_get_put_data_t *data =
+    (bfam_subdomain_dgx_get_put_data_t*) arg;
+
+  const bfam_locidx_t K = data->sub->K;
+  const int Np = data->sub->Np;
+
+  const size_t buffer_offset = data->field * Np * K;
+  const bfam_real_t *restrict recv_field = data->buffer + buffer_offset;
+
+  BFAM_ASSERT((data->field+1) * Np * K * sizeof(bfam_real_t) <= data->size);
+
+  bfam_real_t *restrict glue_field = val;
+
+  BFAM_ASSUME_ALIGNED(glue_field, 32);
+
+  memcpy(glue_field, recv_field, K * Np * sizeof(bfam_real_t));
+
+  ++data->field;
+  return 0;
+}
+
 static void
 bfam_subdomain_dgx_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
     void *buffer, size_t recv_sz, void* comm_args)
@@ -33,17 +58,17 @@ bfam_subdomain_dgx_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
 
   if(comm_args == NULL)
   {
-    BFAM_ASSERT(recv_sz == data.sub->base.fields_p.num_entries * data.sub->K *
-        data.sub->Np * sizeof(bfam_real_t));
+    BFAM_ASSERT(recv_sz == data.sub->base.glue_p->fields.num_entries *
+        data.sub->K * data.sub->Np * sizeof(bfam_real_t));
 
     /*
      * Fill fields_p from the recv buffer.
      */
-    // bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_p, "",
-    //     &bfam_subdomain_dgx_quad_glue_put_scalar_fields_p, &data);
+    bfam_dictionary_allprefixed_ptr(&data.sub->base.glue_p->fields, "",
+        &bfam_subdomain_dgx_put_scalar_fields_p, &data);
 
-    BFAM_ASSERT(recv_sz == data.sub->base.fields_p.num_entries * data.sub->K *
-        data.sub->Np * sizeof(bfam_real_t));
+    BFAM_ASSERT(recv_sz == data.sub->base.glue_p->fields.num_entries *
+        data.sub->K * data.sub->Np * sizeof(bfam_real_t));
   }
   else
   {
@@ -51,8 +76,9 @@ bfam_subdomain_dgx_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
     for(int s = 0; args->scalars_p[s] != NULL;s++)
     {
       const char *key  = args->scalars_p[s];
-      void *field = bfam_dictionary_get_value_ptr(&data.sub->base.fields_p,key);
-      // bfam_subdomain_dgx_quad_glue_put_scalar_fields_p(key,field,&data);
+      void *field =
+        bfam_dictionary_get_value_ptr(&data.sub->base.glue_p->fields,key);
+      bfam_subdomain_dgx_put_scalar_fields_p(key,field,&data);
     }
     const char *vt_postfix[] = {"n","p1","p2","p3",NULL};
     for(int v = 0; args->vectors_p[v] != NULL;v++)
@@ -61,9 +87,9 @@ bfam_subdomain_dgx_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
       {
         char key[BFAM_BUFSIZ];
         snprintf(key,BFAM_BUFSIZ,"%s%s" ,args->vectors_p[v],vt_postfix[c]);
-        void *field  = bfam_dictionary_get_value_ptr(&data.sub->base.fields_p,
-                                                     key);
-        // bfam_subdomain_dgx_quad_glue_put_scalar_fields_p(key,field,&data);
+        void *field  =
+          bfam_dictionary_get_value_ptr(&data.sub->base.glue_p->fields, key);
+        bfam_subdomain_dgx_put_scalar_fields_p(key,field,&data);
       }
     }
     for(int t = 0; args->tensors_p[t] != NULL;t++)
@@ -72,18 +98,134 @@ bfam_subdomain_dgx_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
       {
         char key[BFAM_BUFSIZ];
         snprintf(key,BFAM_BUFSIZ,"%s%s" ,args->tensors_p[t],vt_postfix[c]);
-        void *field  = bfam_dictionary_get_value_ptr(&data.sub->base.fields_p,
-                                                     key);
-        // bfam_subdomain_dgx_quad_glue_put_scalar_fields_p(key,field,&data);
+        void *field  =
+          bfam_dictionary_get_value_ptr(&data.sub->base.glue_p->fields, key);
+        bfam_subdomain_dgx_put_scalar_fields_p(key,field,&data);
       }
     }
     for(int s = 0; args->face_scalars_p[s] != NULL;s++)
     {
       const char *key  = args->face_scalars_p[s];
-      void *field = bfam_dictionary_get_value_ptr(&data.sub->base.fields_p,key);
-        // bfam_subdomain_dgx_quad_glue_put_scalar_fields_p(key,field,&data);
+      void *field =
+        bfam_dictionary_get_value_ptr(&data.sub->base.glue_p->fields,key);
+        bfam_subdomain_dgx_put_scalar_fields_p(key,field,&data);
     }
   }
+}
+
+static int
+bfam_subdomain_dgx_get_scalar_fields_m(const char * key, void *val,
+    void *arg)
+{
+  bfam_subdomain_dgx_get_put_data_t *data =
+    (bfam_subdomain_dgx_get_put_data_t*) arg;
+
+  bfam_subdomain_dgx_t *sub = data->sub;
+
+  bfam_subdomain_dgx_glue_data_t* glue_p =
+    (bfam_subdomain_dgx_glue_data_t*) sub->base.glue_p;
+
+  bfam_subdomain_dgx_glue_data_t* glue_m =
+    (bfam_subdomain_dgx_glue_data_t*) sub->base.glue_m;
+
+  bfam_subdomain_dgx_t *sub_m = (bfam_subdomain_dgx_t*) glue_m->base.sub_m;
+
+  const bfam_locidx_t K = sub->K;
+  const int Np = sub->Np;
+
+  const bfam_locidx_t *restrict EToEp = glue_p->EToEp;
+  const bfam_locidx_t *restrict EToEm = glue_p->EToEm;
+  const int8_t        *restrict EToFm = glue_p->EToFm;
+  const int8_t        *restrict EToHm = glue_p->EToHm;
+  const int8_t        *restrict EToOm = glue_p->EToOm;
+
+  const int sub_m_Np  = sub_m->Np;
+  const int sub_m_Nfp = sub_m->Ngp[0];
+
+  const size_t buffer_offset = data->field * Np * K;
+
+  bfam_real_t *restrict send_field = data->buffer + buffer_offset;
+
+  BFAM_ASSERT((data->field+1) * Np * K * sizeof(bfam_real_t) <= data->size);
+
+  const bfam_real_t *restrict sub_m_field =
+    bfam_dictionary_get_value_ptr(&sub_m->base.fields, key);
+
+  bfam_real_t *restrict glue_field = val;
+
+  BFAM_ASSERT( send_field != NULL);
+  BFAM_ASSERT(sub_m_field != NULL);
+  BFAM_ASSERT( glue_field != NULL);
+
+  BFAM_ASSUME_ALIGNED(sub_m_field, 32);
+  BFAM_ASSUME_ALIGNED( glue_field, 32);
+
+  BFAM_ASSUME_ALIGNED(EToEp, 32);
+  BFAM_ASSUME_ALIGNED(EToEm, 32);
+  BFAM_ASSUME_ALIGNED(EToFm, 32);
+  BFAM_ASSUME_ALIGNED(EToHm, 32);
+  BFAM_ASSUME_ALIGNED(EToOm, 32);
+
+  for(bfam_locidx_t k = 0; k < K; ++k)
+  {
+    BFAM_ASSERT(EToEp[k] < sub->K);
+    BFAM_ASSERT(EToEm[k] < sub_m->K);
+    BFAM_ASSERT(EToFm[k] < sub_m->Ng[0]);
+    /* BFAM_ASSERT(EToHm[k] < sub_m->Nh); */
+    /* BFAM_ASSERT(EToOm[k] < sub_m->No); */
+
+    bfam_real_t *restrict send_elem = send_field + EToEp[k] * Np;
+
+    bfam_locidx_t *restrict fmask = sub_m->gmask[0][EToFm[k]];
+
+    const bfam_real_t *restrict sub_m_elem = sub_m_field + EToEm[k] * sub_m_Np;
+
+    bfam_real_t *restrict glue_elem = glue_field + k * Np;
+
+    /*
+     * Decide which interpolation operation to use.
+     */
+    const bfam_real_t *restrict interpolation =
+      glue_m->interpolation[EToHm[k]];
+    BFAM_ASSUME_ALIGNED(interpolation, 32);
+
+    /*
+     * Interpolate.
+     */
+    if(interpolation)
+    {
+      /*
+       * XXX: Replace with something faster; this will also have to change
+       * for 3D.
+       */
+      for(int n = 0; n < Np; ++n)
+        glue_elem[n] = 0;
+      for(int j = 0; j < sub_m_Nfp; ++j)
+        for(int i = 0; i < Np; ++i)
+          glue_elem[i] += interpolation[j * Np + i] * sub_m_elem[fmask[j]];
+    }
+    else
+    {
+      for(int i = 0; i < Np; ++i)
+        glue_elem[i] = sub_m_elem[fmask[i]];
+    }
+
+    /*
+     * Copy data to send buffer based on orientation.
+     */
+    if(EToOm[k])
+    {
+      for(int n = 0; n < Np; ++n)
+        send_elem[n] = glue_elem[Np-1-n];
+    }
+    else
+    {
+      memcpy(send_elem, glue_elem, Np * sizeof(bfam_real_t));
+    }
+  }
+
+  ++data->field;
+  return 0;
 }
 
 static void
@@ -99,14 +241,14 @@ bfam_subdomain_dgx_put_send_buffer(bfam_subdomain_t *thisSubdomain,
 
   if(comm_args == NULL)
   {
-    BFAM_ASSERT(send_sz == data.sub->base.fields_m.num_entries * data.sub->K *
-        data.sub->Np * sizeof(bfam_real_t));
+    BFAM_ASSERT(send_sz == data.sub->base.glue_m->fields.num_entries *
+        data.sub->K * data.sub->Np * sizeof(bfam_real_t));
 
     /*
      * Fill fields_m and the send buffer from sub_m.
      */
-    // bfam_dictionary_allprefixed_ptr(&data.sub->base.fields_m, "",
-    //     &bfam_subdomain_dgx_quad_glue_get_scalar_fields_m, &data);
+    bfam_dictionary_allprefixed_ptr(&data.sub->base.glue_m->fields, "",
+        &bfam_subdomain_dgx_get_scalar_fields_m, &data);
   }
   else
   {
@@ -114,21 +256,26 @@ bfam_subdomain_dgx_put_send_buffer(bfam_subdomain_t *thisSubdomain,
     for(int s = 0; args->scalars_m[s] != NULL;s++)
     {
       const char *key  = args->scalars_m[s];
-      void *field = bfam_dictionary_get_value_ptr(&data.sub->base.fields_m,key);
-      // bfam_subdomain_dgx_quad_glue_get_scalar_fields_m(key,field,&data);
+      void *field =
+        bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,key);
+      bfam_subdomain_dgx_get_scalar_fields_m(key,field,&data);
     }
     for(int v = 0; args->vectors_m[v] != NULL;v++)
     {
       const char *vec_prefix  = args->vectors_m[v];
       char str[BFAM_BUFSIZ];
       snprintf(str,BFAM_BUFSIZ,"%sn" ,vec_prefix);
-      void *vn  = bfam_dictionary_get_value_ptr(&data.sub->base.fields_m,str);
+      void *vn  =
+        bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,str);
       snprintf(str,BFAM_BUFSIZ,"%sp1",vec_prefix);
-      void *vp1 = bfam_dictionary_get_value_ptr(&data.sub->base.fields_m,str);
+      void *vp1 =
+        bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,str);
       snprintf(str,BFAM_BUFSIZ,"%sp2",vec_prefix);
-      void *vp2 = bfam_dictionary_get_value_ptr(&data.sub->base.fields_m,str);
+      void *vp2 =
+        bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,str);
       snprintf(str,BFAM_BUFSIZ,"%sp3",vec_prefix);
-      void *vp3 = bfam_dictionary_get_value_ptr(&data.sub->base.fields_m,str);
+      void *vp3 =
+        bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,str);
       BFAM_ASSERT(vn != NULL && vp1 != NULL && vp2 != NULL && vp3 != NULL);
       const char **comps = args->vector_components_m + 3*v;
       // bfam_subdomain_dgx_quad_glue_get_vector_fields_m(comps,vn,vp1,vp2,vp3,
@@ -139,13 +286,17 @@ bfam_subdomain_dgx_put_send_buffer(bfam_subdomain_t *thisSubdomain,
       const char *ten_prefix  = args->tensors_m[t];
       char str[BFAM_BUFSIZ];
       snprintf(str,BFAM_BUFSIZ,"%sn" ,ten_prefix);
-      void *tn  = bfam_dictionary_get_value_ptr(&data.sub->base.fields_m,str);
+      void *tn  =
+        bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,str);
       snprintf(str,BFAM_BUFSIZ,"%sp1",ten_prefix);
-      void *tp1 = bfam_dictionary_get_value_ptr(&data.sub->base.fields_m,str);
+      void *tp1 =
+        bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,str);
       snprintf(str,BFAM_BUFSIZ,"%sp2",ten_prefix);
-      void *tp2 = bfam_dictionary_get_value_ptr(&data.sub->base.fields_m,str);
+      void *tp2 =
+        bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,str);
       snprintf(str,BFAM_BUFSIZ,"%sp3",ten_prefix);
-      void *tp3 = bfam_dictionary_get_value_ptr(&data.sub->base.fields_m,str);
+      void *tp3 =
+        bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,str);
       BFAM_ASSERT(tn != NULL && tp1 != NULL && tp2 != NULL && tp3 != NULL);
       const char **comps = args->tensor_components_m + 3*t;
       // bfam_subdomain_dgx_quad_glue_get_tensor_fields_m(comps,tn,tp1,tp2,tp3,
@@ -154,7 +305,7 @@ bfam_subdomain_dgx_put_send_buffer(bfam_subdomain_t *thisSubdomain,
     for(int s = 0; args->face_scalars_m[s] != NULL;s++)
     {
       const char *key  = args->face_scalars_m[s];
-      void *field = bfam_dictionary_get_value_ptr(&data.sub->base.fields_m,key);
+      void *field = bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,key);
       // bfam_subdomain_dgx_quad_glue_get_face_scalar_fields_m(key,field,&data);
     }
   }
@@ -231,7 +382,8 @@ bfam_subdomain_dgx_geo(int N, bfam_locidx_t K, int Np, int ***gmask,
   BFAM_ABORT_IF_NOT((J == NULL) == (ni == NULL) && (J == NULL) == (sJ == NULL),
       "[J,ni,sJ] must all be NULL or not NULL");
 
-  const int Nfaces = Ng[0];
+
+ const int Nfaces = Ng[0];
   const int Nfp    = Ngp[0];
 
   /*
@@ -1834,7 +1986,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_new_,BFAM_DGX_DIMENSION)(
 {
 #ifdef USE_GENERIC_DGX_DIMENSION
   BFAM_WARNING("Using generic bfam_subdomain_dgx_glue_new");
-  /* const int DIM = inDIM; */
+  const int DIM = inDIM;
 #endif
   BFAM_ASSERT(DIM == inDIM);
 
@@ -1923,7 +2075,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
 {
 #ifdef USE_GENERIC_DGX_DIMENSION
   BFAM_WARNING("Using generic bfam_subdomain_dgx_glue_init");
-  /* const int DIM = inDIM; */
+  const int DIM = inDIM;
 #endif
   BFAM_ASSERT(DIM == inDIM);
   BFAM_ASSERT(DIM > 0);
