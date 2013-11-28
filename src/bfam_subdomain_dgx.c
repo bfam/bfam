@@ -2295,34 +2295,32 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
   glue_p->mapOm = bfam_malloc_aligned(glue_p->num_orient*sizeof(int8_t*));
   if(DIM == 1)
   {
-    int Nrp_p = subdomain->N+1;
     for(int n = 0; n < glue_p->num_orient; n++)
-      glue_p->mapOm[n] = bfam_malloc_aligned(Nrp_p*sizeof(int8_t));
-    for(int n = 0; n < Nrp_p; n++)
+      glue_p->mapOm[n] = bfam_malloc_aligned(Nrp*sizeof(int8_t));
+    for(int n = 0; n < Nrp; n++)
     {
       glue_p->mapOm[0][n] = n;
-      glue_p->mapOm[1][n] = Nrp_p-(n+1);
+      glue_p->mapOm[1][n] = Nrp-(n+1);
     }
   }
   else if(DIM == 2)
   {
-    int Nrp_p = subdomain->N+1;
     for(int n = 0; n < glue_p->num_orient; n++)
-      glue_p->mapOm[n] = bfam_malloc_aligned(Nrp_p*Nrp_p*sizeof(int8_t));
-    for(int j = 0; j < Nrp_p; j++)
-      for(int i = 0; i < Nrp_p; i++)
+      glue_p->mapOm[n] = bfam_malloc_aligned(Nrp*Nrp*sizeof(int8_t));
+    for(int j = 0; j < Nrp; j++)
+      for(int i = 0; i < Nrp; i++)
       {
-        int ir = Nrp_p-(i+1);
-        int jr = Nrp_p-(j+1);
+        int ir = Nrp-(i+1);
+        int jr = Nrp-(j+1);
 
-        glue_p->mapOm[0][i+j*Nrp_p] = i  + j  * Nrp_p;
-        glue_p->mapOm[1][i+j*Nrp_p] = j  + i  * Nrp_p;
-        glue_p->mapOm[2][i+j*Nrp_p] = ir + j  * Nrp_p;
-        glue_p->mapOm[3][i+j*Nrp_p] = j  + ir * Nrp_p;
-        glue_p->mapOm[4][i+j*Nrp_p] = jr + i  * Nrp_p;
-        glue_p->mapOm[5][i+j*Nrp_p] = i  + jr * Nrp_p;
-        glue_p->mapOm[6][i+j*Nrp_p] = jr + ir * Nrp_p;
-        glue_p->mapOm[7][i+j*Nrp_p] = ir + jr * Nrp_p;
+        glue_p->mapOm[0][i+j*Nrp] = i  + j  * Nrp;
+        glue_p->mapOm[1][i+j*Nrp] = j  + i  * Nrp;
+        glue_p->mapOm[2][i+j*Nrp] = ir + j  * Nrp;
+        glue_p->mapOm[3][i+j*Nrp] = j  + ir * Nrp;
+        glue_p->mapOm[4][i+j*Nrp] = jr + i  * Nrp;
+        glue_p->mapOm[5][i+j*Nrp] = i  + jr * Nrp;
+        glue_p->mapOm[6][i+j*Nrp] = jr + ir * Nrp;
+        glue_p->mapOm[7][i+j*Nrp] = ir + jr * Nrp;
       }
   }
   else BFAM_ABORT("Cannot handle dim = %d",DIM);
