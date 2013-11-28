@@ -41,13 +41,13 @@ typedef struct bfam_subdomain_dgx_glue_data
 {
   bfam_subdomain_glue_data_t base;
 
-  int               N;    /* 1D Polynomial Order on this side */
-
   bfam_locidx_t    *EToEp; /* Element     number on connected subdomain */
   bfam_locidx_t    *EToEm; /* Element     number on local subdomain */
   int8_t           *EToFm; /* Face        number on local subdomain */
   int8_t           *EToHm; /* Hanging     number on local subdomain */
   int8_t           *EToOm; /* Orientation number on local subdomain */
+  int8_t          **mapOm; /* mapping the orientation */
+  int          num_orient; /* number of orientations */
 
   /* The following pointers should only be \ne NULL on the minus side */
   int                  num_interp;   /* number of interpolation operators */

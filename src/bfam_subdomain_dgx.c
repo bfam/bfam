@@ -122,6 +122,11 @@ bfam_subdomain_dgx_get_scalar_fields_m(const char * key, void *val,
 
   bfam_subdomain_dgx_t *sub = data->sub;
 
+#ifdef USE_GENERIC_DGX_DIMENSION
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_get_scalar_fields_m");
+  const int DIM = sub->dim;
+#endif
+
   bfam_subdomain_dgx_glue_data_t* glue_p =
     (bfam_subdomain_dgx_glue_data_t*) sub->base.glue_p;
 
@@ -140,7 +145,6 @@ bfam_subdomain_dgx_get_scalar_fields_m(const char * key, void *val,
   const int8_t        *restrict EToOm = glue_p->EToOm;
 
   const int sub_m_Np  = sub_m->Np;
-  const int sub_m_Nfp = sub_m->Ngp[0];
 
   const size_t buffer_offset = data->field * Np * K;
 
@@ -183,26 +187,45 @@ bfam_subdomain_dgx_get_scalar_fields_m(const char * key, void *val,
     bfam_real_t *restrict glue_elem = glue_field + k * Np;
 
     /*
-     * Decide which interpolation operation to use.
-     */
-    const bfam_real_t *restrict interpolation =
-      glue_m->interpolation[EToHm[k]];
-    BFAM_ASSUME_ALIGNED(interpolation, 32);
-
-    /*
      * Interpolate.
      */
-    if(interpolation)
+    if(EToHm[k] || glue_m->interpolation[0])
     {
-      /*
-       * XXX: Replace with something faster; this will also have to change
-       * for 3D.
-       */
       for(int n = 0; n < Np; ++n)
         glue_elem[n] = 0;
-      for(int j = 0; j < sub_m_Nfp; ++j)
-        for(int i = 0; i < Np; ++i)
-          glue_elem[i] += interpolation[j * Np + i] * sub_m_elem[fmask[j]];
+      if(DIM == 1)
+      {
+        /*
+         * Decide which interpolation operation to use.
+         */
+        const bfam_real_t *restrict interpolation =
+          glue_m->interpolation[EToHm[k]];
+        BFAM_ASSUME_ALIGNED(interpolation, 32);
+
+        /*
+         * XXX: Replace with something faster; this will also have to change
+         * for 3D.
+         */
+        for(int j = 0; j < sub_m->Ngp[0]; ++j)
+          for(int i = 0; i < Np; ++i)
+            glue_elem[i] += interpolation[j * Np + i] * sub_m_elem[fmask[j]];
+      }
+      else if(DIM == 2)
+      {
+        int I1 = (EToHm[k] == 0) ? 0 : (EToHm[k]-1)/2+1;
+        int I2 = (EToHm[k] == 0) ? 0 : (EToHm[k]-1)%2+1;
+        const bfam_real_t *interp1 = glue_m->interpolation[I1];
+        const bfam_real_t *interp2 = glue_m->interpolation[I2];
+        const int sub_m_Nfp = sub_m->Ngp[0];
+        for(int m = 0; m < sub_m->N+1; m++)
+          for(int l = 0; l < sub_m->N+1; l++)
+            for(int j = 0; j < sub->N+1; j++)
+              for(int i = 0; i < sub->N+1; i++)
+                glue_elem[j*(sub->N+1)+i] +=
+                  interp1[(sub->N+1)*m+j]*interp2[(sub->N+1)*l+i]
+                  *sub_m_elem[fmask[m*(sub_m->N+1)+l]];
+      }
+      else BFAM_ABORT("Cannot handle dim = %d",DIM);
     }
     else
     {
@@ -214,14 +237,10 @@ bfam_subdomain_dgx_get_scalar_fields_m(const char * key, void *val,
      * Copy data to send buffer based on orientation.
      */
     if(EToOm[k])
-    {
       for(int n = 0; n < Np; ++n)
-        send_elem[n] = glue_elem[Np-1-n];
-    }
+        send_elem[n] = glue_elem[glue_p->mapOm[EToOm[k]][n]];
     else
-    {
       memcpy(send_elem, glue_elem, Np * sizeof(bfam_real_t));
-    }
   }
 
   ++data->field;
@@ -333,6 +352,7 @@ bfam_subdomain_dgx_comm_info(bfam_subdomain_t *thisSubdomain,
 
   size_t send_num = sub->base.glue_m->fields.num_entries * sub->K * sub->Np;
   size_t recv_num = sub->base.glue_p->fields.num_entries * sub->K * sub->Np;
+  BFAM_ASSERT(send_num == recv_num);
 
   if(comm_args != NULL)
   {
@@ -1933,6 +1953,12 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,BFAM_DGX_DIMENSION)(
     if(glue->EToFm) bfam_free_aligned(glue->EToFm);
     if(glue->EToHm) bfam_free_aligned(glue->EToHm);
     if(glue->EToOm) bfam_free_aligned(glue->EToOm);
+    if(glue->mapOm)
+    {
+      for(int n = 0; n < glue->num_orient;n++)
+        bfam_free_aligned(glue->mapOm[n]);
+      bfam_free_aligned(glue->mapOm);
+    }
 
     bfam_free(sub->base.glue_m);
   }
@@ -1962,7 +1988,12 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,BFAM_DGX_DIMENSION)(
     if(glue->EToEm) bfam_free_aligned(glue->EToEm);
     if(glue->EToFm) bfam_free_aligned(glue->EToFm);
     if(glue->EToHm) bfam_free_aligned(glue->EToHm);
-    if(glue->EToOm) bfam_free_aligned(glue->EToOm);
+    if(glue->mapOm)
+    {
+      for(int n = 0; n < glue->num_orient;n++)
+        bfam_free_aligned(glue->mapOm[n]);
+      bfam_free_aligned(glue->mapOm);
+    }
 
     bfam_free(sub->base.glue_p);
   }
@@ -2097,13 +2128,10 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
     (bfam_subdomain_dgx_glue_data_t*) subdomain->base.glue_m;
   bfam_subdomain_glue_init(&glue_m->base, rank_m, id_m, imaxabs(id_m)-1,
                            (bfam_subdomain_t*) sub_m);
-  glue_m->N = N_m;
-
   subdomain->base.glue_p = bfam_malloc(sizeof(bfam_subdomain_dgx_glue_data_t));
   bfam_subdomain_dgx_glue_data_t *glue_p =
     (bfam_subdomain_dgx_glue_data_t*) subdomain->base.glue_p;
   bfam_subdomain_glue_init(&glue_p->base, rank_p, id_p, imaxabs(id_p)-1, NULL);
-  glue_p->N = N_p;
 
   const int N         = subdomain->N;
   const int Nrp = N+1;
@@ -2253,12 +2281,51 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
   glue_m->EToFm = NULL;
   glue_m->EToHm = NULL;
   glue_m->EToOm = NULL;
+  glue_m->mapOm = NULL;
 
   glue_p->EToEp = bfam_malloc_aligned(K*sizeof(bfam_locidx_t));
   glue_p->EToEm = bfam_malloc_aligned(K*sizeof(bfam_locidx_t));
   glue_p->EToFm = bfam_malloc_aligned(K*sizeof(int8_t));
   glue_p->EToHm = bfam_malloc_aligned(K*sizeof(int8_t));
   glue_p->EToOm = bfam_malloc_aligned(K*sizeof(int8_t));
+  if(DIM == 1)      glue_p->num_orient = 2;
+  else if(DIM == 2) glue_p->num_orient = 8;
+  else BFAM_ABORT("Cannot handle dim = %d",DIM);
+
+  glue_p->mapOm = bfam_malloc_aligned(glue_p->num_orient*sizeof(int8_t*));
+  if(DIM == 1)
+  {
+    int Nrp_p = subdomain->N+1;
+    for(int n = 0; n < glue_p->num_orient; n++)
+      glue_p->mapOm[n] = bfam_malloc_aligned(Nrp_p*sizeof(int8_t));
+    for(int n = 0; n < Nrp_p; n++)
+    {
+      glue_p->mapOm[0][n] = n;
+      glue_p->mapOm[1][n] = Nrp_p-(n+1);
+    }
+  }
+  else if(DIM == 2)
+  {
+    int Nrp_p = subdomain->N+1;
+    for(int n = 0; n < glue_p->num_orient; n++)
+      glue_p->mapOm[n] = bfam_malloc_aligned(Nrp_p*Nrp_p*sizeof(int8_t));
+    for(int j = 0; j < Nrp_p; j++)
+      for(int i = 0; i < Nrp_p; i++)
+      {
+        int ir = Nrp_p-(i+1);
+        int jr = Nrp_p-(j+1);
+
+        glue_p->mapOm[0][i+j*Nrp_p] = i  + j  * Nrp_p;
+        glue_p->mapOm[1][i+j*Nrp_p] = j  + i  * Nrp_p;
+        glue_p->mapOm[2][i+j*Nrp_p] = ir + j  * Nrp_p;
+        glue_p->mapOm[3][i+j*Nrp_p] = j  + ir * Nrp_p;
+        glue_p->mapOm[4][i+j*Nrp_p] = jr + i  * Nrp_p;
+        glue_p->mapOm[5][i+j*Nrp_p] = i  + jr * Nrp_p;
+        glue_p->mapOm[6][i+j*Nrp_p] = jr + ir * Nrp_p;
+        glue_p->mapOm[7][i+j*Nrp_p] = ir + jr * Nrp_p;
+      }
+  }
+  else BFAM_ABORT("Cannot handle dim = %d",DIM);
 
   qsort(mapping, K, sizeof(bfam_subdomain_face_map_entry_t),
       bfam_subdomain_face_send_cmp);

@@ -314,7 +314,7 @@ static const int8_t bfam_p8est_perm_to_order[8][4] = {{0,1,2,3},
  * o    p8est orientation code
  */
 #define BFAM_P8EST_ORIENTATION(f,nf,o) \
-  (bfam_p8est_code_to_perm[o][bfam_p8est_FToF_code[nf][f]])
+  (bfam_p8est_code_to_perm[bfam_p8est_FToF_code[f][nf]][o])
 
 /*
  * orientation 0:

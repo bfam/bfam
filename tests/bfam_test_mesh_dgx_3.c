@@ -7,12 +7,75 @@
 static int          refine_level = 0;
 
 static int
+check_pm(bfam_subdomain_dgx_t *sub, const char *name, bfam_real_t fac)
+{
+  int failures = 0;
+  bfam_real_t *f_m = bfam_dictionary_get_value_ptr(&sub->base.glue_m->fields,
+      name);
+  bfam_real_t *f_p = bfam_dictionary_get_value_ptr(&sub->base.glue_p->fields,
+      name);
+
+  BFAM_ASSERT(f_m != NULL);
+  BFAM_ASSERT(f_p != NULL);
+
+  BFAM_LDEBUG("Testing subdomain (%2jd, %2jd) -- (%2jd, %2jd)",
+      (intmax_t)sub->base.glue_m->rank, (intmax_t)sub->base.glue_m->id_s,
+      (intmax_t)sub->base.glue_p->rank, (intmax_t)sub->base.glue_p->id_s);
+
+  bfam_subdomain_dgx_glue_data_t* glue_p =
+    (bfam_subdomain_dgx_glue_data_t*) sub->base.glue_p;
+
+  for(bfam_locidx_t i = 0; i < sub->K; ++i)
+  {
+    BFAM_LDEBUG("Testing element %2jd face %d h %d o %d",
+        (intmax_t)glue_p->EToEm[i], glue_p->EToFm[i], glue_p->EToHm[i],
+        glue_p->EToOm[i]);
+    // For(bfam_locidx_t j = 0; j < sub->Np; ++j)
+    //   BFAM_LDEBUG("fm[%2d][%2d] = %20"BFAM_REAL_PRIe
+    //         "    fp[%2d][%2d] = %20"BFAM_REAL_PRIe,
+    //       i, j, f_m[i*sub->Np + j], i, j, fac*f_p[i*sub->Np + j]);
+
+    for(int j=0; j<sub->Np; ++j)
+    {
+      size_t idx = i*sub->Np + j;
+      int fail = !REAL_APPROX_EQ(f_m[idx], fac*f_p[idx], 10);
+
+      if(fail)
+      BFAM_LDEBUG("Fail Match: fm[%2d][%2d] = %20"BFAM_REAL_PRIe
+            "    fp[%2d][%2d] = %20"BFAM_REAL_PRIe,
+            i, j, f_m[i*sub->Np + j], i, j, fac*f_p[i*sub->Np + j]);
+
+      failures += fail;
+    }
+  }
+
+  if(failures > 0)
+    BFAM_WARNING("FAIL! %s",name);
+  return failures;
+}
+
+static int
 refine_fn(p8est_t* pxest, p4est_locidx_t which_tree, p8est_quadrant_t* quadrant)
 {
-  if ((int)quadrant->level >= refine_level - (int)(1 - which_tree % 2))
+  if ((int)quadrant->level >= refine_level /*- (int)(1 - which_tree % 2)*/)
     return 0;
 
   return 1;
+}
+
+static void
+poly0_field(bfam_locidx_t npoints, const char* name,
+    bfam_real_t time, bfam_real_t *restrict x, bfam_real_t *restrict y,
+    bfam_real_t *restrict z, struct bfam_subdomain *s, void *arg,
+    bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(field, 32);
+
+  for(bfam_locidx_t n=0; n < npoints; ++n)
+    field[n] = 10;
 }
 
 static void
@@ -112,11 +175,11 @@ build_mesh(MPI_Comm mpicomm)
   int rank;
   BFAM_MPI_CHECK(MPI_Comm_rank(mpicomm, &rank));
 
-  p8est_connectivity_t *conn = p8est_connectivity_new_rotcubes();
+  p8est_connectivity_t *conn = p8est_connectivity_new_twowrap();
 
   bfam_domain_pxest_t_3* domain = bfam_domain_pxest_new_3(mpicomm, conn);
 
-  refine_level = 2;
+  refine_level = 1;
   p8est_refine(domain->pxest, 2, refine_fn, NULL);
   p8est_balance(domain->pxest, P8EST_CONNECT_CORNER, NULL);
   p8est_partition(domain->pxest, NULL);
@@ -132,7 +195,7 @@ build_mesh(MPI_Comm mpicomm)
    * Create an arbitrary splitting of the domain to test things.
    *
    * When use a subdomain id independent of MPI partition.  In practice
-   * the subdomain id will be selected based on physics, element type, element
+   * the subdomain id will be selectmd based on physics, element type, element
    * order, etc.
    *
    * For no particular reason increase element order with id
@@ -141,7 +204,7 @@ build_mesh(MPI_Comm mpicomm)
       (intmax_t) numSubdomains);
   for(bfam_locidx_t id = 0; id < numSubdomains; ++id)
   {
-    N[id] = 4+id;
+    N[id] = 1/*+id*/;
 
     p4est_gloidx_t first =
       p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
@@ -308,6 +371,89 @@ build_mesh(MPI_Comm mpicomm)
   bfam_vtk_write_file((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume,
                        "","ps",0, ps, NULL, NULL, 0, 0, 0);
 
+  /*
+   * Check to see if neighboring values got communicated
+   */
+  {
+    bfam_subdomain_t **subdomains =
+      bfam_malloc(domain->base.numSubdomains*sizeof(bfam_subdomain_t**));
+
+    bfam_locidx_t numSubdomains = 0;
+
+    bfam_domain_get_subdomains((bfam_domain_t*)domain, BFAM_DOMAIN_OR,
+        glue, domain->base.numSubdomains, subdomains, &numSubdomains);
+
+    BFAM_LDEBUG("Number of local and parallel glue grids %jd",
+        (intmax_t) numSubdomains);
+
+    for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
+    {
+      // failures +=
+      //   check_back((bfam_subdomain_dgx_t*)subdomains[s], "p1");
+      // failures +=
+      //   check_back((bfam_subdomain_dgx_t*)subdomains[s], "p2");
+      // failures +=
+      //   check_back((bfam_subdomain_dgx_t*)subdomains[s], "p3");
+      // failures +=
+      //   check_back((bfam_subdomain_dgx_t*)subdomains[s], "p4");
+      // failures +=
+      //   check_back((bfam_subdomain_dgx_t*)subdomains[s], "p5");
+      // failures +=
+      //   check_back((bfam_subdomain_dgx_t*)subdomains[s], "p6");
+
+      /* last argument lets us change the sign if necessary */
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "p1", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "p2", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "p3", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "p4", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "p5", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "p6", 1);
+
+      // failures +=
+      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tn",   1);
+      // failures +=
+      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tp1", -1);
+      // failures +=
+      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tp2", -1);
+      // failures +=
+      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tp3", -1);
+
+      // failures +=
+      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sn",   1);
+      // failures +=
+      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sp1", -1);
+      // failures +=
+      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sp2", -1);
+      // failures +=
+      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sp3", -1);
+
+      // failures +=
+      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vn", -1);
+      // failures +=
+      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vp1", 1);
+      // failures +=
+      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vp2", 1);
+      // failures +=
+      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vp3", 1);
+
+      // failures +=
+      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "un", -1);
+      // failures +=
+      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "up1", 1);
+      // failures +=
+      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "up2", 1);
+      // failures +=
+      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "up3", 1);
+    }
+
+    bfam_free(subdomains);
+  }
 
   /* clean up */
   bfam_communicator_free(communicator);
