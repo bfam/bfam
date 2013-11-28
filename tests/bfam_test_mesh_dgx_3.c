@@ -175,7 +175,7 @@ build_mesh(MPI_Comm mpicomm)
   int rank;
   BFAM_MPI_CHECK(MPI_Comm_rank(mpicomm, &rank));
 
-  p8est_connectivity_t *conn = p8est_connectivity_new_twowrap();
+  p8est_connectivity_t *conn = p8est_connectivity_new_rotcubes();
 
   bfam_domain_pxest_t_3* domain = bfam_domain_pxest_new_3(mpicomm, conn);
 
