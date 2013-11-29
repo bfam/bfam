@@ -280,6 +280,10 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
   const bfam_locidx_t K = sub->K;
   const int Np = sub->Np;
 
+  const int sub_m_Nfp = sub_m->Ngp[0];
+  const int sub_m_Nf  = sub_m->Ng[0];
+  const int sub_m_Nrp = sub_m->N+1;
+
   const bfam_locidx_t *restrict EToEp = glue_p->EToEp;
   const bfam_locidx_t *restrict EToEm = glue_p->EToEm;
   const int8_t        *restrict EToFm = glue_p->EToFm;
@@ -389,10 +393,9 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
         const bfam_real_t *restrict interpolation =
           glue_m->interpolation[EToHm[k]];
         BFAM_ASSUME_ALIGNED(interpolation, 32);
-        const int sub_m_Nfp = sub_m->Ngp[0];
         for(int j = 0; j < sub_m_Nfp; ++j)
         {
-          const bfam_locidx_t f   = j + sub_m_Nfp*(face + 4*EToEm[k]);
+          const bfam_locidx_t f   = j + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
           bfam_real_t sq_sJ;
           if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(0.5*sJ[f]);
           else             sq_sJ = BFAM_REAL_SQRT(    sJ[f]);
@@ -419,22 +422,21 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
         int I2 = (EToHm[k] == 0) ? 0 : (EToHm[k]-1)%2+1;
         const bfam_real_t *interp1 = glue_m->interpolation[I1];
         const bfam_real_t *interp2 = glue_m->interpolation[I2];
-        const int sub_m_Nfp = sub_m->Ngp[0];
-        const int sub_m_Nrp = sub_m->N+1;
         for(int m = 0; m < sub_m_Nrp; m++)
           for(int l = 0; l < sub_m_Nrp; l++)
           {
             const bfam_locidx_t f = l + m*(sub_m_Nrp)
-                                  + sub_m_Nfp*(face + 4*EToEm[k]);
+                                  + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
             bfam_real_t sq_sJ;
             if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(0.25*sJ[f]);
             else             sq_sJ = BFAM_REAL_SQRT(     sJ[f]);
             sq_sJ = 1.0;
 
             const int n = m*(sub_m->N+1)+l;
-            const bfam_real_t vn_e  = sq_sJ*(n1[f]*v1_m_elem[fmask[n]]
-                                           + n2[f]*v2_m_elem[fmask[n]]
-                                           + n3[f]*v3_m_elem[fmask[n]]);
+            // const bfam_real_t vn_e  = sq_sJ*(n1[f]*v1_m_elem[fmask[n]]
+            //                                + n2[f]*v2_m_elem[fmask[n]]
+            //                                + n3[f]*v3_m_elem[fmask[n]]);
+            const bfam_real_t vn_e  = n1[f]*v1_m_elem[fmask[n]];
             const bfam_real_t vp1_e = sq_sJ*v1_m_elem[fmask[n]]-vn_e*n1[f];
             const bfam_real_t vp2_e = sq_sJ*v2_m_elem[fmask[n]]-vn_e*n2[f];
             const bfam_real_t vp3_e = sq_sJ*v3_m_elem[fmask[n]]-vn_e*n3[f];
@@ -463,10 +465,9 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
       const bfam_real_t *restrict interpolation =
         glue_m->interpolation[EToHm[k]];
       BFAM_ASSUME_ALIGNED(interpolation, 32);
-      const int sub_m_Nfp = sub_m->Ngp[0];
       for(int j = 0; j < sub_m_Nfp; ++j)
       {
-        const bfam_locidx_t f   = j + sub_m_Nfp*(face + 4*EToEm[k]);
+        const bfam_locidx_t f   = j + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
         bfam_real_t sq_sJ;
         if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(0.5*sJ[f]);
         else             sq_sJ = BFAM_REAL_SQRT(    sJ[f]);
@@ -481,13 +482,11 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
     }
     else if(DIM == 2)
     {
-      const int sub_m_Nfp = sub_m->Ngp[0];
-      const int sub_m_Nrp = sub_m->N+1;
       for(int m = 0; m < sub_m_Nrp; m++)
         for(int l = 0; l < sub_m_Nrp; l++)
         {
           const bfam_locidx_t f = l + m*(sub_m_Nrp)
-            + sub_m_Nfp*(face + 4*EToEm[k]);
+            + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
           bfam_real_t sq_sJ;
           if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(0.25*sJ[f]);
           else             sq_sJ = BFAM_REAL_SQRT(     sJ[f]);
@@ -497,6 +496,7 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
           vn_g_elem[n]  = sq_sJ*(n1[f]*v1_m_elem[fmask[n]]
                                + n2[f]*v2_m_elem[fmask[n]]
                                + n3[f]*v3_m_elem[fmask[n]]);
+          vn_g_elem[n]  = n1[f]*v1_m_elem[fmask[n]];
           vp1_g_elem[n] = sq_sJ*v1_m_elem[fmask[n]]-vn_g_elem[n]*n1[f];
           vp2_g_elem[n] = sq_sJ*v2_m_elem[fmask[n]]-vn_g_elem[n]*n2[f];
           vp3_g_elem[n] = sq_sJ*v3_m_elem[fmask[n]]-vn_g_elem[n]*n3[f];
