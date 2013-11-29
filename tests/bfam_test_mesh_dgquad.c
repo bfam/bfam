@@ -277,7 +277,7 @@ build_mesh(MPI_Comm mpicomm)
   int rank;
   BFAM_MPI_CHECK(MPI_Comm_rank(mpicomm, &rank));
 
-  p4est_connectivity_t *conn = p4est_connectivity_new_corner();
+  p4est_connectivity_t *conn = p4est_connectivity_new_disk();
 
   bfam_domain_p4est_t* domain = bfam_domain_p4est_new(mpicomm, conn);
 
