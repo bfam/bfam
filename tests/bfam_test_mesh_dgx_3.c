@@ -422,23 +422,23 @@ build_mesh(MPI_Comm mpicomm)
       failures +=
         check_pm((bfam_subdomain_dgx_t*)subdomains[s], "p6", 1);
 
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tn",   1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tp1", -1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tp2", -1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tp3", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tn",   1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tp1", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tp2", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tp3", -1);
 
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sn",   1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sp1", -1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sp2", -1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sp3", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sn",   1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sp1", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sp2", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sp3", -1);
 
       failures +=
         check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vn", -1);
