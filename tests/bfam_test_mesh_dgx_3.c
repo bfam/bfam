@@ -58,7 +58,7 @@ check_pm(bfam_subdomain_dgx_t *sub, const char *name, bfam_real_t fac)
 static int
 refine_fn(p8est_t* pxest, p4est_locidx_t which_tree, p8est_quadrant_t* quadrant)
 {
-  if ((int)quadrant->level >= refine_level /* - (int)(1 - which_tree % 2)*/)
+  if ((int)quadrant->level >= refine_level - (int)(1 - which_tree % 2))
     return 0;
 
   return 1;
