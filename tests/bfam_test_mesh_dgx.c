@@ -593,12 +593,12 @@ build_mesh(MPI_Comm mpicomm)
 
       failures +=
         check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vn", -1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vp1", 1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vp2", 1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vp3", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vp1", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vp2", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vp3", 1);
 
       // failures +=
       //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "un", -1);
