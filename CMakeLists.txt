@@ -229,7 +229,7 @@ endif(LINUX)
 # Turn on vectorization flags
 if("${CMAKE_BUILD_TYPE}" MATCHES "Release")
   if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native -ftree-vectorize -save-temps") #  -funroll-all-loops -fsplit-ivs-in-unroller
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native -ftree-vectorize") #  -save-temps -funroll-all-loops -fsplit-ivs-in-unroller
   endif("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
   if("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native")
