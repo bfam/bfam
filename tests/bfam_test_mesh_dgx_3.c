@@ -2,7 +2,7 @@
 #include <bfam_domain_pxest_3.h>
 
 #define REAL_APPROX_EQ(x, y, K)                                              \
-  BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, BFAM_REAL_EPS)
+  BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, (K)*BFAM_REAL_EPS)
 
 static int          refine_level = 0;
 
@@ -18,9 +18,10 @@ check_pm(bfam_subdomain_dgx_t *sub, const char *name, bfam_real_t fac)
   BFAM_ASSERT(f_m != NULL);
   BFAM_ASSERT(f_p != NULL);
 
-  BFAM_LDEBUG("Testing subdomain (%2jd, %2jd) -- (%2jd, %2jd)",
+  BFAM_LDEBUG("Testing subdomain (%2jd, %2jd) -- (%2jd, %2jd) field %s",
       (intmax_t)sub->base.glue_m->rank, (intmax_t)sub->base.glue_m->id_s,
-      (intmax_t)sub->base.glue_p->rank, (intmax_t)sub->base.glue_p->id_s);
+      (intmax_t)sub->base.glue_p->rank, (intmax_t)sub->base.glue_p->id_s,
+      name);
 
   bfam_subdomain_dgx_glue_data_t* glue_p =
     (bfam_subdomain_dgx_glue_data_t*) sub->base.glue_p;
@@ -57,7 +58,7 @@ check_pm(bfam_subdomain_dgx_t *sub, const char *name, bfam_real_t fac)
 static int
 refine_fn(p8est_t* pxest, p4est_locidx_t which_tree, p8est_quadrant_t* quadrant)
 {
-  if ((int)quadrant->level >= refine_level /*- (int)(1 - which_tree % 2)*/)
+  if ((int)quadrant->level >= refine_level /* - (int)(1 - which_tree % 2)*/)
     return 0;
 
   return 1;
@@ -176,17 +177,18 @@ build_mesh(MPI_Comm mpicomm)
   BFAM_MPI_CHECK(MPI_Comm_rank(mpicomm, &rank));
 
   p8est_connectivity_t *conn = p8est_connectivity_new_rotcubes();
+  // p8est_connectivity_t *conn = p8est_connectivity_new_twocubes();
 
   bfam_domain_pxest_t_3* domain = bfam_domain_pxest_new_3(mpicomm, conn);
 
-  refine_level = 1;
+  refine_level = 2;
   p8est_refine(domain->pxest, 2, refine_fn, NULL);
   p8est_balance(domain->pxest, P8EST_CONNECT_CORNER, NULL);
   p8est_partition(domain->pxest, NULL);
 
   p8est_vtk_write_file(domain->pxest, NULL, "p8est_mesh");
 
-  bfam_locidx_t numSubdomains = 2;
+  bfam_locidx_t numSubdomains = 4;
   bfam_locidx_t *subdomainID =
     bfam_malloc(domain->pxest->local_num_quadrants*sizeof(bfam_locidx_t));
   bfam_locidx_t *N = bfam_malloc(numSubdomains*sizeof(int));
@@ -204,7 +206,7 @@ build_mesh(MPI_Comm mpicomm)
       (intmax_t) numSubdomains);
   for(bfam_locidx_t id = 0; id < numSubdomains; ++id)
   {
-    N[id] = 1/*+id*/;
+    N[id] = 3+id;
 
     p4est_gloidx_t first =
       p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
@@ -250,6 +252,7 @@ build_mesh(MPI_Comm mpicomm)
   const char *volume[] = {"_volume", NULL};
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
 
+  bfam_domain_add_field((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume, "p0");
   bfam_domain_add_field((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume, "p1");
   bfam_domain_add_field((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume, "p2");
   bfam_domain_add_field((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume, "p3");
@@ -257,6 +260,8 @@ build_mesh(MPI_Comm mpicomm)
   bfam_domain_add_field((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume, "p5");
   bfam_domain_add_field((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume, "p6");
 
+  bfam_domain_init_field((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume, "p0",
+      0, poly0_field, NULL);
   bfam_domain_init_field((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume, "p1",
       0, poly1_field, NULL);
   bfam_domain_init_field((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume, "p2",
@@ -273,7 +278,7 @@ build_mesh(MPI_Comm mpicomm)
   bfam_subdomain_comm_args_t commargs;
 
   const char *comm_args_face_scalars[]      = {NULL};
-  const char *comm_args_scalars[]           = {"p1", "p2", "p3",
+  const char *comm_args_scalars[]           = {"p0","p1","p2", "p3",
                                                "p4", "p5", "p6", NULL};
   const char *comm_args_vectors[]           = {"v","u",NULL};
   const char *comm_args_vector_components[] = {"p1","p2","p3",
@@ -403,6 +408,8 @@ build_mesh(MPI_Comm mpicomm)
 
       /* last argument lets us change the sign if necessary */
       failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "p0", 1);
+      failures +=
         check_pm((bfam_subdomain_dgx_t*)subdomains[s], "p1", 1);
       failures +=
         check_pm((bfam_subdomain_dgx_t*)subdomains[s], "p2", 1);
@@ -433,23 +440,23 @@ build_mesh(MPI_Comm mpicomm)
       // failures +=
       //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sp3", -1);
 
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vn", -1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vp1", 1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vp2", 1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vp3", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vn", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vp1", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vp2", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vp3", 1);
 
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "un", -1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "up1", 1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "up2", 1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "up3", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "un", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "up1", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "up2", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "up3", 1);
     }
 
     bfam_free(subdomains);
