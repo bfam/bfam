@@ -162,15 +162,15 @@ bfam_domain_pxest_parallel_face_mapping(p4est_mesh_t *mesh,
           {
             ghostf -= BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES;
 
-            ghosth = ghostf / (BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + 1;
-            ghostf = ghostf % (BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES);
+            ghosth = ghostf/(BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + 1;
+            ghostf = ghostf%(BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES);
 
             BFAM_ASSERT(ghosth >= 0 && ghosth <= P4EST_HALF);
           }
 
           int8_t o = ghostf/P4EST_FACES;
 
-          ghostf = ghostf%P4EST_FACES;
+          ghostf   = ghostf%P4EST_FACES;
 
           mapping[sk].np = ghostp;
           mapping[sk].ns = 0;
@@ -202,11 +202,13 @@ bfam_domain_pxest_parallel_face_mapping(p4est_mesh_t *mesh,
             p4est_locidx_t ghostid = cks[h]-mesh->local_num_quadrants;
             p4est_locidx_t ghostp  = mesh->ghost_to_proc[ghostid];
             p4est_locidx_t ghostk  = mesh->ghost_to_index[ghostid];
-            int8_t         ghostf  = ((BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + cf)%
-                                       P4EST_FACES;
+            int8_t         ghostf  =
+              ((BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + cf)%
+              P4EST_FACES;
             int8_t         ghosth  = 0;
-            int8_t         o       = ((BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + cf)/
-                                       P4EST_FACES;
+            int8_t         o       =
+              ((BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + cf)/
+              P4EST_FACES;
 
             mapping[sk].np = ghostp;
             mapping[sk].ns = 0;
@@ -744,11 +746,11 @@ bfam_domain_pxest_inter_subdomain_face_mapping(bfam_locidx_t rank,
 
             const bfam_locidx_t  idnk   = subdomainID[cks[h]];
 
-            int8_t         nf = ((BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + cf)%
-                                  P4EST_FACES;
-            int8_t         nh = 0;
-            int8_t         o  = ((BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + cf)/
-                                  P4EST_FACES;
+            int8_t nf =
+              ((BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + cf)%P4EST_FACES;
+            int8_t nh = 0;
+            int8_t o  =
+              ((BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + cf)/P4EST_FACES;
 
             mapping[sk].np = rank;
 
@@ -919,7 +921,8 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
   bfam_locidx_t numInterSubdomainFaces =
     bfam_domain_pxest_num_inter_subdomain_faces(mesh, subdomainID);
 
-  BFAM_LDEBUG("numInterSubdomainFaces = %jd", (intmax_t) numInterSubdomainFaces);
+  BFAM_LDEBUG("numInterSubdomainFaces = %jd",
+      (intmax_t) numInterSubdomainFaces);
 
   bfam_subdomain_face_map_entry_t *ifmapping
     = bfam_malloc_aligned(numInterSubdomainFaces*
