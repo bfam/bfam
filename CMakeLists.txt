@@ -263,7 +263,7 @@ option(WITH_VECTOR_VERBOSE "Compile with info about vectorization" ON)
 if(WITH_VECTOR_VERBOSE)
   # enable verbose vector flags
   if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorizer-verbose=7")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorizer-verbose=1")
   endif("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
   if("${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -vec-report3")
