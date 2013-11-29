@@ -194,7 +194,6 @@ bfam_subdomain_dgx_get_scalar_fields_m(const char * key, void *val,
     /*
      * Interpolate.
      */
-    BFAM_ASSERT(EToHm[k] >= 0 && EToHm[k] < glue_m->num_interp);
     if(EToHm[k] || glue_m->interpolation[0])
     {
       for(int n = 0; n < Np; ++n)
@@ -373,7 +372,6 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
     /*
      * Interpolate.
      */
-    BFAM_ASSERT(EToHm[k] >= 0 && EToHm[k] < glue_m->num_interp);
     if(EToHm[k] || glue_m->interpolation[0])
     {
       for(int n = 0; n < Np; ++n)
