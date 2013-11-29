@@ -431,10 +431,9 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
             else             sq_sJ = BFAM_REAL_SQRT(     sJ[f]);
 
             const int n = m*(sub_m->N+1)+l;
-            // const bfam_real_t vn_e  = sq_sJ*(n1[f]*v1_m_elem[fmask[n]]
-            //                                + n2[f]*v2_m_elem[fmask[n]]
-            //                                + n3[f]*v3_m_elem[fmask[n]]);
-            const bfam_real_t vn_e  = n1[f]*v1_m_elem[fmask[n]];
+            const bfam_real_t vn_e  = sq_sJ*(n1[f]*v1_m_elem[fmask[n]]
+                                           + n2[f]*v2_m_elem[fmask[n]]
+                                           + n3[f]*v3_m_elem[fmask[n]]);
             const bfam_real_t vp1_e = sq_sJ*v1_m_elem[fmask[n]]-vn_e*n1[f];
             const bfam_real_t vp2_e = sq_sJ*v2_m_elem[fmask[n]]-vn_e*n2[f];
             const bfam_real_t vp3_e = sq_sJ*v3_m_elem[fmask[n]]-vn_e*n3[f];
@@ -492,7 +491,6 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
           vn_g_elem[n]  = sq_sJ*(n1[f]*v1_m_elem[fmask[n]]
                                + n2[f]*v2_m_elem[fmask[n]]
                                + n3[f]*v3_m_elem[fmask[n]]);
-          vn_g_elem[n]  = n1[f]*v1_m_elem[fmask[n]];
           vp1_g_elem[n] = sq_sJ*v1_m_elem[fmask[n]]-vn_g_elem[n]*n1[f];
           vp2_g_elem[n] = sq_sJ*v2_m_elem[fmask[n]]-vn_g_elem[n]*n2[f];
           vp3_g_elem[n] = sq_sJ*v3_m_elem[fmask[n]]-vn_g_elem[n]*n3[f];
