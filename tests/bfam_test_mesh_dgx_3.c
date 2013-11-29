@@ -1,6 +1,47 @@
 #include <bfam.h>
 #include <bfam_domain_pxest_3.h>
 
+static p4est_connectivity_t *
+twocubes(void)
+{
+  const p4est_topidx_t num_vertices = 12;
+  const p4est_topidx_t num_trees = 2;
+  const p4est_topidx_t num_ett = 0;
+  const p4est_topidx_t num_ctt = 0;
+  const double        vertices[12 * 3] = {
+    0, 0, 0,
+    1, 0, 0,
+    2, 0, 0,
+    0, 1, 0,
+    1, 1, 0,
+    2, 1, 0,
+    0, 0, 1,
+    1, 0, 1,
+    2, 0, 1,
+    0, 1, 1,
+    1, 1, 1,
+    2, 1, 1,
+  };
+  const p4est_topidx_t tree_to_vertex[2 * 8] = {
+    0, 1, 3, 4, 6, 7, 9, 10,
+    1, 2, 4, 5, 7, 8, 10, 11,
+  };
+  const p4est_topidx_t tree_to_tree[2 * 6] = {
+    0, 1, 0, 0, 0, 0,
+    0, 1, 1, 1, 1, 1,
+  };
+  const int8_t        tree_to_face[2 * 6] = {
+    0, 0, 2, 3, 4, 5,
+    1, 1, 2, 3, 4, 5,
+  };
+
+  return p4est_connectivity_new_copy (num_vertices, num_trees, 0, 0,
+                                      vertices, tree_to_vertex,
+                                      tree_to_tree, tree_to_face,
+                                      NULL, &num_ett, NULL, NULL,
+                                      NULL, &num_ctt, NULL, NULL);
+}
+
 #define REAL_APPROX_EQ(x, y, K)                                              \
   BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, (K)*BFAM_REAL_EPS)
 
@@ -91,7 +132,7 @@ poly1_field(bfam_locidx_t npoints, const char* name,
   BFAM_ASSUME_ALIGNED(field, 32);
 
   for(bfam_locidx_t n=0; n < npoints; ++n)
-    field[n] = -x[n];
+    field[n] = x[n];
 }
 
 static void
@@ -106,7 +147,7 @@ poly2_field(bfam_locidx_t npoints, const char* name,
   BFAM_ASSUME_ALIGNED(field, 32);
 
   for(bfam_locidx_t n=0; n < npoints; ++n)
-    field[n] = x[n] + y[n];
+    field[n] = y[n];
 }
 
 static void
@@ -121,7 +162,7 @@ poly3_field(bfam_locidx_t npoints, const char* name,
   BFAM_ASSUME_ALIGNED(field, 32);
 
   for(bfam_locidx_t n=0; n < npoints; ++n)
-    field[n] = x[n] + y[n]*x[n] + x[n]*x[n]*y[n];
+    field[n] = z[n];
 }
 
 static void
@@ -136,7 +177,7 @@ poly4_field(bfam_locidx_t npoints, const char* name,
   BFAM_ASSUME_ALIGNED(field, 32);
 
   for(bfam_locidx_t n=0; n < npoints; ++n)
-    field[n] = y[n] + y[n]*x[n] + x[n]*x[n]*y[n];
+    field[n] = x[n];
 }
 
 static void
@@ -151,7 +192,7 @@ poly5_field(bfam_locidx_t npoints, const char* name,
   BFAM_ASSUME_ALIGNED(field, 32);
 
   for(bfam_locidx_t n=0; n < npoints; ++n)
-    field[n] = x[n]*y[n] + y[n]*x[n] + x[n]*x[n]*y[n];
+    field[n] = y[n];
 }
 
 static void
@@ -166,7 +207,7 @@ poly6_field(bfam_locidx_t npoints, const char* name,
   BFAM_ASSUME_ALIGNED(field, 32);
 
   for(bfam_locidx_t n=0; n < npoints; ++n)
-    field[n] = x[n]*x[n] + y[n]*y[n] + x[n] + y[n];
+    field[n] = z[n];
 }
 
 static int
@@ -176,8 +217,7 @@ build_mesh(MPI_Comm mpicomm)
   int rank;
   BFAM_MPI_CHECK(MPI_Comm_rank(mpicomm, &rank));
 
-  p8est_connectivity_t *conn = p8est_connectivity_new_rotcubes();
-  // p8est_connectivity_t *conn = p8est_connectivity_new_twocubes();
+  p8est_connectivity_t *conn = twocubes();
 
   bfam_domain_pxest_t_3* domain = bfam_domain_pxest_new_3(mpicomm, conn);
 
@@ -188,7 +228,7 @@ build_mesh(MPI_Comm mpicomm)
 
   p8est_vtk_write_file(domain->pxest, NULL, "p8est_mesh");
 
-  bfam_locidx_t numSubdomains = 4;
+  bfam_locidx_t numSubdomains = 1;
   bfam_locidx_t *subdomainID =
     bfam_malloc(domain->pxest->local_num_quadrants*sizeof(bfam_locidx_t));
   bfam_locidx_t *N = bfam_malloc(numSubdomains*sizeof(int));
