@@ -2,37 +2,44 @@
 #include <bfam_domain_pxest_3.h>
 
 static p4est_connectivity_t *
-twocubes(void)
+snake(void)
 {
-  const p4est_topidx_t num_vertices = 12;
-  const p4est_topidx_t num_trees = 2;
+  const p4est_topidx_t num_vertices = 16;
+  const p4est_topidx_t num_trees = 3;
   const p4est_topidx_t num_ett = 0;
   const p4est_topidx_t num_ctt = 0;
-  const double        vertices[12 * 3] = {
-    0, 0, 0,
-    1, 0, 0,
-    2, 0, 0,
-    0, 1, 0,
-    1, 1, 0,
-    2, 1, 0,
-    0, 0, 1,
-    1, 0, 1,
-    2, 0, 1,
-    0, 1, 1,
-    1, 1, 1,
-    2, 1, 1,
+  const double        vertices[16 * 3] = {
+    0, 0, 0, //  0
+    1, 0, 0, //  1
+    2, 0, 0, //  2
+    0, 1, 0, //  3
+    1, 1, 0, //  4
+    2, 1, 0, //  5
+    0, 0, 1, //  6
+    1, 0, 1, //  7
+    2, 0, 1, //  8
+    0, 1, 1, //  9
+    1, 1, 1, // 10
+    2, 1, 1, // 11
+    3, 0, 0, // 12
+    3, 1, 0, // 13
+    3, 0, 1, // 14
+    3, 1, 1, // 15
   };
-  const p4est_topidx_t tree_to_vertex[2 * 8] = {
-    0, 1, 3, 4, 6, 7, 9, 10,
-    1, 2, 4, 5, 7, 8, 10, 11,
+  const p4est_topidx_t tree_to_vertex[3 * 8] = {
+    0,  1,  3,  4,  6,  7,  9, 10,
+    1,  2,  4,  5,  7,  8, 10, 11,
+    5,  2, 13, 12, 11,  8, 15, 14,
   };
-  const p4est_topidx_t tree_to_tree[2 * 6] = {
+  const p4est_topidx_t tree_to_tree[3 * 6] = {
     0, 1, 0, 0, 0, 0,
-    0, 1, 1, 1, 1, 1,
+    0, 2, 1, 1, 1, 1,
+    2, 2, 1, 2, 2, 2,
   };
-  const int8_t        tree_to_face[2 * 6] = {
+  const int8_t        tree_to_face[3 * 6] = {
     0, 0, 2, 3, 4, 5,
-    1, 1, 2, 3, 4, 5,
+    1, 8, 2, 3, 4, 5,
+    0, 1, 7, 3, 4, 5,
   };
 
   return p4est_connectivity_new_copy (num_vertices, num_trees, 0, 0,
@@ -217,7 +224,7 @@ build_mesh(MPI_Comm mpicomm)
   int rank;
   BFAM_MPI_CHECK(MPI_Comm_rank(mpicomm, &rank));
 
-  p8est_connectivity_t *conn = twocubes();
+  p8est_connectivity_t *conn = snake();
 
   bfam_domain_pxest_t_3* domain = bfam_domain_pxest_new_3(mpicomm, conn);
 
