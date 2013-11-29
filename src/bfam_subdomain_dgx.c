@@ -189,6 +189,7 @@ bfam_subdomain_dgx_get_scalar_fields_m(const char * key, void *val,
     /*
      * Interpolate.
      */
+    BFAM_ASSERT(EToHm[k] >= 0 && EToHm[k] < glue_m->num_interp);
     if(EToHm[k] || glue_m->interpolation[0])
     {
       for(int n = 0; n < Np; ++n)
@@ -236,6 +237,7 @@ bfam_subdomain_dgx_get_scalar_fields_m(const char * key, void *val,
     /*
      * Copy data to send buffer based on orientation.
      */
+    BFAM_ASSERT(EToOm[k] >= 0 && EToOm[k] < glue_p->num_orient);
     if(EToOm[k])
       for(int n = 0; n < Np; ++n)
         send_elem[n] = glue_elem[glue_p->mapOm[EToOm[k]][n]];
@@ -2087,6 +2089,27 @@ bfam_subdomain_dgx_glue_field_plus_add(bfam_subdomain_t *subdomain,
   return rval;
 }
 
+static void
+bfam_subdomain_dgx_glue_generic_init(bfam_subdomain_dgx_glue_data_t *glue,
+    const bfam_locidx_t rank, const bfam_locidx_t id, const bfam_locidx_t id_s,
+    bfam_subdomain_dgx_t *sub_m, int inDIM)
+{
+  bfam_subdomain_glue_init(&glue->base, rank, id, id_s,
+                           (bfam_subdomain_t*) sub_m);
+  glue->EToEp          = NULL;
+  glue->EToEm          = NULL;
+  glue->EToFm          = NULL;
+  glue->EToHm          = NULL;
+  glue->EToOm          = NULL;
+  glue->mapOm          = NULL;
+  glue->num_orient     = 0;
+  glue->num_interp     = 0;
+  glue->interpolation  = NULL;
+  glue->projection     = NULL;
+  glue->massprojection = NULL;
+  glue->exact_mass     = NULL;
+}
+
 void
 BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
                               bfam_subdomain_dgx_t            *subdomain,
@@ -2126,12 +2149,14 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
     bfam_malloc(sizeof(bfam_subdomain_dgx_glue_data_t));
   bfam_subdomain_dgx_glue_data_t *glue_m =
     (bfam_subdomain_dgx_glue_data_t*) subdomain->base.glue_m;
-  bfam_subdomain_glue_init(&glue_m->base, rank_m, id_m, imaxabs(id_m)-1,
-                           (bfam_subdomain_t*) sub_m);
+  bfam_subdomain_dgx_glue_generic_init(glue_m, rank_m, id_m, imaxabs(id_m)-1,
+                                       sub_m, DIM);
+
   subdomain->base.glue_p = bfam_malloc(sizeof(bfam_subdomain_dgx_glue_data_t));
   bfam_subdomain_dgx_glue_data_t *glue_p =
     (bfam_subdomain_dgx_glue_data_t*) subdomain->base.glue_p;
-  bfam_subdomain_glue_init(&glue_p->base, rank_p, id_p, imaxabs(id_p)-1, NULL);
+  bfam_subdomain_dgx_glue_generic_init(glue_p, rank_p, id_p, imaxabs(id_p)-1,
+                                       NULL, DIM);
 
   const int N         = subdomain->N;
   const int Nrp = N+1;
@@ -2225,12 +2250,6 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
         Vt_MP, sub_m_Nrp, projection[i], sub_m_Nrp);
   }
 
-  glue_p->num_interp     = 0;
-  glue_p->interpolation  = NULL;
-  glue_p->projection     = NULL;
-  glue_p->massprojection = NULL;
-  glue_p->exact_mass     = NULL;
-
   glue_m->num_interp = num_interp;
   glue_m->interpolation =
     bfam_malloc_aligned(glue_m->num_interp * sizeof(bfam_real_t*));
@@ -2275,13 +2294,6 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
     for(int n = 0; n < Nrp*sub_m_Nrp; ++n)
       glue_m->projection[i][n] = (bfam_real_t) projection[i][n];
   }
-
-  glue_m->EToEp = NULL;
-  glue_m->EToEm = NULL;
-  glue_m->EToFm = NULL;
-  glue_m->EToHm = NULL;
-  glue_m->EToOm = NULL;
-  glue_m->mapOm = NULL;
 
   glue_p->EToEp = bfam_malloc_aligned(K*sizeof(bfam_locidx_t));
   glue_p->EToEm = bfam_malloc_aligned(K*sizeof(bfam_locidx_t));
