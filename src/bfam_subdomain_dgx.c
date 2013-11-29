@@ -2883,6 +2883,30 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
   bfam_subdomain_dgx_generic_init(subdomain, id, name, BFAM_MAX(N_m,N_p), K,
       inDIM);
 
+#ifdef BFAM_DEBUG
+  {
+    BFAM_LDEBUG("glue mapping: %5s %5s %5s %5s %5s %5s %5s %5s %5s %5s",
+        "np", "nk", "nf", "nh", "gi", "i", "k", "f", "h", "o");
+    for(bfam_locidx_t k = 0; k < K; ++k)
+    {
+      BFAM_LDEBUG(
+          "glue mapping: %5jd %5jd %5jd %5jd %5jd %5jd %5jd %5jd %5jd %5jd",
+          (intmax_t)mapping[k].np,
+          (intmax_t)mapping[k].nk,
+          (intmax_t)mapping[k].nf,
+          (intmax_t)mapping[k].nh,
+          (intmax_t)mapping[k].gi,
+          (intmax_t)mapping[k].i,
+          (intmax_t)mapping[k].k,
+          (intmax_t)mapping[k].f,
+          (intmax_t)mapping[k].h,
+          (intmax_t)mapping[k].o);
+    }
+  }
+#endif
+
+
+
   subdomain->base.field_minus_add =
     bfam_subdomain_dgx_glue_field_minus_add;
   subdomain->base.field_plus_add = bfam_subdomain_dgx_glue_field_plus_add;
@@ -3106,6 +3130,17 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
   for(bfam_locidx_t k = 0; k < K; ++k)
     BFAM_ASSERT(mapping[k].s  == glue_m->base.id_s &&
                 mapping[k].ns == glue_p->base.id_s);
+  BFAM_LDEBUG("    k EToEp EToEm EToFm EToHm EToOm");
+  for(bfam_locidx_t k = 0; k < K; ++k)
+  {
+    BFAM_LDEBUG("%5d %5d %5d %5d %5d %5d",
+        k,
+        glue_p->EToEp[k],
+        glue_p->EToEm[k],
+        glue_p->EToFm[k],
+        glue_p->EToHm[k],
+        glue_p->EToOm[k]);
+  }
 #endif
 
   for(int i = 0; i < num_interp; ++i)
