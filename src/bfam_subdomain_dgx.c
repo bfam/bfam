@@ -855,6 +855,144 @@ bfam_subdomain_dgx_get_tensor_fields_m(const char **comp,
   return 0;
 }
 
+static int
+bfam_subdomain_dgx_get_face_scalar_fields_m(const char * key, void *val,
+    void *arg)
+{
+  bfam_subdomain_dgx_get_put_data_t *data =
+    (bfam_subdomain_dgx_get_put_data_t*) arg;
+
+  bfam_subdomain_dgx_t *sub = data->sub;
+
+#ifdef USE_GENERIC_DGX_DIMENSION
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_get_face_scalar_fields_m");
+  const int DIM = sub->dim;
+#endif
+
+  bfam_subdomain_dgx_glue_data_t* glue_p =
+    (bfam_subdomain_dgx_glue_data_t*) sub->base.glue_p;
+
+  bfam_subdomain_dgx_glue_data_t* glue_m =
+    (bfam_subdomain_dgx_glue_data_t*) sub->base.glue_m;
+
+  bfam_subdomain_dgx_t *sub_m = (bfam_subdomain_dgx_t*) glue_m->base.sub_m;
+
+  const bfam_locidx_t K = sub->K;
+  const int Np = sub->Np;
+  const int sub_m_Nf  = sub_m->Ng[0];
+  const int sub_m_Nfp = sub_m->Ngp[0];
+
+
+  const bfam_locidx_t *restrict EToEp = glue_p->EToEp;
+  const bfam_locidx_t *restrict EToEm = glue_p->EToEm;
+  const int8_t        *restrict EToFm = glue_p->EToFm;
+  const int8_t        *restrict EToHm = glue_p->EToHm;
+  const int8_t        *restrict EToOm = glue_p->EToOm;
+  BFAM_ASSUME_ALIGNED(EToEp, 32);
+  BFAM_ASSUME_ALIGNED(EToEm, 32);
+  BFAM_ASSUME_ALIGNED(EToFm, 32);
+  BFAM_ASSUME_ALIGNED(EToHm, 32);
+  BFAM_ASSUME_ALIGNED(EToOm, 32);
+
+  const size_t buffer_offset = data->field * Np * K;
+
+  bfam_real_t *restrict send_field = data->buffer + buffer_offset;
+
+  BFAM_ASSERT((data->field+1) * Np * K * sizeof(bfam_real_t) <= data->size);
+
+  const bfam_real_t *restrict sub_m_face_field =
+    bfam_dictionary_get_value_ptr(&sub_m->base.fields_face, key);
+
+  bfam_real_t *restrict glue_field = val;
+
+  BFAM_ASSERT( send_field != NULL);
+  BFAM_ASSERT(sub_m_face_field != NULL);
+  BFAM_ASSERT( glue_field != NULL);
+
+  BFAM_ASSUME_ALIGNED(sub_m_face_field, 32);
+  BFAM_ASSUME_ALIGNED( glue_field, 32);
+
+  BFAM_ASSUME_ALIGNED(EToEp, 32);
+  BFAM_ASSUME_ALIGNED(EToEm, 32);
+  BFAM_ASSUME_ALIGNED(EToFm, 32);
+  BFAM_ASSUME_ALIGNED(EToHm, 32);
+  BFAM_ASSUME_ALIGNED(EToOm, 32);
+
+  for(bfam_locidx_t k = 0; k < K; ++k)
+  {
+    BFAM_ASSERT(EToEp[k] < sub->K);
+    BFAM_ASSERT(EToEm[k] < sub_m->K);
+    BFAM_ASSERT(EToFm[k] < sub_m->Ng[0]);
+    /* BFAM_ASSERT(EToHm[k] < sub_m->Nh); */
+    /* BFAM_ASSERT(EToOm[k] < sub_m->No); */
+
+    bfam_real_t *restrict send_elem = send_field + EToEp[k] * Np;
+
+    int8_t face = EToFm[k];
+    const bfam_real_t *restrict sub_m_face_elem =
+      sub_m_face_field + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
+
+    bfam_real_t *restrict glue_elem = glue_field + k * Np;
+
+    /*
+     * Interpolate.
+     */
+    if(EToHm[k] || glue_m->interpolation[0])
+    {
+      for(int n = 0; n < Np; ++n)
+        glue_elem[n] = 0;
+      if(DIM == 1)
+      {
+        /*
+         * Decide which interpolation operation to use.
+         */
+        const bfam_real_t *restrict interpolation =
+          glue_m->interpolation[EToHm[k]];
+        BFAM_ASSUME_ALIGNED(interpolation, 32);
+
+        /*
+         * XXX: Replace with something faster;
+         */
+        for(int j = 0; j < sub_m->Ngp[0]; ++j) for(int i = 0; i < Np; ++i)
+            glue_elem[i] += interpolation[j * Np + i] * sub_m_face_elem[j];
+      }
+      else if(DIM == 2)
+      {
+        int I1 = (EToHm[k] == 0) ? 0 : (EToHm[k]-1)/2+1;
+        int I2 = (EToHm[k] == 0) ? 0 : (EToHm[k]-1)%2+1;
+        const bfam_real_t *interp1 = glue_m->interpolation[I1];
+        const bfam_real_t *interp2 = glue_m->interpolation[I2];
+        for(int m = 0; m < sub_m->N+1; m++)
+          for(int l = 0; l < sub_m->N+1; l++)
+            for(int j = 0; j < sub->N+1; j++)
+              for(int i = 0; i < sub->N+1; i++)
+                glue_elem[j*(sub->N+1)+i] +=
+                  interp1[(sub->N+1)*m+j]*interp2[(sub->N+1)*l+i]
+                  *sub_m_face_elem[m*(sub_m->N+1)+l];
+      }
+      else BFAM_ABORT("Cannot handle dim = %d",DIM);
+    }
+    else
+    {
+      for(int i = 0; i < Np; ++i)
+        glue_elem[i] = sub_m_face_elem[i];
+    }
+
+    /*
+     * Copy data to send buffer based on orientation.
+     */
+    BFAM_ASSERT(EToOm[k] >= 0 && EToOm[k] < glue_p->num_orient);
+    if(EToOm[k])
+      for(int n = 0; n < Np; ++n)
+        send_elem[n] = glue_elem[glue_p->mapOm[EToOm[k]][n]];
+    else
+      memcpy(send_elem, glue_elem, Np * sizeof(bfam_real_t));
+  }
+
+  ++data->field;
+  return 0;
+}
+
 static void
 bfam_subdomain_dgx_put_send_buffer(bfam_subdomain_t *thisSubdomain,
     void *buffer, size_t send_sz, void *comm_args)
@@ -931,9 +1069,9 @@ bfam_subdomain_dgx_put_send_buffer(bfam_subdomain_t *thisSubdomain,
     }
     for(int s = 0; args->face_scalars_m[s] != NULL;s++)
     {
-      // const char *key  = args->face_scalars_m[s];
-      // void *field = bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,key);
-      // bfam_subdomain_dgx_quad_glue_get_face_scalar_fields_m(key,field,&data);
+      const char *key  = args->face_scalars_m[s];
+      void *field = bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,key);
+      bfam_subdomain_dgx_get_face_scalar_fields_m(key,field,&data);
     }
   }
 }

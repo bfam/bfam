@@ -277,7 +277,8 @@ build_mesh(MPI_Comm mpicomm)
 
   bfam_subdomain_comm_args_t commargs;
 
-  const char *comm_args_face_scalars[]      = {NULL};
+  const char *comm_args_face_scalars[]      = {"_grid_nx0", "_grid_nx1",
+                                               "_grid_nx2", NULL};
   const char *comm_args_scalars[]           = {"p0","p1","p2", "p3",
                                                "p4", "p5", "p6", NULL};
   const char *comm_args_vectors[]           = {"v","u",NULL};
@@ -305,6 +306,13 @@ build_mesh(MPI_Comm mpicomm)
   commargs.face_scalars_p = comm_args_face_scalars;
 
   /* add glue fields */
+  for(int f = 0 ; comm_args_face_scalars[f] != NULL; f++)
+  {
+    bfam_domain_add_minus_field((bfam_domain_t*) domain, BFAM_DOMAIN_OR, glue,
+        comm_args_face_scalars[f]);
+    bfam_domain_add_plus_field( (bfam_domain_t*) domain, BFAM_DOMAIN_OR, glue,
+        comm_args_face_scalars[f]);
+  }
   for(int f = 0 ; comm_args_scalars[f] != NULL; f++)
   {
     bfam_domain_add_minus_field((bfam_domain_t*) domain, BFAM_DOMAIN_OR, glue,
@@ -457,6 +465,13 @@ build_mesh(MPI_Comm mpicomm)
         check_pm((bfam_subdomain_dgx_t*)subdomains[s], "up2", 1);
       failures +=
         check_pm((bfam_subdomain_dgx_t*)subdomains[s], "up3", 1);
+
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "_grid_nx0", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "_grid_nx1", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "_grid_nx2", -1);
     }
 
     bfam_free(subdomains);

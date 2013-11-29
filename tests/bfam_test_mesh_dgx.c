@@ -308,7 +308,7 @@ build_mesh(MPI_Comm mpicomm)
 
   bfam_domain_pxest_t* domain = bfam_domain_pxest_new(mpicomm, conn);
 
-  refine_level = 4;
+  refine_level = 3;
   p4est_refine(domain->pxest, 2, refine_fn, NULL);
   p4est_balance(domain->pxest, P4EST_CONNECT_CORNER, NULL);
   p4est_partition(domain->pxest, NULL);
@@ -430,14 +430,14 @@ build_mesh(MPI_Comm mpicomm)
 
   bfam_subdomain_comm_args_t commargs;
 
-  const char *comm_args_face_scalars[]      = {NULL};
+  const char *comm_args_face_scalars[]      = {"_grid_nx0", "_grid_nx1", NULL};
   const char *comm_args_scalars[]           = {"p1", "p2", "p3",
                                                "p4", "p5", "p6", NULL};
   const char *comm_args_vectors[]           = {"v","u",NULL};
   const char *comm_args_vector_components[] = {"p1","p2","p3",
                                                "p4","p5","p6",NULL};
-  const char *comm_args_tensors[]           = {NULL,"T","S",NULL};
-  const char *comm_args_tensor_components[] = {NULL,"p1", "p2", "p3",
+  const char *comm_args_tensors[]           = {"T","S",NULL};
+  const char *comm_args_tensor_components[] = {"p1", "p2", "p3",
                                                "p4", "p5", "p6",
                                                "p1", "p3", "p5",
                                                "p2", "p4", "p6", NULL};
@@ -458,6 +458,13 @@ build_mesh(MPI_Comm mpicomm)
   commargs.face_scalars_p = comm_args_face_scalars;
 
   /* add glue fields */
+  for(int f = 0 ; comm_args_face_scalars[f] != NULL; f++)
+  {
+    bfam_domain_add_minus_field((bfam_domain_t*) domain, BFAM_DOMAIN_OR, glue,
+        comm_args_face_scalars[f]);
+    bfam_domain_add_plus_field( (bfam_domain_t*) domain, BFAM_DOMAIN_OR, glue,
+        comm_args_face_scalars[f]);
+  }
   for(int f = 0 ; comm_args_scalars[f] != NULL; f++)
   {
     bfam_domain_add_minus_field((bfam_domain_t*) domain, BFAM_DOMAIN_OR, glue,
@@ -573,23 +580,23 @@ build_mesh(MPI_Comm mpicomm)
       failures +=
         check_pm((bfam_subdomain_dgx_t*)subdomains[s], "p6", 1);
 
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tn",   1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tp1", -1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tp2", -1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tp3", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tn",   1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tp1", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tp2", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Tp3", -1);
 
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sn",   1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sp1", -1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sp2", -1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sp3", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sn",   1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sp1", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sp2", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sp3", -1);
 
       failures +=
         check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vn", -1);
@@ -600,14 +607,19 @@ build_mesh(MPI_Comm mpicomm)
       failures +=
         check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vp3", 1);
 
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "un", -1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "up1", 1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "up2", 1);
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "up3", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "un", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "up1", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "up2", 1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "up3", 1);
+
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "_grid_nx0", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "_grid_nx1", -1);
     }
 
     bfam_free(subdomains);
