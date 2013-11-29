@@ -2,7 +2,7 @@
 #include <bfam_domain_pxest_2.h>
 
 #define REAL_APPROX_EQ(x, y, K)                                              \
-  BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, BFAM_REAL_EPS)
+  BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, (K)*BFAM_REAL_EPS)
 
 static int          refine_level = 0;
 
@@ -42,6 +42,18 @@ refine_fn(p4est_t * pxest, p4est_topidx_t which_tree,
   }
 
   return 1;
+}
+
+static void
+poly0_field(bfam_locidx_t npoints, const char* name,
+    bfam_real_t time, bfam_real_t *restrict x, bfam_real_t *restrict y,
+    bfam_real_t *restrict z, struct bfam_subdomain *s, void *arg,
+    bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(field, 32);
+
+  for(bfam_locidx_t n=0; n < npoints; ++n)
+    field[n] = 4;
 }
 
 static void
@@ -146,9 +158,10 @@ check_pm(bfam_subdomain_dgx_t *sub, const char *name, bfam_real_t fac)
   BFAM_ASSERT(f_m != NULL);
   BFAM_ASSERT(f_p != NULL);
 
-  BFAM_LDEBUG("Testing subdomain (%2jd, %2jd) -- (%2jd, %2jd)",
+  BFAM_LDEBUG("Testing subdomain (%2jd, %2jd) -- (%2jd, %2jd) field %s",
       (intmax_t)sub->base.glue_m->rank, (intmax_t)sub->base.glue_m->id_s,
-      (intmax_t)sub->base.glue_p->rank, (intmax_t)sub->base.glue_p->id_s);
+      (intmax_t)sub->base.glue_p->rank, (intmax_t)sub->base.glue_p->id_s,
+      name);
 
   bfam_subdomain_dgx_glue_data_t* glue_p =
     (bfam_subdomain_dgx_glue_data_t*) sub->base.glue_p;
@@ -158,21 +171,16 @@ check_pm(bfam_subdomain_dgx_t *sub, const char *name, bfam_real_t fac)
     BFAM_LDEBUG("Testing element %2jd face %d h %d o %d",
         (intmax_t)glue_p->EToEm[i], glue_p->EToFm[i], glue_p->EToHm[i],
         glue_p->EToOm[i]);
-    for(bfam_locidx_t j = 0; j < sub->Np; ++j)
-      BFAM_LDEBUG("fm[%2d][%2d] = %20"BFAM_REAL_PRIe
-            "    fp[%2d][%2d] = %20"BFAM_REAL_PRIe,
-          i, j, f_m[i*sub->Np + j], i, j, fac*f_p[i*sub->Np + j]);
 
     for(int j=0; j<sub->Np; ++j)
     {
       size_t idx = i*sub->Np + j;
-      int fail = !REAL_APPROX_EQ(f_m[idx], fac*f_p[idx], 10);
+      int fail = !REAL_APPROX_EQ(f_m[idx], fac*f_p[idx], 1000);
 
       if(fail)
-        BFAM_LDEBUG("Fail match %25.15"BFAM_REAL_PRIe
-            " %25.15"BFAM_REAL_PRIe " %d",
-            f_m[idx], fac*f_p[idx],
-            BFAM_REAL_ABS(f_m[idx]-fac*f_p[idx]) < BFAM_REAL_MIN);
+        BFAM_LDEBUG("Fail Match fm[%2d][%2d] = %20"BFAM_REAL_PRIe
+            "    fp[%2d][%2d] = %20"BFAM_REAL_PRIe,
+            i, j, f_m[i*sub->Np + j], i, j, fac*f_p[i*sub->Np + j]);
 
       failures += fail;
     }
@@ -296,7 +304,7 @@ build_mesh(MPI_Comm mpicomm)
   int rank;
   BFAM_MPI_CHECK(MPI_Comm_rank(mpicomm, &rank));
 
-  p4est_connectivity_t *conn = p4est_connectivity_new_corner();
+  p4est_connectivity_t *conn = p4est_connectivity_new_disk();
 
   bfam_domain_pxest_t* domain = bfam_domain_pxest_new(mpicomm, conn);
 
@@ -307,7 +315,7 @@ build_mesh(MPI_Comm mpicomm)
 
   p4est_vtk_write_file(domain->pxest, NULL, "p4est_mesh");
 
-  bfam_locidx_t numSubdomains = 2;
+  bfam_locidx_t numSubdomains = 5;
   bfam_locidx_t *subdomainID =
     bfam_malloc(domain->pxest->local_num_quadrants*sizeof(bfam_locidx_t));
   bfam_locidx_t *N = bfam_malloc(numSubdomains*sizeof(int));
@@ -371,6 +379,7 @@ build_mesh(MPI_Comm mpicomm)
   const char *volume[] = {"_volume", NULL};
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
 
+  bfam_domain_add_field((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume, "p0");
   bfam_domain_add_field((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume, "p1");
   bfam_domain_add_field((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume, "p2");
   bfam_domain_add_field((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume, "p3");
@@ -404,6 +413,8 @@ build_mesh(MPI_Comm mpicomm)
   bfam_domain_add_plus_field((bfam_domain_t*)domain, BFAM_DOMAIN_OR, glue,
       "p6");
 
+  bfam_domain_init_field((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume, "p0",
+      0, poly0_field, NULL);
   bfam_domain_init_field((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume, "p1",
       0, poly1_field, NULL);
   bfam_domain_init_field((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume, "p2",
@@ -422,8 +433,8 @@ build_mesh(MPI_Comm mpicomm)
   const char *comm_args_face_scalars[]      = {NULL};
   const char *comm_args_scalars[]           = {"p1", "p2", "p3",
                                                "p4", "p5", "p6", NULL};
-  const char *comm_args_vectors[]           = {NULL,"v","u",NULL};
-  const char *comm_args_vector_components[] = {NULL,"p1","p2","p3",
+  const char *comm_args_vectors[]           = {"v","u",NULL};
+  const char *comm_args_vector_components[] = {"p1","p2","p3",
                                                "p4","p5","p6",NULL};
   const char *comm_args_tensors[]           = {NULL,"T","S",NULL};
   const char *comm_args_tensor_components[] = {NULL,"p1", "p2", "p3",
@@ -580,8 +591,8 @@ build_mesh(MPI_Comm mpicomm)
       // failures +=
       //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "Sp3", -1);
 
-      // failures +=
-      //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vn", -1);
+      failures +=
+        check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vn", -1);
       // failures +=
       //   check_pm((bfam_subdomain_dgx_t*)subdomains[s], "vp1", 1);
       // failures +=
