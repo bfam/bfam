@@ -671,7 +671,7 @@ void scale_rates_elastic (bfam_subdomain_dgx_quad_t *sub,
 
   switch(sub->N)
   {
-    BFAM_LIST_OF_DGX_NORDERS
+    BFAM_LIST_OF_DGX_QUAD_NORDERS
     default:
       beard_dgx_scale_rates_elastic_(sub->N,sub,rate_prefix,a);
       break;
@@ -722,7 +722,7 @@ intra_rhs_elastic(int N, bfam_subdomain_dgx_quad_t *sub,
 
   switch(N)
   {
-    BFAM_LIST_OF_DGX_NORDERS
+    BFAM_LIST_OF_DGX_QUAD_NORDERS
     default:
       beard_dgx_intra_rhs_elastic_(N,sub,rate_prefix,
           field_prefix,t);
@@ -756,7 +756,7 @@ void inter_rhs_boundary(int N, bfam_subdomain_dgx_quad_glue_t *sub,
 
   switch(N)
   {
-    BFAM_LIST_OF_DGX_NORDERS
+    BFAM_LIST_OF_DGX_QUAD_NORDERS
     default:
       beard_dgx_inter_rhs_boundary_(N,sub,rate_prefix, field_prefix,t, R);
       break;
@@ -773,7 +773,7 @@ void inter_rhs_interface(int N, bfam_subdomain_dgx_quad_glue_t *sub,
 
   switch(N)
   {
-    BFAM_LIST_OF_DGX_NORDERS
+    BFAM_LIST_OF_DGX_QUAD_NORDERS
     default:
       beard_dgx_inter_rhs_interface_(N,sub,rate_prefix,
           field_prefix,t);
@@ -810,7 +810,7 @@ void add_rates_elastic (bfam_subdomain_dgx_quad_t *sub,
 
   switch(sub->N)
   {
-    BFAM_LIST_OF_DGX_NORDERS
+    BFAM_LIST_OF_DGX_QUAD_NORDERS
     default:
       beard_dgx_add_rates_elastic_(sub->N,sub,field_prefix_lhs,
           field_prefix_rhs,rate_prefix,a);
@@ -1007,7 +1007,7 @@ compute_energy(beard_t *beard, prefs_t *prefs, bfam_real_t t,
 
     switch(sub->N)
     {
-      BFAM_LIST_OF_DGX_NORDERS
+      BFAM_LIST_OF_DGX_QUAD_NORDERS
       default:
         beard_dgx_energy_(sub->N,&energy_local,sub,prefix);
         break;

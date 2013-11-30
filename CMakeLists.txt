@@ -392,6 +392,10 @@ set(bfam_dgx_quad_norders  1  2  3  4  5  6  7  8  9 10
                           11 12 13 14 15 16 17 18 19 20
                           21 22 23 24)
 
+set(bfam_dgx_norders  1  2  3  4  5  6  7  8  9 10
+                     11 12 13 14 15 16 17 18 19 20
+                     21 22 23 24)
+
 set(pxest_dimensions 2 3)
 
 set(bfam_dimensions  0 1 2 3)
@@ -462,6 +466,9 @@ target_link_libraries(bfam_exam_clock bfam)
 add_executable(beard
   examples/beard/beard.c)
 
+add_executable(beard_2d
+  examples/beard_2d/beard.c)
+
 bfam_multiple_build("BFAM_PXEST_DIMENSION" "${pxest_dimensions}"
   bfam_domain_pxest
   src/bfam_domain_pxest.c
@@ -474,10 +481,16 @@ bfam_multiple_build("BFAM_DGX_DIMENSION" "${bfam_dimensions}"
   bfam)
 
 
-bfam_multiple_build("NORDER" "${bfam_dgx_quad_norders}"
+bfam_multiple_build_double("NORDER" "${bfam_dgx_norders}"
+  "BEARD_DIM" "${pxest_dimensions}"
   beard_dgx_rhs
   examples/beard/beard_dgx_rhs.c
   beard)
+
+bfam_multiple_build("NORDER" "${bfam_dgx_quad_norders}"
+  beard_2d_dgx_rhs
+  examples/beard_2d/beard_dgx_rhs.c
+  beard_2d)
 
 ##
 ## Tests
@@ -734,6 +747,9 @@ function(JOIN VALUES GLUE OUTPUT)
 endfunction()
 
 join("${BFAM_COMPILE_LIST}" "" BFAM_COMPILE_INFO)
+
+set(slash "\\")
+join("${bfam_dgx_norders}" ") X(" BFAM_DGX_NORDERS_MID)
 
 set(slash "\\")
 join("${bfam_dgx_quad_norders}" ") X(" BFAM_DGX_QUAD_NORDERS_MID)
