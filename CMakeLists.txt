@@ -413,6 +413,25 @@ function(bfam_multiple_build define_name define_vals lib_name lib_src target)
   target_link_libraries(${target} ${lib_name})
 endfunction()
 
+function(bfam_multiple_build_double define_name_1 define_val_1 define_name_2 define_val_2 lib_name lib_src target)
+  foreach(val_1 ${define_val_1})
+    foreach(val_2 ${define_val_2})
+      set(full_lib_name "${lib_name}_${val_1}_${val_2}")
+      add_library(${full_lib_name} ${lib_src})
+
+      set_target_properties(${full_lib_name} PROPERTIES COMPILE_FLAGS
+        "-D${define_name_1}=${val_1} -D${define_name_2}=${val_2}")
+
+      target_link_libraries(${full_lib_name} bfam)
+      target_link_libraries(${target} ${full_lib_name})
+    endforeach()
+  endforeach()
+
+  add_library(${lib_name} ${lib_src})
+  target_link_libraries(${lib_name} bfam)
+  target_link_libraries(${target} ${lib_name})
+endfunction()
+
 ##
 ## Examples
 ##
