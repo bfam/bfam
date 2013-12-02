@@ -9,10 +9,12 @@ output_prefix = "solution"
 connectivity = "brick"
 brick =
 {
-  nx = 5,
-  ny = 5,
+  nx = 1,
+  ny = 2,
+  nz = 3,
   periodic_x = 1,
   periodic_y = 1,
+  periodic_z = 1,
 }
 
 -- set up the domain
