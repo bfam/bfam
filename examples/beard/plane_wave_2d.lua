@@ -1,3 +1,6 @@
+-- store random seed
+math.randomseed(0)
+
 dimension = 2;
 
 -- refinement parameters
@@ -19,6 +22,11 @@ brick =
 Lx = 25
 Ly = 25
 function connectivity_vertices(x, y, z)
+  if x > 0 and x < brick.nx and
+     y > 0 and y < brick.ny then
+    x = x + 0.5*(math.random()-0.5)
+    y = y + 0.5*(math.random()-0.5)
+  end
   xout = Lx*x
   yout = Ly*y
   zout = 0

@@ -1,17 +1,20 @@
+-- store random seed
+math.randomseed(0)
+
 dimension = 3;
 
 -- refinement parameters
-min_level = 1
-max_level = 1
+min_level = 0
+max_level = 0
 output_prefix = "solution"
 
 -- connectivity info
 connectivity = "brick"
 brick =
 {
-  nx = 1,
-  ny = 2,
-  nz = 3,
+  nx = 2,
+  ny = 3,
+  nz = 4,
   periodic_x = 1,
   periodic_y = 1,
   periodic_z = 1,
@@ -22,6 +25,13 @@ Lx = 25
 Ly = 25
 Lz = 25
 function connectivity_vertices(x, y, z)
+  if x > 0 and x < brick.nx and
+     y > 0 and y < brick.ny and
+     z > 0 and z < brick.nz then
+    x = x + 0.5*(math.random()-0.5)
+    y = y + 0.5*(math.random()-0.5)
+    z = z + 0.5*(math.random()-0.5)
+  end
   xout = Lx*x
   yout = Ly*y
   zout = Lz*z
