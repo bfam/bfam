@@ -308,6 +308,16 @@ static const int8_t bfam_p8est_perm_to_order[8][4] = {{0,1,2,3},
                                                       {3,1,2,0},
                                                       {3,2,1,0}};
 
+static const int8_t bfam_p8est_perm_to_order_inv[8][4] = {{0,1,2,3},
+                                                          {0,2,1,3},
+                                                          {1,0,3,2},
+                                                          {2,0,3,1},
+                                                          {1,3,0,2},
+                                                          {2,3,0,1},
+                                                          {3,1,2,0},
+                                                          {3,2,1,0}};
+
+
 /** BFAM_P8EST_ORIENTATION
  * f    my face
  * nf   neighbor face

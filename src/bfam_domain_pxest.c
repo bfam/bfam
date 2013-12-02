@@ -13,6 +13,8 @@
 #include <bfam_log.h>
 #include <bfam_subdomain_dgx.h>
 
+
+
 #define DIM BFAM_PXEST_DIMENSION
 
 #if   DIM==2
@@ -20,11 +22,15 @@
 #define BDIM 1
 #define BFAM_PXEST_CONNECT P4EST_CONNECT_FACE
 #define BFAM_PXEST_ORIENTATION(n,nf,o) (o)
+#define BFAM_PXEST_BOHTONH(bo,h) (((bo)+(h))%(2))
+#define BFAM_PXEST_BOHTONH_INV(bo,h) BFAM_PXEST_BOHTONH(bo,h)
 #elif DIM==3
 #define BFAM_PXEST_RELATIVE_ORIENTATIONS 4
 #define BFAM_PXEST_ORIENTATION(n,nf,o) BFAM_P8EST_ORIENTATION(n,nf,o)
 #define BDIM 2
 #define BFAM_PXEST_CONNECT P8EST_CONNECT_FACE
+#define BFAM_PXEST_BOHTONH(bo,h) (bfam_p8est_perm_to_order[(bo)][(h)])
+#define BFAM_PXEST_BOHTONH_INV(bo,h) (bfam_p8est_perm_to_order_inv[(bo)][(h)])
 #else
 #error "Bad Dimension"
 #endif
@@ -172,6 +178,10 @@ bfam_domain_pxest_parallel_face_mapping(p4est_mesh_t *mesh,
 
           ghostf   = ghostf%P4EST_FACES;
 
+          const int8_t bo = BFAM_PXEST_ORIENTATION(f,ghostf,o);
+          if(ghosth > 0)
+            ghosth = BFAM_PXEST_BOHTONH(bo,ghosth-1)+1;
+
           mapping[sk].np = ghostp;
           mapping[sk].ns = 0;
           mapping[sk].nk = ghostk;
@@ -183,7 +193,7 @@ bfam_domain_pxest_parallel_face_mapping(p4est_mesh_t *mesh,
           mapping[sk].k  = k;
           mapping[sk].f  = f;
           mapping[sk].h  = 0;
-          mapping[sk].o  = BFAM_PXEST_ORIENTATION(f,ghostf,o);
+          mapping[sk].o  = bo;
           ++sk;
         }
       }
@@ -210,6 +220,8 @@ bfam_domain_pxest_parallel_face_mapping(p4est_mesh_t *mesh,
               ((BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + cf)/
               P4EST_FACES;
 
+            const int8_t bo = BFAM_PXEST_ORIENTATION(f,ghostf,o);
+
             mapping[sk].np = ghostp;
             mapping[sk].ns = 0;
             mapping[sk].nk = ghostk;
@@ -220,8 +232,8 @@ bfam_domain_pxest_parallel_face_mapping(p4est_mesh_t *mesh,
             mapping[sk].s  = 0;
             mapping[sk].k  = k;
             mapping[sk].f  = f;
-            mapping[sk].h  = h + 1;
-            mapping[sk].o  = BFAM_PXEST_ORIENTATION(f,ghostf,o);
+            mapping[sk].h  = BFAM_PXEST_BOHTONH_INV(bo,h) + 1;
+            mapping[sk].o  = bo;
             ++sk;
           }
         }
@@ -704,6 +716,12 @@ bfam_domain_pxest_inter_subdomain_face_mapping(bfam_locidx_t rank,
           int8_t o = nf/P4EST_FACES;
 
           nf = nf%P4EST_FACES;
+          const int8_t bo = BFAM_PXEST_ORIENTATION(f,nf,o);
+
+          if(nh > 0)
+          {
+            nh = BFAM_PXEST_BOHTONH(bo,nh-1)+1;
+          }
 
           /*
            * Count intra and inter subdomain faces.
@@ -726,7 +744,7 @@ bfam_domain_pxest_inter_subdomain_face_mapping(bfam_locidx_t rank,
             mapping[sk].k  = k;
             mapping[sk].f  = f;
             mapping[sk].h  = 0;
-            mapping[sk].o  = BFAM_PXEST_ORIENTATION(f,nf,o);
+            mapping[sk].o  = bo;
 
             mapping[sk].i  = -1;
             mapping[sk].gi = -1;
@@ -752,6 +770,8 @@ bfam_domain_pxest_inter_subdomain_face_mapping(bfam_locidx_t rank,
             int8_t o  =
               ((BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + cf)/P4EST_FACES;
 
+            const int8_t bo = BFAM_PXEST_ORIENTATION(f,nf,o);
+
             mapping[sk].np = rank;
 
             mapping[sk].ns = idnk;
@@ -762,8 +782,8 @@ bfam_domain_pxest_inter_subdomain_face_mapping(bfam_locidx_t rank,
             mapping[sk].s  = idk;
             mapping[sk].k  = k;
             mapping[sk].f  = f;
-            mapping[sk].h  = h + 1;
-            mapping[sk].o  = BFAM_PXEST_ORIENTATION(f,nf,o);
+            mapping[sk].h  = BFAM_PXEST_BOHTONH_INV(bo,h) + 1;
+            mapping[sk].o  = bo;
 
             mapping[sk].i  = -1;
             mapping[sk].gi = -1;
