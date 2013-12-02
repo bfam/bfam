@@ -1,8 +1,8 @@
 #include "beard_dgx_rhs.h"
 
-#if   BEARD_DGX_DIMENSION
+#ifdef BEARD_DGX_DIMENSION
 
-#if   BEARD_DGX_DIMENSION==2
+#if    BEARD_DGX_DIMENSION==2
 
 #define DIM 2
 

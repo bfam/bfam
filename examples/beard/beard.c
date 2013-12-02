@@ -1,7 +1,24 @@
 #include <bfam.h>
-#include <bfam_domain_p4est.h>
 #include "beard_dgx_rhs.h"
-#include <p4est_iterate.h>
+
+#ifdef BEARD_DGX_DIMENSION
+
+#if   BEARD_DGX_DIMENSION==2
+#include <bfam_domain_pxest_2.h>
+#elif BEARD_DGX_DIMENSION==3
+#include <bfam_domain_pxest_3.h>
+#else
+#error "bad dimension"
+#endif
+
+#if   BEARD_DGX_DIMENSION==2
+#define DIM 2
+#elif BEARD_DGX_DIMENSION==3
+#define DIM 3
+#else
+#error "bad dimension"
+#endif
+
 
 typedef struct beard
 {
@@ -104,7 +121,7 @@ new_prefs(const char *prefs_filename)
 
   BFAM_ASSERT(lua_gettop(L)==0);
 
-  prefs->dimension = lua_get_global_int(prefs->L,"dimension",2);
+  prefs->dimension = DIM;
 
   BFAM_ABORT_IF_NOT(prefs->dimension == 2 || prefs->dimension == 3,
       "beard not set up to handle dimension %d", prefs->dimension);
@@ -156,20 +173,20 @@ new_prefs(const char *prefs_filename)
 
   prefs->brick_args->nx = lua_get_table_int(prefs->L, "brick", "nx",1);
   prefs->brick_args->ny = lua_get_table_int(prefs->L, "brick", "ny",1);
-  if(prefs->dimension > 2)
-    prefs->brick_args->nz = lua_get_table_int(prefs->L, "brick", "nz",1);
-  else
-    prefs->brick_args->nz = 1;
 
   prefs->brick_args->periodic_x = lua_get_table_int(prefs->L, "brick",
       "periodic_x",1);
   prefs->brick_args->periodic_y = lua_get_table_int(prefs->L, "brick",
       "periodic_y",1);
-  if(prefs->dimension > 2)
-    prefs->brick_args->periodic_z = 
-      lua_get_table_int(prefs->L, "brick", "periodic_z",1);
-  else
-    prefs->brick_args->periodic_z = 1;
+
+#if   DIM==2
+#elif DIM==3
+  prefs->brick_args->nz = lua_get_table_int(prefs->L, "brick", "nz",1);
+  prefs->brick_args->periodic_z =
+    lua_get_table_int(prefs->L, "brick", "periodic_z",1);
+#else
+#error "Bad dimension"
+#endif
 
   return prefs;
 }
@@ -186,12 +203,20 @@ print_prefs(prefs_t *prefs)
     BFAM_ROOT_INFO(" brick arguments");
     BFAM_ROOT_INFO("  nx         = %d", prefs->brick_args->nx);
     BFAM_ROOT_INFO("  ny         = %d", prefs->brick_args->ny);
-    if(prefs->dimension > 2)
-      BFAM_ROOT_INFO("  nz         = %d", prefs->brick_args->nz);
+#if   DIM==2
+#elif DIM==3
+    BFAM_ROOT_INFO("  nz         = %d", prefs->brick_args->nz);
+#else
+#error "Bad dimension"
+#endif
     BFAM_ROOT_INFO("  periodic_x = %d", prefs->brick_args->periodic_x);
     BFAM_ROOT_INFO("  periodic_y = %d", prefs->brick_args->periodic_y);
-    if(prefs->dimension > 2)
-      BFAM_ROOT_INFO("  periodic_z = %d", prefs->brick_args->periodic_z);
+#if   DIM==2
+#elif DIM==3
+    BFAM_ROOT_INFO("  periodic_z = %d", prefs->brick_args->periodic_z);
+#else
+#error "Bad dimension"
+#endif
   }
   BFAM_ROOT_INFO("-------------------------------");
 }
@@ -314,3 +339,6 @@ main(int argc, char *argv[])
 
   return EXIT_SUCCESS;
 }
+
+
+#endif
