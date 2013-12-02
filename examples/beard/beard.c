@@ -5,8 +5,10 @@
 
 #if   BEARD_DGX_DIMENSION==2
 #include <bfam_domain_pxest_2.h>
+#include <p4est_iterate.h>
 #elif BEARD_DGX_DIMENSION==3
 #include <bfam_domain_pxest_3.h>
+#include <p8est_iterate.h>
 #define P4EST_CONNECT_CORNER P8EST_CONNECT_CORNER
 #else
 #error "bad dimension"
@@ -16,11 +18,21 @@
 
 #define DIM 2
 #define bfam_domain_pxest_new bfam_domain_pxest_new_2
+#define bfam_domain_pxest_split_dgx_subdomains \
+  bfam_domain_pxest_split_dgx_subdomains_2
+#define bfam_domain_pxest_free \
+  bfam_domain_pxest_free_2
+#define bfam_domain_pxest_t  bfam_domain_pxest_t_2
 
 #elif BEARD_DGX_DIMENSION==3
 
 #define DIM 3
 #define bfam_domain_pxest_new bfam_domain_pxest_new_3
+#define bfam_domain_pxest_split_dgx_subdomains \
+  bfam_domain_pxest_split_dgx_subdomains_3
+#define bfam_domain_pxest_free \
+  bfam_domain_pxest_free_3
+#define bfam_domain_pxest_t  bfam_domain_pxest_t_3
 
 #else
 #error "bad dimension"
@@ -34,13 +46,7 @@ typedef struct beard
   int      mpisize;
 
   p4est_connectivity_t *conn;
-#if   DIM==2
-  bfam_domain_pxest_t_2  *domain;
-#elif DIM==3
-  bfam_domain_pxest_t_3  *domain;
-#else
-#error "bad dimension"
-#endif
+  bfam_domain_pxest_t  *domain;
 
   // bfam_ts_lsrk_t       *lsrk;
   // bfam_subdomain_comm_args_t * comm_args;
@@ -411,6 +417,93 @@ refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
   return val;
 }
 
+typedef struct split_iter_data
+{
+  lua_State *L;
+  int loc;
+  bfam_locidx_t *subdomain_id;
+  bfam_locidx_t  max_N;
+} split_iter_data_t;
+
+static void
+get_element_order(p4est_iter_volume_info_t *info, void *arg)
+{
+  split_iter_data_t *data = (split_iter_data_t*) arg;
+
+  double vxyz[P4EST_CHILDREN*3];
+
+#if   DIM==2
+  for(int ix = 0; ix < 2; ix++)
+    for(int iy = 0; iy < 2; iy++)
+    {
+      int ox = ix*(1 << (P4EST_MAXLEVEL-info->quad->level));
+      int oy = iy*(1 << (P4EST_MAXLEVEL-info->quad->level));
+      p4est_qcoord_to_vertex (info->p4est->connectivity, info->treeid,
+          info->quad->x+ox, info->quad->y+oy,&vxyz[3*(ix + 2*iy)]);
+    }
+
+  int N = 0;
+  int result = lua_global_function_call(data->L,"element_order",
+      "ddd" "ddd" "ddd" "ddd" "ii" ">" "i",
+      vxyz[0], vxyz[1], vxyz[2], vxyz[3], vxyz[ 4], vxyz[ 5],
+      vxyz[6], vxyz[7], vxyz[8], vxyz[9], vxyz[10], vxyz[11],
+      info->quad->level, info->treeid, &N);
+#elif DIM==3
+  for(int iz = 0; iz < 2; iz++)
+    for(int iy = 0; iy < 2; iy++)
+      for(int ix = 0; ix < 2; ix++)
+    {
+      int ox = ix*(1 << (P4EST_MAXLEVEL-info->quad->level));
+      int oy = iy*(1 << (P4EST_MAXLEVEL-info->quad->level));
+      int oz = iz*(1 << (P4EST_MAXLEVEL-info->quad->level));
+      p4est_qcoord_to_vertex (info->p4est->connectivity, info->treeid,
+          info->quad->x+ox, info->quad->y+oy, info->quad->z+oz,
+          &vxyz[3*(ix + 2*(iy + 2*iz))]);
+    }
+
+  int N = 0;
+  int result = lua_global_function_call(data->L,"element_order",
+      "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ii" ">" "i",
+      vxyz[ 0], vxyz[ 1], vxyz[ 2], vxyz[ 3], vxyz[ 4], vxyz[ 5],
+      vxyz[ 6], vxyz[ 7], vxyz[ 8], vxyz[ 9], vxyz[10], vxyz[11],
+      vxyz[12], vxyz[13], vxyz[14], vxyz[15], vxyz[16], vxyz[17],
+      vxyz[18], vxyz[19], vxyz[20], vxyz[21], vxyz[22], vxyz[23],
+      info->quad->level, info->treeid, &N);
+#else
+#error "Bad Dimension"
+#endif
+
+  BFAM_ABORT_IF_NOT(result == 0, "no 'element_order' function");
+  BFAM_ABORT_IF_NOT(N > 0, "N must be greater than 0");
+  data->subdomain_id[data->loc] = N-1;
+  data->max_N = BFAM_MAX(N,data->max_N);
+  data->loc++;
+}
+
+static void
+split_domain(beard_t *beard, prefs_t *prefs)
+{
+  bfam_domain_pxest_t *domain = beard->domain;
+  if(domain->pxest->local_num_quadrants == 0) BFAM_ABORT("No quadrants");
+  bfam_locidx_t *sub_ids =
+    bfam_malloc(domain->pxest->local_num_quadrants*sizeof(bfam_locidx_t));
+
+  split_iter_data_t data = {prefs->L,0,sub_ids,0};
+  p4est_iterate (domain->pxest, NULL, &data, get_element_order, NULL, NULL
+#if DIM==3
+      ,NULL
+#endif
+      );
+
+  bfam_locidx_t *N = bfam_malloc(data.max_N*sizeof(bfam_locidx_t));
+  for(int n = 0; n < data.max_N;n++) N[n] = n+1;
+
+  bfam_domain_pxest_split_dgx_subdomains(domain, data.max_N, sub_ids, N);
+
+  bfam_free(sub_ids);
+  bfam_free(N);
+}
+
 static void
 init_domain(beard_t *beard, prefs_t *prefs)
 {
@@ -476,12 +569,22 @@ init_domain(beard_t *beard, prefs_t *prefs)
   p4est_vtk_write_file(beard->domain->pxest, NULL, "p4est_mesh");
 
   /* split the domain */
-  // split_domain(beard,prefs);
+  split_domain(beard,prefs);
 
   /* add fields to the domnain */
   // domain_add_fields(beard,prefs);
 }
 
+static void
+shave_beard(beard_t *beard,prefs_t *prefs)
+{
+  // bfam_free(beard->comm_args);
+  // bfam_ts_lsrk_free(beard->lsrk);
+  // bfam_free(beard->lsrk);
+  bfam_domain_pxest_free(beard->domain);
+  bfam_free(beard->domain);
+  p4est_connectivity_destroy(beard->conn);
+}
 
 /*
  * run the beard
@@ -499,7 +602,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
 
   // run_simulation(&beard, prefs);
 
-  // shave_beard(&beard,prefs);
+  shave_beard(&beard,prefs);
 }
 
 int
