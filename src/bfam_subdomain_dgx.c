@@ -2186,10 +2186,17 @@ bfam_subdomain_dgx_gmask_set
 }
 
 static void
-bfam_subdomain_dgx_buildmaps(bfam_locidx_t K, int Np, int Nfp, int Nfaces,
+bfam_subdomain_dgx_buildmaps(int N, bfam_locidx_t K, int Np, int Nfp, int Nfaces,
    const bfam_locidx_t *EToE, const int8_t *EToF, int ***gmask,
-   bfam_locidx_t *restrict vmapP, bfam_locidx_t *restrict vmapM)
+   bfam_locidx_t *restrict vmapP, bfam_locidx_t *restrict vmapM, int inDIM)
 {
+#ifdef USE_GENERIC_DGX_DIMENSION
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_buildmaps");
+  const int DIM = inDIM;
+#endif
+
+  BFAM_ASSERT(DIM == inDIM);
+
   for(bfam_locidx_t k1 = 0, sk = 0; k1 < K; ++k1)
   {
     for(int8_t f1 = 0; f1 < Nfaces; ++f1)
@@ -2201,11 +2208,75 @@ bfam_subdomain_dgx_buildmaps(bfam_locidx_t K, int Np, int Nfp, int Nfaces,
       for(int n = 0; n < Nfp; ++n)
       {
         vmapM[sk + n] = Np * k1 + gmask[0][f1][n];
+      }
 
-        if(o)
-          vmapP[sk + n] = Np * k2 + gmask[0][f2][Nfp-1-n];
-        else
-          vmapP[sk + n] = Np * k2 + gmask[0][f2][n];
+      switch(DIM)
+      {
+        case 1:
+          /* Orientation does not matter in 1D */
+          for(int n = 0; n < Nfp; ++n)
+          {
+            vmapP[sk + n] = Np * k2 + gmask[0][f2][n];
+          }
+          break;
+        case 2:
+          for(int n = 0; n < Nfp; ++n)
+          {
+            if(o)
+              vmapP[sk + n] = Np * k2 + gmask[0][f2][Nfp-1-n];
+            else
+              vmapP[sk + n] = Np * k2 + gmask[0][f2][n];
+          }
+          break;
+        case 3:
+          {
+            const int Nrp = N+1;
+            BFAM_ASSERT(Nfp == Nrp*Nrp);
+
+            int oidx = -1;
+
+            for(int j = 0, n = 0; j < Nrp; ++j)
+            {
+              for(int i = 0; i < Nrp; ++i, ++n)
+              {
+                int ir = Nrp-(i+1);
+                int jr = Nrp-(j+1);
+                switch(o)
+                {
+                  case 0:
+                    oidx = i  + j  * Nrp;
+                    break;
+                  case 1:
+                    oidx = j  + i  * Nrp;
+                    break;
+                  case 2:
+                    oidx = ir + j  * Nrp;
+                    break;
+                  case 3:
+                    oidx = jr + i  * Nrp;
+                    break;
+                  case 4:
+                    oidx = j  + ir * Nrp;
+                    break;
+                  case 5:
+                    oidx = i  + jr * Nrp;
+                    break;
+                  case 6:
+                    oidx = jr + ir * Nrp;
+                    break;
+                  case 7:
+                    oidx = ir + jr * Nrp;
+                    break;
+                  default:
+                    BFAM_ABORT("invalid orientation %d",o);
+                }
+                vmapP[sk + n] = Np * k2 + gmask[0][f2][oidx];
+              }
+            }
+          }
+          break;
+        default:
+          BFAM_ABORT("cannot handle dim = %d",DIM);
       }
 
       sk += Nfp;
@@ -2561,8 +2632,8 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
     subdomain->vmapP = bfam_malloc_aligned(K*Ngp[0]*Ng[0]*sizeof(bfam_locidx_t));
     subdomain->vmapM = bfam_malloc_aligned(K*Ngp[0]*Ng[0]*sizeof(bfam_locidx_t));
 
-    bfam_subdomain_dgx_buildmaps(K, Np, Ngp[0], Ng[0], EToE, EToF,
-        subdomain->gmask, subdomain->vmapP, subdomain->vmapM);
+    bfam_subdomain_dgx_buildmaps(N, K, Np, Ngp[0], Ng[0], EToE, EToF,
+        subdomain->gmask, subdomain->vmapP, subdomain->vmapM, DIM);
 
     /* free stuff */
     if(lsJ) bfam_free_aligned(lsJ);
