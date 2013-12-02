@@ -14,6 +14,8 @@
 #error "bad dimension"
 #endif
 
+
+
 #if   BEARD_DGX_DIMENSION==2
 
 #define DIM 2
@@ -37,6 +39,36 @@
 #else
 #error "bad dimension"
 #endif
+
+
+
+const char *comm_args_face_scalars[]      = {NULL};
+const char *comm_args_scalars[]           = {NULL};
+const char *comm_args_vectors[]           = {"v",NULL};
+const char *comm_args_vector_components[] = {"v1","v2","v3",NULL};
+const char *comm_args_tensors[]           = {"T",NULL};
+const char *comm_args_tensor_components[] = {"S11","S12","S13",
+                                             "S22","S23","S33",NULL};
+
+#define BFAM_LOAD_FIELD_RESTRICT_ALIGNED(field,prefix,base,dictionary)         \
+bfam_real_t *restrict field;                                                   \
+{                                                                              \
+  char bfam_load_field_name[BFAM_BUFSIZ];                                      \
+  snprintf(bfam_load_field_name,BFAM_BUFSIZ,"%s%s",(prefix),(base));           \
+  field = bfam_dictionary_get_value_ptr(dictionary, bfam_load_field_name);     \
+  BFAM_ASSERT(field != NULL);                                                  \
+}                                                                              \
+BFAM_ASSUME_ALIGNED(field,32);
+#define BFAM_LOAD_FIELD_ALIGNED(field,prefix,base,dictionary)                  \
+bfam_real_t *field;                                                            \
+{                                                                              \
+  char bfam_load_field_name[BFAM_BUFSIZ];                                      \
+  snprintf(bfam_load_field_name,BFAM_BUFSIZ,"%s%s",(prefix),(base));           \
+  field = bfam_dictionary_get_value_ptr(dictionary, bfam_load_field_name);     \
+  BFAM_ASSERT(field != NULL);                                                  \
+}                                                                              \
+BFAM_ASSUME_ALIGNED(field,32);
+
 
 
 typedef struct beard
@@ -505,6 +537,161 @@ split_domain(beard_t *beard, prefs_t *prefs)
 }
 
 static void
+field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t t,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(field, 32);
+  bfam_real_t val = 0;
+
+  lua_State *L = (lua_State*) arg;
+  lua_getglobal(L,name);
+
+  if(lua_isfunction(L,-1))
+  {
+    BFAM_ROOT_INFO("field_set_val: using '%s' as lua callback function",name);
+    lua_pop(L,1);
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      lua_global_function_call(L, name, "rrrr>r", x[n],y[n],z[n],t,&field[n]);
+    return;
+  }
+  else if(lua_isnumber(L,-1)) val = (bfam_real_t)lua_tonumber(L,-1);
+  else BFAM_WARNING("Did not find '%s' in lua as a function or number using 0: "
+                    "lua message: '%s'", name,lua_tostring(L,-1));
+  lua_pop(L,1);
+
+  BFAM_ROOT_INFO("field_set_val: using '%s' with value %"BFAM_REAL_FMTe,
+      name,val);
+
+  for(bfam_locidx_t n=0; n < npoints; ++n)
+    field[n] = val;
+}
+
+static void
+field_set_val_aux(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(field, 32);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rho,"","rho",&s->fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(lam,"","lam",&s->fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED( mu,"", "mu",&s->fields);
+
+  if(strcmp(name,"rho_inv") == 0)
+    for(bfam_locidx_t n=0; n < npoints; ++n) field[n] = 1/rho[n];
+  else if(strcmp(name,"Zs") == 0)
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      field[n] = BFAM_REAL_SQRT(rho[n]*mu[n]);
+  else if(strcmp(name,"Zp") == 0)
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+      field[n] = BFAM_REAL_SQRT(rho[n]*(lam[n]+2*mu[n]));
+  else BFAM_ABORT("Unknown auxilary field: '%s'",name);
+}
+
+static void
+domain_add_fields(beard_t *beard, prefs_t *prefs)
+{
+
+ const char *volume[] = {"_volume",NULL};
+  const char *fields[] = {"rho", "lam", "mu", "v1", "v2", "v3", "S11", "S22",
+    "S33", "S12", "S13", "S23",NULL};
+  bfam_domain_t *domain = (bfam_domain_t*)beard->domain;
+  for(int f = 0; fields[f] != NULL; f++)
+  {
+    bfam_domain_add_field (domain, BFAM_DOMAIN_OR, volume, fields[f]);
+    bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, fields[f], 0,
+        field_set_val, prefs->L);
+  }
+  const char *fields_aux[] = {"rho_inv", "Zs", "Zp",NULL};
+  for(int f = 0; fields_aux[f] != NULL; f++)
+  {
+    bfam_domain_add_field (domain, BFAM_DOMAIN_OR, volume, fields_aux[f]);
+    bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, fields_aux[f], 0,
+        field_set_val_aux, NULL);
+  }
+
+  /* add glue fields */
+  const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
+  for(int f = 0 ; comm_args_scalars[f] != NULL; f++)
+  {
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue,
+        comm_args_scalars[f]);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue,
+        comm_args_scalars[f]);
+  }
+  for(int f = 0 ; comm_args_vectors[f] != NULL; f++)
+  {
+    char name[BFAM_BUFSIZ];
+    snprintf(name,BFAM_BUFSIZ, "%sn",comm_args_vectors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+    snprintf(name,BFAM_BUFSIZ, "%sp1",comm_args_vectors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+    snprintf(name,BFAM_BUFSIZ, "%sp2",comm_args_vectors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+    snprintf(name,BFAM_BUFSIZ, "%sp3",comm_args_vectors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+  }
+  for(int f = 0 ; comm_args_tensors[f] != NULL; f++)
+  {
+    char name[BFAM_BUFSIZ];
+    snprintf(name,BFAM_BUFSIZ, "%sn",comm_args_tensors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+    snprintf(name,BFAM_BUFSIZ, "%sp1",comm_args_tensors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+    snprintf(name,BFAM_BUFSIZ, "%sp2",comm_args_tensors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+    snprintf(name,BFAM_BUFSIZ, "%sp3",comm_args_tensors[f]);
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, name);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, name);
+  }
+
+  /* exchange material properties to glue */
+  const char *glue_mat[] = {"Zs","Zp",NULL};
+  for(bfam_locidx_t g = 0; glue_mat[g] != NULL; g++)
+  {
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, glue_mat[g]);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, glue_mat[g]);
+  }
+  bfam_communicator_t material_comm;
+
+  bfam_subdomain_comm_args_t mat_args;
+  const char * mat_NULL[]      = {NULL};
+  mat_args.scalars_m           = glue_mat;
+  mat_args.vectors_m           = mat_NULL;
+  mat_args.vector_components_m = mat_NULL;
+  mat_args.tensors_m           = mat_NULL;
+  mat_args.tensor_components_m = mat_NULL;
+  mat_args.face_scalars_m      = mat_NULL;
+
+  mat_args.scalars_p           = glue_mat;
+  mat_args.vectors_p           = mat_NULL;
+  mat_args.vector_components_p = mat_NULL;
+  mat_args.tensors_p           = mat_NULL;
+  mat_args.tensor_components_p = mat_NULL;
+  mat_args.face_scalars_p      = mat_NULL;
+
+  bfam_communicator_init(&material_comm,domain,BFAM_DOMAIN_OR,glue,
+      beard->mpicomm,10,&mat_args);
+  bfam_communicator_start( &material_comm);
+  bfam_communicator_finish(&material_comm);
+  bfam_communicator_free(  &material_comm);
+}
+
+static void
 init_domain(beard_t *beard, prefs_t *prefs)
 {
   /* Set up the connectivity */
@@ -572,7 +759,7 @@ init_domain(beard_t *beard, prefs_t *prefs)
   split_domain(beard,prefs);
 
   /* add fields to the domnain */
-  // domain_add_fields(beard,prefs);
+  domain_add_fields(beard,prefs);
 }
 
 static void
