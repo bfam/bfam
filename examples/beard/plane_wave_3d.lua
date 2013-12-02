@@ -1,3 +1,5 @@
+dimension = 3;
+
 -- refinement parameters
 min_level = 3
 max_level = 4
