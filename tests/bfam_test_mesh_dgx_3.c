@@ -224,7 +224,8 @@ build_mesh(MPI_Comm mpicomm)
   int rank;
   BFAM_MPI_CHECK(MPI_Comm_rank(mpicomm, &rank));
 
-  p8est_connectivity_t *conn = snake();
+  p8est_connectivity_t *conn = p8est_connectivity_new_rotcubes();
+  // p8est_connectivity_t *conn = snake();
 
   bfam_domain_pxest_t_3* domain = bfam_domain_pxest_new_3(mpicomm, conn);
 
@@ -235,7 +236,7 @@ build_mesh(MPI_Comm mpicomm)
 
   p8est_vtk_write_file(domain->pxest, NULL, "p8est_mesh");
 
-  bfam_locidx_t numSubdomains = 1;
+  bfam_locidx_t numSubdomains = 11;
   bfam_locidx_t *subdomainID =
     bfam_malloc(domain->pxest->local_num_quadrants*sizeof(bfam_locidx_t));
   bfam_locidx_t *N = bfam_malloc(numSubdomains*sizeof(int));
