@@ -417,25 +417,6 @@ function(bfam_multiple_build define_name define_vals lib_name lib_src target)
   target_link_libraries(${target} ${lib_name})
 endfunction()
 
-function(bfam_multiple_build_double define_name_1 define_val_1 define_name_2 define_val_2 lib_name lib_src target)
-  foreach(val_1 ${define_val_1})
-    foreach(val_2 ${define_val_2})
-      set(full_lib_name "${lib_name}_${val_1}_${val_2}")
-      add_library(${full_lib_name} ${lib_src})
-
-      set_target_properties(${full_lib_name} PROPERTIES COMPILE_FLAGS
-        "-D${define_name_1}=${val_1} -D${define_name_2}=${val_2}")
-
-      target_link_libraries(${full_lib_name} bfam)
-      target_link_libraries(${target} ${full_lib_name})
-    endforeach()
-  endforeach()
-
-  add_library(${lib_name} ${lib_src})
-  target_link_libraries(${lib_name} bfam)
-  target_link_libraries(${target} ${lib_name})
-endfunction()
-
 ##
 ## Examples
 ##
@@ -463,34 +444,40 @@ target_link_libraries(bfam_exam_zpipe bfam)
 add_executable(bfam_exam_clock examples/clock/bfam_exam_clock.c)
 target_link_libraries(bfam_exam_clock bfam)
 
-add_executable(beard
-  examples/beard/beard.c)
+add_executable(beard_2d examples/beard/beard.c)
+set_target_properties(beard_2d PROPERTIES COMPILE_FLAGS
+  "-DBEARD_DGX_DIMENSION=2")
 
-add_executable(beard_2d
-  examples/beard_2d/beard.c)
+add_executable(beard_3d examples/beard/beard.c)
+set_target_properties(beard_3d PROPERTIES COMPILE_FLAGS
+  "-DBEARD_DGX_DIMENSION=3")
+
+add_executable(beard_2d_old examples/beard_2d/beard.c)
 
 bfam_multiple_build("BFAM_PXEST_DIMENSION" "${pxest_dimensions}"
   bfam_domain_pxest
   src/bfam_domain_pxest.c
   bfam)
 
-
 bfam_multiple_build("BFAM_DGX_DIMENSION" "${bfam_dimensions}"
   bfam_subdomain_dgx
   src/bfam_subdomain_dgx.c
   bfam)
 
-
-bfam_multiple_build_double("NORDER" "${bfam_dgx_norders}"
-  "BEARD_DGX_DIMENSION" "${pxest_dimensions}"
-  beard_dgx_rhs
+bfam_multiple_build("NORDER" "${bfam_dgx_norders}"
+  beard_dgx_rhs_2
   examples/beard/beard_dgx_rhs.c
-  beard)
+  beard_2d)
+
+bfam_multiple_build("NORDER" "${bfam_dgx_norders}"
+  beard_dgx_rhs_3
+  examples/beard/beard_dgx_rhs.c
+  beard_3d)
 
 bfam_multiple_build("NORDER" "${bfam_dgx_quad_norders}"
   beard_2d_dgx_rhs
   examples/beard_2d/beard_dgx_rhs.c
-  beard_2d)
+  beard_2d_old)
 
 ##
 ## Tests
