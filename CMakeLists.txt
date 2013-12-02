@@ -482,7 +482,7 @@ bfam_multiple_build("BFAM_DGX_DIMENSION" "${bfam_dimensions}"
 
 
 bfam_multiple_build_double("NORDER" "${bfam_dgx_norders}"
-  "BEARD_DIM" "${pxest_dimensions}"
+  "BEARD_DGX_DIMENSION" "${pxest_dimensions}"
   beard_dgx_rhs
   examples/beard/beard_dgx_rhs.c
   beard)

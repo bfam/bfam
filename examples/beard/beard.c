@@ -666,14 +666,14 @@ void scale_rates_elastic (bfam_subdomain_dgx_quad_t *sub,
     const char *rate_prefix, const bfam_long_real_t a)
 {
 #define X(order) \
-  case order: beard_dgx_scale_rates_elastic_##order(sub->N,sub, \
+  case order: beard_dgx_scale_rates_elastic_2_##order(sub->N,sub, \
                   rate_prefix,a); break;
 
   switch(sub->N)
   {
     BFAM_LIST_OF_DGX_NORDERS
     default:
-      beard_dgx_scale_rates_elastic_(sub->N,sub,rate_prefix,a);
+      BFAM_ABORT("Cannot handle order %d (must recompile)",sub->N);
       break;
   }
 #undef X
@@ -717,15 +717,14 @@ intra_rhs_elastic(int N, bfam_subdomain_dgx_quad_t *sub,
     const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t)
 {
 #define X(order) \
-  case order: beard_dgx_intra_rhs_elastic_##order(N,sub, \
+  case order: beard_dgx_intra_rhs_elastic_2_##order(N,sub, \
                   rate_prefix,field_prefix,t); break;
 
   switch(N)
   {
     BFAM_LIST_OF_DGX_NORDERS
     default:
-      beard_dgx_intra_rhs_elastic_(N,sub,rate_prefix,
-          field_prefix,t);
+      BFAM_ABORT("Cannot handle order %d (must recompile)",N);
       break;
   }
 #undef X
@@ -751,14 +750,14 @@ void inter_rhs_boundary(int N, bfam_subdomain_dgx_quad_glue_t *sub,
     const bfam_real_t R)
 {
 #define X(order) \
-  case order: beard_dgx_inter_rhs_boundary_##order(N,sub, \
+  case order: beard_dgx_inter_rhs_boundary_2_##order(N,sub, \
                   rate_prefix,field_prefix,t, R); break;
 
   switch(N)
   {
     BFAM_LIST_OF_DGX_NORDERS
     default:
-      beard_dgx_inter_rhs_boundary_(N,sub,rate_prefix, field_prefix,t, R);
+      BFAM_ABORT("Cannot handle order %d (must recompile)",N);
       break;
   }
 #undef X
@@ -768,15 +767,14 @@ void inter_rhs_interface(int N, bfam_subdomain_dgx_quad_glue_t *sub,
     const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t)
 {
 #define X(order) \
-  case order: beard_dgx_inter_rhs_interface_##order(N,sub, \
+  case order: beard_dgx_inter_rhs_interface_2_##order(N,sub, \
                   rate_prefix,field_prefix,t); break;
 
   switch(N)
   {
     BFAM_LIST_OF_DGX_NORDERS
     default:
-      beard_dgx_inter_rhs_interface_(N,sub,rate_prefix,
-          field_prefix,t);
+      BFAM_ABORT("Cannot handle order %d (must recompile)",N);
       break;
   }
 #undef X
@@ -805,15 +803,14 @@ void add_rates_elastic (bfam_subdomain_dgx_quad_t *sub,
     const char *rate_prefix, const bfam_long_real_t a)
 {
 #define X(order) \
-  case order: beard_dgx_add_rates_elastic_##order(sub->N,sub, \
+  case order: beard_dgx_add_rates_elastic_2_##order(sub->N,sub, \
                   field_prefix_lhs,field_prefix_rhs,rate_prefix,a); break;
 
   switch(sub->N)
   {
     BFAM_LIST_OF_DGX_NORDERS
     default:
-      beard_dgx_add_rates_elastic_(sub->N,sub,field_prefix_lhs,
-          field_prefix_rhs,rate_prefix,a);
+      BFAM_ABORT("Cannot handle order %d (must recompile)",sub->N);
       break;
   }
 #undef X
@@ -1002,14 +999,14 @@ compute_energy(beard_t *beard, prefs_t *prefs, bfam_real_t t,
   {
     bfam_subdomain_dgx_quad_t *sub = (bfam_subdomain_dgx_quad_t*) subs[s];
 #define X(order) \
-    case order: beard_dgx_energy_##order(sub->N,&energy_local, \
+    case order: beard_dgx_energy_2_##order(sub->N,&energy_local, \
                     sub,prefix); break;
 
     switch(sub->N)
     {
       BFAM_LIST_OF_DGX_NORDERS
       default:
-        beard_dgx_energy_(sub->N,&energy_local,sub,prefix);
+        BFAM_ABORT("Cannot handle order %d (must recompile)",sub->N);
         break;
     }
 #undef X
