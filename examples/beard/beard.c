@@ -7,14 +7,21 @@
 #include <bfam_domain_pxest_2.h>
 #elif BEARD_DGX_DIMENSION==3
 #include <bfam_domain_pxest_3.h>
+#define P4EST_CONNECT_CORNER P8EST_CONNECT_CORNER
 #else
 #error "bad dimension"
 #endif
 
 #if   BEARD_DGX_DIMENSION==2
+
 #define DIM 2
+#define bfam_domain_pxest_new bfam_domain_pxest_new_2
+
 #elif BEARD_DGX_DIMENSION==3
+
 #define DIM 3
+#define bfam_domain_pxest_new bfam_domain_pxest_new_3
+
 #else
 #error "bad dimension"
 #endif
@@ -26,8 +33,15 @@ typedef struct beard
   int      mpirank;
   int      mpisize;
 
-  // p4est_connectivity_t *conn;
-  // bfam_domain_p4est_t  *domain;
+  p4est_connectivity_t *conn;
+#if   DIM==2
+  bfam_domain_pxest_t_2  *domain;
+#elif DIM==3
+  bfam_domain_pxest_t_3  *domain;
+#else
+#error "bad dimension"
+#endif
+
   // bfam_ts_lsrk_t       *lsrk;
   // bfam_subdomain_comm_args_t * comm_args;
 } beard_t;
@@ -53,7 +67,120 @@ typedef struct brick_args
   int periodic_z;
 } brick_args_t;
 
-/* Lua help functions */
+typedef struct prefs
+{
+  lua_State *L;
+
+  int dimension;
+
+  char output_prefix[BFAM_BUFSIZ];
+
+  brick_args_t* brick_args;
+
+  bfam_ts_lsrk_method_t lsrk_method;
+  char lsrk_name[BFAM_BUFSIZ];
+} prefs_t;
+
+
+/*
+ * Lua helper functions
+ */
+/*
+ * Helper function for calling a lua function. Based on generic call function of
+ * Listing 25.4-25.6 of
+ * @book{Ierusalimschy2006Lua,
+ *  author = {Ierusalimschy, Roberto},
+ *  title = {Programming in Lua, Second Edition},
+ *  year = {2006},
+ *  isbn = {8590379825},
+ *  publisher = {Lua.Org},
+ * }
+ */
+static int
+lua_global_function_call(lua_State *L, const char *name, const char *sig, ...)
+{
+  va_list vl;
+  int num_arg = 0;
+  int num_res = 0;
+
+  va_start(vl,sig);
+
+  lua_getglobal(L,name);
+
+  if(!lua_isfunction(L,-1))
+  {
+    BFAM_ROOT_WARNING("function `%s' not found in lua file", name);
+    lua_pop(L,1);
+    return 1;
+  }
+
+  for(num_arg = 0; sig[num_arg] && sig[num_arg] != '>'; num_arg++)
+  {
+    luaL_checkstack(L,1,"too many arguments");
+
+    switch(sig[num_arg])
+    {
+      case 'd':
+        lua_pushnumber(L,va_arg(vl,double));
+        break;
+      case 'r':
+        lua_pushnumber(L,(double)va_arg(vl,bfam_real_t));
+        break;
+      case 'i':
+        lua_pushinteger(L,va_arg(vl,int));
+        break;
+      case 's':
+        lua_pushstring(L,va_arg(vl,char *));
+        break;
+      case '>':
+        break;
+      default:
+        BFAM_ABORT("function '%s' invalid input argument (%c)",name,
+            sig[num_arg]);
+    }
+  }
+
+  BFAM_ABORT_IF_NOT(sig[num_arg] == '>',"arguments for '%s' does not contain "
+      " a '>' character",name);
+
+  num_res = strlen(sig) - num_arg - 1;
+
+  BFAM_ABORT_IF_NOT(lua_pcall(L,num_arg,num_res,0) == 0,
+      "error running function %s: %s", name,lua_tostring(L,-1));
+
+  for(int n = 0; n < num_res;n++)
+  {
+    switch(sig[num_arg+1+n])
+    {
+      case 'r':
+        BFAM_ABORT_IF_NOT(lua_isnumber(L,n-num_res),
+            "for '%s' return %d expected number got '%s'",
+            name, n, lua_tostring(L,n-num_res));
+        *va_arg(vl, bfam_real_t*) = (bfam_real_t)lua_tonumber(L,n-num_res);
+        break;
+      case 'i':
+        BFAM_ABORT_IF_NOT(lua_isnumber(L,n-num_res),
+            "for '%s' return %d expected number got '%s'",
+            name, n, lua_tostring(L,n-num_res));
+        *va_arg(vl, int*) = lua_tointeger(L,n-num_res);
+        break;
+      case 's':
+        BFAM_ABORT_IF_NOT(lua_isstring(L,n-num_res),
+            "for '%s' return %d expected string got '%s'",
+            name, n, lua_tostring(L,n-num_res));
+        *va_arg(vl, const char **) = lua_tostring(L,n-num_res);
+        break;
+      default:
+        BFAM_ABORT("function '%s' invalid output argument (%c)",name,
+            sig[num_arg]);
+    }
+  }
+
+  lua_pop(L,num_res);
+
+  va_end(vl);
+  return 0;
+}
 static int
 lua_get_global_int(lua_State *L, const char *name, int def)
 {
@@ -89,19 +216,6 @@ lua_get_table_int(lua_State *L, const char *table, const char *name, int def)
   return result;
 }
 
-typedef struct prefs
-{
-  lua_State *L;
-
-  int dimension;
-
-  char output_prefix[BFAM_BUFSIZ];
-
-  brick_args_t* brick_args;
-
-  bfam_ts_lsrk_method_t lsrk_method;
-  char lsrk_name[BFAM_BUFSIZ];
-} prefs_t;
 
 /*
  * Set up the beard preference file
@@ -236,6 +350,138 @@ init_mpi(beard_t *beard, MPI_Comm mpicomm)
   BFAM_MPI_CHECK(MPI_Comm_size(mpicomm, &beard->mpisize));
 }
 
+static int
+static_refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
+    p4est_quadrant_t * quadrant)
+{
+  return 1;
+}
+
+static int
+refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
+    p4est_quadrant_t * quadrant)
+{
+  lua_State *L = (lua_State*)p4est->user_pointer;
+
+  double vxyz[P4EST_CHILDREN*3];
+
+#if DIM==2
+  for(int iy = 0; iy < 2; iy++)
+    for(int ix = 0; ix < 2; ix++)
+    {
+      int ox = ix*(1 << (P4EST_MAXLEVEL-quadrant->level));
+      int oy = iy*(1 << (P4EST_MAXLEVEL-quadrant->level));
+      p4est_qcoord_to_vertex (p4est->connectivity, which_tree,
+          quadrant->x+ox, quadrant->y+oy,&vxyz[3*(ix + iy*2)]);
+    }
+
+  int val = 0;
+  int result = lua_global_function_call(L,"refinement_function",
+      "ddd" "ddd" "ddd" "ddd" "ii" ">" "i",
+      vxyz[0], vxyz[1], vxyz[2], vxyz[3], vxyz[ 4], vxyz[ 5],
+      vxyz[6], vxyz[7], vxyz[8], vxyz[9], vxyz[10], vxyz[11],
+      quadrant->level, which_tree, &val);
+  BFAM_ASSERT(result == 0);
+#elif DIM==3
+  for(int iz = 0; iz < 2; iz++)
+    for(int iy = 0; iy < 2; iy++)
+      for(int ix = 0; ix < 2; ix++)
+    {
+      int ox = ix*(1 << (P4EST_MAXLEVEL-quadrant->level));
+      int oy = iy*(1 << (P4EST_MAXLEVEL-quadrant->level));
+      int oz = iz*(1 << (P4EST_MAXLEVEL-quadrant->level));
+      p4est_qcoord_to_vertex (p4est->connectivity, which_tree,
+          quadrant->x+ox, quadrant->y+oy, quadrant->z+oz,
+          &vxyz[3*(ix + 2*(iy + 2*iz))]);
+    }
+
+  int val = 0;
+  int result = lua_global_function_call(L,"refinement_function",
+      "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ii" ">" "i",
+      vxyz[ 0], vxyz[ 1], vxyz[ 2], vxyz[ 3], vxyz[ 4], vxyz[ 5],
+      vxyz[ 6], vxyz[ 7], vxyz[ 8], vxyz[ 9], vxyz[10], vxyz[11],
+      vxyz[12], vxyz[13], vxyz[14], vxyz[15], vxyz[16], vxyz[17],
+      vxyz[18], vxyz[19], vxyz[20], vxyz[21], vxyz[22], vxyz[23],
+      quadrant->level, which_tree, &val);
+  BFAM_ASSERT(result == 0);
+#else
+#error "Bad Dimension"
+#endif
+
+  return val;
+}
+
+static void
+init_domain(beard_t *beard, prefs_t *prefs)
+{
+  /* Set up the connectivity */
+  if(prefs->brick_args != NULL)
+    beard->conn = p4est_connectivity_new_brick(
+        prefs->brick_args->nx,
+        prefs->brick_args->ny,
+#if DIM==3
+        prefs->brick_args->nz,
+#endif
+        prefs->brick_args->periodic_x,
+        prefs->brick_args->periodic_y
+#if DIM==3
+        ,prefs->brick_args->periodic_z
+#endif
+        );
+  else BFAM_ABORT("no connectivity");
+
+  /* let the user modify the connectivity vertices */
+  for(int i = 0; i < beard->conn->num_vertices; i++)
+  {
+    bfam_real_t x = beard->conn->vertices[i*3+0];
+    bfam_real_t y = beard->conn->vertices[i*3+1];
+    bfam_real_t z = beard->conn->vertices[i*3+2];
+    int result = lua_global_function_call(prefs->L,"connectivity_vertices",
+        "rrr>rrr",x,y,z,&x,&y,&z);
+    if(result != 0) break;
+    beard->conn->vertices[i*3+0] = x;
+    beard->conn->vertices[i*3+1] = y;
+    beard->conn->vertices[i*3+2] = z;
+  }
+  /* create the domain */
+  beard->domain = bfam_domain_pxest_new(beard->mpicomm, beard->conn);
+
+  /* call user refinement function */
+  lua_getglobal(prefs->L,"refinement_function");
+  if(lua_isfunction(prefs->L,-1))
+  {
+    lua_pop(prefs->L, 1);
+    void *current_user_pointer = beard->domain->pxest->user_pointer;
+    beard->domain->pxest->user_pointer = prefs->L;
+    p4est_refine(beard->domain->pxest, 2, refine_fn, NULL);
+
+    beard->domain->pxest->user_pointer = current_user_pointer;
+  }
+  else BFAM_ROOT_WARNING("function `%s' not found in lua file",
+      "refinement_function");
+
+  p4est_balance(beard->domain->pxest, P4EST_CONNECT_CORNER, NULL);
+
+  /*
+   * This is to statically refine all cells of a balanced mesh, since it's
+   * already balanced it will remain balanced
+   */
+  int stat_ref = lua_get_global_int(prefs->L, "static_refinement", 0);
+  for(int i = 0; i < stat_ref; i++)
+    p4est_refine(beard->domain->pxest, 0, static_refine_fn, NULL);
+
+  p4est_partition(beard->domain->pxest, NULL);
+
+  /* dump the pxest mesh */
+  p4est_vtk_write_file(beard->domain->pxest, NULL, "p4est_mesh");
+
+  /* split the domain */
+  // split_domain(beard,prefs);
+
+  /* add fields to the domnain */
+  // domain_add_fields(beard,prefs);
+}
+
 
 /*
  * run the beard
@@ -247,7 +493,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
 
   init_mpi(&beard, mpicomm);
 
-  // init_domain(&beard, prefs);
+  init_domain(&beard, prefs);
 
   // init_lsrk(&beard, prefs);
 

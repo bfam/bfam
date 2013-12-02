@@ -20,7 +20,7 @@
 #define Nfp (NORDER+1)
 #endif
 
-#elif BEARD_DGX_DIMENSION==3
+#elif  BEARD_DGX_DIMENSION==3
 
 #define DIM 3
 

@@ -1,8 +1,8 @@
 dimension = 3;
 
 -- refinement parameters
-min_level = 3
-max_level = 4
+min_level = 1
+max_level = 1
 output_prefix = "solution"
 
 -- connectivity info
@@ -20,16 +20,19 @@ brick =
 -- set up the domain
 Lx = 25
 Ly = 25
+Lz = 25
 function connectivity_vertices(x, y, z)
   xout = Lx*x
   yout = Ly*y
-  zout = 0
+  zout = Lz*z
   return xout,yout,zout
 end
 
 function refinement_function(
   x0,y0,z0,x1,y1,z1,
   x2,y2,z2,x3,y3,z3,
+  x4,y4,z4,x5,y5,z5,
+  x6,y6,z6,x7,y7,z7,
   level, treeid)
 
   if level < min_level then
@@ -46,6 +49,8 @@ end
 function element_order(
   x0,y0,z0,x1,y1,z1,
   x2,y2,z2,x3,y3,z3,
+  x4,y4,z4,x5,y5,z5,
+  x6,y6,z6,x7,y7,z7,
   level, treeid)
 
   -- N = treeid%3+1
