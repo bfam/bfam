@@ -46,7 +46,7 @@ typedef struct bfam_subdomain_dgx_glue_data
   int8_t           *EToFm; /* Face        number on local subdomain */
   int8_t           *EToHm; /* Hanging     number on local subdomain */
   int8_t           *EToOm; /* Orientation number on local subdomain */
-  int8_t          **mapOm; /* mapping the orientation */
+  bfam_locidx_t   **mapOm; /* mapping the orientation */
   int          num_orient; /* number of orientations */
 
   /* The following pointers should only be \ne NULL on the minus side */

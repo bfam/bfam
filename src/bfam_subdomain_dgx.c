@@ -3074,11 +3074,12 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
   else if(DIM == 2) glue_p->num_orient = 8;
   else BFAM_ABORT("Cannot handle dim = %d",DIM);
 
-  glue_p->mapOm = bfam_malloc_aligned(glue_p->num_orient*sizeof(int8_t*));
+  glue_p->mapOm =
+    bfam_malloc_aligned(glue_p->num_orient*sizeof(bfam_locidx_t*));
   if(DIM == 1)
   {
     for(int n = 0; n < glue_p->num_orient; n++)
-      glue_p->mapOm[n] = bfam_malloc_aligned(Nrp*sizeof(int8_t));
+      glue_p->mapOm[n] = bfam_malloc_aligned(Nrp*sizeof(bfam_locidx_t));
     for(int n = 0; n < Nrp; n++)
     {
       glue_p->mapOm[0][n] = n;
@@ -3088,7 +3089,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
   else if(DIM == 2)
   {
     for(int n = 0; n < glue_p->num_orient; n++)
-      glue_p->mapOm[n] = bfam_malloc_aligned(Nrp*Nrp*sizeof(int8_t));
+      glue_p->mapOm[n] = bfam_malloc_aligned(Nrp*Nrp*sizeof(bfam_locidx_t));
     for(int j = 0; j < Nrp; j++)
       for(int i = 0; i < Nrp; i++)
       {

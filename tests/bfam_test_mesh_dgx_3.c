@@ -87,12 +87,14 @@ check_pm(bfam_subdomain_dgx_t *sub, const char *name, bfam_real_t fac)
     for(int j=0; j<sub->Np; ++j)
     {
       size_t idx = i*sub->Np + j;
-      int fail = !REAL_APPROX_EQ(f_m[idx], fac*f_p[idx], 10);
+      int fail = !REAL_APPROX_EQ(f_m[idx], fac*f_p[idx], 100);
 
       if(fail)
       BFAM_LDEBUG("Fail Match: fm[%2d][%2d] = %20"BFAM_REAL_PRIe
-            "    fp[%2d][%2d] = %20"BFAM_REAL_PRIe,
-            i, j, f_m[i*sub->Np + j], i, j, fac*f_p[i*sub->Np + j]);
+            "    fp[%2d][%2d] = %20"BFAM_REAL_PRIe
+            "    fp-fm = %20"BFAM_REAL_PRIe,
+            i, j, f_m[i*sub->Np + j], i, j, fac*f_p[i*sub->Np + j],
+            f_m[i*sub->Np + j]-fac*f_p[i*sub->Np + j]);
 
       failures += fail;
     }
