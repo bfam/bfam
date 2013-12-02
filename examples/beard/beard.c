@@ -3,6 +3,18 @@
 #include "beard_dgx_rhs.h"
 #include <p4est_iterate.h>
 
+typedef struct beard
+{
+  MPI_Comm mpicomm;
+  int      mpirank;
+  int      mpisize;
+
+  // p4est_connectivity_t *conn;
+  // bfam_domain_p4est_t  *domain;
+  // bfam_ts_lsrk_t       *lsrk;
+  // bfam_subdomain_comm_args_t * comm_args;
+} beard_t;
+
 struct lsrk_table {
   const char *name;
   bfam_ts_lsrk_method_t lsrk_method;
@@ -191,6 +203,34 @@ free_prefs(prefs_t *prefs)
   lua_close(prefs->L);
 }
 
+static void
+init_mpi(beard_t *beard, MPI_Comm mpicomm)
+{
+  beard->mpicomm = mpicomm;
+  BFAM_MPI_CHECK(MPI_Comm_rank(mpicomm, &beard->mpirank));
+  BFAM_MPI_CHECK(MPI_Comm_size(mpicomm, &beard->mpisize));
+}
+
+
+/*
+ * run the beard
+ */
+static void
+run(MPI_Comm mpicomm, prefs_t *prefs)
+{
+  beard_t beard;
+
+  init_mpi(&beard, mpicomm);
+
+  // init_domain(&beard, prefs);
+
+  // init_lsrk(&beard, prefs);
+
+  // run_simulation(&beard, prefs);
+
+  // shave_beard(&beard,prefs);
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -262,7 +302,7 @@ main(int argc, char *argv[])
   prefs_t *prefs = new_prefs(argv[1]);
   print_prefs(prefs);
 
-  // run(comm, prefs);
+  run(comm, prefs);
 
   free_prefs(prefs);
   bfam_free(prefs);
