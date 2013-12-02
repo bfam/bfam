@@ -192,6 +192,34 @@ check_pm(bfam_subdomain_dgx_t *sub, const char *name, bfam_real_t fac)
 }
 
 static int
+check_vmaps(bfam_subdomain_dgx_t *sub, const char *name)
+{
+  int failures = 0;
+  bfam_real_t *f = bfam_dictionary_get_value_ptr(&sub->base.fields, name);
+
+  BFAM_ASSERT(f != NULL);
+
+  for(bfam_locidx_t i = 0; i < sub->K * sub->Ngp[0] * sub->Ng[0]; ++i)
+  {
+    int fail = !REAL_APPROX_EQ(f[sub->vmapM[i]], f[sub->vmapP[i]], 1000);
+
+    if(fail)
+      BFAM_LDEBUG("Fail Match fm[%2jd] = %20"BFAM_REAL_PRIe
+                         "    fp[%2jd] = %20"BFAM_REAL_PRIe,
+                         (intmax_t)i, f[sub->vmapM[i]],
+                         (intmax_t)i, f[sub->vmapP[i]]);
+
+    failures += fail;
+  }
+
+  if(failures > 0)
+    BFAM_WARNING("FAIL! %s",name);
+  return failures;
+}
+
+
+
+static int
 check_back(bfam_subdomain_dgx_quad_glue_t *sub, const char *name)
 {
   int failures = 0;
@@ -535,6 +563,37 @@ build_mesh(MPI_Comm mpicomm)
 
   bfam_vtk_write_file((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume,
                        "","ps",0, ps, NULL, NULL, 0, 0, 0);
+
+  /*
+   * Check local subdomain vmaps
+   */
+  {
+    bfam_subdomain_t **subdomains =
+      bfam_malloc(domain->base.numSubdomains*sizeof(bfam_subdomain_t**));
+
+    bfam_locidx_t numSubdomains = 0;
+
+    bfam_domain_get_subdomains((bfam_domain_t*)domain, BFAM_DOMAIN_OR,
+        volume, domain->base.numSubdomains, subdomains, &numSubdomains);
+
+    BFAM_LDEBUG("Number of volume subdomains %jd", (intmax_t) numSubdomains);
+
+    for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
+    {
+      failures +=
+        check_vmaps((bfam_subdomain_dgx_t*)subdomains[s], "p1");
+      failures +=
+        check_vmaps((bfam_subdomain_dgx_t*)subdomains[s], "p2");
+      failures +=
+        check_vmaps((bfam_subdomain_dgx_t*)subdomains[s], "p3");
+      failures +=
+        check_vmaps((bfam_subdomain_dgx_t*)subdomains[s], "p4");
+      failures +=
+        check_vmaps((bfam_subdomain_dgx_t*)subdomains[s], "p5");
+      failures +=
+        check_vmaps((bfam_subdomain_dgx_t*)subdomains[s], "p6");
+    }
+  }
 
   /*
    * Check to see if neighboring values got communicated
