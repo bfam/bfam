@@ -68,6 +68,27 @@
 #define beard_dgx_energy \
   BEARD_APPEND_EXPAND_4(beard_dgx_energy_,DIM,_,NORDER)
 
+#define BFAM_LOAD_FIELD_RESTRICT_ALIGNED(field,prefix,base,dictionary)         \
+bfam_real_t *restrict field;                                                   \
+{                                                                              \
+  char bfam_load_field_name[BFAM_BUFSIZ];                                      \
+  snprintf(bfam_load_field_name,BFAM_BUFSIZ,"%s%s",(prefix),(base));           \
+  field = bfam_dictionary_get_value_ptr(dictionary, bfam_load_field_name);     \
+  BFAM_ASSERT(field != NULL);                                                  \
+}                                                                              \
+BFAM_ASSUME_ALIGNED(field,32);
+
+#define BFAM_LOAD_FIELD_ALIGNED(field,prefix,base,dictionary)                  \
+bfam_real_t *field;                                                            \
+{                                                                              \
+  char bfam_load_field_name[BFAM_BUFSIZ];                                      \
+  snprintf(bfam_load_field_name,BFAM_BUFSIZ,"%s%s",(prefix),(base));           \
+  field = bfam_dictionary_get_value_ptr(dictionary, bfam_load_field_name);     \
+  BFAM_ASSERT(field != NULL);                                                  \
+}                                                                              \
+BFAM_ASSUME_ALIGNED(field,32);
+
+
 
 void beard_dgx_intra_rhs_elastic(
     int inN, bfam_subdomain_dgx_t *sub, const char *rate_prefix,
@@ -82,6 +103,16 @@ void beard_dgx_scale_rates_elastic(
     const bfam_long_real_t a)
 {
   GENERIC_INIT(inN,beard_dgx_scale_rates_elastic);
+
+  const bfam_locidx_t num_pts = sub->K * Np;
+  bfam_dictionary_t *fields = &sub->base.fields;
+  const char *f_names[] =
+    {"v1","v2","v3","S11","S22","S33","S12","S13","S23",NULL};
+  for(bfam_locidx_t f = 0; f_names[f]!=NULL; ++f)
+  {
+    BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix,f_names[f],fields);
+    for(bfam_locidx_t n = 0; n < num_pts; n++) rate[n] *= a;
+  }
 }
 
 void beard_dgx_add_rates_elastic(
