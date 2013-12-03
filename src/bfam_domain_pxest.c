@@ -993,7 +993,8 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
   for(bfam_locidx_t id = 0; id < numSubdomains; ++id)
   {
     name[id] = bfam_malloc(BFAM_BUFSIZ*sizeof(char));
-    snprintf(name[id], BFAM_BUFSIZ, "dg_quad_%05jd", (intmax_t) id);
+    snprintf(name[id], BFAM_BUFSIZ, "dgx_dim_%1d_%05jd", (int) DIM,
+        (intmax_t) id);
 
     EToV[id] = bfam_malloc(subK[id]*P4EST_CHILDREN*sizeof(bfam_locidx_t));
     EToE[id] = bfam_malloc(subK[id]*P4EST_FACES*sizeof(bfam_locidx_t));
@@ -1124,8 +1125,8 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
       const bfam_locidx_t rank_p = rank;
 
       char glueName[BFAM_BUFSIZ];
-      snprintf(glueName, BFAM_BUFSIZ, "dg_quad_glue_%d_%05jd_%05jd_%05jd",
-          r, (intmax_t) id, (intmax_t) id_m, (intmax_t) id_p);
+      snprintf(glueName, BFAM_BUFSIZ, "dgx_dim_%1d_glue_%05jd_%05jd_%05jd",
+          (int) BDIM, (intmax_t) id, (intmax_t) id_m, (intmax_t) id_p);
 
       /*
        * For subdomains that connect to themselves we need to distinguish
@@ -1201,8 +1202,8 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
     const bfam_locidx_t rank_p = bfmapping[bfk].np;
 
     char glueName[BFAM_BUFSIZ];
-    snprintf(glueName, BFAM_BUFSIZ, "dg_quad_glue_b_%05jd_%05jd_%05jd",
-        (intmax_t) id, (intmax_t) id_m, (intmax_t) id_p);
+    snprintf(glueName, BFAM_BUFSIZ, "dgx_dim_%1d_glue_b_%05jd_%05jd_%05jd",
+        (int) BDIM, (intmax_t) id, (intmax_t) id_m, (intmax_t) id_p);
 
 
     bfam_subdomain_dgx_t *glue =
@@ -1262,8 +1263,8 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
     const bfam_locidx_t rank_p = pfmapping[pfk].np;
 
     char glueName[BFAM_BUFSIZ];
-    snprintf(glueName, BFAM_BUFSIZ, "dg_quad_glue_p_%05jd_%05jd_%05jd",
-        (intmax_t) id, (intmax_t) id_m, (intmax_t) id_p);
+    snprintf(glueName, BFAM_BUFSIZ, "dgx_dim_%1d_glue_p_%05jd_%05jd_%05jd",
+        (int) BDIM, (intmax_t) id, (intmax_t) id_m, (intmax_t) id_p);
 
 
     bfam_subdomain_dgx_t *glue =
