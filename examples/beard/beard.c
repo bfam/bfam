@@ -929,9 +929,9 @@ init_lsrk(beard_t *beard, prefs_t *prefs)
 static void
 shave_beard(beard_t *beard,prefs_t *prefs)
 {
-  // bfam_free(beard->comm_args);
-  // bfam_ts_lsrk_free(beard->lsrk);
-  // bfam_free(beard->lsrk);
+  bfam_free(beard->comm_args);
+  bfam_ts_lsrk_free(beard->lsrk);
+  bfam_free(beard->lsrk);
   bfam_domain_pxest_free(beard->domain);
   bfam_free(beard->domain);
   p4est_connectivity_destroy(beard->conn);
