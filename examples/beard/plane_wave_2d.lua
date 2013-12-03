@@ -4,16 +4,16 @@ math.randomseed(0)
 dimension = 2;
 
 -- refinement parameters
-min_level = 3
-max_level = 4
+min_level = 0
+max_level = 0
 output_prefix = "solution"
 
 -- connectivity info
 connectivity = "brick"
 brick =
 {
-  nx = 1,
-  ny = 2,
+  nx = 4,
+  ny = 3,
   periodic_x = 1,
   periodic_y = 1,
 }
