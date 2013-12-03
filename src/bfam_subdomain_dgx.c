@@ -2707,6 +2707,43 @@ bfam_subdomain_dgx_free_fields(const char * key, void *val,
   return 1;
 }
 
+static void
+bfam_subdomain_dgx_free_glue(bfam_subdomain_dgx_glue_data_t *glue)
+{
+  if(glue)
+  {
+    if(glue->num_interp > 0)
+    {
+      for(int i = 0; i < glue->num_interp;i++)
+      {
+        if(glue->interpolation[i])
+          bfam_free_aligned(glue->interpolation[i]);
+        if(glue->massprojection[i])
+          bfam_free_aligned(glue->massprojection[i]);
+        if(glue->projection[i])
+          bfam_free_aligned(glue->projection[i]);
+      }
+      bfam_free_aligned(glue->interpolation);
+      bfam_free_aligned(glue->massprojection);
+      bfam_free_aligned(glue->projection);
+    }
+    if(glue->exact_mass) bfam_free_aligned(glue->exact_mass);
+
+    if(glue->EToEp) bfam_free_aligned(glue->EToEp);
+    if(glue->EToEm) bfam_free_aligned(glue->EToEm);
+    if(glue->EToFm) bfam_free_aligned(glue->EToFm);
+    if(glue->EToHm) bfam_free_aligned(glue->EToHm);
+    if(glue->EToOm) bfam_free_aligned(glue->EToOm);
+    if(glue->mapOm)
+    {
+      for(int n = 0; n < glue->num_orient;n++)
+        bfam_free_aligned(glue->mapOm[n]);
+      bfam_free_aligned(glue->mapOm);
+    }
+    bfam_free(glue);
+  }
+}
+
 void
 BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,BFAM_DGX_DIMENSION)(
     bfam_subdomain_t *thisSubdomain)
@@ -2752,77 +2789,10 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,BFAM_DGX_DIMENSION)(
 
   bfam_subdomain_dgx_null_all_values(sub);
 
-  if(sub->base.glue_m)
-  {
-    bfam_subdomain_dgx_glue_data_t *glue =
-      (bfam_subdomain_dgx_glue_data_t*) sub->base.glue_m;
-
-    if(glue->num_interp > 0)
-    {
-      for(int i = 0; i < glue->num_interp;i++)
-      {
-        if(glue->interpolation[i])
-          bfam_free_aligned(glue->interpolation[i]);
-        if(glue->massprojection[i])
-          bfam_free_aligned(glue->massprojection[i]);
-        if(glue->projection[i])
-          bfam_free_aligned(glue->projection[i]);
-      }
-      bfam_free_aligned(glue->interpolation);
-      bfam_free_aligned(glue->massprojection);
-      bfam_free_aligned(glue->projection);
-    }
-    if(glue->exact_mass) bfam_free_aligned(glue->exact_mass);
-
-    if(glue->EToEp) bfam_free_aligned(glue->EToEp);
-    if(glue->EToEm) bfam_free_aligned(glue->EToEm);
-    if(glue->EToFm) bfam_free_aligned(glue->EToFm);
-    if(glue->EToHm) bfam_free_aligned(glue->EToHm);
-    if(glue->EToOm) bfam_free_aligned(glue->EToOm);
-    if(glue->mapOm)
-    {
-      for(int n = 0; n < glue->num_orient;n++)
-        bfam_free_aligned(glue->mapOm[n]);
-      bfam_free_aligned(glue->mapOm);
-    }
-
-    bfam_free(sub->base.glue_m);
-  }
-  if(sub->base.glue_p)
-  {
-    bfam_subdomain_dgx_glue_data_t *glue =
-      (bfam_subdomain_dgx_glue_data_t*) sub->base.glue_p;
-
-    if(glue->num_interp > 0)
-    {
-      for(int i = 0; i < glue->num_interp;i++)
-      {
-        if(glue->interpolation[i])
-          bfam_free_aligned(glue->interpolation[i]);
-        if(glue->massprojection[i])
-          bfam_free_aligned(glue->massprojection[i]);
-        if(glue->projection[i])
-          bfam_free_aligned(glue->projection[i]);
-      }
-      bfam_free_aligned(glue->interpolation);
-      bfam_free_aligned(glue->massprojection);
-      bfam_free_aligned(glue->projection);
-    }
-    if(glue->exact_mass) bfam_free_aligned(glue->exact_mass);
-
-    if(glue->EToEp) bfam_free_aligned(glue->EToEp);
-    if(glue->EToEm) bfam_free_aligned(glue->EToEm);
-    if(glue->EToFm) bfam_free_aligned(glue->EToFm);
-    if(glue->EToHm) bfam_free_aligned(glue->EToHm);
-    if(glue->mapOm)
-    {
-      for(int n = 0; n < glue->num_orient;n++)
-        bfam_free_aligned(glue->mapOm[n]);
-      bfam_free_aligned(glue->mapOm);
-    }
-
-    bfam_free(sub->base.glue_p);
-  }
+  bfam_subdomain_dgx_free_glue(
+      (bfam_subdomain_dgx_glue_data_t*)sub->base.glue_m);
+  bfam_subdomain_dgx_free_glue(
+      (bfam_subdomain_dgx_glue_data_t*)sub->base.glue_p);
 }
 
 bfam_subdomain_dgx_t*
