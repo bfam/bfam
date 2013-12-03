@@ -16,6 +16,7 @@
       "using generic NFM for 2d of order %d with Np = %d and Nfp = %d",\
       N, Np, Nfp);
 #else
+#define GENERIC_INIT(INN,NFM) BFAM_NOOP()
 #define N    NORDER
 #define Np  (NORDER+1)*(NORDER+1)
 #define Nfp (NORDER+1)
@@ -37,6 +38,7 @@
       "using generic NFM for 3d of order %d with Np = %d and Nfp = %d",\
       N, Np, Nfp);
 #else
+#define GENERIC_INIT(INN,NFM) BFAM_NOOP()
 #define N    NORDER
 #define Np  (NORDER+1)*(NORDER+1)*(NORDER+1)
 #define Nfp (NORDER+1)*(NORDER+1)
@@ -71,18 +73,15 @@ void beard_dgx_intra_rhs_elastic(
     int inN, bfam_subdomain_dgx_t *sub, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t)
 {
-#ifdef USE_GENERIC
   GENERIC_INIT(inN,beard_dgx_intra_rhs_elastic);
-#endif
+
 }
 
 void beard_dgx_scale_rates_elastic(
     int inN, bfam_subdomain_dgx_t *sub, const char *rate_prefix,
     const bfam_long_real_t a)
 {
-#ifdef USE_GENERIC
   GENERIC_INIT(inN,beard_dgx_scale_rates_elastic);
-#endif
 }
 
 void beard_dgx_add_rates_elastic(
@@ -90,36 +89,32 @@ void beard_dgx_add_rates_elastic(
     const char *field_prefix_rhs, const char *rate_prefix,
     const bfam_long_real_t a)
 {
-#ifdef USE_GENERIC
   GENERIC_INIT(inN,beard_dgx_add_rates_elastic);
-#endif
+
 }
 
 void beard_dgx_inter_rhs_boundary(
     int inN, bfam_subdomain_dgx_t *sub_g, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t, const bfam_real_t R)
 {
-#ifdef USE_GENERIC
   GENERIC_INIT(inN,beard_dgx_inter_rhs_boundary);
-#endif
+
 }
 
 void beard_dgx_inter_rhs_interface(
     int inN, bfam_subdomain_dgx_t *sub_g, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t)
 {
-#ifdef USE_GENERIC
   GENERIC_INIT(inN,beard_dgx_inter_rhs_interface);
-#endif
+
 }
 
 void beard_dgx_energy(
     int inN, bfam_real_t *energy_sq,
     bfam_subdomain_dgx_t *sub, const char *field_prefix)
 {
-#ifdef USE_GENERIC
   GENERIC_INIT(inN,beard_dgx_energy);
-#endif
+
 }
 
 #endif
