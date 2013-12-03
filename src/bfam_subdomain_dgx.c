@@ -2585,6 +2585,15 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
         for(int n = 0; n < K*Np; ++n)
           J[n] = (bfam_real_t) lJ[n];
       }
+      {
+        char name[] = "_grid_JI";
+        int rval = bfam_subdomain_dgx_field_add(&subdomain->base, name);
+        BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s",name);
+        bfam_real_t *restrict JI =
+          bfam_dictionary_get_value_ptr(&subdomain->base.fields, name);
+        for(int n = 0; n < K*Np; ++n)
+          JI[n] = (bfam_real_t) (BFAM_LONG_REAL(1.0)/lJ[n]);
+      }
       BFAM_ASSERT(lni != NULL && lsJ != NULL);
       for(int v = 0; v < num_Vi;v++)
       {
