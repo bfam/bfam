@@ -161,6 +161,76 @@ void beard_dgx_energy(
 {
   GENERIC_INIT(inN,beard_dgx_energy);
 
+  /* get the fields we will need */
+  bfam_dictionary_t *fields = &sub->base.fields;
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1 ,field_prefix,"v1" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2 ,field_prefix,"v2" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v3 ,field_prefix,"v3" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11,field_prefix,"S11",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22,field_prefix,"S22",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33,field_prefix,"S33",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12,field_prefix,"S12",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13,field_prefix,"S13",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23,field_prefix,"S23",fields);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rho,"","rho"    ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(lam,"","lam"    ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(mu ,"","mu"     ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(J  ,"","_grid_J",fields);
+
+  bfam_locidx_t K  = sub->K;
+
+  bfam_real_t *w  = sub->w;
+  BFAM_ASSUME_ALIGNED(w ,32);
+
+  /* loop through all the elements */
+  for(bfam_locidx_t e = 0; e < K;e++)
+  {
+    bfam_locidx_t nid = e*Np;
+#if   DIM==2
+#define wk BFAM_REAL(1.0)
+#elif DIM==3
+    for(bfam_locidx_t k = 0; k < N+1; k++)
+    {
+      const bfam_real_t wk = w[k];
+#else
+#error "Bad Dimension"
+#endif
+    for(bfam_locidx_t j = 0; j < N+1; j++)
+    {
+      const bfam_real_t wj = w[j];
+      for(bfam_locidx_t i = 0; i < N+1; i++,nid++)
+      {
+        const bfam_real_t wi = w[i];
+
+        /* setup up deviatoric stress tensor */
+        bfam_real_t mean_stress = (S11[nid]+S22[nid]+S33[nid])/3.0;
+        bfam_real_t s11 = S11[nid] - mean_stress;
+        bfam_real_t s22 = S22[nid] - mean_stress;
+        bfam_real_t s33 = S33[nid] - mean_stress;
+        bfam_real_t s12 = S12[nid];
+        bfam_real_t s13 = S13[nid];
+        bfam_real_t s23 = S23[nid];
+
+        /* bulk modulus */
+        bfam_real_t K = lam[nid] + 2.0*mu[nid]/3.0;
+
+        energy_sq[0] += wi*wj*wk*J[nid]*(
+            rho[nid]*(v1[nid]*v1[nid] + v2[nid]*v2[nid] + v3[nid]*v3[nid])/2
+            + (s11*s11 + s22*s22 + s33*s33
+              + 2*s12*s12 + 2*s13*s13 + 2*s23*s23)/(4*mu[nid])
+            + mean_stress*mean_stress/(2*K)
+            );
+      }
+    }
+#if   DIM==2
+#undef wk
+#elif DIM==3
+    }
+#else
+#error "Bad Dimension"
+#endif
+  }
 }
 
 #endif
