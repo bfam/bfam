@@ -1,13 +1,14 @@
 #include <bfam.h>
-#include "beard_dgx_rhs.h"
 
 #ifdef BEARD_DGX_DIMENSION
 
 #if   BEARD_DGX_DIMENSION==2
 #include <bfam_domain_pxest_2.h>
+#include "beard_dgx_rhs_2.h"
 #include <p4est_iterate.h>
 #elif BEARD_DGX_DIMENSION==3
 #include <bfam_domain_pxest_3.h>
+#include "beard_dgx_rhs_3.h"
 #include <p8est_iterate.h>
 #define P4EST_CONNECT_CORNER P8EST_CONNECT_CORNER
 #else
@@ -39,7 +40,6 @@
 #else
 #error "bad dimension"
 #endif
-
 
 
 const char *comm_args_face_scalars[]      = {NULL};
@@ -804,6 +804,33 @@ void aux_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
 void scale_rates_elastic (bfam_subdomain_dgx_t *sub, const char *rate_prefix,
     const bfam_long_real_t a)
 {
+#if  DIM==2
+#define X(order) \
+  case order: beard_dgx_scale_rates_elastic_2_##order(sub->N,sub, \
+                  rate_prefix,a); break;
+#elif  DIM==3
+#define X(order) \
+  case order: beard_dgx_scale_rates_elastic_3_##order(sub->N,sub, \
+                  rate_prefix,a); break;
+#else
+#error "Bad Dimension"
+#endif
+
+  switch(sub->N)
+  {
+    BFAM_LIST_OF_DGX_NORDERS
+    default:
+#if   DIM==2
+      beard_dgx_scale_rates_elastic_2_(sub->N,sub,rate_prefix,a);
+#elif DIM==3
+      beard_dgx_scale_rates_elastic_3_(sub->N,sub,rate_prefix,a);
+#else
+#error "Bad Dimension"
+#endif
+
+      break;
+  }
+#undef X
 }
 
 void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
@@ -826,12 +853,38 @@ static void
 intra_rhs_elastic(int N, bfam_subdomain_dgx_t *sub,
     const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t)
 {
+#if  DIM==2
+#define X(order) \
+  case order: beard_dgx_intra_rhs_elastic_2_##order(N,sub, \
+                  rate_prefix,field_prefix,t); break;
+#elif  DIM==3
+#define X(order) \
+  case order: beard_dgx_intra_rhs_elastic_3_##order(N,sub, \
+                  rate_prefix,field_prefix,t); break;
+#else
+#error "Bad Dimension"
+#endif
+
+  switch(N)
+  {
+    BFAM_LIST_OF_DGX_NORDERS
+    default:
+#if   DIM==2
+      beard_dgx_intra_rhs_elastic_2_(N,sub,rate_prefix, field_prefix,t);
+#elif DIM==3
+      beard_dgx_intra_rhs_elastic_3_(N,sub,rate_prefix, field_prefix,t);
+#else
+#error "Bad Dimension"
+#endif
+      break;
+  }
+#undef X
 }
 
 void intra_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t)
 {
-  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx_quad"));
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
 
   bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*) thisSubdomain;
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
@@ -843,30 +896,85 @@ void intra_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
 }
 
-void inter_rhs_boundary(int N, bfam_subdomain_dgx_quad_glue_t *sub,
+void inter_rhs_boundary(int N, bfam_subdomain_dgx_t *sub,
     const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t,
     const bfam_real_t R)
 {
+#if   DIM==2
+#define X(order) \
+  case order: beard_dgx_inter_rhs_boundary_2_##order(N,sub, \
+                  rate_prefix,field_prefix,t, R); break;
+#elif   DIM==3
+#define X(order) \
+  case order: beard_dgx_inter_rhs_boundary_3_##order(N,sub, \
+                  rate_prefix,field_prefix,t, R); break;
+#else
+#error "bad dimension"
+#endif
+
+  switch(N)
+  {
+    BFAM_LIST_OF_DGX_NORDERS
+    default:
+#if   DIM==2
+      beard_dgx_inter_rhs_boundary_2_(N,sub,rate_prefix, field_prefix,t, R);
+#elif DIM==3
+      beard_dgx_inter_rhs_boundary_3_(N,sub,rate_prefix, field_prefix,t, R);
+#else
+#error "bad dimension"
+#endif
+      break;
+  }
+#undef X
 }
 
-void inter_rhs_interface(int N, bfam_subdomain_dgx_quad_glue_t *sub,
+void inter_rhs_interface(int N, bfam_subdomain_dgx_t *sub,
     const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t)
 {
+#if   DIM==2
+#define X(order) \
+  case order: beard_dgx_inter_rhs_interface_2_##order(N,sub, \
+                  rate_prefix,field_prefix,t); break;
+#elif DIM==3
+#define X(order) \
+  case order: beard_dgx_inter_rhs_interface_3_##order(N,sub, \
+                  rate_prefix,field_prefix,t); break;
+#else
+#error "bad dimension"
+#endif
+
+
+  switch(N)
+  {
+    BFAM_LIST_OF_DGX_NORDERS
+    default:
+#if   DIM==2
+      beard_dgx_inter_rhs_interface_2_(N,sub,rate_prefix, field_prefix,t);
+#elif DIM==3
+      beard_dgx_inter_rhs_interface_3_(N,sub,rate_prefix, field_prefix,t);
+#else
+#error "bad dimension"
+#endif
+      break;
+  }
+#undef X
 }
 
 void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t)
 {
-  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx_quad"));
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
 
-  bfam_subdomain_dgx_quad_glue_t *sub =
-    (bfam_subdomain_dgx_quad_glue_t*) thisSubdomain;
+  bfam_subdomain_dgx_t *sub =
+    (bfam_subdomain_dgx_t*) thisSubdomain;
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"));
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"))
-    inter_rhs_boundary(sub->sub_m->N,sub,rate_prefix,field_prefix,t,0);
+    inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
+        sub,rate_prefix,field_prefix,t,0);
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"))
-    inter_rhs_interface(sub->sub_m->N,sub,rate_prefix,field_prefix,t);
+    inter_rhs_interface(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
+        sub,rate_prefix,field_prefix,t);
   else
     BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
 }
@@ -875,13 +983,41 @@ void add_rates_elastic (bfam_subdomain_dgx_t *sub,
     const char *field_prefix_lhs, const char *field_prefix_rhs,
     const char *rate_prefix, const bfam_long_real_t a)
 {
+#if   DIM==2
+#define X(order) \
+  case order: beard_dgx_add_rates_elastic_2_##order(sub->N,sub, \
+                  field_prefix_lhs,field_prefix_rhs,rate_prefix,a); break;
+#elif DIM==3
+#define X(order) \
+  case order: beard_dgx_add_rates_elastic_3_##order(sub->N,sub, \
+                  field_prefix_lhs,field_prefix_rhs,rate_prefix,a); break;
+#else
+#error "bad dimension"
+#endif
+
+  switch(sub->N)
+  {
+    BFAM_LIST_OF_DGX_NORDERS
+    default:
+#if   DIM==2
+      beard_dgx_add_rates_elastic_2_(sub->N,sub,field_prefix_lhs,
+          field_prefix_rhs,rate_prefix,a);
+#elif DIM==3
+      beard_dgx_add_rates_elastic_3_(sub->N,sub,field_prefix_lhs,
+          field_prefix_rhs,rate_prefix,a);
+#else
+#error "bad dimension"
+#endif
+      break;
+  }
+#undef X
 }
 
 void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
     const bfam_long_real_t a)
 {
-  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx_quad"));
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
   {
     bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
