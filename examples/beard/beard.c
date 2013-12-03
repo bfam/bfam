@@ -554,8 +554,17 @@ field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t t,
   {
     BFAM_ROOT_INFO("field_set_val: using '%s' as lua callback function",name);
     lua_pop(L,1);
+#if   DIM==2
+    bfam_real_t tmpz = 0;
+#endif
     for(bfam_locidx_t n=0; n < npoints; ++n)
+#if   DIM==2
+      lua_global_function_call(L, name, "rrrr>r", x[n],y[n],tmpz,t,&field[n]);
+#elif DIM==3
       lua_global_function_call(L, name, "rrrr>r", x[n],y[n],z[n],t,&field[n]);
+#else
+#error "Bad Dimension"
+#endif
     return;
   }
   else if(lua_isnumber(L,-1)) val = (bfam_real_t)lua_tonumber(L,-1);
@@ -599,7 +608,7 @@ static void
 domain_add_fields(beard_t *beard, prefs_t *prefs)
 {
 
- const char *volume[] = {"_volume",NULL};
+  const char *volume[] = {"_volume",NULL};
   const char *fields[] = {"rho", "lam", "mu", "v1", "v2", "v3", "S11", "S22",
     "S33", "S12", "S13", "S23",NULL};
   bfam_domain_t *domain = (bfam_domain_t*)beard->domain;
