@@ -80,8 +80,8 @@ typedef struct beard
   p4est_connectivity_t *conn;
   bfam_domain_pxest_t  *domain;
 
-  // bfam_ts_lsrk_t       *lsrk;
-  // bfam_subdomain_comm_args_t * comm_args;
+  bfam_ts_lsrk_t       *lsrk;
+  bfam_subdomain_comm_args_t * comm_args;
 } beard_t;
 
 struct lsrk_table {
@@ -772,6 +772,161 @@ init_domain(beard_t *beard, prefs_t *prefs)
 }
 
 static void
+field_zero(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(field, 32);
+
+  for(bfam_locidx_t n=0; n < npoints; ++n) field[n] = 0;
+}
+
+void aux_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
+{
+  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+  {
+    const char *fields[] =
+      {"v1","v2","v3","S11","S22","S33","S12","S13","S23",NULL};
+
+    char field[BFAM_BUFSIZ];
+    for(int f = 0; fields[f]!=NULL; ++f)
+    {
+      snprintf(field,BFAM_BUFSIZ,"%s%s",prefix,fields[f]);
+      thisSubdomain->field_add(thisSubdomain,field);
+      bfam_subdomain_field_init(thisSubdomain, field, 0, field_zero, NULL);
+    }
+  }
+}
+
+void scale_rates_elastic (bfam_subdomain_dgx_t *sub, const char *rate_prefix,
+    const bfam_long_real_t a)
+{
+}
+
+void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
+    const bfam_long_real_t a)
+{
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
+  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+  {
+    bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
+    scale_rates_elastic(sub,rate_prefix,a);
+  }
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"));
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel"));
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_local"));
+  else
+    BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
+}
+
+static void
+intra_rhs_elastic(int N, bfam_subdomain_dgx_t *sub,
+    const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t)
+{
+}
+
+void intra_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
+    const char *field_prefix, const bfam_long_real_t t)
+{
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx_quad"));
+
+  bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*) thisSubdomain;
+  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+    intra_rhs_elastic(sub->N,sub,rate_prefix,field_prefix,t);
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"   ));
+  else
+    BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
+}
+
+void inter_rhs_boundary(int N, bfam_subdomain_dgx_quad_glue_t *sub,
+    const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t,
+    const bfam_real_t R)
+{
+}
+
+void inter_rhs_interface(int N, bfam_subdomain_dgx_quad_glue_t *sub,
+    const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t)
+{
+}
+
+void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
+    const char *field_prefix, const bfam_long_real_t t)
+{
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx_quad"));
+
+  bfam_subdomain_dgx_quad_glue_t *sub =
+    (bfam_subdomain_dgx_quad_glue_t*) thisSubdomain;
+  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"));
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"))
+    inter_rhs_boundary(sub->sub_m->N,sub,rate_prefix,field_prefix,t,0);
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"))
+    inter_rhs_interface(sub->sub_m->N,sub,rate_prefix,field_prefix,t);
+  else
+    BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
+}
+
+void add_rates_elastic (bfam_subdomain_dgx_t *sub,
+    const char *field_prefix_lhs, const char *field_prefix_rhs,
+    const char *rate_prefix, const bfam_long_real_t a)
+{
+}
+
+void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
+    const char *field_prefix_rhs, const char *rate_prefix,
+    const bfam_long_real_t a)
+{
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx_quad"));
+  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+  {
+    bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
+    add_rates_elastic(sub,field_prefix_lhs,field_prefix_rhs,rate_prefix,a);
+  }
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"   ));
+  else
+    BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
+}
+
+static void
+init_lsrk(beard_t *beard, prefs_t *prefs)
+{
+  beard->comm_args = bfam_malloc(sizeof(bfam_subdomain_comm_args_t));
+  bfam_subdomain_comm_args_t *args = beard->comm_args;
+
+  args->scalars_m           = comm_args_scalars;
+  args->vectors_m           = comm_args_vectors;
+  args->vector_components_m = comm_args_vector_components;
+  args->tensors_m           = comm_args_tensors;
+  args->tensor_components_m = comm_args_tensor_components;
+  args->face_scalars_m      = comm_args_face_scalars;
+
+  args->scalars_p           = comm_args_scalars;
+  args->vectors_p           = comm_args_vectors;
+  args->vector_components_p = comm_args_vector_components;
+  args->tensors_p           = comm_args_tensors;
+  args->tensor_components_p = comm_args_tensor_components;
+  args->face_scalars_p      = comm_args_face_scalars;
+
+
+  const char *timestep_tags[] = {"_volume","_glue_parallel","_glue_local",
+    "_glue_boundary", NULL};
+  const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
+
+  beard->lsrk = bfam_ts_lsrk_new((bfam_domain_t*) beard->domain,
+      prefs->lsrk_method, BFAM_DOMAIN_OR,timestep_tags, BFAM_DOMAIN_OR,glue,
+      beard->mpicomm, 10, beard->comm_args,
+      &aux_rates,&scale_rates,&intra_rhs,&inter_rhs, &add_rates);
+}
+
+
+static void
 shave_beard(beard_t *beard,prefs_t *prefs)
 {
   // bfam_free(beard->comm_args);
@@ -794,7 +949,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
 
   init_domain(&beard, prefs);
 
-  // init_lsrk(&beard, prefs);
+  init_lsrk(&beard, prefs);
 
   // run_simulation(&beard, prefs);
 
