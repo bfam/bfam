@@ -417,6 +417,20 @@ function(bfam_multiple_build define_name define_vals lib_name lib_src target)
   target_link_libraries(${target} ${lib_name})
 endfunction()
 
+function(bfam_multiple_add_flag define_name define_val lib_vals lib_name)
+  foreach(val ${lib_vals})
+    set(full_lib_name "${lib_name}_${val}")
+
+    set_property(TARGET ${full_lib_name} APPEND_STRING PROPERTY
+      COMPILE_FLAGS " -D${define_name}=${define_val}")
+  endforeach()
+
+  set_property(TARGET ${lib_name} APPEND_STRING PROPERTY
+    COMPILE_FLAGS " -D${define_name}=${define_val}")
+
+endfunction()
+
+
 ##
 ## Examples
 ##
@@ -468,11 +482,16 @@ bfam_multiple_build("NORDER" "${bfam_dgx_norders}"
   beard_dgx_rhs_2
   examples/beard/beard_dgx_rhs.c
   beard_2d)
+bfam_multiple_add_flag("BEARD_DGX_DIMENSION" "2" "${bfam_dgx_quad_norders}"
+beard_dgx_rhs_2)
+
 
 bfam_multiple_build("NORDER" "${bfam_dgx_norders}"
   beard_dgx_rhs_3
   examples/beard/beard_dgx_rhs.c
   beard_3d)
+bfam_multiple_add_flag("BEARD_DGX_DIMENSION" "3" "${bfam_dgx_quad_norders}"
+beard_dgx_rhs_3)
 
 bfam_multiple_build("NORDER" "${bfam_dgx_quad_norders}"
   beard_2d_dgx_rhs
