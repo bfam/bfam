@@ -323,7 +323,7 @@ build_mesh(MPI_Comm mpicomm)
   }
 
   bfam_domain_pxest_split_dgx_subdomains_3(domain, numSubdomains,
-      subdomainID, N);
+      subdomainID, N, NULL);
 
   const char *volume[] = {"_volume", NULL};
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};

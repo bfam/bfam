@@ -69,9 +69,17 @@ bfam_domain_pxest_free_3(bfam_domain_pxest_t_3 *domain);
  *                               which indicates the subdomain id for each
  *                               element
  * \param [in]     N             array of orders for the volume subdomains
+ * \param [in]     glueID        array indicating what glue subdomains exist.
+ *                               If the number is negative than no glue
+ *                               subdomain will be created and if the number
+ *                               is positive a subdomain will be created.
+ *                               This is of length \c
+ *                               pxest->local_num_quadrants*NumberOfFaces
+ *                               if \c NULL it will be ignored.
  */
 void
 bfam_domain_pxest_split_dgx_subdomains_3(bfam_domain_pxest_t_3 *domain,
-    bfam_locidx_t numSubdomains, bfam_locidx_t *subdomainID, int *N);
+    bfam_locidx_t numSubdomains, bfam_locidx_t *subdomainID, int *N,
+    bfam_locidx_t *glueID);
 
 #endif

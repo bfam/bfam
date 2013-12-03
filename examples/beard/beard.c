@@ -530,7 +530,7 @@ split_domain(beard_t *beard, prefs_t *prefs)
   bfam_locidx_t *N = bfam_malloc(data.max_N*sizeof(bfam_locidx_t));
   for(int n = 0; n < data.max_N;n++) N[n] = n+1;
 
-  bfam_domain_pxest_split_dgx_subdomains(domain, data.max_N, sub_ids, N);
+  bfam_domain_pxest_split_dgx_subdomains(domain, data.max_N, sub_ids, N, NULL);
 
   bfam_free(sub_ids);
   bfam_free(N);

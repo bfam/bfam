@@ -878,7 +878,8 @@ bfam_domain_pxest_boundary_subdomain_face_mapping(p4est_mesh_t *mesh,
 
 void
 bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
-    bfam_locidx_t numSubdomains, bfam_locidx_t *subdomainID, int *N)
+    bfam_locidx_t numSubdomains, bfam_locidx_t *subdomainID, int *N,
+    bfam_locidx_t *glueID)
 {
   BFAM_ROOT_LDEBUG("Begin splitting p4est domain into subdomains.");
   const int         HF = P4EST_HALF * P4EST_FACES;
