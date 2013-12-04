@@ -16,6 +16,10 @@ bfam_subdomain_face_send_cmp(const void* a, const void*b)
     return -1;
   else if(la->np > lb->np)
     return  1;
+  else if(la->id < lb->id)
+    return -1;
+  else if(la->id > lb->id)
+    return  1;
   else if(la->ns < lb->ns)
     return -1;
   else if(la->ns > lb->ns)
@@ -55,6 +59,10 @@ bfam_subdomain_face_recv_cmp(const void* a, const void*b)
   if(la->np < lb->np)
     return -1;
   else if(la->np > lb->np)
+    return  1;
+  else if(la->id < lb->id)
+    return -1;
+  else if(la->id > lb->id)
     return  1;
   else if(la->s  < lb->s)
     return -1;

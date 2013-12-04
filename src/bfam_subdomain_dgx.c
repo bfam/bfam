@@ -2935,12 +2935,12 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
 
 #ifdef BFAM_DEBUG
   {
-    BFAM_LDEBUG("glue mapping: %5s %5s %5s %5s %5s %5s %5s %5s %5s %5s",
-        "np", "nk", "nf", "nh", "gi", "i", "k", "f", "h", "o");
+    BFAM_LDEBUG("glue mapping: %5s %5s %5s %5s %5s %5s %5s %5s %5s %5s %5s",
+        "np", "nk", "nf", "nh", "gi", "i", "k", "f", "h", "o", "id");
     for(bfam_locidx_t k = 0; k < K; ++k)
     {
       BFAM_LDEBUG(
-          "glue mapping: %5jd %5jd %5jd %5jd %5jd %5jd %5jd %5jd %5jd %5jd",
+          "glue mapping: %5jd %5jd %5jd %5jd %5jd %5jd %5jd %5jd %5jd %5jd %5jd",
           (intmax_t)mapping[k].np,
           (intmax_t)mapping[k].nk,
           (intmax_t)mapping[k].nf,
@@ -2950,7 +2950,8 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
           (intmax_t)mapping[k].k,
           (intmax_t)mapping[k].f,
           (intmax_t)mapping[k].h,
-          (intmax_t)mapping[k].o);
+          (intmax_t)mapping[k].o,
+          (intmax_t)mapping[k].id);
     }
   }
 #endif

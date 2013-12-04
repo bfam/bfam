@@ -60,6 +60,8 @@ typedef struct bfam_subdomain_face_map_entry
   int8_t         h; /* Local hanging number */
   int8_t         o; /* Local orientation */
 
+  bfam_locidx_t id; /* Interface id */
+
   bfam_locidx_t gi; /* Index variable */
   bfam_locidx_t  i; /* Index variable */
 } bfam_subdomain_face_map_entry_t;
