@@ -88,14 +88,14 @@ c_p = math.sqrt((lam+2*mu)/rho);
 k_p = 2*math.pi/(brick.nx*Lx);
 
 A_s = 1
-p_s = {1,0,0}
-d_s = {0,1,1}
+p_s = {0,1,0}
+d_s = {1,0,1}
 c_s = math.sqrt(mu/rho);
-k_s = 2*math.pi/(brick.nx*Ly);
+k_s = 2*math.pi/(brick.ny*Ly);
 
 function v(x1,x2,x3,t,i)
-  return -A_p*d_p[i]*c_p*k_p*math.cos(k_p*(p_p[1]*x1+p_p[2]*x2+p_p[2]*x3-c_p*t))
-         -A_s*d_s[i]*c_s*k_s*math.cos(k_s*(p_s[1]*x1+p_s[2]*x2+p_s[2]*x3-c_s*t))
+  return -A_p*d_p[i]*c_p*k_p*math.cos(k_p*(p_p[1]*x1+p_p[2]*x2+p_p[3]*x3-c_p*t))
+         -A_s*d_s[i]*c_s*k_s*math.cos(k_s*(p_s[1]*x1+p_s[2]*x2+p_s[3]*x3-c_s*t))
 end
 
 function v1(x,y,z,t)
@@ -115,8 +115,8 @@ function S(x1,x2,x3,t,i,j)
     S_p = S_p + lam*(d_p[1]*p_p[1]+d_p[2]*p_p[2]+d_p[3]*p_p[3])
     S_s = S_s + lam*(d_s[1]*p_s[1]+d_s[2]*p_s[2]+d_s[3]*p_s[3])
   end
-  return  A_p*k_p*S_p*math.cos(k_p*(p_p[1]*x1+p_p[2]*x2+p_p[2]*x3-c_p*t))
-         +A_s*k_s*S_s*math.cos(k_s*(p_s[1]*x1+p_s[2]*x2+p_s[2]*x3-c_s*t))
+  return  A_p*k_p*S_p*math.cos(k_p*(p_p[1]*x1+p_p[2]*x2+p_p[3]*x3-c_p*t))
+         +A_s*k_s*S_s*math.cos(k_s*(p_s[1]*x1+p_s[2]*x2+p_s[3]*x3-c_s*t))
 end
 
 function S11(x,y,z,t)
