@@ -8,20 +8,20 @@
 #define BEARD_D3_OP(A) BFAM_NOOP()
 
 
-#define BEARD_DR0(A,B)     BFAM_KRON_IXA    (N+1, Dr , A, B)
-#define BEARD_DR0_PE(A,B)  BFAM_KRON_IXA_PE (N+1, Dr , A, B)
-#define BEARD_DR0T(A,B)    BFAM_KRON_IXAT   (N+1, Dr , A, B)
-#define BEARD_DR0T_PE(A,B) BFAM_KRON_IXAT_PE(N+1, Dr , A, B)
+#define BEARD_DR1(A,B)     BFAM_KRON_IXA    (N+1, Dr , A, B)
+#define BEARD_DR1_PE(A,B)  BFAM_KRON_IXA_PE (N+1, Dr , A, B)
+#define BEARD_DR1T(A,B)    BFAM_KRON_IXAT   (N+1, Dr , A, B)
+#define BEARD_DR1T_PE(A,B) BFAM_KRON_IXAT_PE(N+1, Dr , A, B)
 
-#define BEARD_DR1(A,B)     BFAM_KRON_AXI    (N+1, Dr , A, B)
-#define BEARD_DR1_PE(A,B)  BFAM_KRON_AXI_PE (N+1, Dr , A, B)
-#define BEARD_DR1T(A,B)    BFAM_KRON_ATXI   (N+1, Dr , A, B)
-#define BEARD_DR1T_PE(A,B) BFAM_KRON_ATXI_PE(N+1, Dr , A, B)
+#define BEARD_DR2(A,B)     BFAM_KRON_AXI    (N+1, Dr , A, B)
+#define BEARD_DR2_PE(A,B)  BFAM_KRON_AXI_PE (N+1, Dr , A, B)
+#define BEARD_DR2T(A,B)    BFAM_KRON_ATXI   (N+1, Dr , A, B)
+#define BEARD_DR2T_PE(A,B) BFAM_KRON_ATXI_PE(N+1, Dr , A, B)
 
-#define BEARD_DR2(A,B)     BFAM_NOOP()
-#define BEARD_DR2_PE(A,B)  BFAM_NOOP()
-#define BEARD_DR2T(A,B)    BFAM_NOOP()
-#define BEARD_DR2T_PE(A,B) BFAM_NOOP()
+#define BEARD_DR3(A,B)     BFAM_NOOP()
+#define BEARD_DR3_PE(A,B)  BFAM_NOOP()
+#define BEARD_DR3T(A,B)    BFAM_NOOP()
+#define BEARD_DR3T_PE(A,B) BFAM_NOOP()
 
 #ifndef NORDER
 #define NORDER
@@ -50,20 +50,20 @@
 #define BEARD_D3_AP(A1,A2) (A1 A2)
 #define BEARD_D3_OP(A) A
 
-#define BEARD_DR0(A,B)     BFAM_KRON_IXIXA    (N+1, Dr , A, B)
-#define BEARD_DR0_PE(A,B)  BFAM_KRON_IXIXA_PE (N+1, Dr , A, B)
-#define BEARD_DR0T(A,B)    BFAM_KRON_IXIXAT   (N+1, Dr , A, B)
-#define BEARD_DR0T_PE(A,B) BFAM_KRON_IXIXAT_PE(N+1, Dr , A, B)
+#define BEARD_DR1(A,B)     BFAM_KRON_IXIXA    (N+1, Dr , A, B)
+#define BEARD_DR1_PE(A,B)  BFAM_KRON_IXIXA_PE (N+1, Dr , A, B)
+#define BEARD_DR1T(A,B)    BFAM_KRON_IXIXAT   (N+1, Dr , A, B)
+#define BEARD_DR1T_PE(A,B) BFAM_KRON_IXIXAT_PE(N+1, Dr , A, B)
 
-#define BEARD_DR1(A,B)     BFAM_KRON_IXAXI    (N+1, Dr , A, B)
-#define BEARD_DR1_PE(A,B)  BFAM_KRON_IXAXI_PE (N+1, Dr , A, B)
-#define BEARD_DR1T(A,B)    BFAM_KRON_IXATXI   (N+1, Dr , A, B)
-#define BEARD_DR1T_PE(A,B) BFAM_KRON_IXATXI_PE(N+1, Dr , A, B)
+#define BEARD_DR2(A,B)     BFAM_KRON_IXAXI    (N+1, Dr , A, B)
+#define BEARD_DR2_PE(A,B)  BFAM_KRON_IXAXI_PE (N+1, Dr , A, B)
+#define BEARD_DR2T(A,B)    BFAM_KRON_IXATXI   (N+1, Dr , A, B)
+#define BEARD_DR2T_PE(A,B) BFAM_KRON_IXATXI_PE(N+1, Dr , A, B)
 
-#define BEARD_DR2(A,B)     BFAM_KRON_AXIXI   (N+1, Dr , A, B)
-#define BEARD_DR2_PE(A,B)  BFAM_KRON_AXIXI_PE(N+1, Dr , A, B)
-#define BEARD_DR2T(A,B)    BFAM_KRON_ATXIXI   (N+1, Dr , A, B)
-#define BEARD_DR2T_PE(A,B) BFAM_KRON_ATXIXI_PE(N+1, Dr , A, B)
+#define BEARD_DR3(A,B)     BFAM_KRON_AXIXI   (N+1, Dr , A, B)
+#define BEARD_DR3_PE(A,B)  BFAM_KRON_AXIXI_PE(N+1, Dr , A, B)
+#define BEARD_DR3T(A,B)    BFAM_KRON_ATXIXI   (N+1, Dr , A, B)
+#define BEARD_DR3T_PE(A,B) BFAM_KRON_ATXIXI_PE(N+1, Dr , A, B)
 
 #ifndef NORDER
 #define NORDER
@@ -334,9 +334,9 @@ void beard_dgx_intra_rhs_elastic(
           aux3[i] = Jr3x1[off+i] * S11[off+i] + Jr3x2[off+i] * S12[off+i]
                   + Jr3x3[off+i] * S13[off+i]);
     }
-    BEARD_DR0   (aux1   , rate); /* Dr */
-    BEARD_DR1_PE(aux2   , rate); /* Ds */
-    BEARD_DR2_PE(aux3   , rate); /* Dt */
+    BEARD_DR1   (aux1   , rate); /* Dr */
+    BEARD_DR2_PE(aux2   , rate); /* Ds */
+    BEARD_DR3_PE(aux3   , rate); /* Dt */
 
     for(bfam_locidx_t i = 0; i < Np; i++)
       dv1[off+i] += JI[off+i]*rhoi[off+i]*rate[i];
@@ -358,9 +358,9 @@ void beard_dgx_intra_rhs_elastic(
           aux3[i] = Jr3x1[off+i] * S12[off+i] + Jr3x2[off+i] * S22[off+i]
                   + Jr3x3[off+i] * S23[off+i]);
     }
-    BEARD_DR0   (aux1   , rate); /* Dr */
-    BEARD_DR1_PE(aux2   , rate); /* Ds */
-    BEARD_DR2_PE(aux3   , rate); /* Dt */
+    BEARD_DR1   (aux1   , rate); /* Dr */
+    BEARD_DR2_PE(aux2   , rate); /* Ds */
+    BEARD_DR3_PE(aux3   , rate); /* Dt */
 
     for(bfam_locidx_t i = 0; i < Np; i++)
       dv2[off+i] += JI[off+i]*rhoi[off+i]*rate[i];
@@ -383,9 +383,9 @@ void beard_dgx_intra_rhs_elastic(
           aux3[i] = Jr3x1[off+i] * S13[off+i] + Jr3x2[off+i] * S23[off+i]
                   + Jr3x3[off+i] * S33[off+i]);
     }
-    BEARD_DR0   (aux1   , rate); /* Dr */
-    BEARD_DR1_PE(aux2   , rate); /* Ds */
-    BEARD_DR2_PE(aux3   , rate); /* Dt */
+    BEARD_DR1   (aux1   , rate); /* Dr */
+    BEARD_DR2_PE(aux2   , rate); /* Ds */
+    BEARD_DR3_PE(aux3   , rate); /* Dt */
 
     for(bfam_locidx_t i = 0; i < Np; i++)
       dv3[off+i] += JI[off+i]*rhoi[off+i]*rate[i];
@@ -426,15 +426,16 @@ void beard_dgx_intra_rhs_elastic(
      * S23 += -mu*MI*JI*((Jrx*Dr' + Jsx*Ds' + Jtx*Dt')*v3
      *        -mu*MI*JI*((Jrz*Dr' + Jsz*Ds' + Jtz*Dt')*v2
      */
-    BEARD_DR0T(Mv1, Dr1Tv1);
-    BEARD_DR1T(Mv1, Dr2Tv1);
-    BEARD_DR2T(Mv1, Dr3Tv1);
-    BEARD_DR0T(Mv2, Dr1Tv2);
-    BEARD_DR1T(Mv2, Dr2Tv2);
-    BEARD_DR2T(Mv2, Dr3Tv2);
-    BEARD_DR0T(Mv3, Dr1Tv3);
-    BEARD_DR1T(Mv3, Dr2Tv3);
-    BEARD_DR2T(Mv3, Dr3Tv3);
+    BEARD_DR1T(Mv1, Dr1Tv1);
+    BEARD_DR2T(Mv1, Dr2Tv1);
+    BEARD_DR3T(Mv1, Dr3Tv1);
+    BEARD_DR1T(Mv2, Dr1Tv2);
+    BEARD_DR2T(Mv2, Dr2Tv2);
+    BEARD_DR3T(Mv2, Dr3Tv2);
+    BEARD_DR1T(Mv3, Dr1Tv3);
+    BEARD_DR2T(Mv3, Dr2Tv3);
+    BEARD_DR3T(Mv3, Dr3Tv3);
+
     n = 0;
 #if DIM==3
     for(bfam_locidx_t k = 0; k < N+1; k++)
