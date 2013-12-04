@@ -57,11 +57,12 @@ function element_order(
   x6,y6,z6,x7,y7,z7,
   level, treeid)
 
-  if treeid < brick.nx*brick.ny/2 then
-    return N
-  else
-    return N
+  if treeid%3 == 0 then
+    return N1
+  elseif treeid%3 == 1 then
+    return N2
   end
+  return N3
 end
 
 -- initial values
