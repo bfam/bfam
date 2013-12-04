@@ -1084,12 +1084,17 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       int color = 32;
       if(new_energy > energy) color = 31;
       BFAM_ROOT_INFO("\x1B[%dm"
-          "time: %"BFAM_REAL_FMTe" normalized energy: %"BFAM_REAL_FMTe
+          "time: %"BFAM_REAL_FMTe"\n"
+          " init energy: %"BFAM_REAL_FMTe
+          " energy: %"BFAM_REAL_FMTe
+          " norm energy: %"BFAM_REAL_FMTe"\n"
           " current delta energy: %+"BFAM_REAL_FMTe
-          " initial delta energy: %+"BFAM_REAL_FMTe
+          " initial delta energy: %+"BFAM_REAL_FMTe"\n"
           "\x1B[0m",
           color,
           s*dt,
+          initial_energy,
+          new_energy,
           new_energy/initial_energy,
           (new_energy-energy)/initial_energy,
           energy/initial_energy-1);
