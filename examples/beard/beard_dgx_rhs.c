@@ -39,6 +39,7 @@
 #define GENERIC_INIT(INN,NFM) BFAM_NOOP()
 #define N    NORDER
 #define Np  (NORDER+1)*(NORDER+1)
+#define Np_BACK  (NORDER+1)*(NORDER+1)
 #define Nfp (NORDER+1)
 #define Nfaces  4
 #endif
@@ -81,6 +82,7 @@
 #define GENERIC_INIT(INN,NFM) BFAM_NOOP()
 #define N    NORDER
 #define Np  (NORDER+1)*(NORDER+1)*(NORDER+1)
+#define Np_BACK  (NORDER+1)*(NORDER+1)*(NORDER+1)
 #define Nfp (NORDER+1)*(NORDER+1)
 #define Nfaces  6
 #endif
@@ -221,6 +223,86 @@ beard_dgx_add_flux(const bfam_real_t scale,
   dS12[iM] += JI_wi_sJ*mu*           (vS[0]*nm[1] + vS[1]*nm[0]);
   dS13[iM] += JI_wi_sJ*mu*BEARD_D3_AP(vS[2]*nm[0],+ vS[0]*nm[2]);
   dS23[iM] += JI_wi_sJ*mu*BEARD_D3_AP(vS[2]*nm[1],+ vS[1]*nm[2]);
+}
+
+static inline void
+beard_dgx_remove_flux( const int inN,
+    bfam_locidx_t face, bfam_locidx_t e, const bfam_locidx_t *vmapM,
+    const bfam_real_t *n1, const bfam_real_t *n2,
+#if DIM==3
+    const bfam_real_t *n3,
+#endif
+    const bfam_real_t *Zs, const bfam_real_t *Zp,
+    const bfam_real_t *mu, const bfam_real_t *rhoi, const bfam_real_t *lam,
+    const bfam_real_t *sJ, const bfam_real_t *JI,   const bfam_real_t *wi,
+    const bfam_real_t *v1,  const bfam_real_t *v2,  const bfam_real_t *v3,
+    const bfam_real_t *S11, const bfam_real_t *S22, const bfam_real_t *S33,
+    const bfam_real_t *S12, const bfam_real_t *S13, const bfam_real_t *S23,
+          bfam_real_t *dv1,  bfam_real_t *dv2,  bfam_real_t *dv3,
+          bfam_real_t *dS11, bfam_real_t *dS22, bfam_real_t *dS33,
+          bfam_real_t *dS12, bfam_real_t *dS13, bfam_real_t *dS23
+    )
+{
+  GENERIC_INIT(inN,beard_dgx_remove_flux);
+
+  for(bfam_locidx_t pnt = 0; pnt < Nfp; pnt++)
+  {
+    bfam_locidx_t f = pnt + Nfp*(face + Nfaces*e);
+    bfam_locidx_t iM = vmapM[f];
+
+    /* Setup stuff for the minus side */
+    const bfam_real_t ZsM = Zs[iM];
+    const bfam_real_t ZpM = Zp[iM];
+
+    const bfam_real_t nM[] = {n1[f],n2[f],BEARD_D3_AP(0,+n3[f])};
+
+    bfam_real_t TpM[] = {
+      BEARD_D3_AP(nM[0]*S11[iM] + nM[1]*S12[iM], + nM[2]*S13[iM]),
+      BEARD_D3_AP(nM[0]*S12[iM] + nM[1]*S22[iM], + nM[2]*S23[iM]),
+      BEARD_D3_AP(nM[0]*S13[iM] + nM[1]*S23[iM], + nM[2]*S33[iM]),
+    };
+    const bfam_real_t TnM = BEARD_D3_AP(TpM[0]*nM[0]
+                                       +TpM[1]*nM[1],
+                                       +TpM[2]*nM[2]);
+    TpM[0] = TpM[0]-TnM*nM[0];
+    TpM[1] = TpM[1]-TnM*nM[1];
+    BEARD_D3_OP(TpM[2] = TpM[2]-TnM*nM[2]);
+
+    bfam_real_t vpM[] = {v1[iM],v2[iM],v3[iM]};
+    const bfam_real_t vnM = BEARD_D3_AP(nM[0]*vpM[0]
+                                       +nM[1]*vpM[1],
+                                       +nM[2]*vpM[2]);
+    vpM[0] = vpM[0]-vnM*nM[0];
+    vpM[1] = vpM[1]-vnM*nM[1];
+    BEARD_D3_OP(vpM[2] = vpM[2]-vnM*nM[2]);
+
+    /* First remove what we already did */
+    const bfam_real_t ZsP = ZsM;
+    const bfam_real_t ZpP = ZpM;
+
+    const bfam_real_t TpP[] = {-TpM[0],-TpM[1],-TpM[2]};
+    const bfam_real_t TnP   = TnM;
+
+    const bfam_real_t vpP[] = { vpM[0], vpM[1], vpM[2]};
+    const bfam_real_t vnP   = -vnM;
+
+    bfam_real_t TnS;
+    bfam_real_t TpS[3];
+    bfam_real_t vnS;
+    bfam_real_t vpS[3];
+
+    BEARD_STATE(&TnS,TpS,&vnS,vpS,
+        TnM, TnP, TpM, TpP, vnM, vnP, vpM, vpP, ZpM, ZpP, ZsM, ZsP);
+
+    TnS -= TnM;
+    TpS[0] -= TpM[0];
+    TpS[1] -= TpM[1];
+    TpS[2] -= TpM[2];
+
+    beard_dgx_add_flux(-1, TnS,TpS,vnS,vpS,iM,
+        dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
+        lam[iM],mu[iM],rhoi[iM],nM,sJ[f],JI[iM],wi[0]);
+  }
 }
 
 void beard_dgx_intra_rhs_elastic(
@@ -665,6 +747,205 @@ void beard_dgx_inter_rhs_interface(
 {
   GENERIC_INIT(inN,beard_dgx_inter_rhs_interface);
 
+  bfam_subdomain_dgx_t* sub_m =
+    (bfam_subdomain_dgx_t*) sub_g->base.glue_m->sub_m;
+
+  /* get the fields we will need */
+  bfam_subdomain_dgx_glue_data_t* glue_m =
+    (bfam_subdomain_dgx_glue_data_t*) sub_g->base.glue_m;
+  bfam_subdomain_dgx_glue_data_t* glue_p =
+    (bfam_subdomain_dgx_glue_data_t*) sub_g->base.glue_p;
+  BFAM_ASSERT(glue_m != NULL);
+  BFAM_ASSERT(glue_p != NULL);
+  bfam_dictionary_t *fields_m    = &glue_m->base.fields;
+  bfam_dictionary_t *fields_p    = &glue_p->base.fields;
+  bfam_dictionary_t *fields      = &sub_m->base.fields;
+  bfam_dictionary_t *fields_face = &sub_m->base.fields_face;
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1 ,field_prefix,"v1" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2 ,field_prefix,"v2" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v3 ,field_prefix,"v3" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11,field_prefix,"S11",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22,field_prefix,"S22",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33,field_prefix,"S33",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12,field_prefix,"S12",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13,field_prefix,"S13",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23,field_prefix,"S23",fields);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vn_M ,field_prefix,"vn" ,fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp1_M,field_prefix,"vp1",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp2_M,field_prefix,"vp2",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp3_M,field_prefix,"vp3",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn_M ,field_prefix,"Tn" ,fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1_M,field_prefix,"Tp1",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2_M,field_prefix,"Tp2",fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3_M,field_prefix,"Tp3",fields_m);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vn_P ,field_prefix,"vn" ,fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp1_P,field_prefix,"vp1",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp2_P,field_prefix,"vp2",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(vp3_P,field_prefix,"vp3",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn_P ,field_prefix,"Tn" ,fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1_P,field_prefix,"Tp1",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2_P,field_prefix,"Tp2",fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3_P,field_prefix,"Tp3",fields_p);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv1 ,rate_prefix,"v1" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv2 ,rate_prefix,"v2" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv3 ,rate_prefix,"v3" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS11,rate_prefix,"S11",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS22,rate_prefix,"S22",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS33,rate_prefix,"S33",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS12,rate_prefix,"S12",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS13,rate_prefix,"S13",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS23,rate_prefix,"S23",fields);
+
+  /* get the material properties and metric terms */
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rhoi,"","rho_inv"  ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(lam ,"","lam"      ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(mu  ,"","mu"       ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zs  ,"","Zs"       ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp  ,"","Zp"       ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(J   ,"","_grid_J"  ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(JI  ,"","_grid_JI" ,fields);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(n1,"","_grid_nx0",fields_face);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(n2,"","_grid_nx1",fields_face);
+  BEARD_D3_OP(BFAM_LOAD_FIELD_RESTRICT_ALIGNED(n3,"","_grid_nx2",fields_face));
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(sJ  ,"","_grid_sJ",fields_face);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zs_M  ,"","Zs"       ,fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp_M  ,"","Zp"       ,fields_m);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zs_P  ,"","Zs"       ,fields_p);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp_P  ,"","Zp"       ,fields_p);
+
+  bfam_real_t *wi  = sub_m->wi;
+  BFAM_ASSUME_ALIGNED(wi ,32);
+
+  BFAM_ASSERT(glue_p->EToEm);
+  BFAM_ASSERT(glue_p->EToFm);
+  BFAM_ASSERT(glue_p->EToHm);
+
+  for(bfam_locidx_t le = 0; le < sub_g->K; le++)
+  {
+    bfam_locidx_t e = glue_p->EToEm[le];
+    int8_t face = glue_p->EToFm[le];
+
+
+    if(glue_p->EToHm[le] < 2)
+      beard_dgx_remove_flux(N,face,e,sub_m->vmapM,
+          n1,n2,
+#if DIM==3
+          n3,
+#endif
+          Zs,Zp,
+          mu,rhoi,lam,sJ,JI,wi,
+          v1,v2,v3,S11,S22,S33,S12,S13,S23,
+          dv1,dv2,dv3,dS11,dS22,dS33,dS12,dS13,dS23);
+
+
+#ifndef USE_GENERIC
+#undef Np
+#endif
+    bfam_locidx_t Np_g = sub_g->Np;
+#ifndef USE_GENERIC
+#define Np Np_BACK
+#endif
+
+    bfam_real_t TpS_g[3*Np_g];
+    bfam_real_t TnS_g[  Np_g];
+    bfam_real_t vpS_g[3*Np_g];
+    bfam_real_t vnS_g[  Np_g];
+
+    for(bfam_locidx_t pnt = 0; pnt < Np_g; pnt++)
+    {
+      bfam_locidx_t iG = pnt+le*Np_g;
+
+      /* Setup stuff for the minus side */
+      bfam_real_t ZsM = Zs_M[iG];
+      bfam_real_t ZpM = Zp_M[iG];
+
+      bfam_real_t TpM[] = {Tp1_M[iG], Tp2_M[iG], Tp3_M[iG]};
+      bfam_real_t TnM = Tn_M[iG];
+
+      bfam_real_t vpM[] = {vp1_M[iG],vp2_M[iG],vp3_M[iG]};
+      bfam_real_t vnM = vn_M[iG];
+
+      /* now add the real flux */
+      /* Setup stuff for the plus side */
+      bfam_real_t ZsP = Zs_P[iG];
+      bfam_real_t ZpP = Zp_P[iG];
+
+      bfam_real_t TpP[] = {Tp1_P[iG], Tp2_P[iG], Tp3_P[iG]};
+      bfam_real_t TnP = Tn_P[iG];
+
+      bfam_real_t vpP[] = {vp1_P[iG],vp2_P[iG],vp3_P[iG]};
+      bfam_real_t vnP = vn_P[iG];
+
+      BEARD_STATE(
+          &TnS_g[pnt],&TpS_g[3*pnt],&vnS_g[pnt],&vpS_g[3*pnt],
+          TnM, TnP, TpM, TpP, vnM, vnP, vpM, vpP, ZpM, ZpP, ZsM, ZsP);
+
+      /* substract off the grid values */
+      TpS_g[3*pnt+0] -= TpM[0];
+      TpS_g[3*pnt+1] -= TpM[1];
+      TpS_g[3*pnt+2] -= TpM[2];
+      TnS_g[pnt]     -= TnM;
+    }
+
+    bfam_real_t *restrict TpS_M;
+    bfam_real_t *restrict TnS_M;
+    bfam_real_t *restrict vpS_M;
+    bfam_real_t *restrict vnS_M;
+
+    /* these will be used to the store the projected values if we need them */
+    // BFAM_ALIGN(32) bfam_real_t TpS_m_STORAGE[3*Nfp];
+    // BFAM_ALIGN(32) bfam_real_t TnS_m_STORAGE[  Nfp];
+    // BFAM_ALIGN(32) bfam_real_t vpS_m_STORAGE[3*Nfp];
+    // BFAM_ALIGN(32) bfam_real_t vnS_m_STORAGE[  Nfp];
+
+    /* check to tee if projection */
+    /* locked */
+    // if(1)
+    {
+      TpS_M = TpS_g;
+      TnS_M = TnS_g;
+      vpS_M = vpS_g;
+      vnS_M = vnS_g;
+    }
+    // else
+    // {
+    //   /* set to the correct Mass times projection */
+    //   TpS_M = TpS_m_STORAGE;
+    //   TnS_M = TnS_m_STORAGE;
+    //   vpS_M = vpS_m_STORAGE;
+    //   vnS_M = vnS_m_STORAGE;
+    //   massproject_flux(TnS_M, TpS_M, vnS_M, vpS_M, Nfp, Np_g, TnS_g, TpS_g,
+    //       vnS_g, vpS_g, sub_g->massprojection[glue_p->EToHm[le]], wi);
+    //   /*
+    //   project_flux(TnS_M, TpS_M, vnS_M, vpS_M, Nfp, Np_g, TnS_g, TpS_g, vnS_g,
+    //       vpS_g, sub_g->projection[glue_p->EToHm[le]]);
+    //   */
+    // }
+
+    for(bfam_locidx_t pnt = 0; pnt < Nfp; pnt++)
+    {
+      bfam_locidx_t f = pnt + Nfp*(face + Nfaces*e);
+      bfam_locidx_t iM = sub_m->vmapM[f];
+      const bfam_real_t nM[] = {n1[f],n2[f],BEARD_D3_AP(0,+n3[f])};
+
+      bfam_real_t sq_sJ;
+      if(glue_p->EToHm[le] == 1 || glue_p->EToHm[le] == 2)
+        sq_sJ = BFAM_REAL_SQRT(2.0*sJ[f]);
+      else
+        sq_sJ = BFAM_REAL_SQRT(sJ[f]);
+
+      beard_dgx_add_flux(1,
+          TnS_M[pnt],&TpS_M[3*pnt],vnS_M[pnt],&vpS_M[3*pnt],iM,
+          dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
+          lam[iM],mu[iM],rhoi[iM],nM,sq_sJ,JI[iM],wi[0]);
+    }
+  }
 }
 
 void beard_dgx_energy(
