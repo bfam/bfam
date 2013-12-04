@@ -1199,6 +1199,10 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
           BFAM_MIN(id_m,id_p),BFAM_MAX(id_m,id_p));
       bfam_subdomain_add_tag((bfam_subdomain_t *) glue, glue_num_tag);
 
+      char glue_id_tag[BFAM_BUFSIZ];
+      snprintf(glue_id_tag,BFAM_BUFSIZ,"_glue_id_%d", glueid);
+      bfam_subdomain_add_tag((bfam_subdomain_t *) glue, glue_id_tag);
+
       bfam_domain_add_subdomain((bfam_domain_t    *) domain,
                                 (bfam_subdomain_t *) glue);
 
@@ -1264,6 +1268,10 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
 
     bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue");
     bfam_subdomain_add_tag((bfam_subdomain_t *) glue, "_glue_boundary");
+
+    char glue_id_tag[BFAM_BUFSIZ];
+    snprintf(glue_id_tag,BFAM_BUFSIZ,"_glue_id_%d", glueid);
+    bfam_subdomain_add_tag((bfam_subdomain_t *) glue, glue_id_tag);
 
     bfam_domain_add_subdomain((bfam_domain_t    *) domain,
                               (bfam_subdomain_t *) glue);
@@ -1333,6 +1341,10 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
       snprintf(glue_num_tag,BFAM_BUFSIZ,"_glue_%d_%d",
           BFAM_MIN(id_m,id_p),BFAM_MAX(id_m,id_p));
       bfam_subdomain_add_tag((bfam_subdomain_t *) glue, glue_num_tag);
+
+    char glue_id_tag[BFAM_BUFSIZ];
+    snprintf(glue_id_tag,BFAM_BUFSIZ,"_glue_id_%d", glueid);
+    bfam_subdomain_add_tag((bfam_subdomain_t *) glue, glue_id_tag);
 
     bfam_domain_add_subdomain((bfam_domain_t    *) domain,
                               (bfam_subdomain_t *) glue);
