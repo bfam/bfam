@@ -12,9 +12,9 @@ output_prefix = "solution"
 connectivity = "brick"
 brick =
 {
-  nx = 2,
+  nx = 4,
   ny = 3,
-  nz = 4,
+  nz = 2,
   periodic_x = 1,
   periodic_y = 1,
   periodic_z = 1,
@@ -85,13 +85,13 @@ A_p = 1
 p_p = {1,0,0}
 d_p = p_p
 c_p = math.sqrt((lam+2*mu)/rho);
-k_p = 2*math.pi/(5*Lx);
+k_p = 2*math.pi/(brick.nx*Lx);
 
 A_s = 1
 p_s = {1,0,0}
 d_s = {0,1,1}
 c_s = math.sqrt(mu/rho);
-k_s = 2*math.pi/(5*Ly);
+k_s = 2*math.pi/(brick.nx*Ly);
 
 function v(x1,x2,x3,t,i)
   return -A_p*d_p[i]*c_p*k_p*math.cos(k_p*(p_p[1]*x1+p_p[2]*x2+p_p[2]*x3-c_p*t))
