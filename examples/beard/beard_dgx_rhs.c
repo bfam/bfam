@@ -443,7 +443,7 @@ void beard_dgx_intra_rhs_elastic(
       for(bfam_locidx_t j = 0; j < N+1; j++)
         for(bfam_locidx_t i = 0; i < N+1; i++,n++)
         {
-          const bfam_real_t wi_ijk = BEARD_D3_AP(w[i]*w[j],*w[k]);
+          const bfam_real_t wi_ijk = BEARD_D3_AP(wi[i]*wi[j],*wi[k]);
           const bfam_locidx_t nid = off+n;
 
           const bfam_real_t lam_l = lam[nid];
