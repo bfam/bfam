@@ -120,7 +120,7 @@ set_quad_to_glueid(p4est_iter_face_info_t *info, void *arg)
   int                 limit = (int) info->sides.elem_count;
   p4est_iter_face_side_t *fside;
 
-  if(!info->tree_boundary || limit == 1)
+  if(!info->tree_boundary)
     return;
 
   for(int i = 0; i < limit; ++i)
