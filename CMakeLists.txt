@@ -647,6 +647,22 @@ add_test(bfam_test_mesh_dgx_3_3
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
   ${MPIEXEC_PREFLAGS} ./bfam_test_mesh_dgx_3 ${MPIEXEC_POSTFLAGS})
 
+add_executable(bfam_test_mesh_dgx_glue_split_3
+               tests/bfam_test_mesh_dgx_glue_split_3.c)
+target_link_libraries(bfam_test_mesh_dgx_glue_split_3 bfam)
+
+add_test(bfam_test_mesh_dgx_glue_split_3_1
+  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
+  ${MPIEXEC_PREFLAGS} ./bfam_test_mesh_dgx_glue_split_3 ${MPIEXEC_POSTFLAGS})
+
+add_test(bfam_test_mesh_dgx_glue_split_3_2
+  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
+  ${MPIEXEC_PREFLAGS} ./bfam_test_mesh_dgx_glue_split_3 ${MPIEXEC_POSTFLAGS})
+
+add_test(bfam_test_mesh_dgx_glue_split_3_3
+  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
+  ${MPIEXEC_PREFLAGS} ./bfam_test_mesh_dgx_glue_split_3 ${MPIEXEC_POSTFLAGS})
+
 # add_test(bfam_test_sbp_test_1
 #   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
 #   ${MPIEXEC_PREFLAGS} ./bfam_test_sbp ${MPIEXEC_POSTFLAGS})
