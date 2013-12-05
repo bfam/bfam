@@ -102,69 +102,53 @@ end
 
 fault_1 = {
   type = "friction",
-  friction = "slip weakening",
+  tag = "slip weakening",
   fd =     0.525,
   fs =     0.4,
-  S11 =    0.0,
-  S12 =   70.0,
-  S13 =    0.0,
-  S22 = -120.0,
-  S23 =    0.0,
-  S33 =    0.0,
+  Tp1_0 =   70.0,
+  Tn_0  = 120.0,
 }
 
 fault_2 = {
   type = "friction",
-  friction = "slip weakening",
+  tag = "slip weakening",
   fd =     0.525,
   fs =     0.4,
-  S11 =    0.0,
-  S12 =   81.6,
-  S13 =    0.0,
-  S22 = -120.0,
-  S23 =    0.0,
-  S33 =    0.0,
+  Tp1_0 =  81.6,
+  Tn_0  = -120.0,
 }
 
 fault_3 = {
   type = "friction",
-  friction = "slip weakening",
+  tag = "slip weakening",
   fd =     0.525,
   fs =     0.4,
-  S11 =   78.0,
-  S12 =    0.0,
-  S13 =    0.0,
-  S22 = -120.0,
-  S23 =    0.0,
-  S33 =    0.0,
+  Tp1_0 = 78.0,
+  Tn_0 =-120.0,
 }
 
 fault_4 = {
   type = "friction",
-  friction = "slip weakening",
+  tag = "slip weakening",
   fd =     0.525,
   fs =     0.4,
-  S11 =    0.0,
-  S12 =   62.0,
-  S13 =    0.0,
-  S22 = -120.0,
-  S23 =    0.0,
-  S33 =    0.0,
+  Tp1_0 = 62.0,
+  Tn_0 = -120.0,
 }
 
 bc_free = {
   type = "boundary",
-  R    = -1,
+  tag  = "free surface",
 }
 
 bc_nonreflect = {
   type = "boundary",
-  R    = 0,
+  tag  = "non-reflecting",
 }
 
 bc_rigid = {
   type = "boundary",
-  R    = 1,
+  tag  = "rigid wall",
 }
 
 glue_info = {
