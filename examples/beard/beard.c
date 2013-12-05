@@ -21,6 +21,8 @@
 
 #define DIM 2
 #define bfam_domain_pxest_new bfam_domain_pxest_new_2
+#define bfam_domain_pxest_quad_to_glueid \
+  bfam_domain_pxest_quad_to_glueid_2
 #define bfam_domain_pxest_split_dgx_subdomains \
   bfam_domain_pxest_split_dgx_subdomains_2
 #define bfam_domain_pxest_free \
@@ -31,6 +33,8 @@
 
 #define DIM 3
 #define bfam_domain_pxest_new bfam_domain_pxest_new_3
+#define bfam_domain_pxest_quad_to_glueid \
+  bfam_domain_pxest_quad_to_glueid_3
 #define bfam_domain_pxest_split_dgx_subdomains \
   bfam_domain_pxest_split_dgx_subdomains_3
 #define bfam_domain_pxest_free \
@@ -514,6 +518,53 @@ get_element_order(p4est_iter_volume_info_t *info, void *arg)
 }
 
 static void
+init_tree_to_glueid(beard_t *beard, prefs_t *prefs,
+    bfam_locidx_t *tree_to_glueid)
+{
+  lua_State *L = prefs->L;
+#ifdef BFAM_DEBUG
+  int top = lua_gettop(L);
+#endif
+
+  lua_getglobal(L,"glueid_treeid_faceid");
+
+  luaL_checktype(L, -1, LUA_TTABLE);
+
+  int n = luaL_getn(L, -1);
+  BFAM_LDEBUG("glueid_treeid_faceid  #elem: %3d", n);
+
+  BFAM_ABORT_IF_NOT(n%3 == 0,
+      "length of glueid_treeid_faceid should be a multiple of three");
+
+  for(int i=1; i<=n; i+=3)
+  {
+    lua_rawgeti(L, -1, i+0);
+    int glueid = (int)lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, -1, i+1);
+    int treeid = (int)lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, -1, i+2);
+    int faceid = (int)lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    BFAM_ABORT_IF(treeid < 0 ||
+        treeid > beard->domain->pxest->connectivity->num_trees,
+        "glueid_treeid_faceid: invalid tree id %d", treeid);
+
+    BFAM_ABORT_IF(faceid < 0 || faceid > P4EST_FACES,
+        "glueid_treeid_faceid: invalid face id %d", faceid);
+
+    tree_to_glueid[P4EST_FACES*treeid + faceid] = glueid;
+  }
+
+  lua_pop(L, 1);
+  BFAM_ASSERT(top == lua_gettop(L));
+}
+
+static void
 split_domain(beard_t *beard, prefs_t *prefs)
 {
   bfam_domain_pxest_t *domain = beard->domain;
@@ -531,8 +582,24 @@ split_domain(beard_t *beard, prefs_t *prefs)
   bfam_locidx_t *N = bfam_malloc(data.max_N*sizeof(bfam_locidx_t));
   for(int n = 0; n < data.max_N;n++) N[n] = n+1;
 
-  bfam_domain_pxest_split_dgx_subdomains(domain, data.max_N, sub_ids, N, NULL);
+  bfam_locidx_t *tree_ids =
+    bfam_malloc(P4EST_FACES*domain->pxest->local_num_quadrants
+                *sizeof(bfam_locidx_t));
 
+  init_tree_to_glueid(beard, prefs, tree_ids);
+
+
+  bfam_locidx_t *glue_ids =
+    bfam_malloc(P4EST_FACES*domain->pxest->local_num_quadrants
+                *sizeof(bfam_locidx_t));
+
+  bfam_domain_pxest_quad_to_glueid(domain->pxest, tree_ids, glue_ids);
+
+  bfam_domain_pxest_split_dgx_subdomains(domain, data.max_N, sub_ids, N,
+      glue_ids);
+
+  bfam_free(tree_ids);
+  bfam_free(glue_ids);
   bfam_free(sub_ids);
   bfam_free(N);
 }
