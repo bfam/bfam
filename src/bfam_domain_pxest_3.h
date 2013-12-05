@@ -11,6 +11,7 @@
 #include <p8est_bits.h>
 #include <p8est_extended.h>
 #include <p8est_ghost.h>
+#include <p8est_iterate.h>
 #include <p8est_lnodes.h>
 #include <p8est_mesh.h>
 #include <p8est_vtk.h>
@@ -59,6 +60,26 @@ bfam_domain_pxest_init_3(bfam_domain_pxest_t_3 *domain, MPI_Comm domComm,
  */
 void
 bfam_domain_pxest_free_3(bfam_domain_pxest_t_3 *domain);
+
+/** Fill a \c glueID based on tree ids.
+ *
+ * This fills a \c glueID array for the quadrants based on glue ids given for
+ * the trees.
+ *
+ * \param [in]  pxest        pointer to a p8est
+ * \param [in]  tree_to_glue an array indicating the glue ids for faces in the
+ *                           connectivity structure of the p4est mesh.  The ids
+ *                           for the tree faces are stored in -x +x -y +y -z +z
+ *                           order for each tree with the face index running
+ *                           the fastest.
+ * \param [out] quad_to_glue an array indicating the glue ids for faces in the
+ *                            p4est mesh.  The ids for the quadrant faces are
+ *                            stored in -x +x -y +y -z +z order for each
+ *                            quadrant with the face index running the fastest.
+ */
+void
+bfam_domain_pxest_quad_to_glueid_3(p4est_t *pxest,
+    const bfam_locidx_t* tree_to_glueid, bfam_locidx_t* quad_to_glueid);
 
 /** Takes an initialized domain and generates a DG hex mesh
  *

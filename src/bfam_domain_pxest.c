@@ -47,6 +47,8 @@
   BFAM_APPEND_EXPAND(bfam_subdomain_dgx_new_,DIM)
 #define              bfam_subdomain_dgx_glue_new \
   BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_new_,BDIM)
+#define              bfam_domain_pxest_quad_to_glueid \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_quad_to_glueid_,DIM)
 #define              bfam_domain_pxest_split_dgx_subdomains \
   BFAM_APPEND_EXPAND(bfam_domain_pxest_split_dgx_subdomains_,DIM)
 
@@ -79,6 +81,111 @@ bfam_domain_pxest_free(bfam_domain_pxest_t *domain)
   domain->pxest = NULL;
 
   bfam_domain_free(&domain->base);
+}
+
+#ifdef BFAM_DEBUG
+static void
+bfam_domain_pxest_tree_to_glueid_check(p4est_connectivity_t *conn,
+    const p4est_locidx_t* tree_to_glueid)
+{
+  for(p4est_topidx_t t = 0; t < conn->num_trees; ++t)
+  {
+    for(int f = 0; f < P4EST_FACES; ++f)
+    {
+      p4est_topidx_t nt =      conn->tree_to_tree[P4EST_FACES*t + f];
+      int            nf = (int)conn->tree_to_face[P4EST_FACES*t + f];
+
+      bfam_locidx_t  id = tree_to_glueid[P4EST_FACES* t+ f];
+      bfam_locidx_t nid = tree_to_glueid[P4EST_FACES*nt+nf];
+
+      BFAM_ABORT_IF_NOT(id == nid,
+          "tree_to_glueid invalid for (%jd,%d)->%jd!=%jd<-(%jd,%d)",
+          (intmax_t) t, f, (intmax_t) id, (intmax_t) nid, (intmax_t) nt, nf);
+    }
+  }
+}
+#endif
+
+typedef struct bfam_domain_glueid_iter_data
+{
+  const bfam_locidx_t *tree_to_glueid;
+  bfam_locidx_t *quad_to_glueid;
+} bfam_domain_glueid_iter_data_t;
+
+static void
+set_quad_to_glueid(p4est_iter_face_info_t *info, void *arg)
+{
+  bfam_domain_glueid_iter_data_t *data = (bfam_domain_glueid_iter_data_t*) arg;
+
+  int                 limit = (int) info->sides.elem_count;
+  p4est_iter_face_side_t *fside;
+
+  if(!info->tree_boundary || limit == 1)
+    return;
+
+  for(int i = 0; i < limit; ++i)
+  {
+    fside = p4est_iter_fside_array_index_int(&info->sides, i);
+
+    int face = (int) fside->face;
+    p4est_topidx_t treeid = fside->treeid;
+
+    p4est_tree_t *tree = p4est_tree_array_index (info->p4est->trees, treeid);
+    p4est_locidx_t offset = tree->quadrants_offset;
+
+
+    BFAM_ASSERT(treeid >= 0 && treeid < info->p4est->connectivity->num_trees);
+
+    if(!fside->is_hanging)
+    {
+      p4est_locidx_t qid = fside->is.full.quadid + offset;
+      if(!fside->is.full.is_ghost)
+      {
+        BFAM_ASSERT(qid >= 0 && qid < info->p4est->local_num_quadrants);
+        BFAM_LDEBUG("Glueid adding face (%jd %jd):(%jd %jd)",
+            (intmax_t)treeid, (intmax_t)face, (intmax_t)qid, (intmax_t)face);
+        data->quad_to_glueid[P4EST_FACES*qid+face] =
+          data->tree_to_glueid[P4EST_FACES*treeid+face];
+      }
+    }
+    else
+    {
+      for(int h = 0; h < P4EST_HALF; ++h)
+      {
+        p4est_locidx_t qid = fside->is.hanging.quadid[h] + offset;
+        if(!fside->is.hanging.is_ghost[h])
+        {
+          BFAM_ASSERT(qid >= 0 && qid < info->p4est->local_num_quadrants);
+          BFAM_LDEBUG("Glueid adding face (%jd %jd):(%jd %jd)",
+            (intmax_t)treeid, (intmax_t)face, (intmax_t)qid, (intmax_t)face);
+          data->quad_to_glueid[P4EST_FACES*qid+face] =
+            data->tree_to_glueid[P4EST_FACES*treeid+face];
+        }
+      }
+    }
+  }
+
+  return;
+}
+
+
+void
+bfam_domain_pxest_quad_to_glueid(p4est_t *pxest,
+    const bfam_locidx_t* tree_to_glueid, bfam_locidx_t* quad_to_glueid)
+{
+#ifdef BFAM_DEBUG
+  bfam_domain_pxest_tree_to_glueid_check(pxest->connectivity, tree_to_glueid);
+#endif
+
+  for(p4est_locidx_t i = 0; i < pxest->local_num_quadrants*P4EST_FACES; ++i)
+    quad_to_glueid[i] = -1;
+
+  bfam_domain_glueid_iter_data_t data = {tree_to_glueid,quad_to_glueid};
+  p4est_iterate(pxest, NULL, &data, NULL, set_quad_to_glueid,
+#if DIM==3
+      NULL,
+#endif
+      NULL);
 }
 
 static bfam_locidx_t
