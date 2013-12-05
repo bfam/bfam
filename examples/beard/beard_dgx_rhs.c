@@ -156,7 +156,7 @@ beard_dgx_upwind_state_friction_m(
     const bfam_real_t *vpm, const bfam_real_t *vpp  ,
     const bfam_real_t  Zsm, const bfam_real_t  Zsp  )
 {
-  /* upwind perpendiculat velocities and tractions */
+  /* upwind perpendicular velocities and tractions */
   /* wpm = Tpm - Zsm*vpm = TpS - Zsm*vpS */
   /* wpp = Tpp - Zsp*vpp =-TpS - Zsp*vpS */
   bfam_real_t phi[3];
@@ -197,7 +197,7 @@ beard_dgx_upwind_state_m(
   vns[0] = (    wnp -     wnm)/(Zpp+Zpm);
   Tns[0] = (Zpm*wnp + Zpp*wnm)/(Zpp+Zpm);
 
-  /* upwind perpendiculat velocities and tractions */
+  /* upwind perpendicular velocities and tractions */
   /* wpm = Tpm - Zsm*vpm = TpS - Zsm*vpS */
   /* wpp = Tpp - Zsp*vpp =-TpS - Zsp*vpS */
   for(bfam_locidx_t i = 0; i < 3; i++)
