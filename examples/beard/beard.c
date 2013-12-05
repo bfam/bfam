@@ -1303,7 +1303,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       "S33", "S12", "S13", "S23",NULL};
     snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,0);
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        volume, "", output, (0)*dt, fields, NULL, NULL, 0, 0,0);
+        volume, "", output, (0)*dt, fields, NULL, NULL, 1, 1,0);
   }
 
   for(int s = 1; s <= nsteps; s++)
@@ -1338,7 +1338,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       char output[BFAM_BUFSIZ];
       snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-          volume, "", output, (s)*dt, fields, NULL, NULL, 0, 0,0);
+          volume, "", output, (s)*dt, fields, NULL, NULL, 1, 1,0);
     }
     if(nerr > 0 && s%nerr == 0)
     {
@@ -1361,7 +1361,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       char err_output[BFAM_BUFSIZ];
       snprintf(err_output,BFAM_BUFSIZ,"%s_error_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-          volume, "", err_output, (s)*dt, err_flds, NULL, NULL, 0, 0,0);
+          volume, "", err_output, (s)*dt, err_flds, NULL, NULL, 1, 1,0);
       energy = new_energy;
     }
   }
