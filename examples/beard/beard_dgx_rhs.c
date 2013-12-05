@@ -1,5 +1,6 @@
 #ifdef BEARD_DGX_DIMENSION
 
+/* START DIM 2 */
 #if    BEARD_DGX_DIMENSION==2
 #include "beard_dgx_rhs_2.h"
 
@@ -23,6 +24,7 @@
 #define BEARD_DR3T(A,B)    BFAM_NOOP()
 #define BEARD_DR3T_PE(A,B) BFAM_NOOP()
 
+/* START DIM 2 Generic */
 #ifndef NORDER
 #define NORDER
 #define USE_GENERIC
@@ -43,7 +45,10 @@
 #define Nfp (NORDER+1)
 #define Nfaces  4
 #endif
+/* END DIM 2 Generic */
 
+/* END DIM 2 */
+/* START DIM 3 */
 #elif  BEARD_DGX_DIMENSION==3
 #include "beard_dgx_rhs_3.h"
 
@@ -87,9 +92,12 @@
 #define Nfaces  6
 #endif
 
+/* END DIM 3 */
+/* START BAD DIMENSION */
 #else
 #error "bad dimension"
 #endif
+/* END BAD DIMENSION */
 
 #define BEARD_APPEND_4(a,b,c,d) a ## b ## c ##d
 #define BEARD_APPEND_EXPAND_4(a,b,c,d) BEARD_APPEND_4(a,b,c,d)
