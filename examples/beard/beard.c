@@ -288,6 +288,7 @@ new_prefs(const char *prefs_filename)
   }
   else
     BFAM_ROOT_WARNING("using default 'output_prefix': %s",prefs->output_prefix);
+  lua_pop(L, 1);
 
   /* get the time stepper type */
   lua_getglobal(L, "lsrk_method");
