@@ -137,6 +137,7 @@ typedef struct bfam_subdomain_glue_data
 typedef struct bfam_subdomain
 {
   bfam_locidx_t     id;
+  bfam_locidx_t     uid;  /**< typically physics id */
   char*           name;     /**< Name of the subdomain */
   bfam_critbit0_tree_t tags; /**< critbit for tags for the subdomain */
   bfam_dictionary_t fields; /**< a dictionary storing pointers to fields */
@@ -231,11 +232,12 @@ typedef struct bfam_subdomain
  *
  * \param [in,out] thisSubdomain pointer to the subdomain
  * \param [in]     id   Unique id number for this subdomain
+ * \param [in]     uid  user id number for this subdomain
  * \param [in]     name Name of this subdomain
  */
 void
 bfam_subdomain_init(bfam_subdomain_t *subdomain, bfam_locidx_t id,
-    const char* name);
+    bfam_locidx_t uid, const char* name);
 
 /** initializes a subdomain glue data
  *

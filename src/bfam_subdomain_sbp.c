@@ -416,7 +416,7 @@ bfam_subdomain_sbp_init(bfam_subdomain_sbp_t *subdomain,
                             const bfam_long_real_t *c_y,
                             const bfam_long_real_t *c_z)
 {
-  bfam_subdomain_init(&subdomain->base, id, name);
+  bfam_subdomain_init(&subdomain->base, id, -1, name);
   bfam_subdomain_add_tag(&subdomain->base, "_subdomain_sbp");
   subdomain->base.free = bfam_subdomain_sbp_free;
   subdomain->base.field_add = bfam_subdomain_sbp_field_add;
@@ -824,7 +824,7 @@ bfam_subdomain_sbp_intra_glue_init(bfam_subdomain_sbp_intra_glue_t* sub,
                                  bfam_subdomain_sbp_t            *sub_m,
                                  const int                        face)
 {
-  bfam_subdomain_init(&sub->base, id, name);
+  bfam_subdomain_init(&sub->base, id, -1, name);
   bfam_subdomain_add_tag(&sub->base, "_subdomain_sbp");
   bfam_subdomain_add_tag(&sub->base, "_subdomain_sbp_intra_glue");
 
@@ -1212,7 +1212,7 @@ bfam_subdomain_sbp_inter_glue_init(bfam_subdomain_sbp_inter_glue_t* sub,
                                  bfam_locidx_t                    patch_id_p,
                                  bfam_locidx_t                    face_p)
 {
-  bfam_subdomain_init(&sub->base, id, name);
+  bfam_subdomain_init(&sub->base, id, -1, name);
   bfam_subdomain_add_tag(&sub->base, "_subdomain_sbp");
   bfam_subdomain_add_tag(&sub->base, "_subdomain_sbp_inter_glue");
 

@@ -117,6 +117,7 @@ typedef struct bfam_subdomain_dgx
 /** create a dgx subdomain.
  *
  * \param [in] id     unique id number for this subdomain
+ * \param [in] uid    user id number for this subdomain
  * \param [in] name   name of this subdomain
  * \param [in] N      polynomial order of elements in each dimension
  * \param [in] Nv     number of vertices in the subdomain
@@ -138,6 +139,7 @@ typedef struct bfam_subdomain_dgx
 
 bfam_subdomain_dgx_t*
 bfam_subdomain_dgx_new_(const bfam_locidx_t      id,
+                        const bfam_locidx_t      uid,
                        const char              *name,
                        const int                N,
                        const bfam_locidx_t      Nv,
@@ -153,6 +155,7 @@ bfam_subdomain_dgx_new_(const bfam_locidx_t      id,
  *
  * \param [in,out] subdomain pointer to the subdomain to initialize
  * \param [in]     id        unique id number for this subdomain
+ * \param [in]     uid       user id number for this subdomain
  * \param [in]     name      name of this subdomain
  * \param [in]     N         polynomial order of elements in each dimension
  * \param [in]     Nv        number of vertices in the subdomain
@@ -171,6 +174,7 @@ bfam_subdomain_dgx_new_(const bfam_locidx_t      id,
 void
 bfam_subdomain_dgx_init_(bfam_subdomain_dgx_t *subdomain,
                         const bfam_locidx_t        id,
+                        const bfam_locidx_t        uid,
                         const char                *name,
                         const int                  N,
                         const bfam_locidx_t        Nv,
@@ -185,6 +189,7 @@ bfam_subdomain_dgx_init_(bfam_subdomain_dgx_t *subdomain,
 /** create a dgx glue subdomain.
  *
  * \param [in]     id          unique id number for this subdomain
+ * \param [in]     uid         user id number for this subdomain
  * \param [in]     name        name of this subdomain
  * \param [in]     N_m         minus side polynomial order of elements in each
  *                             dimension
@@ -205,6 +210,7 @@ bfam_subdomain_dgx_init_(bfam_subdomain_dgx_t *subdomain,
  */
 bfam_subdomain_dgx_t*
 bfam_subdomain_dgx_glue_new_(const bfam_locidx_t              id,
+                             const bfam_locidx_t              uid,
                              const char                      *name,
                              const int                        N_m,
                              const int                        N_p,
@@ -222,6 +228,7 @@ bfam_subdomain_dgx_glue_new_(const bfam_locidx_t              id,
  *
  * \param [out]    subdomain    pointer to the subdomain to initialize
  * \param [in]     id           unique id number for this subdomain
+ * \param [in]     uid          user id number for this subdomain
  * \param [in]     name         name of this subdomain
  * \param [in]     N_m          minus side polynomial order of elements in each
  *                              dimension
@@ -241,6 +248,7 @@ bfam_subdomain_dgx_glue_new_(const bfam_locidx_t              id,
 void
 bfam_subdomain_dgx_glue_init_(bfam_subdomain_dgx_t  *subdomain,
                               const bfam_locidx_t              id,
+                              const bfam_locidx_t              uid,
                               const char                      *name,
                               const int                        N_m,
                               const int                        N_p,
@@ -264,6 +272,7 @@ bfam_subdomain_dgx_free_(bfam_subdomain_t *subdomain);
 #define X(dg_dim) \
 bfam_subdomain_dgx_t*                                         \
 bfam_subdomain_dgx_new_##dg_dim(const bfam_locidx_t      id,  \
+                             const bfam_locidx_t      uid,    \
                              const char              *name,   \
                              const int                N,      \
                              const bfam_locidx_t      Nv,     \
@@ -277,6 +286,7 @@ bfam_subdomain_dgx_new_##dg_dim(const bfam_locidx_t      id,  \
 void                                                              \
 bfam_subdomain_dgx_init_##dg_dim(bfam_subdomain_dgx_t *subdomain, \
                         const bfam_locidx_t        id,            \
+                        const bfam_locidx_t        uid,           \
                         const char                *name,          \
                         const int                  N,             \
                         const bfam_locidx_t        Nv,            \
@@ -291,6 +301,7 @@ void                                                           \
 bfam_subdomain_dgx_free_##dg_dim(bfam_subdomain_t *subdomain); \
 bfam_subdomain_dgx_t*                                                          \
 bfam_subdomain_dgx_glue_new_##dg_dim(const bfam_locidx_t              id,      \
+                                     const bfam_locidx_t              uid,     \
                                       const char                      *name,   \
                                       const int                        N_m,    \
                                       const int                        N_p,    \
@@ -306,6 +317,7 @@ bfam_subdomain_dgx_glue_new_##dg_dim(const bfam_locidx_t              id,      \
 void                                                                       \
 bfam_subdomain_dgx_glue_init_##dg_dim(bfam_subdomain_dgx_t  *subdomain,    \
                               const bfam_locidx_t              id,         \
+                              const bfam_locidx_t              uid,        \
                               const char                      *name,       \
                               const int                        N_m,        \
                               const int                        N_p,        \

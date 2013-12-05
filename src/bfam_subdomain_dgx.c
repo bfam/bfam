@@ -1081,7 +1081,7 @@ bfam_subdomain_dgx_comm_info(bfam_subdomain_t *thisSubdomain,
     int *rank, bfam_locidx_t *sort, int num_sort,
     size_t *send_sz, size_t *recv_sz, void *comm_args)
 {
-  BFAM_ASSERT(num_sort > 1);
+  BFAM_ASSERT(num_sort > 2);
   bfam_subdomain_dgx_t *sub =
     (bfam_subdomain_dgx_t*) thisSubdomain;
 
@@ -1095,6 +1095,7 @@ bfam_subdomain_dgx_comm_info(bfam_subdomain_t *thisSubdomain,
   *rank   = sub->base.glue_p->rank;
   sort[0] = sub->base.glue_p->id; /* neighbor ID */
   sort[1] = sub->base.glue_m->id; /* my ID */
+  sort[2] = sub->base.uid;        /* my user ID */
 
   size_t send_num = sub->base.glue_m->fields.num_entries * sub->K * sub->Np;
   size_t recv_num = sub->base.glue_p->fields.num_entries * sub->K * sub->Np;
@@ -1123,8 +1124,10 @@ bfam_subdomain_dgx_comm_info(bfam_subdomain_t *thisSubdomain,
   *send_sz  = send_num*sizeof(bfam_real_t);
   *recv_sz  = recv_num*sizeof(bfam_real_t);
 
-  BFAM_LDEBUG(" rank %3d   ms %3jd   ns %3jd   send_sz %3zd   recv_sz %3zd",
-      *rank, (intmax_t) sort[1], (intmax_t) sort[0], *send_sz, *recv_sz);
+  BFAM_LDEBUG(
+      " rank %3d   ns %3jd   ms %3jd   uid %3jd   send_sz %3zd   recv_sz %3zd",
+      *rank, (intmax_t) sort[0], (intmax_t) sort[1], (intmax_t) sort[2],
+      *send_sz, *recv_sz);
 }
 
 static void
@@ -2308,6 +2311,7 @@ bfam_subdomain_dgx_null_all_values(bfam_subdomain_dgx_t *sub)
 static void
 bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
                           const bfam_locidx_t         id,
+                          const bfam_locidx_t         uid,
                           const char                 *name,
                           const int                   N,
                           const bfam_locidx_t         K,
@@ -2323,7 +2327,7 @@ bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
   BFAM_ABORT_IF(DIM == 0 && N != 0,
                 "if DIM < 1 then N must be zero (i.e., constant");
 
-  bfam_subdomain_init(&subdomain->base, id, name);
+  bfam_subdomain_init(&subdomain->base, id, uid, name);
   bfam_subdomain_add_tag(&subdomain->base, "_subdomain_dgx");
   char dim_str[BFAM_BUFSIZ];
   snprintf(dim_str,BFAM_BUFSIZ,"_dimension_%d",DIM);
@@ -2413,6 +2417,7 @@ void
 BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
                               bfam_subdomain_dgx_t *subdomain,
                         const bfam_locidx_t         id,
+                        const bfam_locidx_t         uid,
                         const char                 *name,
                         const int                   N,
                         const bfam_locidx_t         Nv,
@@ -2428,7 +2433,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
   BFAM_WARNING("Using generic bfam_subdomain_dgx_init");
   const int DIM = inDIM;
 #endif
-  bfam_subdomain_dgx_generic_init(subdomain, id, name, N, K, inDIM);
+  bfam_subdomain_dgx_generic_init(subdomain, id, uid, name, N, K, inDIM);
 
   const int *Ng  = subdomain->Ng;
   const int *Ngp = subdomain->Ngp;
@@ -2672,6 +2677,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
 bfam_subdomain_dgx_t*
 BFAM_APPEND_EXPAND(bfam_subdomain_dgx_new_,BFAM_DGX_DIMENSION)(
                        const bfam_locidx_t      id,
+                       const bfam_locidx_t      uid,
                        const char              *name,
                        const int                N,
                        const bfam_locidx_t      Nv,
@@ -2693,8 +2699,8 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_new_,BFAM_DGX_DIMENSION)(
     bfam_malloc(sizeof(bfam_subdomain_dgx_t));
 
   BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
-                         newSubdomain, id, name, N, Nv, num_Vi, Vi, K, EToV,
-                         EToE, EToF,DIM);
+                         newSubdomain, id, uid, name, N, Nv, num_Vi, Vi, K,
+                         EToV, EToE, EToF,DIM);
   return newSubdomain;
 }
 
@@ -2798,6 +2804,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,BFAM_DGX_DIMENSION)(
 bfam_subdomain_dgx_t*
 BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_new_,BFAM_DGX_DIMENSION)(
                               const bfam_locidx_t              id,
+                              const bfam_locidx_t              uid,
                               const char                      *name,
                               const int                        N_m,
                               const int                        N_p,
@@ -2823,7 +2830,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_new_,BFAM_DGX_DIMENSION)(
     bfam_malloc(sizeof(bfam_subdomain_dgx_t));
 
   BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
-      newSubdomain,id, name, N_m, N_p, rank_m, rank_p, id_m, id_p, sub_m,
+      newSubdomain,id, uid, name, N_m, N_p, rank_m, rank_p, id_m, id_p, sub_m,
       ktok_m, K, mapping, inDIM);
   return newSubdomain;
 }
@@ -2910,6 +2917,7 @@ void
 BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
                               bfam_subdomain_dgx_t            *subdomain,
                               const bfam_locidx_t              id,
+                              const bfam_locidx_t              uid,
                               const char                      *name,
                               const int                        N_m,
                               const int                        N_p,
@@ -2930,8 +2938,8 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
   BFAM_ASSERT(DIM == inDIM);
   BFAM_ASSERT(DIM > 0);
 
-  bfam_subdomain_dgx_generic_init(subdomain, id, name, BFAM_MAX(N_m,N_p), K,
-      inDIM);
+  bfam_subdomain_dgx_generic_init(subdomain, id, uid, name, BFAM_MAX(N_m,N_p),
+      K, inDIM);
 
 #ifdef BFAM_DEBUG
   {

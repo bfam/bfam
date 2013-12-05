@@ -79,7 +79,7 @@ main (int argc, char *argv[])
       sprintf(tmp,"%d_%d_%d_%d",rank,i,i,10*i);
       bfam_subdomain_comm_test_t* newSub =
         bfam_malloc(sizeof(bfam_subdomain_comm_test_t));
-      bfam_subdomain_init((bfam_subdomain_t*) newSub,i,tmp);
+      bfam_subdomain_init((bfam_subdomain_t*) newSub,i,-1,tmp);
       newSub->ns = 10*i;
       newSub->ms =    i;
       newSub->np =    i;
@@ -102,7 +102,7 @@ main (int argc, char *argv[])
       sprintf(tmp,"%d_%d_%d_%d",rank,rank,size,size+1);
       bfam_subdomain_comm_test_t* newSub =
         bfam_malloc(sizeof(bfam_subdomain_comm_test_t));
-      bfam_subdomain_init((bfam_subdomain_t*) newSub,size,tmp);
+      bfam_subdomain_init((bfam_subdomain_t*) newSub,size,-1,tmp);
       newSub->ns = size+1;
       newSub->ms = size;
       newSub->np = 0;
@@ -123,7 +123,7 @@ main (int argc, char *argv[])
       sprintf(tmp,"%d_%d_%d_%d",rank,rank,size+1,size);
       bfam_subdomain_comm_test_t* newSub =
         bfam_malloc(sizeof(bfam_subdomain_comm_test_t));
-      bfam_subdomain_init((bfam_subdomain_t*) newSub,size+1,tmp);
+      bfam_subdomain_init((bfam_subdomain_t*) newSub,size+1,-1,tmp);
       newSub->ns = size;
       newSub->ms = size+1;
       newSub->np = 0;
@@ -146,7 +146,7 @@ main (int argc, char *argv[])
       sprintf(tmp,"%d_%d_%d_%d",rank,0,10*rank,rank);
       bfam_subdomain_comm_test_t* newSub =
         bfam_malloc(sizeof(bfam_subdomain_comm_test_t));
-      bfam_subdomain_init((bfam_subdomain_t*) newSub,10*rank,tmp);
+      bfam_subdomain_init((bfam_subdomain_t*) newSub,10*rank,-1,tmp);
       newSub->ns = rank;
       newSub->ms = 10*rank;
       newSub->np =    0;
@@ -166,7 +166,7 @@ main (int argc, char *argv[])
       sprintf(tmp,"%d_%d_%d_%d",rank,rank,rank,111*rank);
       bfam_subdomain_comm_test_t* newSub =
         bfam_malloc(sizeof(bfam_subdomain_comm_test_t));
-      bfam_subdomain_init((bfam_subdomain_t*) newSub,111*rank,tmp);
+      bfam_subdomain_init((bfam_subdomain_t*) newSub,111*rank,-1,tmp);
       newSub->ns = rank;
       newSub->ms = -rank;
       newSub->np = rank;
@@ -186,7 +186,7 @@ main (int argc, char *argv[])
       sprintf(tmp,"%d_%d_%d_%d",rank,rank,rank,222*rank);
       bfam_subdomain_comm_test_t* newSub =
         bfam_malloc(sizeof(bfam_subdomain_comm_test_t));
-      bfam_subdomain_init((bfam_subdomain_t*) newSub,222*rank,tmp);
+      bfam_subdomain_init((bfam_subdomain_t*) newSub,222*rank,-1,tmp);
       newSub->ns = -rank;
       newSub->ms = rank;
       newSub->np = rank;

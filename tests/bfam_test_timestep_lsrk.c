@@ -67,7 +67,7 @@ bfam_subdomain_lsrk_test_init(bfam_subdomain_lsrk_test_t       *subdomain,
                              const char                *name,
                              const int                  N)
 {
-  bfam_subdomain_init(&subdomain->base, id, name);
+  bfam_subdomain_init(&subdomain->base, id, -1, name);
   bfam_subdomain_add_tag(&subdomain->base, "_subdomain_lsrk_test");
   subdomain->base.field_add = bfam_subdomain_lsrk_test_field_add;
   subdomain->base.free = bfam_subdomain_lsrk_test_free;

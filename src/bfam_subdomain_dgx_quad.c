@@ -978,7 +978,7 @@ bfam_subdomain_dgx_quad_init(bfam_subdomain_dgx_quad_t       *subdomain,
                              const bfam_locidx_t             *EToE,
                              const int8_t                    *EToF)
 {
-  bfam_subdomain_init(&subdomain->base, id, name);
+  bfam_subdomain_init(&subdomain->base, id, -1, name);
   bfam_subdomain_add_tag(&subdomain->base, "_subdomain_dgx_quad");
   subdomain->base.free = bfam_subdomain_dgx_quad_free;
   subdomain->base.vtk_write_vtu_piece =
@@ -2279,7 +2279,7 @@ bfam_subdomain_dgx_quad_glue_init(bfam_subdomain_dgx_quad_glue_t  *subdomain,
                                   const bfam_locidx_t              K,
                                   bfam_subdomain_face_map_entry_t *mapping)
 {
-  bfam_subdomain_init(&subdomain->base, id, name);
+  bfam_subdomain_init(&subdomain->base, id, -1, name);
   bfam_subdomain_add_tag(&subdomain->base, "_subdomain_dgx_quad");
   subdomain->base.glue_comm_info = bfam_subdomain_dgx_quad_glue_comm_info;
   subdomain->base.glue_put_send_buffer =

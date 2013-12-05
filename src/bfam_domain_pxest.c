@@ -1103,6 +1103,7 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
     const bfam_long_real_t *Vi[] = {VX, VY, VZ};
     subdomains[id] =
       bfam_subdomain_dgx_new(id,
+                             -1,
                              name[id],
                              N[id],
                              Nv,
@@ -1179,6 +1180,7 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
 
       bfam_subdomain_dgx_t *glue =
         bfam_subdomain_dgx_glue_new(id,
+                                    glueid,
                                     glueName,
                                     N[id_m],
                                     N[id_p],
@@ -1253,6 +1255,7 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
 
     bfam_subdomain_dgx_t *glue =
       bfam_subdomain_dgx_glue_new(id,
+                                  glueid,
                                   glueName,
                                   N[id_m],
                                   N[id_p],
@@ -1322,6 +1325,7 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
 
     bfam_subdomain_dgx_t *glue =
       bfam_subdomain_dgx_glue_new(id,
+                                  glueid,
                                   glueName,
                                   N[id_m],
                                   ghostN[gid_p],
