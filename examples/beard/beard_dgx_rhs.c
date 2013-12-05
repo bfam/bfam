@@ -107,8 +107,14 @@
 #define beard_dgx_scale_rates_elastic \
   BEARD_APPEND_EXPAND_4(beard_dgx_scale_rates_elastic_,DIM,_,NORDER)
 
+#define beard_dgx_scale_rates_slip_weakening \
+  BEARD_APPEND_EXPAND_4(beard_dgx_scale_rates_slip_weakening_,DIM,_,NORDER)
+
 #define beard_dgx_add_rates_elastic \
   BEARD_APPEND_EXPAND_4(beard_dgx_add_rates_elastic_,DIM,_,NORDER)
+
+#define beard_dgx_add_rates_slip_weakening \
+  BEARD_APPEND_EXPAND_4(beard_dgx_add_rates_slip_weakening_,DIM,_,NORDER)
 
 #define beard_dgx_inter_rhs_boundary \
   BEARD_APPEND_EXPAND_4(beard_dgx_inter_rhs_boundary_,DIM,_,NORDER)
@@ -116,8 +122,9 @@
 #define beard_dgx_inter_rhs_interface \
   BEARD_APPEND_EXPAND_4(beard_dgx_inter_rhs_interface_,DIM,_,NORDER)
 
-#define beard_dgx_inter_rhs_rate_and_state \
-  BEARD_APPEND_EXPAND_4(beard_dgx_inter_rhs_rate_and_state_,DIM,_,NORDER)
+#define beard_dgx_inter_rhs_slip_weakening_interface \
+  BEARD_APPEND_EXPAND_4(beard_dgx_inter_rhs_slip_weakening_interface_,         \
+                        DIM,_,NORDER)
 
 #define beard_dgx_energy \
   BEARD_APPEND_EXPAND_4(beard_dgx_energy_,DIM,_,NORDER)
@@ -838,6 +845,24 @@ void beard_dgx_intra_rhs_elastic(
   }
 }
 
+void beard_dgx_scale_rates_slip_weakening(
+    int inN, bfam_subdomain_dgx_t *sub, const char *rate_prefix,
+    const bfam_long_real_t a)
+{
+  GENERIC_INIT(inN,beard_dgx_scale_rates_slip_weakening);
+
+  const bfam_locidx_t num_pts = sub->K * Np;
+  bfam_dictionary_t *fields = &sub->base.fields;
+
+  const char *f_names[] = {"Dp","Dp1","Dp2","Dp3","Dn",NULL};
+
+  for(bfam_locidx_t f = 0; f_names[f]!=NULL; ++f)
+  {
+    BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix,f_names[f],fields);
+    for(bfam_locidx_t n = 0; n < num_pts; n++) rate[n] *= a;
+  }
+}
+
 void beard_dgx_scale_rates_elastic(
     int inN, bfam_subdomain_dgx_t *sub, const char *rate_prefix,
     const bfam_long_real_t a)
@@ -846,12 +871,37 @@ void beard_dgx_scale_rates_elastic(
 
   const bfam_locidx_t num_pts = sub->K * Np;
   bfam_dictionary_t *fields = &sub->base.fields;
+
   const char *f_names[] =
     {"v1","v2","v3","S11","S22","S33","S12","S13","S23",NULL};
+
   for(bfam_locidx_t f = 0; f_names[f]!=NULL; ++f)
   {
     BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix,f_names[f],fields);
     for(bfam_locidx_t n = 0; n < num_pts; n++) rate[n] *= a;
+  }
+}
+
+void beard_dgx_add_rates_slip_weakening(
+    int inN, bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
+    const char *field_prefix_rhs, const char *rate_prefix,
+    const bfam_long_real_t a)
+{
+  GENERIC_INIT(inN,beard_dgx_add_rates_slip_weakening);
+
+  const char *f_names[] = {"Dp","Dp1","Dp2","Dp3","Dn",NULL};
+
+  const bfam_locidx_t num_pts = sub->K * Np;
+
+  /* get the fields we will need */
+  bfam_dictionary_t *fields = &sub->base.fields;
+
+  for(bfam_locidx_t f = 0; f_names[f] != NULL; f++)
+  {
+    BFAM_LOAD_FIELD_ALIGNED(         lhs ,field_prefix_lhs,f_names[f],fields);
+    BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,f_names[f],fields);
+    BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,f_names[f],fields);
+    for(bfam_locidx_t n = 0; n < num_pts; n++) lhs[n] = rhs[n] + a*rate[n];
   }
 }
 
@@ -1140,11 +1190,11 @@ void beard_dgx_inter_rhs_interface(
   }
 }
 
-void beard_dgx_inter_rhs_rate_and_state(
+void beard_dgx_inter_rhs_slip_weakening_interface(
     int inN, bfam_subdomain_dgx_t *sub_g, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t)
 {
-  GENERIC_INIT(inN,beard_dgx_inter_rhs_rate_and_state);
+  GENERIC_INIT(inN,beard_dgx_inter_rhs_slip_weakening_interface);
 
   bfam_subdomain_dgx_t* sub_m =
     (bfam_subdomain_dgx_t*) sub_g->base.glue_m->sub_m;
@@ -1233,13 +1283,11 @@ void beard_dgx_inter_rhs_rate_and_state(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp3    ,"","Vp3"   ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dc     ,"","Dc"    ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dp     ,"","Dp"    ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dp1    ,"","Dp1"   ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dp2    ,"","Dp2"   ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dp3    ,"","Dp3"   ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fs     ,"","fs"    ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fd     ,"","fd"    ,fields_g);
 
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDp ,rate_prefix,"Dp", fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDn ,rate_prefix,"Dn", fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDp1,rate_prefix,"Dp1",fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDp2,rate_prefix,"Dp2",fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDp3,rate_prefix,"Dp2",fields_g);
@@ -1355,6 +1403,7 @@ void beard_dgx_inter_rhs_rate_and_state(
         V[iG]   = 0;
       }
 
+      dDn[iG]  += 0;
       dDp[iG]  += V[iG];
       dDp1[iG] += Vp1[iG];
       dDp2[iG] += Vp2[iG];
