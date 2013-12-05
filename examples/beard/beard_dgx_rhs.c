@@ -140,7 +140,10 @@ bfam_real_t *field;                                                            \
 BFAM_ASSUME_ALIGNED(field,32);
 
 
-#define BEARD_STATE beard_dgx_upwind_state_m
+/* Computational choice macros */
+#define BEARD_STATE      beard_dgx_upwind_state_m
+#define MASSPROJECTION   (1)
+#define PROJECTION       (0)
 
 static inline void
 beard_dgx_upwind_state_m(
@@ -314,7 +317,58 @@ beard_dgx_remove_flux( const int inN,
 }
 
 static inline void
-massproject_flux(bfam_real_t *Tns,       bfam_real_t *Tps,
+beard_project_flux(bfam_real_t *Tns,       bfam_real_t *Tps,
+                 bfam_real_t *vns,       bfam_real_t *vps,
+               bfam_locidx_t  inN,     bfam_locidx_t  Nrpg,
+           const bfam_real_t *Tng, const bfam_real_t *Tpg,
+           const bfam_real_t *vng, const bfam_real_t *vpg,
+           const bfam_real_t * P1
+#if DIM==3
+          ,const bfam_real_t * P2
+#endif
+           )
+{
+  GENERIC_INIT(inN,beard_project_flux);
+
+  /* zero out the components */
+  for(int i = 0; i < Nfp; i++)
+  {
+    for(int n = 0; n < 3; n++)
+    {
+      Tps[3*i+n] = 0;
+      vps[3*i+n] = 0;
+    }
+    Tns[i] = 0;
+    vns[i] = 0;
+  }
+
+  for(int m = 0, p = 0; m < Nrpg; m++)
+#if DIM==3
+    for(int l = 0; l < Nrpg; l++)
+#endif
+    {
+      for(int j = 0, n = 0; j < N+1; j++)
+#if DIM==3
+        for(int i = 0; i < N+1; i++)
+#endif
+        {
+          const bfam_real_t PR = BEARD_D3_AP(P1[j+m*(N+1)],
+                                            *P2[i+l*(N+1)]);
+          for(int k = 0; k < 3; k++)
+          {
+            Tps[3*n+k] += PR*Tpg[3*p+k];
+            vps[3*n+k] += PR*vpg[3*p+k];
+          }
+          Tns[n] += PR*Tng[p];
+          vns[n] += PR*vng[p];
+          n++;
+        }
+      p++;
+    }
+}
+
+static inline void
+beard_massproject_flux(bfam_real_t *Tns,       bfam_real_t *Tps,
                  bfam_real_t *vns,       bfam_real_t *vps,
                bfam_locidx_t  inN,     bfam_locidx_t  Nrpg,
            const bfam_real_t *Tng, const bfam_real_t *Tpg,
@@ -325,7 +379,7 @@ massproject_flux(bfam_real_t *Tns,       bfam_real_t *Tps,
 #endif
            const bfam_real_t  *wi)
 {
-  GENERIC_INIT(inN,massproject_flux);
+  GENERIC_INIT(inN,beard_massproject_flux);
 
   /* zero out the components */
   for(int i = 0; i < Nfp; i++)
@@ -968,7 +1022,7 @@ void beard_dgx_inter_rhs_interface(
 
     /* check to tee if projection */
     /* locked */
-    if(0)
+    if(MASSPROJECTION == 0 && PROJECTION == 0)
     {
       TpS_M = TpS_g;
       TnS_M = TnS_g;
@@ -982,29 +1036,49 @@ void beard_dgx_inter_rhs_interface(
       TnS_M = TnS_m_STORAGE;
       vpS_M = vpS_m_STORAGE;
       vnS_M = vnS_m_STORAGE;
-      BFAM_ASSERT(glue_m->massprojection);
+
+      if(MASSPROJECTION)
+      {
+        BFAM_ASSERT(glue_m->massprojection);
 #if   DIM == 2
-      const bfam_real_t *MP1 = glue_m->massprojection[glue_p->EToHm[le]];
+        const bfam_real_t *MP1 = glue_m->massprojection[glue_p->EToHm[le]];
 #elif DIM == 3
-      const int I1 = (glue_p->EToHm[le] == 0) ? 0 : (glue_p->EToHm[le]-1)/2+1;
-      const int I2 = (glue_p->EToHm[le] == 0) ? 0 : (glue_p->EToHm[le]-1)%2+1;
-      const bfam_real_t *MP1 = glue_m->massprojection[I1];
-      const bfam_real_t *MP2 = glue_m->massprojection[I2];
+        const int I1 = (glue_p->EToHm[le] == 0) ? 0 : (glue_p->EToHm[le]-1)/2+1;
+        const int I2 = (glue_p->EToHm[le] == 0) ? 0 : (glue_p->EToHm[le]-1)%2+1;
+        const bfam_real_t *MP1 = glue_m->massprojection[I1];
+        const bfam_real_t *MP2 = glue_m->massprojection[I2];
 #else
 #error "Bad Dimension"
 #endif
-      massproject_flux(TnS_M, TpS_M, vnS_M, vpS_M, N, Nrp_g, TnS_g, TpS_g,
-          vnS_g, vpS_g,
-          MP1,
+        beard_massproject_flux(TnS_M, TpS_M, vnS_M, vpS_M, N, Nrp_g, TnS_g, TpS_g,
+                               vnS_g, vpS_g,
+                               MP1,
 #if DIM==3
-          MP2,
+                               MP2,
 #endif
-          wi);
-      /*
-      BFAM_ASSERT(glue_m->projection);
-      project_flux(TnS_M, TpS_M, vnS_M, vpS_M, Nfp, Np_g, TnS_g, TpS_g, vnS_g,
-          vpS_g, glue_m->projection[glue_p->EToHm[le]]);
-      */
+                               wi);
+      }
+      else if(PROJECTION)
+      {
+        BFAM_ASSERT(glue_m->projection);
+#if   DIM == 2
+        const bfam_real_t *P1 = glue_m->projection[glue_p->EToHm[le]];
+#elif DIM == 3
+        const int I1 = (glue_p->EToHm[le] == 0) ? 0 : (glue_p->EToHm[le]-1)/2+1;
+        const int I2 = (glue_p->EToHm[le] == 0) ? 0 : (glue_p->EToHm[le]-1)%2+1;
+        const bfam_real_t *P1 = glue_m->projection[I1];
+        const bfam_real_t *P2 = glue_m->projection[I2];
+#else
+#error "Bad Dimension"
+#endif
+        beard_project_flux(TnS_M, TpS_M, vnS_M, vpS_M, N, Nrp_g, TnS_g, TpS_g,
+                           vnS_g, vpS_g,
+                           P1
+#if DIM==3
+                          ,P2
+#endif
+                           );
+      }
     }
 
     for(bfam_locidx_t pnt = 0; pnt < Nfp; pnt++)
