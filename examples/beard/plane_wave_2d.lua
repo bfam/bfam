@@ -5,7 +5,7 @@ dimension = 2;
 
 -- refinement parameters
 min_level = 0
-max_level = 0
+max_level = 2
 output_prefix = "solution"
 
 -- connectivity info
@@ -40,12 +40,10 @@ function refinement_function(
 
   if level < min_level then
     return 1
-  -- elseif level >= max_level or level > treeid/4 then
-  --   return 0
-  -- else
-  --   return 1
-  else
+  elseif level >= max_level or level > treeid/4 then
     return 0
+  else
+    return 1
   end
 end
 
@@ -54,8 +52,8 @@ function element_order(
   x2,y2,z2,x3,y3,z3,
   level, treeid)
 
-  -- N = treeid%3+1
-  N = 3
+  N = treeid%3+1
+  -- N = 3
 
   return N
 end
