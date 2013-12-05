@@ -171,6 +171,7 @@ glue_info = {
   fault_1,
   fault_2,
   fault_3,
+  fault_4,
   bc_free,
   bc_nonreflect,
 }
