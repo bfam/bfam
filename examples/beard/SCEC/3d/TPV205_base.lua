@@ -100,6 +100,85 @@ end
 
 -- faults
 
+fault_1 = {
+  type = "friction",
+  friction = "slip weakening",
+  fd =     0.525,
+  fs =     0.4,
+  S11 =    0.0,
+  S12 =   70.0,
+  S13 =    0.0,
+  S22 = -120.0,
+  S23 =    0.0,
+  S33 =    0.0,
+}
+
+fault_2 = {
+  type = "friction",
+  friction = "slip weakening",
+  fd =     0.525,
+  fs =     0.4,
+  S11 =    0.0,
+  S12 =   81.6,
+  S13 =    0.0,
+  S22 = -120.0,
+  S23 =    0.0,
+  S33 =    0.0,
+}
+
+fault_3 = {
+  type = "friction",
+  friction = "slip weakening",
+  fd =     0.525,
+  fs =     0.4,
+  S11 =   78.0,
+  S12 =    0.0,
+  S13 =    0.0,
+  S22 = -120.0,
+  S23 =    0.0,
+  S33 =    0.0,
+}
+
+fault_4 = {
+  type = "friction",
+  friction = "slip weakening",
+  fd =     0.525,
+  fs =     0.4,
+  S11 =    0.0,
+  S12 =   62.0,
+  S13 =    0.0,
+  S22 = -120.0,
+  S23 =    0.0,
+  S33 =    0.0,
+}
+
+bc_free = {
+  type = "boundary",
+  R    = -1,
+}
+
+bc_nonreflect = {
+  type = "boundary",
+  R    = 0,
+}
+
+bc_rigid = {
+  type = "boundary",
+  R    = 1,
+}
+
+glue_info = {
+  fault_1,
+  fault_2,
+  fault_3,
+  bc_free,
+  bc_nonreflect,
+}
+
+-- friction stuff
+fault_fd  =    0.525
+fault_Dc  =    0.4
+
 glueid_treeid_faceid = {
   1,  3640, 2,
   1,  3641, 2,
