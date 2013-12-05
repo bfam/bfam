@@ -698,6 +698,18 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
   bfam_communicator_start( &material_comm);
   bfam_communicator_finish(&material_comm);
   bfam_communicator_free(  &material_comm);
+
+  const char *sw_tags[] = {"_volume",NULL};
+  const char *sw_fields[] = { "Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1", "Tp2",
+    "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3", "Dc", "Dp", "fs", "fd", NULL};
+
+  /* NEED TO READ THE GLUE INTERFACE INFO FROM LUA HERE */
+  for(int f = 0; sw_fields[f] != NULL; f++)
+  {
+    bfam_domain_add_field (domain, BFAM_DOMAIN_OR, sw_tags, sw_fields[f]);
+    // bfam_domain_init_field(domain, BFAM_DOMAIN_OR, sw_tags, sw_fields[f], 0,
+    // field_set_val, prefs->L);
+  }
 }
 
 static void
