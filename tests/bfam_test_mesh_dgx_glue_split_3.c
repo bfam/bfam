@@ -17,6 +17,7 @@ refine_fn(p8est_t* pxest, p4est_locidx_t which_tree, p8est_quadrant_t* quadrant)
 
 typedef struct
 {
+  p8est_connectivity_t *conn;
   bfam_domain_pxest_t_3 *domain;
 } state_t;
 
@@ -27,12 +28,12 @@ build_state(MPI_Comm mpicomm, state_t* state)
   int rank;
   BFAM_MPI_CHECK(MPI_Comm_rank(mpicomm, &rank));
 
-  p8est_connectivity_t *conn = p8est_connectivity_new_twocubes();
+  state->conn = p8est_connectivity_new_twocubes();
   const bfam_locidx_t tree_to_glueid[2 * 6] = {
     -1,  0, -1, -1, -1, -1,
      0, -1, -1, -1, -1, -1,
   };
-  state->domain = bfam_domain_pxest_new_3(mpicomm, conn);
+  state->domain = bfam_domain_pxest_new_3(mpicomm, state->conn);
 
 
   bfam_domain_pxest_t_3 *domain = state->domain;
@@ -171,6 +172,7 @@ build_state(MPI_Comm mpicomm, state_t* state)
   bfam_communicator_start(communicator);
   bfam_communicator_finish(communicator);
   bfam_communicator_free(communicator);
+  bfam_free(communicator);
 
   {
     bfam_locidx_t numElements = d->numSubdomains;
@@ -250,9 +252,9 @@ free_state(MPI_Comm mpicomm, state_t* state)
 {
   int failures = 0;
 
-  p8est_connectivity_destroy(state->domain->conn);
   bfam_domain_pxest_free_3(state->domain);
   bfam_free(state->domain);
+  p8est_connectivity_destroy(state->conn);
 
   return failures;
 }
