@@ -1770,6 +1770,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   BFAM_ROOT_INFO("nfoutput = %d",nfoutput);
   BFAM_ROOT_INFO("nerr     = %d",nerr);
 
+  if(nfoutput >= 0)
   {
     char output[BFAM_BUFSIZ];
     snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,0);
@@ -1781,6 +1782,8 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   bfam_real_t initial_energy = compute_energy(beard,prefs,0,"");
   bfam_real_t energy = initial_energy;
   if(initial_energy < BFAM_REAL_EPS) initial_energy = -1;
+
+  if(noutput >= 0)
   {
     char output[BFAM_BUFSIZ];
     const char *fields[] = {"rho", "lam", "mu", "v1", "v2", "v3", "S11", "S22",
@@ -1830,14 +1833,14 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       }
       energy = new_energy;
     }
-    if(s%nfoutput == 0)
+    if(nfoutput > 0 && s%nfoutput == 0)
     {
       char output[BFAM_BUFSIZ];
       snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
           slip_weakening, "", output, (s)*dt, sw_fields, NULL, NULL, 1, 0,0);
     }
-    if(s%noutput == 0)
+    if(noutput > 0 && s%noutput == 0)
     {
       const char *fields[] = {"v1", "v2", "v3",
         "S11", "S22", "S33", "S12", "S13", "S23",NULL};
