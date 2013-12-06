@@ -872,9 +872,10 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
       beard_grid_glue, NULL);
 
   const char *boundary[] = {"_glue_boundary",NULL};
-  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, boundary, "_grid_x0");
-  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, boundary, "_grid_x1");
-  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, boundary, "_grid_x2");
+  const char *boundary_fields[] = {"_grid_x0","_grid_x1","_grid_x2",NULL};
+  for(bfam_locidx_t g = 0; boundary_fields[g] != NULL; g++)
+    bfam_domain_add_field(domain, BFAM_DOMAIN_OR, boundary, boundary_fields[g]);
+
   bfam_domain_init_field(domain, BFAM_DOMAIN_OR, boundary, "_grid_x1", 0,
       beard_grid_boundary, NULL);
 
