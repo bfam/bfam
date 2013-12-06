@@ -1312,7 +1312,7 @@ void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel"));
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_local"));
   else
-    BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
+    BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
 }
 
 static void
@@ -1359,7 +1359,7 @@ void intra_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"   ));
   else
-    BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
+    BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
 }
 
 void inter_rhs_boundary(int N, bfam_subdomain_dgx_t *sub,
@@ -1489,7 +1489,7 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     inter_rhs_interface(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
         sub,rate_prefix,field_prefix,t);
   else
-    BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
+    BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
 }
 
 void add_rates_slip_weakening (bfam_subdomain_dgx_t *sub,
@@ -1580,7 +1580,7 @@ void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"   ));
   else
-    BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
+    BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
 }
 
 static void
