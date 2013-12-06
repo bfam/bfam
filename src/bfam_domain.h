@@ -103,6 +103,36 @@ bfam_domain_get_subdomains_critbit(bfam_domain_t *thisDomain,
     bfam_locidx_t numEntries, bfam_subdomain_t **subdomains,
     bfam_locidx_t *numSubdomains);
 
+/** Add tag to subdomains matching the tags passed in.
+ *
+ * \param [in,out]  thisDomain    domain to search for subdomains in
+ * \param [in]      matchType     type of match, \c BFAM_DOMAIN_OR will
+ *                                match subdomains with any of the tags
+ *                                and \c BFAM_DOMAIN_AND will match subdomains
+ *                                with all of the tags.
+ * \param [in]      mtags         \c NULL terminated array of the tags to match
+ * \param [in]      tag           tag to add to the subdomains
+ *
+ */
+void
+bfam_domain_add_tag(bfam_domain_t *thisDomain, bfam_domain_match_t match,
+    const char **mtags, const char *tag);
+
+/** Add fields to subdomains matching the tags passed in.
+ *
+ * \param [in,out]  thisDomain    domain to search for subdomains in
+ * \param [in]      matchType     type of match, \c BFAM_DOMAIN_OR will
+ *                                match subdomains with any of the tags
+ *                                and \c BFAM_DOMAIN_AND will match subdomains
+ *                                with all of the tags.
+ * \param [in]      mtags         \c NULL terminated array of the tags to match
+ * \param [in]      tags          tags to add to the subdomains
+ *
+ */
+void
+bfam_domain_add_tags(bfam_domain_t *thisDomain, bfam_domain_match_t match,
+    const char **mtags, const char **tags);
+
 /** Add fields to subdomains matching the tags passed in.
  *
  * \param [in,out]  thisDomain    domain to search for subdomains in

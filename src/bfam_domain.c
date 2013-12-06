@@ -220,6 +220,33 @@ bfam_domain_add_subdomain(bfam_domain_t* thisDomain,
 }
 
 void
+bfam_domain_add_tag(bfam_domain_t *thisDomain, bfam_domain_match_t match,
+    const char **mtags, const char *tag)
+{
+  const char *tags[] = {tag, NULL};
+  bfam_domain_add_tags(thisDomain, match, mtags, tags);
+}
+
+void
+bfam_domain_add_tags(bfam_domain_t *thisDomain, bfam_domain_match_t match,
+    const char **mtags, const char **tags)
+{
+  bfam_subdomain_t **subdomains =
+    bfam_malloc(thisDomain->numSubdomains*sizeof(bfam_subdomain_t**));
+
+  bfam_locidx_t numSubdomains = 0;
+
+  bfam_domain_get_subdomains(thisDomain, match, mtags,
+      thisDomain->numSubdomains, subdomains, &numSubdomains);
+
+  for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
+    for(size_t t = 0; tags[t]; ++t)
+      bfam_subdomain_add_tag(subdomains[s], tags[t]);
+
+  bfam_free(subdomains);
+}
+
+void
 bfam_domain_add_field(bfam_domain_t *thisDomain, bfam_domain_match_t match,
     const char **tags, const char *field)
 {
