@@ -1101,9 +1101,6 @@ init_domain(beard_t *beard, prefs_t *prefs)
 
   p4est_partition(beard->domain->pxest, NULL);
 
-  /* dump the pxest mesh */
-  p4est_vtk_write_file(beard->domain->pxest, NULL, "p4est_mesh");
-
   /* split the domain */
   split_domain(beard,prefs);
 
@@ -1786,6 +1783,11 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   if(noutput >= 0)
   {
     char output[BFAM_BUFSIZ];
+
+    /* dump the pxest mesh */
+    snprintf(output,BFAM_BUFSIZ,"%s_pxest_mesh",prefs->output_prefix);
+    p4est_vtk_write_file(beard->domain->pxest, NULL, output);
+
     const char *fields[] = {"rho", "lam", "mu", "v1", "v2", "v3", "S11", "S22",
       "S33", "S12", "S13", "S23",NULL};
     snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,0);
@@ -1867,11 +1869,14 @@ run_simulation(beard_t *beard,prefs_t *prefs)
           "time: %"BFAM_REAL_FMTe" error: %"BFAM_REAL_FMTe
           " d_energy: %"BFAM_REAL_FMTe,
           s*dt, error,(new_energy-energy)/initial_energy);
-      char err_output[BFAM_BUFSIZ];
-      snprintf(err_output,BFAM_BUFSIZ,"%s_error_%05d",prefs->output_prefix,s);
-      bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-          volume, "", err_output, (s)*dt, err_flds, NULL, NULL, 1, 1,0);
-      energy = new_energy;
+      if(noutput > 0)
+      {
+        char err_output[BFAM_BUFSIZ];
+        snprintf(err_output,BFAM_BUFSIZ,"%s_error_%05d",prefs->output_prefix,s);
+        bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
+            volume, "", err_output, (s)*dt, err_flds, NULL, NULL, 1, 1,0);
+        energy = new_energy;
+      }
     }
   }
 }
