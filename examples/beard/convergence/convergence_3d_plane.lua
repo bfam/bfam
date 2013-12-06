@@ -149,7 +149,7 @@ function time_step_parameters(dt)
   nsteps = math.ceil(tend / dt)
   dt      = tend / nsteps
   ndisp   = tdisp / dt
-  noutput  = tout / dt
+  noutput  = -1
   nfoutput = -1
   return dt,nsteps, ndisp, noutput, nfoutput
 end
