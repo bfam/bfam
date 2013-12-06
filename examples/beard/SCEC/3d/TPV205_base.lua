@@ -60,7 +60,7 @@ function refinement_function(
     return 1
   elseif level >= max_level then
     return 0
-  elseif xmin < 15 and zmin > -15 and ymin < 0.1 then
+  elseif xmin <= 15 and zmin >= -15 and ymin <= 0.1 then
     return 1
   else
     return 0
