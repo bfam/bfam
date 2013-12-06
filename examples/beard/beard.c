@@ -129,6 +129,7 @@ typedef struct prefs
   char data_directory[BFAM_BUFSIZ];
   int  vtk_binary;
   int  vtk_compress;
+  char default_boundary_tag[BFAM_BUFSIZ];
 
   brick_args_t* brick_args;
 
@@ -349,6 +350,19 @@ new_prefs(const char *prefs_filename)
   lua_pop(L, 1);
 
 
+  /* get default boundary tag */
+  lua_getglobal(L,"default_boundary_tag");
+  strncpy(prefs->default_boundary_tag,"free surface",BFAM_BUFSIZ);
+  if(lua_isstring(L, -1))
+  {
+    const char *default_boundary_tag = lua_tostring(L, -1);
+    strncpy(prefs->default_boundary_tag,default_boundary_tag,BFAM_BUFSIZ);
+  }
+  else
+    BFAM_ROOT_WARNING("using default 'default_boundary_tag': %s",
+        prefs->default_boundary_tag);
+  lua_pop(L, 1);
+
   /* get the time stepper type */
   lua_getglobal(L, "lsrk_method");
   prefs->lsrk_method = lsrk_table[0].lsrk_method;
@@ -409,6 +423,7 @@ print_prefs(prefs_t *prefs)
   BFAM_ROOT_INFO("----------Preferences----------");
   BFAM_ROOT_INFO(" Beard Dimension          = %d",prefs->dimension);
   BFAM_ROOT_INFO(" Output prefix            = %s",prefs->output_prefix);
+  BFAM_ROOT_INFO(" Default boundary tag     = %s",prefs->default_boundary_tag);
   BFAM_ROOT_INFO(" Low Storage Time Stepper = %s",prefs->lsrk_name);
   if(prefs->brick_args != NULL)
   {
