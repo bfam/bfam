@@ -1,8 +1,8 @@
 #!/bin/bash
 
-if [ $# != 6 ]
+if [ $# != 7 ]
 then
-  echo "convergence.sh BEARD NUM_PROCS DG_N1 DG_N2 DG_N3 LP"
+  echo "convergence.sh BEARD LUA_FILE NUM_PROCS DG_N1 DG_N2 DG_N3 LP"
   exit
 fi
 
@@ -13,11 +13,11 @@ err1=0
 err2=0
 
 for num in {1..10}; do
-  cat convergence.lua |                                                         \
-    sed "\$amin_level=0\nmax_level=min_level+$6\nN1=$3\nN2=$4\nN3=$5\nstatic_refinement=$num-1"\
-    > tmp_$2_$3_$4_$5_$6.lua
+  cat $2 |                                                         \
+    sed "\$amin_level=0\nmax_level=min_level+$7\nN1=$4\nN2=$5\nN3=$6\nstatic_refinement=$num-1"\
+    > tmp_$2_$3_$4_$5_$6_$7.lua
 
-  OUT=$(mpirun -n $2 $1 tmp_$2_$3_$4_$5_$6.lua | grep error:)
+  OUT=$(mpirun -n $3 $1 tmp_$2_$3_$4_$5_$6_$7.lua | grep error:)
 
   RES="0"
 
