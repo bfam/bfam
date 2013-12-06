@@ -1770,6 +1770,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   /* compute the initial energy */
   bfam_real_t initial_energy = compute_energy(beard,prefs,0,"");
   bfam_real_t energy = initial_energy;
+  if(initial_energy < BFAM_REAL_EPS) initial_energy = -1;
   {
     char output[BFAM_BUFSIZ];
     const char *fields[] = {"rho", "lam", "mu", "v1", "v2", "v3", "S11", "S22",
@@ -1786,22 +1787,37 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     {
       bfam_real_t new_energy = compute_energy(beard,prefs,s*dt,"");
       int color = 32;
-      if(new_energy > energy) color = 31;
-      BFAM_ROOT_INFO("\x1B[%dm"
-          "time: %"BFAM_REAL_FMTe"\n"
-          " init energy: %"BFAM_REAL_FMTe
-          " energy: %"BFAM_REAL_FMTe
-          " norm energy: %"BFAM_REAL_FMTe"\n"
-          " current delta energy: %+"BFAM_REAL_FMTe
-          " initial delta energy: %+"BFAM_REAL_FMTe"\n"
-          "\x1B[0m",
-          color,
-          s*dt,
-          initial_energy,
-          new_energy,
-          new_energy/initial_energy,
-          (new_energy-energy)/initial_energy,
-          energy/initial_energy-1);
+      if(initial_energy < 0)
+      {
+        BFAM_ROOT_INFO("\x1B[%dm"
+            "time: %10.5"BFAM_REAL_PRIe
+            " energy: %10.5"BFAM_REAL_PRIe
+            " current delta energy: %+10.5"BFAM_REAL_PRIe
+            "\x1B[0m",
+            color,
+            s*dt,
+            new_energy,
+            new_energy-energy);
+      }
+      else
+      {
+        if(new_energy > energy) color = 31;
+        BFAM_ROOT_INFO("\x1B[%dm"
+            "time: %"BFAM_REAL_FMTe"\n"
+            " init energy: %"BFAM_REAL_FMTe
+            " energy: %"BFAM_REAL_FMTe
+            " norm energy: %"BFAM_REAL_FMTe"\n"
+            " current delta energy: %+"BFAM_REAL_FMTe
+            " initial delta energy: %+"BFAM_REAL_FMTe"\n"
+            "\x1B[0m",
+            color,
+            s*dt,
+            initial_energy,
+            new_energy,
+            new_energy/initial_energy,
+            (new_energy-energy)/initial_energy,
+            energy/initial_energy-1);
+      }
       energy = new_energy;
     }
     if(s%nfoutput == 0)
