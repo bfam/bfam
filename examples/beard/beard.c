@@ -672,6 +672,23 @@ field_set_val_aux(bfam_locidx_t npoints, const char *name, bfam_real_t time,
   else BFAM_ABORT("Unknown auxilary field: '%s'",name);
 }
 
+typedef enum glue_info_type {
+  FRICTION,
+  BOUNDARY,
+  UNKNOWN,
+} glue_info_type_t;
+
+static void
+field_set_const(bfam_locidx_t npoints, const char *name, bfam_real_t t,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  bfam_real_t val = *((double*)arg);
+  for(bfam_locidx_t n=0; n < npoints; ++n)
+    field[n] = val;
+}
+
+
 static void
 domain_add_fields(beard_t *beard, prefs_t *prefs)
 {
@@ -767,16 +784,108 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
   bfam_communicator_finish(&material_comm);
   bfam_communicator_free(  &material_comm);
 
-  // const char *sw_tags[] = {"",NULL};
-  // const char *sw_fields[] = { "Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1", "Tp2",
-  //   "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3", "Dc", "Dp", "fs", "fd", NULL};
+  /*
+   * Loop through glue info
+   */
 
-  // for(int f = 0; sw_fields[f] != NULL; f++)
-  // {
-  //   bfam_domain_add_field (domain, BFAM_DOMAIN_OR, sw_tags, sw_fields[f]);
-  //   bfam_domain_init_field(domain, BFAM_DOMAIN_OR, sw_tags, sw_fields[f], 0,
-  //   field_set_val, prefs->L);
-  // }
+  lua_State *L = prefs->L;
+#ifdef BFAM_DEBUG
+  int top = lua_gettop(L);
+#endif
+
+  lua_getglobal(L,"glue_info");
+  luaL_checktype(L, -1, LUA_TTABLE);
+
+  int N_glueids = luaL_getn(L, -1);
+  BFAM_LDEBUG("N_glueids: %3d", N_glueids);
+
+  BFAM_ROOT_VERBOSE("Reading glue info from lua");
+  for(int i = 1; i <= N_glueids; ++i)
+  {
+    BFAM_ROOT_VERBOSE("glue ID: %d", i);
+    /*
+     * get glue_id tag
+     */
+    const char *this_glue[2];
+    char this_glue_tag[BFAM_BUFSIZ];
+    this_glue[0] = this_glue_tag;
+    this_glue[1] = NULL;
+    snprintf(this_glue_tag,BFAM_BUFSIZ,"_glue_id_%jd",(intmax_t)i);
+
+    lua_rawgeti(L, -1, i);
+    luaL_checktype(L, -1, LUA_TTABLE);
+
+    lua_pushstring(L, "type");
+    lua_gettable(L, -2);
+    luaL_checktype(L, -1, LUA_TSTRING);
+
+    size_t match_len = BFAM_MIN(lua_strlen(L, -1),8);
+
+    glue_info_type_t type = UNKNOWN;
+    if(0==strncmp(lua_tostring(L, -1), "friction", match_len))
+      type = FRICTION;
+    else if(0==strncmp(lua_tostring(L, -1), "boundary", match_len))
+      type = BOUNDARY;
+
+    BFAM_ROOT_VERBOSE("  type: %d", type);
+    lua_pop(L, 1);
+
+    lua_pushstring(L, "tag");
+    lua_gettable(L, -2);
+    if(lua_isstring(L, -1))
+    {
+      const char * tag = lua_tostring(L, -1);
+
+      /*
+       * Grab the associated subdomains
+       */
+      bfam_locidx_t numElements = beard->domain->base.numSubdomains;
+      bfam_subdomain_t **subdomains =
+        bfam_malloc(numElements*sizeof(bfam_subdomain_t*));
+      bfam_locidx_t numSubdomains;
+      bfam_domain_get_subdomains((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
+          this_glue, numElements, subdomains, &numSubdomains);
+      for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
+        bfam_subdomain_add_tag(subdomains[s], tag);
+      bfam_free(subdomains);
+    }
+    else
+      BFAM_WARNING("No tag for glue_id %d", i);
+    lua_pop(L, 1);
+
+    if(type==FRICTION)
+    {
+      const char *sw_fields[] = {"Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
+        "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3", "Dc", "Dp", "fs", "fd",
+        NULL};
+
+      for(int f = 0; sw_fields[f] != NULL; ++f)
+      {
+        bfam_real_t value = 0;
+
+        lua_pushstring(L,sw_fields[f]);
+        lua_gettable(L,-2);
+        if(!lua_isnumber(L,-1))
+          BFAM_ROOT_WARNING(
+              "  does not contain `%s', using default %"BFAM_REAL_PRIe,
+              sw_fields[f], value);
+        else
+          value = (bfam_real_t)lua_tonumber(L, -1);
+        lua_pop(L, 1);
+
+        bfam_domain_add_field(domain, BFAM_DOMAIN_OR, this_glue, sw_fields[f]);
+        bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue, sw_fields[f],
+             0, field_set_const, &value);
+
+      }
+    }
+
+
+    lua_pop(L, 1);
+  }
+
+  lua_pop(L,-1);
+  BFAM_ASSERT(top == lua_gettop(L));
 }
 
 static void
