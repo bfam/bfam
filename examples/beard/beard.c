@@ -57,7 +57,7 @@ const char *comm_args_tensor_components[] = {"S11","S12","S13",
 const char *sw_fields[] = {"Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
   "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3", "Dc", "Dp", "fs", "fd",
   "S11_0","S12_0","S13_0","S22_0","S23_0","S33_0",
-  "Dp1","Dp2","Dp3", NULL};
+  "Dp1","Dp2","Dp3","Dn",NULL};
 
 
 #define BFAM_LOAD_FIELD_RESTRICT_ALIGNED(field,prefix,base,dictionary)         \
