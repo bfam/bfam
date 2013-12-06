@@ -109,61 +109,63 @@ v3  = 0
 -- time stepper to use
 lsrk_method  = "KC54"
 
-tend  = 12
-tout  = 0.1
-tdisp = 0.1
-nerr  = 0
+tend   = 12
+tout   = 1
+tfout  = 0.01
+tdisp  = 0.01
+nerr   = 0
 
 function time_step_parameters(dt)
   dt      = 0.5*dt
-  noutput = math.ceil(tout / dt)
-  dt      = tout / noutput
+  nfoutput = math.ceil(tfout / dt)
+  dt       = tfout / nfoutput
+
+  noutput  = tout  / dt
   ndisp   = tdisp / dt
   nsteps  = tend / dt
-  nsteps  = 1
-  return dt,nsteps, ndisp, noutput
+
+  return dt,nsteps, ndisp, noutput, nfoutput
 end
 
 -- faults
-
 fault_1 = {
-  type = "friction",
-  tag = "slip weakening",
-  fd =      0.525,
-  fs =      0.4,
-  Dc =      0.4,
-  Tp1_0 =  70.0,
-  Tn_0  = -120.0,
+  type   = "friction",
+  tag    = "slip weakening",
+  fs     =    0.677,
+  fd     =    0.525,
+  Dc     =    0.4,
+  S12_0  =   70.0,
+  S22_0  = -120.0,
 }
 
-fault_2 = {
-  type = "friction",
-  tag = "slip weakening",
-  fd =      0.525,
-  fs =      0.4,
-  Dc =      0.4,
-  Tp1_0 =  81.6,
-  Tn_0  = -120.0,
+fault_2  = {
+  type   = "friction",
+  tag    = "slip weakening",
+  fs     =    0.677,
+  fd     =    0.525,
+  Dc     =    0.4,
+  S12_0  =   78.0,
+  S22_0  = -120.0,
 }
 
-fault_3 = {
-  type = "friction",
-  tag = "slip weakening",
-  fd =      0.525,
-  fs =      0.4,
-  Dc =      0.4,
-  Tp1_0 = 78.0,
-  Tn_0 =-120.0,
+fault_3  = {
+  type   = "friction",
+  tag    = "slip weakening",
+  fs     =    0.677,
+  fd     =    0.525,
+  Dc     =    0.4,
+  S12_0  =   81.6,
+  S22_0  = -120.0,
 }
 
 fault_4 = {
-  type = "friction",
-  tag = "slip weakening",
-  fd =     0.525,
-  fs =     0.4,
-  Dc =     0.4,
-  Tp1_0 = 62.0,
-  Tn_0 = -120.0,
+  type  = "friction",
+  tag   = "slip weakening",
+  fs    =    0.677,
+  fd    =    0.525,
+  Dc    =    0.4,
+  S12_0 =   62.0,
+  S22_0 = -120.0,
 }
 
 bc_free = {

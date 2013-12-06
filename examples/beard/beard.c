@@ -692,6 +692,39 @@ field_set_const(bfam_locidx_t npoints, const char *name, bfam_real_t t,
     field[n] = val;
 }
 
+static void
+field_set_friction_init_stress(bfam_locidx_t npoints, const char *name,
+    bfam_real_t t, bfam_real_t *restrict x, bfam_real_t *restrict y,
+    bfam_real_t *restrict z, struct bfam_subdomain *s, void *arg,
+    bfam_real_t *restrict dummy_field)
+{
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(nx1,"","_grid_nx0",&s->glue_m->fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(nx2,"","_grid_nx1",&s->glue_m->fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(nx3,"","_grid_nx2",&s->glue_m->fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11,"",    "S11_0",&s->fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12,"",    "S12_0",&s->fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13,"",    "S13_0",&s->fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22,"",    "S22_0",&s->fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23,"",    "S23_0",&s->fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33,"",    "S33_0",&s->fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn ,"",     "Tn_0",&s->fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1,"",    "Tp1_0",&s->fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2,"",    "Tp2_0",&s->fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3,"",    "Tp3_0",&s->fields);
+
+  for(bfam_locidx_t n=0; n < npoints; ++n)
+  {
+    Tp1[n] = S11[n]*nx1[n] + S12[n]*nx2[n] + S13[n]*nx2[n];
+    Tp2[n] = S12[n]*nx1[n] + S22[n]*nx2[n] + S23[n]*nx2[n];
+    Tp3[n] = S13[n]*nx1[n] + S23[n]*nx2[n] + S33[n]*nx2[n];
+    Tn[n]  = Tp1[n]*nx1[n] + Tp2[n]*nx2[n] + Tp3[n]*nx3[n];
+    Tp1[n]-= Tn[n] *nx1[n];
+    Tp2[n]-= Tn[n] *nx2[n];
+    Tp3[n]-= Tn[n] *nx3[n];
+  }
+
+}
+
 
 static void
 beard_grid_boundary(bfam_locidx_t npoints, const char *name, bfam_real_t time,
@@ -839,6 +872,15 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x1");
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x2");
 
+  const char *glue_face_scalar[] = {"_grid_nx0","_grid_nx1","_grid_nx2",NULL};
+  for(bfam_locidx_t g = 0; glue_face_scalar[g] != NULL; g++)
+  {
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue,
+        glue_face_scalar[g]);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue,
+        glue_face_scalar[g]);
+  }
+
   bfam_communicator_t material_comm;
 
   bfam_subdomain_comm_args_t mat_args;
@@ -848,14 +890,14 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
   mat_args.vector_components_m = mat_NULL;
   mat_args.tensors_m           = mat_NULL;
   mat_args.tensor_components_m = mat_NULL;
-  mat_args.face_scalars_m      = mat_NULL;
+  mat_args.face_scalars_m      = glue_face_scalar;
 
   mat_args.scalars_p           = glue_mat;
   mat_args.vectors_p           = mat_NULL;
   mat_args.vector_components_p = mat_NULL;
   mat_args.tensors_p           = mat_NULL;
   mat_args.tensor_components_p = mat_NULL;
-  mat_args.face_scalars_p      = mat_NULL;
+  mat_args.face_scalars_p      = glue_face_scalar;
 
   bfam_communicator_init(&material_comm,domain,BFAM_DOMAIN_OR,glue,
       beard->mpicomm,10,&mat_args);
@@ -954,7 +996,7 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
     {
       const char *sw_fields[] = {"Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
         "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3", "Dc", "Dp", "fs", "fd",
-        NULL};
+        "S11_0","S12_0","S13_0","S22_0","S23_0","S33_0", NULL};
 
       for(int f = 0; sw_fields[f] != NULL; ++f)
       {
@@ -973,8 +1015,9 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
         bfam_domain_add_field(domain, BFAM_DOMAIN_OR, this_glue, sw_fields[f]);
         bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue, sw_fields[f],
              0, field_set_const, &value);
-
       }
+      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue, "Tp1_0",
+          0, field_set_friction_init_stress, NULL);
     }
 
 
