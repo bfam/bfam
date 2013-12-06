@@ -144,10 +144,11 @@ terr  = tend/100
 function time_step_parameters(dt)
   dt      = 0.5*dt
   noutput = math.ceil(tout / dt)
+  nfoutput = -1
   dt      = tout / noutput
   ndisp   = tdisp / dt
   nsteps  = tend / dt
-  return dt,nsteps, ndisp, noutput
+  return dt,nsteps, ndisp, noutput, nfoutput
 end
 
 function nerr(dt)
