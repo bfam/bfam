@@ -1400,6 +1400,40 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     BFAM_ABORT("Uknown subdomain: %s",thisSubdomain->name);
 }
 
+void add_rates_slip_weakening (bfam_subdomain_dgx_t *sub,
+    const char *field_prefix_lhs, const char *field_prefix_rhs,
+    const char *rate_prefix, const bfam_long_real_t a)
+{
+#if   DIM==2
+#define X(order) \
+  case order: beard_dgx_add_rates_slip_weakening_2_##order(sub->N,sub, \
+                  field_prefix_lhs,field_prefix_rhs,rate_prefix,a); break;
+#elif DIM==3
+#define X(order) \
+  case order: beard_dgx_add_rates_slip_weakening_3_##order(sub->N,sub, \
+                  field_prefix_lhs,field_prefix_rhs,rate_prefix,a); break;
+#else
+#error "bad dimension"
+#endif
+
+  switch(sub->N)
+  {
+    BFAM_LIST_OF_DGX_NORDERS
+    default:
+#if   DIM==2
+      beard_dgx_add_rates_slip_weakening_2_(sub->N,sub,field_prefix_lhs,
+          field_prefix_rhs,rate_prefix,a);
+#elif DIM==3
+      beard_dgx_add_rates_slip_weakening_3_(sub->N,sub,field_prefix_lhs,
+          field_prefix_rhs,rate_prefix,a);
+#else
+#error "bad dimension"
+#endif
+      break;
+  }
+#undef X
+}
+
 void add_rates_elastic (bfam_subdomain_dgx_t *sub,
     const char *field_prefix_lhs, const char *field_prefix_rhs,
     const char *rate_prefix, const bfam_long_real_t a)
@@ -1443,6 +1477,12 @@ void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
   {
     bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
     add_rates_elastic(sub,field_prefix_lhs,field_prefix_rhs,rate_prefix,a);
+  }
+  else if(bfam_subdomain_has_tag(thisSubdomain,"slip weakening"))
+  {
+    bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
+    add_rates_slip_weakening(sub,field_prefix_lhs,field_prefix_rhs,
+        rate_prefix,a);
   }
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
