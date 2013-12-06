@@ -129,17 +129,19 @@ end
 fault_1 = {
   type = "friction",
   tag = "slip weakening",
-  fd =     0.525,
-  fs =     0.4,
-  Tp1_0 =   70.0,
-  Tn_0  = 120.0,
+  fd =      0.525,
+  fs =      0.4,
+  Dc =      0.4,
+  Tp1_0 =  70.0,
+  Tn_0  = -120.0,
 }
 
 fault_2 = {
   type = "friction",
   tag = "slip weakening",
-  fd =     0.525,
-  fs =     0.4,
+  fd =      0.525,
+  fs =      0.4,
+  Dc =      0.4,
   Tp1_0 =  81.6,
   Tn_0  = -120.0,
 }
@@ -147,8 +149,9 @@ fault_2 = {
 fault_3 = {
   type = "friction",
   tag = "slip weakening",
-  fd =     0.525,
-  fs =     0.4,
+  fd =      0.525,
+  fs =      0.4,
+  Dc =      0.4,
   Tp1_0 = 78.0,
   Tn_0 =-120.0,
 }
@@ -158,6 +161,7 @@ fault_4 = {
   tag = "slip weakening",
   fd =     0.525,
   fs =     0.4,
+  Dc =     0.4,
   Tp1_0 = 62.0,
   Tn_0 = -120.0,
 }

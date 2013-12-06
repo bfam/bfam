@@ -1634,6 +1634,7 @@ static void
 run_simulation(beard_t *beard,prefs_t *prefs)
 {
   const char *volume[] = {"_volume",NULL};
+  const char *slip_weakening[] = {"slip weakening",NULL};
 
   /* compute the time step information */
   bfam_real_t ldt = INFINITY;
@@ -1647,13 +1648,14 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   int nsteps  = 0;
   int ndisp   = 0;
   int noutput = 0;
+  int nfoutput = 0;
 
   int result = lua_global_function_call(prefs->L,"time_step_parameters",
-      "r>riii",dt,&dt,&nsteps,&ndisp,&noutput);
+      "r>riiii",dt,&dt,&nsteps,&ndisp,&noutput,&nfoutput);
   BFAM_ABORT_IF_NOT(result == 0,
       "problem with lua call to 'time_step_parameters': "
       "should be a function that takes dt "
-      "and returns dt, nsteps, ndisp, noutput");
+      "and returns dt, nsteps, ndisp, noutput,nfoutput");
   int nerr = 0;
   result = lua_global_function_call(prefs->L,"nerr","r>i",dt,&nerr);
   if(nerr > 0)
@@ -1670,37 +1672,37 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   BFAM_ROOT_INFO("nsteps   = %d",nsteps);
   BFAM_ROOT_INFO("ndisp    = %d",ndisp);
   BFAM_ROOT_INFO("noutput  = %d",noutput);
+  BFAM_ROOT_INFO("nfoutput = %d",nfoutput);
   BFAM_ROOT_INFO("nerr     = %d",nerr);
 
   /* compute the initial energy */
 
+  const char *sw_fields[] = {"Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
+    "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3", "Dc", "Dp", "fs", "fd",
+    NULL};
   {
     const char *fault[] = {"_glue_id_1",NULL};
     char output[] = "fault_1";
-    const char *fields[] = {"_grid_x0",NULL};
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        fault, "", output, (0)*dt, fields, NULL, NULL, 1, 1,0);
+        fault, "", output, (0)*dt, sw_fields, NULL, NULL, 1, 1,0);
   }
   {
     const char *fault[] = {"_glue_id_2",NULL};
     char output[] = "fault_2";
-    const char *fields[] = {"_grid_x0",NULL};
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        fault, "", output, (0)*dt, fields, NULL, NULL, 1, 1,0);
+        fault, "", output, (0)*dt, sw_fields, NULL, NULL, 1, 1,0);
   }
   {
     const char *fault[] = {"_glue_id_3",NULL};
     char output[] = "fault_3";
-    const char *fields[] = {"_grid_x0",NULL};
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        fault, "", output, (0)*dt, fields, NULL, NULL, 1, 1,0);
+        fault, "", output, (0)*dt, sw_fields, NULL, NULL, 1, 1,0);
   }
   {
     const char *fault[] = {"_glue_id_4",NULL};
     char output[] = "fault_4";
-    const char *fields[] = {"_grid_x0",NULL};
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        fault, "", output, (0)*dt, fields, NULL, NULL, 1, 1,0);
+        fault, "", output, (0)*dt, sw_fields, NULL, NULL, 1, 1,0);
   }
   {
     const char *fault[] = {"_glue_id_5",NULL};
@@ -1759,6 +1761,16 @@ run_simulation(beard_t *beard,prefs_t *prefs)
           (new_energy-energy)/initial_energy,
           energy/initial_energy-1);
       energy = new_energy;
+    }
+    if(s%nfoutput == 0)
+    {
+      const char *sw_fields[] = {"Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
+        "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3", "Dc", "Dp", "fs", "fd",
+        NULL};
+      char output[BFAM_BUFSIZ];
+      snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,s);
+      bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
+          slip_weakening, "", output, (s)*dt, sw_fields, NULL, NULL, 1, 1,0);
     }
     if(s%noutput == 0)
     {
