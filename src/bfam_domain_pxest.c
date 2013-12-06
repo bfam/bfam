@@ -754,7 +754,8 @@ bfam_domain_pxest_num_inter_subdomain_faces(p4est_mesh_t *mesh,
            * Only count same subdomain to same subdomain if it is a hanging
            * face.
            */
-          if((idnk == idk && hanging) || idnk != idk || glueid >= 0)
+          if((idnk == idk && hanging) || idnk != idk ||
+              (glueid >= 0 && (ck != k || cf != f)))
             ++numInterSubdomainFaces;
         }
       }
@@ -855,7 +856,8 @@ bfam_domain_pxest_inter_subdomain_face_mapping(bfam_locidx_t rank,
            * Only count same subdomain to same subdomain if it is a hanging
            * face.
            */
-          if((idnk == idk && hanging) || idnk != idk || glueid >= 0)
+          if((idnk == idk && hanging) || idnk != idk ||
+              (glueid >= 0 && (ck != k || cf != f)))
           {
             BFAM_ASSERT(sk < numInterSubdomainFaces);
 

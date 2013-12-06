@@ -1506,6 +1506,8 @@ bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
 {
   bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*) subdomain;
 
+  BFAM_LDEBUG("Handling vtk for subdomain %s",subdomain->name);
+
   const char *format;
 
   if(writeBinary)
