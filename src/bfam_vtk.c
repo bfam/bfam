@@ -139,7 +139,12 @@ bfam_vtk_write_file_pvtu(int size, const char *directory, const char *prefix,
 
   for(int s = 0; s < size; ++s)
   {
-    fprintf(file, "    <Piece Source=\""BFAM_VTK_VTU_FORMAT"\"/>\n", prefix, s);
+    if(directory)
+      fprintf(file, "    <Piece Source=\"%s/"BFAM_VTK_VTU_FORMAT"\"/>\n",
+          directory, prefix, s);
+    else
+      fprintf(file, "    <Piece Source=\""BFAM_VTK_VTU_FORMAT"\"/>\n", prefix,
+          s);
   }
   fprintf(file, "  </PUnstructuredGrid>\n");
   fprintf(file, "</VTKFile>\n");
@@ -182,7 +187,11 @@ bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match, const
     numElements, subdomains, &numSubdomains);
 
   char filename[BFAM_BUFSIZ];
-  snprintf(filename, BFAM_BUFSIZ, BFAM_VTK_VTU_FORMAT, prefix, rank);
+  if(directory)
+    snprintf(filename, BFAM_BUFSIZ, "%s/"BFAM_VTK_VTU_FORMAT, directory, prefix,
+        rank);
+  else
+    snprintf(filename, BFAM_BUFSIZ, BFAM_VTK_VTU_FORMAT, prefix, rank);
 
   BFAM_VERBOSE("Writing file: '%s'", filename);
   FILE *file = fopen(filename, "w");
