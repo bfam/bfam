@@ -536,6 +536,11 @@ init_tree_to_glueid(beard_t *beard, prefs_t *prefs,
   BFAM_ABORT_IF_NOT(n%3 == 0,
       "length of glueid_treeid_faceid should be a multiple of three");
 
+  bfam_locidx_t num_tree_ids =
+    P4EST_FACES*beard->domain->pxest->connectivity->num_trees;
+  for(int n = 0; n < num_tree_ids;n++)
+    tree_to_glueid[n] = -1;
+
   for(int i=1; i<=n; i+=3)
   {
     lua_rawgeti(L, -1, i+0);
@@ -583,11 +588,10 @@ split_domain(beard_t *beard, prefs_t *prefs)
   for(int n = 0; n < data.max_N;n++) N[n] = n+1;
 
   bfam_locidx_t *tree_ids =
-    bfam_malloc(P4EST_FACES*domain->pxest->local_num_quadrants
+    bfam_malloc(P4EST_FACES*domain->pxest->connectivity->num_trees
                 *sizeof(bfam_locidx_t));
 
   init_tree_to_glueid(beard, prefs, tree_ids);
-
 
   bfam_locidx_t *glue_ids =
     bfam_malloc(P4EST_FACES*domain->pxest->local_num_quadrants
