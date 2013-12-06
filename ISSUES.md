@@ -1,5 +1,10 @@
 # ISSUES
 
+## fix glue_m and glue_p
+Currently ETo*m are stored in glue_p, these should likely be in glue_m. Possibly
+we should have two different glue types so that only the right guys can be on
+the right side???
+
 ## fields_m and fields_p
 This storage needs to be removed from bfam_subdomain once dgx_quad is completely
 removed
