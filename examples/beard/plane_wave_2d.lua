@@ -7,6 +7,7 @@ dimension = 2;
 min_level = 0
 max_level = 2
 output_prefix = "solution"
+data_directory = "data"
 
 -- connectivity info
 connectivity = "brick"
@@ -53,7 +54,7 @@ function element_order(
   level, treeid)
 
   N = treeid%3+1
-  -- N = 3
+  -- N = 2
 
   return N
 end
@@ -74,13 +75,13 @@ A_p = 1
 p_p = {1,0,0}
 d_p = p_p
 c_p = math.sqrt((lam+2*mu)/rho);
-k_p = 2*math.pi/(5*Lx);
+k_p = 2*math.pi/(brick.nx*Lx);
 
 A_s = 1
-p_s = {1,0,0}
-d_s = {0,1,1}
+p_s = {0,1,0}
+d_s = {1,0,1}
 c_s = math.sqrt(mu/rho);
-k_s = 2*math.pi/(5*Ly);
+k_s = 2*math.pi/(brick.ny*Ly);
 
 function v(x1,x2,x3,t,i)
   return -A_p*d_p[i]*c_p*k_p*math.cos(k_p*(p_p[1]*x1+p_p[2]*x2+p_p[3]*x3-c_p*t))
