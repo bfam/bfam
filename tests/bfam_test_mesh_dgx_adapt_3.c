@@ -172,7 +172,7 @@ build_mesh(MPI_Comm mpicomm)
 
   const char *ps[] = {"p1", "p2", "p3", NULL};
   bfam_vtk_write_file((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume,
-                       "","ps_adapt_pre",0, ps, NULL, NULL, 0, 0, 0);
+                       NULL,"ps_adapt_pre",0, ps, NULL, NULL, 0, 0, 0);
 
   bfam_free(subdomainID);
   bfam_free(N);

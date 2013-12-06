@@ -164,7 +164,7 @@ build_mesh(MPI_Comm mpicomm)
 
   const char *volume[] = {"_volume", NULL};
   bfam_vtk_write_file((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume,
-                       "","bfam_mesh",0, NULL, NULL, NULL, 1, 1,0);
+                       NULL,"bfam_mesh",0, NULL, NULL, NULL, 1, 1,0);
 
   bfam_domain_add_field((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume, "v1");
   bfam_domain_add_field((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume, "v2");
@@ -217,7 +217,7 @@ build_mesh(MPI_Comm mpicomm)
 
   const char *velocity[] = {"v", NULL};
   const char *velocityComp[] = {"v1", "v2", "v3", NULL};
-  bfam_vtk_write_file((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume, "",
+  bfam_vtk_write_file((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume, NULL,
                       "bfam_fields",0, strain, velocity, velocityComp, 1, 1,0);
 
   const char* tags[] = {"_glue_parallel", "_glue_local", NULL};

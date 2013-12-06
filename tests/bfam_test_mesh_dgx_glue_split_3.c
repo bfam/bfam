@@ -233,12 +233,12 @@ build_state(MPI_Comm mpicomm, state_t* state)
   }
 
   bfam_vtk_write_file(d, BFAM_DOMAIN_OR, volume,
-                      "","volume",0, NULL, NULL, NULL, 0, 0, 0);
+                      NULL,"volume",0, NULL, NULL, NULL, 0, 0, 0);
 
   const char *glue_id_0[]   = {"_glue_id_0", NULL};
 
   bfam_vtk_write_file(d, BFAM_DOMAIN_OR, glue_id_0,
-                      "","glue_id",0, NULL, NULL, NULL, 0, 0, 0);
+                      NULL,"glue_id",0, NULL, NULL, NULL, 0, 0, 0);
 
   bfam_free(subdomainID);
   bfam_free(glueID);

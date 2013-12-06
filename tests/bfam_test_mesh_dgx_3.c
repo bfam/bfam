@@ -458,7 +458,7 @@ build_mesh(MPI_Comm mpicomm)
   const char *ps[] = {"p1", "p2", "p3", "p4", "p5", "p6", NULL};
 
   bfam_vtk_write_file((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume,
-                       "","ps",0, ps, NULL, NULL, 0, 0, 0);
+                       NULL,"ps",0, ps, NULL, NULL, 0, 0, 0);
 
   /*
    * Check local subdomain vmaps

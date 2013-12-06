@@ -43,7 +43,7 @@ test_1d()
     char name[BFAM_BUFSIZ];
     snprintf(name,BFAM_BUFSIZ,"d1_%d",d);
     bfam_vtk_write_file(&domain, BFAM_DOMAIN_AND, volume,
-        "",name,0, ps, ve, vc, 1, 0, 0);
+        NULL,name,0, ps, ve, vc, 1, 0, 0);
 
     bfam_domain_free(&domain);
   }
@@ -92,7 +92,7 @@ test_2d()
     char name[BFAM_BUFSIZ];
     snprintf(name,BFAM_BUFSIZ,"d2_%d",d);
     bfam_vtk_write_file(&domain, BFAM_DOMAIN_AND, volume,
-        "",name,0, ps, ve, vc, 1, 0, 0);
+        NULL,name,0, ps, ve, vc, 1, 0, 0);
 
     bfam_domain_free(&domain);
   }
@@ -155,7 +155,7 @@ test_3d()
   const char *ve[] = {"g", NULL};
   const char *vc[] = {"_grid_x0", "_grid_x1", "_grid_x2", NULL};
   bfam_vtk_write_file(&domain, BFAM_DOMAIN_AND, volume,
-                       "","d3",0, ps, ve, vc, 1, 0, 0);
+                       NULL,"d3",0, ps, ve, vc, 1, 0, 0);
 
   bfam_domain_free(&domain);
 
