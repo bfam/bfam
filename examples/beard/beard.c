@@ -1070,18 +1070,8 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
       {
         const char * tag = lua_tostring(L, -1);
 
-        /*
-         * Grab the associated subdomains
-         */
-        bfam_locidx_t numElements = beard->domain->base.numSubdomains;
-        bfam_subdomain_t **subdomains =
-          bfam_malloc(numElements*sizeof(bfam_subdomain_t*));
-        bfam_locidx_t numSubdomains;
-        bfam_domain_get_subdomains((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
-            this_glue, numElements, subdomains, &numSubdomains);
-        for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
-          bfam_subdomain_add_tag(subdomains[s], tag);
-        bfam_free(subdomains);
+        bfam_domain_add_tag((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
+            this_glue, tag);
       }
       else
         BFAM_WARNING("No tag for glue_id %d", i);
