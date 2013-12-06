@@ -191,9 +191,6 @@ glue_info = {
 }
 
 -- friction stuff
-fault_fd  =    0.525
-fault_Dc  =    0.4
-
 glueid_treeid_faceid = {
   1,  3640, 2,
   1,  3641, 2,
