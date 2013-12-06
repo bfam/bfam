@@ -1786,7 +1786,6 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     if(s%ndisp == 0)
     {
       bfam_real_t new_energy = compute_energy(beard,prefs,s*dt,"");
-      int color = 32;
       if(initial_energy < 0)
       {
         BFAM_ROOT_INFO("\x1B[%dm"
@@ -1794,13 +1793,14 @@ run_simulation(beard_t *beard,prefs_t *prefs)
             " energy: %10.5"BFAM_REAL_PRIe
             " current delta energy: %+10.5"BFAM_REAL_PRIe
             "\x1B[0m",
-            color,
+            34,
             s*dt,
             new_energy,
             new_energy-energy);
       }
       else
       {
+        int color = 32;
         if(new_energy > energy) color = 31;
         BFAM_ROOT_INFO("\x1B[%dm"
             "time: %"BFAM_REAL_FMTe"\n"
