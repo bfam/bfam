@@ -1764,7 +1764,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     char output[BFAM_BUFSIZ];
     snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,0);
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        slip_weakening, "", output, (0)*dt, sw_fields, NULL, NULL, 1, 1,0);
+        slip_weakening, "", output, (0)*dt, sw_fields, NULL, NULL, 1, 0,0);
   }
 
   /* compute the initial energy */
@@ -1809,7 +1809,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       char output[BFAM_BUFSIZ];
       snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-          slip_weakening, "", output, (s)*dt, sw_fields, NULL, NULL, 1, 1,0);
+          slip_weakening, "", output, (s)*dt, sw_fields, NULL, NULL, 1, 0,0);
     }
     if(s%noutput == 0)
     {
