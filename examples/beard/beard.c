@@ -20,6 +20,8 @@
 #if   BEARD_DGX_DIMENSION==2
 
 #define DIM 2
+#define BEARD_D3_AP(A1,A2) (A1)
+#define BEARD_D3_OP(A) BFAM_NOOP()
 #define bfam_domain_pxest_new bfam_domain_pxest_new_2
 #define bfam_domain_pxest_quad_to_glueid \
   bfam_domain_pxest_quad_to_glueid_2
@@ -32,6 +34,8 @@
 #elif BEARD_DGX_DIMENSION==3
 
 #define DIM 3
+#define BEARD_D3_AP(A1,A2) (A1 A2)
+#define BEARD_D3_OP(A) A
 #define bfam_domain_pxest_new bfam_domain_pxest_new_3
 #define bfam_domain_pxest_quad_to_glueid \
   bfam_domain_pxest_quad_to_glueid_3
@@ -727,7 +731,9 @@ field_set_friction_init_stress(bfam_locidx_t npoints, const char *name,
 {
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(nx1,"","_grid_nx0",&s->glue_m->fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(nx2,"","_grid_nx1",&s->glue_m->fields);
+#if DIM==3
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(nx3,"","_grid_nx2",&s->glue_m->fields);
+#endif
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11,"",    "S11_0",&s->fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12,"",    "S12_0",&s->fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13,"",    "S13_0",&s->fields);
@@ -741,13 +747,15 @@ field_set_friction_init_stress(bfam_locidx_t npoints, const char *name,
 
   for(bfam_locidx_t n=0; n < npoints; ++n)
   {
-    Tp1[n] = S11[n]*nx1[n] + S12[n]*nx2[n] + S13[n]*nx2[n];
-    Tp2[n] = S12[n]*nx1[n] + S22[n]*nx2[n] + S23[n]*nx2[n];
-    Tp3[n] = S13[n]*nx1[n] + S23[n]*nx2[n] + S33[n]*nx2[n];
-    Tn[n]  = Tp1[n]*nx1[n] + Tp2[n]*nx2[n] + Tp3[n]*nx3[n];
+    Tp1[n] = BEARD_D3_AP(S11[n]*nx1[n] + S12[n]*nx2[n], + S13[n]*nx3[n]);
+    Tp2[n] = BEARD_D3_AP(S12[n]*nx1[n] + S22[n]*nx2[n], + S23[n]*nx3[n]);
+    Tp3[n] = BEARD_D3_AP(S13[n]*nx1[n] + S23[n]*nx2[n], + S33[n]*nx3[n]);
+    Tn[n]  = BEARD_D3_AP(Tp1[n]*nx1[n] + Tp2[n]*nx2[n], + Tp3[n]*nx3[n]);
     Tp1[n]-= Tn[n] *nx1[n];
     Tp2[n]-= Tn[n] *nx2[n];
+#if DIM==3
     Tp3[n]-= Tn[n] *nx3[n];
+#endif
   }
 
 }
@@ -769,11 +777,15 @@ beard_grid_boundary(bfam_locidx_t npoints, const char *name, bfam_real_t time,
   bfam_dictionary_t *fields    = &sub_g->base.glue_m->sub_m->fields;
   bfam_real_t *x_m = bfam_dictionary_get_value_ptr(fields, "_grid_x0");
   bfam_real_t *y_m = bfam_dictionary_get_value_ptr(fields, "_grid_x1");
+#if DIM==3
   bfam_real_t *z_m = bfam_dictionary_get_value_ptr(fields, "_grid_x2");
+#endif
 
   BFAM_ASSERT(x_m  != NULL);
   BFAM_ASSERT(y_m  != NULL);
+#if DIM==3
   BFAM_ASSERT(z_m  != NULL);
+#endif
 
   const bfam_locidx_t K = sub_g->K;
   for(bfam_locidx_t k = 0; k < K; ++k)
@@ -784,7 +796,9 @@ beard_grid_boundary(bfam_locidx_t npoints, const char *name, bfam_real_t time,
     {
       x[n+k*sub_g->Np]  = x_m[EToEm[k]*sub_m->Np+fmask[n]];
       y[n+k*sub_g->Np]  = y_m[EToEm[k]*sub_m->Np+fmask[n]];
+#if DIM==3
       z[n+k*sub_g->Np]  = z_m[EToEm[k]*sub_m->Np+fmask[n]];
+#endif
     }
   }
 }
@@ -805,21 +819,27 @@ beard_grid_glue(bfam_locidx_t npoints, const char *name, bfam_real_t time,
   bfam_real_t *y_m = bfam_dictionary_get_value_ptr(fields_m, "_grid_x1");
   bfam_real_t *y_p = bfam_dictionary_get_value_ptr(fields_p, "_grid_x1");
 
+#if DIM==3
   bfam_real_t *z_m = bfam_dictionary_get_value_ptr(fields_m, "_grid_x2");
   bfam_real_t *z_p = bfam_dictionary_get_value_ptr(fields_p, "_grid_x2");
+#endif
 
   BFAM_ASSERT(x_m  != NULL);
   BFAM_ASSERT(x_p  != NULL);
   BFAM_ASSERT(y_m  != NULL);
   BFAM_ASSERT(y_p  != NULL);
+#if DIM==3
   BFAM_ASSERT(z_m  != NULL);
   BFAM_ASSERT(z_p  != NULL);
+#endif
 
   for(int n = 0;n < npoints;n++)
   {
     x[n]  = 0.5*(x_m[n]+x_p[n]);
     y[n]  = 0.5*(y_m[n]+y_p[n]);
+#if DIM==3
     z[n]  = 0.5*(z_m[n]+z_p[n]);
+#endif
   }
 
 }
@@ -889,7 +909,11 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
   }
 
   /* exchange material properties to glue */
-  const char *glue_mat[] = {"Zs","Zp","_grid_x0","_grid_x1","_grid_x2",NULL};
+  const char *glue_mat[] = {"Zs","Zp","_grid_x0","_grid_x1",
+#if DIM==3
+    "_grid_x2",
+#endif
+    NULL};
   for(bfam_locidx_t g = 0; glue_mat[g] != NULL; g++)
   {
     bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, glue_mat[g]);
@@ -897,9 +921,15 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
   }
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x0");
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x1");
+#if DIM==2
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x2");
+#endif
 
-  const char *glue_face_scalar[] = {"_grid_nx0","_grid_nx1","_grid_nx2",NULL};
+  const char *glue_face_scalar[] = {"_grid_nx0","_grid_nx1",
+#if DIM==3
+    "_grid_nx2",
+#endif
+    NULL};
   for(bfam_locidx_t g = 0; glue_face_scalar[g] != NULL; g++)
   {
     bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue,
@@ -941,7 +971,11 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
       beard_grid_glue, NULL);
 
   const char *boundary[] = {"_glue_boundary",NULL};
-  const char *boundary_fields[] = {"_grid_x0","_grid_x1","_grid_x2",NULL};
+  const char *boundary_fields[] = {"_grid_x0","_grid_x1",
+#if DIM==2
+    "_grid_x2",
+#endif
+    NULL};
   for(bfam_locidx_t g = 0; boundary_fields[g] != NULL; g++)
     bfam_domain_add_field(domain, BFAM_DOMAIN_OR, boundary, boundary_fields[g]);
 
