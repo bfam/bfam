@@ -54,6 +54,12 @@ const char *comm_args_tensors[]           = {"T",NULL};
 const char *comm_args_tensor_components[] = {"S11","S12","S13",
                                              "S22","S23","S33",NULL};
 
+const char *sw_fields[] = {"Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
+  "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3", "Dc", "Dp", "fs", "fd",
+  "S11_0","S12_0","S13_0","S22_0","S23_0","S33_0",
+  "Dp1","Dp2","Dp3", NULL};
+
+
 #define BFAM_LOAD_FIELD_RESTRICT_ALIGNED(field,prefix,base,dictionary)         \
 bfam_real_t *restrict field;                                                   \
 {                                                                              \
@@ -994,10 +1000,6 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
 
     if(type==FRICTION)
     {
-      const char *sw_fields[] = {"Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
-        "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3", "Dc", "Dp", "fs", "fd",
-        "S11_0","S12_0","S13_0","S22_0","S23_0","S33_0", NULL};
-
       for(int f = 0; sw_fields[f] != NULL; ++f)
       {
         bfam_real_t value = 0;
@@ -1758,57 +1760,14 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   BFAM_ROOT_INFO("nfoutput = %d",nfoutput);
   BFAM_ROOT_INFO("nerr     = %d",nerr);
 
+  {
+    char output[BFAM_BUFSIZ];
+    snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,0);
+    bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
+        slip_weakening, "", output, (0)*dt, sw_fields, NULL, NULL, 1, 1,0);
+  }
+
   /* compute the initial energy */
-
-  const char *sw_fields[] = {"Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
-    "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3", "Dc", "Dp", "fs", "fd",
-    NULL};
-  {
-    const char *fault[] = {"_glue_id_1",NULL};
-    char output[] = "fault_1";
-    bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        fault, "", output, (0)*dt, sw_fields, NULL, NULL, 1, 1,0);
-  }
-  {
-    const char *fault[] = {"_glue_id_2",NULL};
-    char output[] = "fault_2";
-    bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        fault, "", output, (0)*dt, sw_fields, NULL, NULL, 1, 1,0);
-  }
-  {
-    const char *fault[] = {"_glue_id_3",NULL};
-    char output[] = "fault_3";
-    bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        fault, "", output, (0)*dt, sw_fields, NULL, NULL, 1, 1,0);
-  }
-  {
-    const char *fault[] = {"_glue_id_4",NULL};
-    char output[] = "fault_4";
-    bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        fault, "", output, (0)*dt, sw_fields, NULL, NULL, 1, 1,0);
-  }
-  {
-    const char *fault[] = {"_glue_id_5",NULL};
-    char output[] = "outflow";
-    const char *fields[] = {"_grid_x0",NULL};
-    bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        fault, "", output, (0)*dt, fields, NULL, NULL, 1, 1,0);
-  }
-  {
-    const char *fault[] = {"_glue_id_6",NULL};
-    char output[] = "freesurface";
-    const char *fields[] = {"_grid_x0",NULL};
-    bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        fault, "", output, (0)*dt, fields, NULL, NULL, 1, 1,0);
-  }
-  {
-    const char *fault[] = {"_glue_id_7",NULL};
-    char output[] = "rigid";
-    const char *fields[] = {"_grid_x0",NULL};
-    bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        fault, "", output, (0)*dt, fields, NULL, NULL, 0, 0,0);
-  }
-
   bfam_real_t initial_energy = compute_energy(beard,prefs,0,"");
   bfam_real_t energy = initial_energy;
   {
@@ -1847,9 +1806,6 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     }
     if(s%nfoutput == 0)
     {
-      const char *sw_fields[] = {"Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
-        "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3", "Dc", "Dp", "fs", "fd",
-        NULL};
       char output[BFAM_BUFSIZ];
       snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
