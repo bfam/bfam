@@ -694,6 +694,77 @@ field_set_const(bfam_locidx_t npoints, const char *name, bfam_real_t t,
 
 
 static void
+beard_grid_boundary(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict sJ)
+{
+  bfam_subdomain_dgx_t* sub_g = (bfam_subdomain_dgx_t*) s;
+  bfam_subdomain_dgx_t* sub_m = (bfam_subdomain_dgx_t*) s->glue_m->sub_m;
+  bfam_subdomain_dgx_glue_data_t* glue_p =
+    (bfam_subdomain_dgx_glue_data_t*) sub_g->base.glue_p;
+  const bfam_locidx_t *restrict EToEm = glue_p->EToEm;
+  const int8_t        *restrict EToFm = glue_p->EToFm;
+
+  /* get the fields we will need */
+  bfam_dictionary_t *fields    = &sub_g->base.glue_m->sub_m->fields;
+  bfam_real_t *x_m = bfam_dictionary_get_value_ptr(fields, "_grid_x0");
+  bfam_real_t *y_m = bfam_dictionary_get_value_ptr(fields, "_grid_x1");
+  bfam_real_t *z_m = bfam_dictionary_get_value_ptr(fields, "_grid_x2");
+
+  BFAM_ASSERT(x_m  != NULL);
+  BFAM_ASSERT(y_m  != NULL);
+  BFAM_ASSERT(z_m  != NULL);
+
+  const bfam_locidx_t K = sub_g->K;
+  for(bfam_locidx_t k = 0; k < K; ++k)
+  {
+    bfam_locidx_t *restrict fmask = sub_m->gmask[0][EToFm[k]];
+
+    for(int n = 0; n < sub_g->Np; ++n)
+    {
+      x[n+k*sub_g->Np]  = x_m[EToEm[k]*sub_m->Np+fmask[n]];
+      y[n+k*sub_g->Np]  = y_m[EToEm[k]*sub_m->Np+fmask[n]];
+      z[n+k*sub_g->Np]  = z_m[EToEm[k]*sub_m->Np+fmask[n]];
+    }
+  }
+}
+
+static void
+beard_grid_glue(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict sJ)
+{
+  bfam_subdomain_dgx_t* sub_g = (bfam_subdomain_dgx_t*) s;
+
+  /* get the fields we will need */
+  bfam_dictionary_t *fields_m    = &sub_g->base.glue_m->fields;
+  bfam_dictionary_t *fields_p    = &sub_g->base.glue_p->fields;
+  bfam_real_t *x_m = bfam_dictionary_get_value_ptr(fields_m, "_grid_x0");
+  bfam_real_t *x_p = bfam_dictionary_get_value_ptr(fields_p, "_grid_x0");
+
+  bfam_real_t *y_m = bfam_dictionary_get_value_ptr(fields_m, "_grid_x1");
+  bfam_real_t *y_p = bfam_dictionary_get_value_ptr(fields_p, "_grid_x1");
+
+  bfam_real_t *z_m = bfam_dictionary_get_value_ptr(fields_m, "_grid_x2");
+  bfam_real_t *z_p = bfam_dictionary_get_value_ptr(fields_p, "_grid_x2");
+
+  BFAM_ASSERT(x_m  != NULL);
+  BFAM_ASSERT(x_p  != NULL);
+  BFAM_ASSERT(y_m  != NULL);
+  BFAM_ASSERT(y_p  != NULL);
+  BFAM_ASSERT(z_m  != NULL);
+  BFAM_ASSERT(z_p  != NULL);
+
+  for(int n = 0;n < npoints;n++)
+  {
+    x[n]  = 0.5*(x_m[n]+x_p[n]);
+    y[n]  = 0.5*(y_m[n]+y_p[n]);
+    z[n]  = 0.5*(z_m[n]+z_p[n]);
+  }
+
+}
+
+static void
 domain_add_fields(beard_t *beard, prefs_t *prefs)
 {
 
@@ -758,12 +829,16 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
   }
 
   /* exchange material properties to glue */
-  const char *glue_mat[] = {"Zs","Zp",NULL};
+  const char *glue_mat[] = {"Zs","Zp","_grid_x0","_grid_x1","_grid_x2",NULL};
   for(bfam_locidx_t g = 0; glue_mat[g] != NULL; g++)
   {
     bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, glue_mat[g]);
     bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, glue_mat[g]);
   }
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x0");
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x1");
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x2");
+
   bfam_communicator_t material_comm;
 
   bfam_subdomain_comm_args_t mat_args;
@@ -788,6 +863,21 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
   bfam_communicator_finish(&material_comm);
   bfam_communicator_free(  &material_comm);
 
+
+  /*
+   * we can trick init fields into handling locations
+   * to glue
+   */
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x1", 0,
+      beard_grid_glue, NULL);
+
+  const char *boundary[] = {"_glue_boundary",NULL};
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, boundary, "_grid_x0");
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, boundary, "_grid_x1");
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, boundary, "_grid_x2");
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, boundary, "_grid_x1", 0,
+      beard_grid_boundary, NULL);
+
   /*
    * Loop through glue info
    */
@@ -796,6 +886,8 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
 #ifdef BFAM_DEBUG
   int top = lua_gettop(L);
 #endif
+
+
 
   lua_getglobal(L,"glue_info");
   luaL_checktype(L, -1, LUA_TTABLE);
@@ -1574,6 +1666,57 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   BFAM_ROOT_INFO("nerr     = %d",nerr);
 
   /* compute the initial energy */
+
+  {
+    const char *fault[] = {"_glue_id_1",NULL};
+    char output[] = "fault_1";
+    const char *fields[] = {"_grid_x0",NULL};
+    bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
+        fault, "", output, (0)*dt, fields, NULL, NULL, 1, 1,0);
+  }
+  {
+    const char *fault[] = {"_glue_id_2",NULL};
+    char output[] = "fault_2";
+    const char *fields[] = {"_grid_x0",NULL};
+    bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
+        fault, "", output, (0)*dt, fields, NULL, NULL, 1, 1,0);
+  }
+  {
+    const char *fault[] = {"_glue_id_3",NULL};
+    char output[] = "fault_3";
+    const char *fields[] = {"_grid_x0",NULL};
+    bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
+        fault, "", output, (0)*dt, fields, NULL, NULL, 1, 1,0);
+  }
+  {
+    const char *fault[] = {"_glue_id_4",NULL};
+    char output[] = "fault_4";
+    const char *fields[] = {"_grid_x0",NULL};
+    bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
+        fault, "", output, (0)*dt, fields, NULL, NULL, 1, 1,0);
+  }
+  {
+    const char *fault[] = {"_glue_id_5",NULL};
+    char output[] = "outflow";
+    const char *fields[] = {"_grid_x0",NULL};
+    bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
+        fault, "", output, (0)*dt, fields, NULL, NULL, 1, 1,0);
+  }
+  {
+    const char *fault[] = {"_glue_id_6",NULL};
+    char output[] = "freesurface";
+    const char *fields[] = {"_grid_x0",NULL};
+    bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
+        fault, "", output, (0)*dt, fields, NULL, NULL, 1, 1,0);
+  }
+  {
+    const char *fault[] = {"_glue_id_7",NULL};
+    char output[] = "rigid";
+    const char *fields[] = {"_grid_x0",NULL};
+    bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
+        fault, "", output, (0)*dt, fields, NULL, NULL, 0, 0,0);
+  }
+
   bfam_real_t initial_energy = compute_energy(beard,prefs,0,"");
   bfam_real_t energy = initial_energy;
   {
