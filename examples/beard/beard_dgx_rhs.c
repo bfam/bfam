@@ -851,7 +851,7 @@ void beard_dgx_scale_rates_slip_weakening(
 {
   GENERIC_INIT(inN,beard_dgx_scale_rates_slip_weakening);
 
-  const bfam_locidx_t num_pts = sub->K * Np;
+  const bfam_locidx_t num_pts = sub->K * Nfp;
   bfam_dictionary_t *fields = &sub->base.fields;
 
   const char *f_names[] = {"Dp","Dp1","Dp2","Dp3","Dn",NULL};
@@ -891,7 +891,7 @@ void beard_dgx_add_rates_slip_weakening(
 
   const char *f_names[] = {"Dp","Dp1","Dp2","Dp3","Dn",NULL};
 
-  const bfam_locidx_t num_pts = sub->K * Np;
+  const bfam_locidx_t num_pts = sub->K * Nfp;
 
   /* get the fields we will need */
   bfam_dictionary_t *fields = &sub->base.fields;
