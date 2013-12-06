@@ -7,6 +7,7 @@ dimension = 3;
 min_level = 0
 max_level = 2
 output_prefix = "solution"
+data_directory = "data"
 
 -- connectivity info
 connectivity = "brick"

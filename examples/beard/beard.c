@@ -122,6 +122,7 @@ typedef struct prefs
   int dimension;
 
   char output_prefix[BFAM_BUFSIZ];
+  char data_directory[BFAM_BUFSIZ];
 
   brick_args_t* brick_args;
 
@@ -298,6 +299,19 @@ new_prefs(const char *prefs_filename)
   }
   else
     BFAM_ROOT_WARNING("using default 'output_prefix': %s",prefs->output_prefix);
+  lua_pop(L, 1);
+
+  /* get output prefix */
+  lua_getglobal(L,"data_directory");
+  strncpy(prefs->data_directory,".",BFAM_BUFSIZ);
+  if(lua_isstring(L, -1))
+  {
+    const char *data_directory = lua_tostring(L, -1);
+    strncpy(prefs->data_directory,data_directory,BFAM_BUFSIZ);
+  }
+  else
+    BFAM_ROOT_WARNING("using default 'data_directory': %s",
+        prefs->data_directory);
   lua_pop(L, 1);
 
   /* get the time stepper type */
@@ -1772,7 +1786,8 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     char output[BFAM_BUFSIZ];
     snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,0);
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        slip_weakening, "", output, (0)*dt, sw_fields, NULL, NULL, 1, 0,0);
+        slip_weakening, prefs->data_directory, output, (0)*dt, sw_fields,
+        NULL, NULL, 1, 0,0);
   }
 
   /* compute the initial energy */
@@ -1785,14 +1800,16 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     char output[BFAM_BUFSIZ];
 
     /* dump the pxest mesh */
-    snprintf(output,BFAM_BUFSIZ,"%s_pxest_mesh",prefs->output_prefix);
+    snprintf(output,BFAM_BUFSIZ,"%s/%s_pxest_mesh",
+        prefs->data_directory,prefs->output_prefix);
     p4est_vtk_write_file(beard->domain->pxest, NULL, output);
 
     const char *fields[] = {"rho", "lam", "mu", "v1", "v2", "v3", "S11", "S22",
       "S33", "S12", "S13", "S23",NULL};
     snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,0);
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        volume, "", output, (0)*dt, fields, NULL, NULL, 1, 1,0);
+        volume, prefs->data_directory, output, (0)*dt, fields, NULL, NULL, 1,
+        1, 0);
   }
 
   for(int s = 1; s <= nsteps; s++)
@@ -1840,7 +1857,8 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       char output[BFAM_BUFSIZ];
       snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-          slip_weakening, "", output, (s)*dt, sw_fields, NULL, NULL, 1, 0,0);
+          slip_weakening, prefs->data_directory, output, (s)*dt, sw_fields,
+          NULL, NULL, 1, 0,0);
     }
     if(noutput > 0 && s%noutput == 0)
     {
@@ -1849,7 +1867,8 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       char output[BFAM_BUFSIZ];
       snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-          volume, "", output, (s)*dt, fields, NULL, NULL, 1, 1,0);
+          volume, prefs->data_directory, output, (s)*dt, fields, NULL, NULL, 1,
+          1,0);
     }
     if(nerr > 0 && s%nerr == 0)
     {
@@ -1874,7 +1893,8 @@ run_simulation(beard_t *beard,prefs_t *prefs)
         char err_output[BFAM_BUFSIZ];
         snprintf(err_output,BFAM_BUFSIZ,"%s_error_%05d",prefs->output_prefix,s);
         bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-            volume, "", err_output, (s)*dt, err_flds, NULL, NULL, 1, 1,0);
+            volume, prefs->data_directory, err_output, (s)*dt, err_flds, NULL,
+            NULL, 1, 1,0);
         energy = new_energy;
       }
     }
