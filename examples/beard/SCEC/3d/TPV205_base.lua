@@ -1,6 +1,6 @@
 -- refinement parameters
 min_level = 0
-max_level = 0
+max_level = 3
 output_prefix = "TPV205"
 
 -- connectivity info
@@ -38,7 +38,33 @@ function refinement_function(
   x6,y6,z6,x7,y7,z7,
   level, treeid)
 
-  return 0
+  xa0 = math.abs(x0)
+  xa1 = math.abs(x1)
+  xa2 = math.abs(x2)
+  xa3 = math.abs(x3)
+  xmin = math.min( xa0,xa1)
+  xmin = math.min(xmin,xa2)
+  xmin = math.min(xmin,xa2)
+
+  ya0 = math.abs(y0)
+  ya1 = math.abs(y1)
+  ya2 = math.abs(y2)
+  ya3 = math.abs(y3)
+  ymin = math.min( ya0,ya1)
+  ymin = math.min(ymin,ya2)
+  ymin = math.min(ymin,ya3)
+
+  zmin = math.min(z0,z1,z2,z3)
+
+  if level < min_level then
+    return 1
+  elseif level >= max_level then
+    return 0
+  elseif xmin < 15 and zmin > -15 and ymin < 0.1 then
+    return 1
+  else
+    return 0
+  end
 
   -- if level < min_level then
   --   return 1
@@ -57,7 +83,7 @@ function element_order(
   level, treeid)
 
   -- N = treeid%3+1
-  N = 2
+  N = 3
 
   return N
 end
