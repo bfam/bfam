@@ -828,6 +828,7 @@ beard_grid_glue(bfam_locidx_t npoints, const char *name, bfam_real_t time,
   BFAM_ASSERT(x_p  != NULL);
   BFAM_ASSERT(y_m  != NULL);
   BFAM_ASSERT(y_p  != NULL);
+
 #if DIM==3
   BFAM_ASSERT(z_m  != NULL);
   BFAM_ASSERT(z_p  != NULL);
@@ -921,7 +922,7 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
   }
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x0");
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x1");
-#if DIM==2
+#if DIM==3
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x2");
 #endif
 
