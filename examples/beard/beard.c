@@ -532,43 +532,50 @@ init_tree_to_glueid(beard_t *beard, prefs_t *prefs,
   int top = lua_gettop(L);
 #endif
 
-  lua_getglobal(L,"glueid_treeid_faceid");
-
-  luaL_checktype(L, -1, LUA_TTABLE);
-
-  int n = luaL_getn(L, -1);
-  BFAM_LDEBUG("glueid_treeid_faceid  #elem: %3d", n);
-
-  BFAM_ABORT_IF_NOT(n%3 == 0,
-      "length of glueid_treeid_faceid should be a multiple of three");
 
   bfam_locidx_t num_tree_ids =
     P4EST_FACES*beard->domain->pxest->connectivity->num_trees;
-  for(int n = 0; n < num_tree_ids;n++)
-    tree_to_glueid[n] = -1;
+  for(int k = 0; k < num_tree_ids;k++)
+    tree_to_glueid[k] = -1;
 
-  for(int i=1; i<=n; i+=3)
+  lua_getglobal(L,"glueid_treeid_faceid");
+
+  if(!lua_istable(L, -1))
+    BFAM_ROOT_WARNING("table `%s' not found", "glueid_treeid_faceid");
+  else
   {
-    lua_rawgeti(L, -1, i+0);
-    int glueid = (int)lua_tointeger(L, -1);
-    lua_pop(L, 1);
 
-    lua_rawgeti(L, -1, i+1);
-    int treeid = (int)lua_tointeger(L, -1);
-    lua_pop(L, 1);
+    int n = luaL_getn(L, -1);
+    BFAM_LDEBUG("glueid_treeid_faceid  #elem: %3d", n);
 
-    lua_rawgeti(L, -1, i+2);
-    int faceid = (int)lua_tointeger(L, -1);
-    lua_pop(L, 1);
+    BFAM_ABORT_IF_NOT(n%3 == 0,
+        "length of glueid_treeid_faceid should be a multiple of three");
 
-    BFAM_ABORT_IF(treeid < 0 ||
-        treeid > beard->domain->pxest->connectivity->num_trees,
-        "glueid_treeid_faceid: invalid tree id %d", treeid);
+    luaL_checktype(L, -1, LUA_TTABLE);
 
-    BFAM_ABORT_IF(faceid < 0 || faceid > P4EST_FACES,
-        "glueid_treeid_faceid: invalid face id %d", faceid);
+    for(int i=1; i<=n; i+=3)
+    {
+      lua_rawgeti(L, -1, i+0);
+      int glueid = (int)lua_tointeger(L, -1);
+      lua_pop(L, 1);
 
-    tree_to_glueid[P4EST_FACES*treeid + faceid] = glueid;
+      lua_rawgeti(L, -1, i+1);
+      int treeid = (int)lua_tointeger(L, -1);
+      lua_pop(L, 1);
+
+      lua_rawgeti(L, -1, i+2);
+      int faceid = (int)lua_tointeger(L, -1);
+      lua_pop(L, 1);
+
+      BFAM_ABORT_IF(treeid < 0 ||
+          treeid > beard->domain->pxest->connectivity->num_trees,
+          "glueid_treeid_faceid: invalid tree id %d", treeid);
+
+      BFAM_ABORT_IF(faceid < 0 || faceid > P4EST_FACES,
+          "glueid_treeid_faceid: invalid face id %d", faceid);
+
+      tree_to_glueid[P4EST_FACES*treeid + faceid] = glueid;
+    }
   }
 
   lua_pop(L, 1);
@@ -936,94 +943,97 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
   int top = lua_gettop(L);
 #endif
 
-
-
   lua_getglobal(L,"glue_info");
-  luaL_checktype(L, -1, LUA_TTABLE);
-
-  int N_glueids = luaL_getn(L, -1);
-  BFAM_LDEBUG("N_glueids: %3d", N_glueids);
-
-  BFAM_ROOT_VERBOSE("Reading glue info from lua");
-  for(int i = 1; i <= N_glueids; ++i)
+  if(!lua_istable(L, -1))
+    BFAM_ROOT_WARNING("table `%s' not found", "glue_info");
+  else
   {
-    BFAM_ROOT_VERBOSE("glue ID: %d", i);
-    /*
-     * get glue_id tag
-     */
-    const char *this_glue[2];
-    char this_glue_tag[BFAM_BUFSIZ];
-    this_glue[0] = this_glue_tag;
-    this_glue[1] = NULL;
-    snprintf(this_glue_tag,BFAM_BUFSIZ,"_glue_id_%jd",(intmax_t)i);
-
-    lua_rawgeti(L, -1, i);
     luaL_checktype(L, -1, LUA_TTABLE);
 
-    lua_pushstring(L, "type");
-    lua_gettable(L, -2);
-    luaL_checktype(L, -1, LUA_TSTRING);
+    int N_glueids = luaL_getn(L, -1);
+    BFAM_LDEBUG("N_glueids: %3d", N_glueids);
 
-    size_t match_len = BFAM_MIN(lua_strlen(L, -1),8);
-
-    glue_info_type_t type = UNKNOWN;
-    if(0==strncmp(lua_tostring(L, -1), "friction", match_len))
-      type = FRICTION;
-    else if(0==strncmp(lua_tostring(L, -1), "boundary", match_len))
-      type = BOUNDARY;
-
-    BFAM_ROOT_VERBOSE("  type: %d", type);
-    lua_pop(L, 1);
-
-    lua_pushstring(L, "tag");
-    lua_gettable(L, -2);
-    if(lua_isstring(L, -1))
+    BFAM_ROOT_VERBOSE("Reading glue info from lua");
+    for(int i = 1; i <= N_glueids; ++i)
     {
-      const char * tag = lua_tostring(L, -1);
-
+      BFAM_ROOT_VERBOSE("glue ID: %d", i);
       /*
-       * Grab the associated subdomains
+       * get glue_id tag
        */
-      bfam_locidx_t numElements = beard->domain->base.numSubdomains;
-      bfam_subdomain_t **subdomains =
-        bfam_malloc(numElements*sizeof(bfam_subdomain_t*));
-      bfam_locidx_t numSubdomains;
-      bfam_domain_get_subdomains((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
-          this_glue, numElements, subdomains, &numSubdomains);
-      for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
-        bfam_subdomain_add_tag(subdomains[s], tag);
-      bfam_free(subdomains);
-    }
-    else
-      BFAM_WARNING("No tag for glue_id %d", i);
-    lua_pop(L, 1);
+      const char *this_glue[2];
+      char this_glue_tag[BFAM_BUFSIZ];
+      this_glue[0] = this_glue_tag;
+      this_glue[1] = NULL;
+      snprintf(this_glue_tag,BFAM_BUFSIZ,"_glue_id_%jd",(intmax_t)i);
 
-    if(type==FRICTION)
-    {
-      for(int f = 0; sw_fields[f] != NULL; ++f)
+      lua_rawgeti(L, -1, i);
+      luaL_checktype(L, -1, LUA_TTABLE);
+
+      lua_pushstring(L, "type");
+      lua_gettable(L, -2);
+      luaL_checktype(L, -1, LUA_TSTRING);
+
+      size_t match_len = BFAM_MIN(lua_strlen(L, -1),8);
+
+      glue_info_type_t type = UNKNOWN;
+      if(0==strncmp(lua_tostring(L, -1), "friction", match_len))
+        type = FRICTION;
+      else if(0==strncmp(lua_tostring(L, -1), "boundary", match_len))
+        type = BOUNDARY;
+
+      BFAM_ROOT_VERBOSE("  type: %d", type);
+      lua_pop(L, 1);
+
+      lua_pushstring(L, "tag");
+      lua_gettable(L, -2);
+      if(lua_isstring(L, -1))
       {
-        bfam_real_t value = 0;
+        const char * tag = lua_tostring(L, -1);
 
-        lua_pushstring(L,sw_fields[f]);
-        lua_gettable(L,-2);
-        if(!lua_isnumber(L,-1))
-          BFAM_ROOT_WARNING(
-              "  does not contain `%s', using default %"BFAM_REAL_PRIe,
-              sw_fields[f], value);
-        else
-          value = (bfam_real_t)lua_tonumber(L, -1);
-        lua_pop(L, 1);
-
-        bfam_domain_add_field(domain, BFAM_DOMAIN_OR, this_glue, sw_fields[f]);
-        bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue, sw_fields[f],
-             0, field_set_const, &value);
+        /*
+         * Grab the associated subdomains
+         */
+        bfam_locidx_t numElements = beard->domain->base.numSubdomains;
+        bfam_subdomain_t **subdomains =
+          bfam_malloc(numElements*sizeof(bfam_subdomain_t*));
+        bfam_locidx_t numSubdomains;
+        bfam_domain_get_subdomains((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
+            this_glue, numElements, subdomains, &numSubdomains);
+        for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
+          bfam_subdomain_add_tag(subdomains[s], tag);
+        bfam_free(subdomains);
       }
-      bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue, "Tp1_0",
-          0, field_set_friction_init_stress, NULL);
+      else
+        BFAM_WARNING("No tag for glue_id %d", i);
+      lua_pop(L, 1);
+
+      if(type==FRICTION)
+      {
+        for(int f = 0; sw_fields[f] != NULL; ++f)
+        {
+          bfam_real_t value = 0;
+
+          lua_pushstring(L,sw_fields[f]);
+          lua_gettable(L,-2);
+          if(!lua_isnumber(L,-1))
+            BFAM_ROOT_WARNING(
+                "  does not contain `%s', using default %"BFAM_REAL_PRIe,
+                sw_fields[f], value);
+          else
+            value = (bfam_real_t)lua_tonumber(L, -1);
+          lua_pop(L, 1);
+
+          bfam_domain_add_field(domain, BFAM_DOMAIN_OR, this_glue, sw_fields[f]);
+          bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue, sw_fields[f],
+              0, field_set_const, &value);
+        }
+        bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue, "Tp1_0",
+            0, field_set_friction_init_stress, NULL);
+      }
+
+
+      lua_pop(L, 1);
     }
-
-
-    lua_pop(L, 1);
   }
 
   lua_pop(L,-1);
