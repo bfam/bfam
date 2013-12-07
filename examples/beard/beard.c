@@ -973,7 +973,7 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
 
   const char *boundary[] = {"_glue_boundary",NULL};
   const char *boundary_fields[] = {"_grid_x0","_grid_x1",
-#if DIM==2
+#if DIM==3
     "_grid_x2",
 #endif
     NULL};
