@@ -1550,7 +1550,7 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
         bfam_real_t Vps[3];
         const bfam_real_t Tp0[] = {Tp1_0[iG],Tp2_0[iG],Tp3_0[iG]};
         beard_dgx_upwind_state_friction_m(&TpS_g[3*pnt], &vpS_g[3*pnt], Vps,
-            Sfric, TpM, TpM, Tp0, vpM, vpM, ZsM, ZsM);
+            Sfric, TpM, TpP, Tp0, vpM, vpP, ZsM, ZsP);
         Vp1[iG] = Vps[0];
         Vp2[iG] = Vps[1];
         Vp3[iG] = Vps[2];
