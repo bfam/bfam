@@ -59,7 +59,7 @@ const char *comm_args_tensor_components[] = {"S11","S12","S13",
                                              "S22","S23","S33",NULL};
 
 const char *sw_fields[] = {"Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
-  "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3", "Dc", "Dp", "fs", "fd",
+  "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3", "Dc", "Dp", "fs", "fc", "fd",
   "S11_0","S12_0","S13_0","S22_0","S23_0","S33_0",
   "Dp1","Dp2","Dp3","Dn",NULL};
 
@@ -1450,6 +1450,9 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
   else if(bfam_subdomain_has_tag(thisSubdomain,"rigid"))
     inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
         sub,rate_prefix,field_prefix,t,-1);
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"))
+    inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
+        sub,rate_prefix,field_prefix,t,0);
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"))
     inter_rhs_interface(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
@@ -1822,7 +1825,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,0);
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
         slip_weakening, prefs->data_directory, output, (0)*dt, sw_fields,
-        NULL, NULL, 1, 0,0);
+        NULL, NULL, 0, 0, 0);
   }
 
   /* compute the initial energy */
@@ -1864,13 +1867,9 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       {
         BFAM_ROOT_INFO("\x1B[%dm"
             "time: %10.5"BFAM_REAL_PRIe
-            " energy: %10.5"BFAM_REAL_PRIe
-            " current delta energy: %+10.5"BFAM_REAL_PRIe
             "\x1B[0m",
             34,
-            s*dt,
-            new_energy,
-            new_energy-energy);
+            s*dt);
       }
       else
       {
@@ -1900,7 +1899,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
           slip_weakening, prefs->data_directory, output, (s)*dt, sw_fields,
-          NULL, NULL, 1, 0,0);
+          NULL, NULL, 0, 0, 0);
     }
     if(noutput > 0 && s%noutput == 0)
     {

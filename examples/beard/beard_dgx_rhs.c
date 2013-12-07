@@ -1445,6 +1445,7 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dc     ,"","Dc"    ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dp     ,"","Dp"    ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fs     ,"","fs"    ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fc     ,"","fc"    ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fd     ,"","fd"    ,fields_g);
 
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDp ,rate_prefix,"Dp", fields_g);
@@ -1542,8 +1543,8 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
         + (TpS_g[3*pnt+1]+Tp2_0[iG])*(TpS_g[3*pnt+1]+Tp2_0[iG])
         + (TpS_g[3*pnt+2]+Tp3_0[iG])*(TpS_g[3*pnt+2]+Tp3_0[iG]);
 
-      const bfam_real_t Sfric =
-        -Tn[iG]*(fs[iG]-(fs[iG]-fd[iG])*BFAM_MIN(Dp[iG],Dc[iG])/Dc[iG]);
+      fc[iG] = fs[iG]-(fs[iG]-fd[iG])*BFAM_MIN(Dp[iG],Dc[iG])/Dc[iG];
+      const bfam_real_t Sfric = -Tn[iG]*fc[iG];
 
       if(Sfric*Sfric < Slock2)
       {
@@ -1569,9 +1570,9 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
       dDp1[iG] += Vp1[iG];
       dDp2[iG] += Vp2[iG];
       dDp3[iG] += Vp3[iG];
-      Tp1[iG]   = TpS_g[3*pnt+0];
-      Tp2[iG]   = TpS_g[3*pnt+1];
-      Tp3[iG]   = TpS_g[3*pnt+2];
+      Tp1[iG]   = TpS_g[3*pnt+0] + Tp1_0[iG] ;
+      Tp2[iG]   = TpS_g[3*pnt+1] + Tp2_0[iG] ;
+      Tp3[iG]   = TpS_g[3*pnt+2] + Tp3_0[iG] ;
 
 
       /* substract off the grid values */
