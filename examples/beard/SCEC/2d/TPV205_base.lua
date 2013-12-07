@@ -1,6 +1,6 @@
 -- refinement parameters
-min_level = 3
-max_level = 5
+min_level = 0
+max_level = 3
 output_prefix = "TPV205"
 data_directory = "data"
 
@@ -78,7 +78,7 @@ function element_order(
   level, treeid)
 
   -- N = treeid%3+1
-  N = 1
+  N = 3
 
   return N
 end
@@ -106,7 +106,7 @@ lsrk_method  = "KC54"
 
 tend   = 12
 tout   = 1
-tfout  = 0.01
+tfout  = 0.1
 tdisp  = 0.01
 nerr   = 0
 

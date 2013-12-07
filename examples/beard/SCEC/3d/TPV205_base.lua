@@ -111,7 +111,7 @@ lsrk_method  = "KC54"
 
 tend   = 12
 tout   = 1
-tfout  = 0.01
+tfout  = 0.1
 tdisp  = 0.01
 nerr   = 0
 
