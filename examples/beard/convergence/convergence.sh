@@ -12,6 +12,10 @@ energy_token="d_energy:"
 err1=0
 err2=0
 
+SED=sed
+type gsed >/dev/null 2>&1 && SED=gsed
+
+
 for num in {1..10}; do
   cat $2 |                                                         \
     sed "\$amin_level=0\nmax_level=min_level+$7\nN1=$4\nN2=$5\nN3=$6\nstatic_refinement=$num-1"\
