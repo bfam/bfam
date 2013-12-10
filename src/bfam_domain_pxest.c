@@ -83,6 +83,50 @@ bfam_domain_pxest_free(bfam_domain_pxest_t *domain)
   bfam_domain_free(&domain->base);
 }
 
+static void
+bfam_domain_pxest_dgx_print_stats(bfam_domain_pxest_t *domain)
+{
+  bfam_domain_t * dbase = &domain->base;
+  bfam_subdomain_t **subdomains =
+    bfam_malloc(dbase->numSubdomains*sizeof(bfam_subdomain_t**));
+
+  bfam_locidx_t numSubdomains = 0;
+
+  const char *volume[] = {"_volume", NULL};
+
+  bfam_domain_get_subdomains(dbase, BFAM_DOMAIN_AND, volume,
+      dbase->numSubdomains, subdomains, &numSubdomains);
+
+  const size_t GRID_PTS = 0;
+  const size_t ELEMENTS = 1;
+  const size_t NUM_VALS = 2;
+
+  bfam_gloidx_t vals_loc[NUM_VALS];
+  bfam_gloidx_t vals_glo[NUM_VALS];
+
+  for(size_t i = 0; i < NUM_VALS; ++i)
+  {
+    vals_loc[i] = 0;
+    vals_glo[i] = 0;
+  }
+
+  for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
+  {
+    bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*) subdomains[s];
+
+    vals_loc[GRID_PTS] += sub->K*sub->Np;
+    vals_loc[ELEMENTS] += sub->K;
+  }
+
+  BFAM_MPI_CHECK(MPI_Reduce(vals_loc, vals_glo, NUM_VALS,
+        BFAM_GLOIDX_MPI, MPI_SUM, 0, dbase->comm));
+
+  BFAM_ROOT_INFO("Domain Stats --- Elements: %jd", (intmax_t) vals_glo[ELEMENTS]);
+  BFAM_ROOT_INFO("Domain Stats --- Grid Pts: %jd", (intmax_t) vals_glo[GRID_PTS]);
+
+  bfam_free(subdomains);
+}
+
 #ifdef BFAM_DEBUG
 static void
 bfam_domain_pxest_tree_to_glueid_check(p4est_connectivity_t *conn,
@@ -1503,6 +1547,7 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
   p4est_ghost_destroy(ghost);
 
   BFAM_ROOT_LDEBUG("End splitting pxest domain into subdomains.");
+  bfam_domain_pxest_dgx_print_stats(domain);
 }
 
 #endif
