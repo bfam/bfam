@@ -836,10 +836,10 @@ beard_grid_glue(bfam_locidx_t npoints, const char *name, bfam_real_t time,
 
   for(int n = 0;n < npoints;n++)
   {
-    x[n]  = 0.5*(x_m[n]+x_p[n]);
-    y[n]  = 0.5*(y_m[n]+y_p[n]);
+    x[n]  = BFAM_REAL(0.5)*(x_m[n]+x_p[n]);
+    y[n]  = BFAM_REAL(0.5)*(y_m[n]+y_p[n]);
 #if DIM==3
-    z[n]  = 0.5*(z_m[n]+z_p[n]);
+    z[n]  = BFAM_REAL(0.5)*(z_m[n]+z_p[n]);
 #endif
   }
 
