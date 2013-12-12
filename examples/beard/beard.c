@@ -127,6 +127,8 @@ typedef struct prefs
 
   char output_prefix[BFAM_BUFSIZ];
   char data_directory[BFAM_BUFSIZ];
+  int  vtk_binary;
+  int  vtk_compress;
 
   brick_args_t* brick_args;
 
@@ -317,6 +319,35 @@ new_prefs(const char *prefs_filename)
     BFAM_ROOT_WARNING("using default 'data_directory': %s",
         prefs->data_directory);
   lua_pop(L, 1);
+
+  /* get vtk_binary */
+  lua_getglobal(L,"vtk_binary");
+  if(lua_isboolean(L, -1))
+  {
+    prefs->vtk_binary = lua_toboolean(L, -1);
+  }
+  else
+  {
+    prefs->vtk_binary = 1;
+    BFAM_ROOT_WARNING("using default 'vtk_binary': %d",
+        prefs->vtk_binary);
+  }
+  lua_pop(L, 1);
+
+  /* get vtk_compress */
+  lua_getglobal(L,"vtk_compress");
+  if(lua_isboolean(L, -1))
+  {
+    prefs->vtk_compress = lua_toboolean(L, -1);
+  }
+  else
+  {
+    prefs->vtk_compress = 1;
+    BFAM_ROOT_WARNING("using default 'vtk_compress': %d",
+        prefs->vtk_compress);
+  }
+  lua_pop(L, 1);
+
 
   /* get the time stepper type */
   lua_getglobal(L, "lsrk_method");
@@ -1825,7 +1856,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,0);
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
         slip_weakening, prefs->data_directory, output, (0)*dt, sw_fields,
-        NULL, NULL, 0, 0, 0);
+        NULL, NULL, prefs->vtk_binary, prefs->vtk_compress, 0);
   }
 
   /* compute the initial energy */
@@ -1854,8 +1885,8 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       "S33", "S12", "S13", "S23",NULL};
     snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,0);
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        volume, prefs->data_directory, output, (0)*dt, fields, NULL, NULL, 1,
-        1, 0);
+        volume, prefs->data_directory, output, (0)*dt, fields, NULL, NULL,
+        prefs->vtk_binary, prefs->vtk_compress, 0);
   }
 
   for(int s = 1; s <= nsteps; s++)
@@ -1900,7 +1931,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
           slip_weakening, prefs->data_directory, output, (s)*dt, sw_fields,
-          NULL, NULL, 0, 0, 0);
+          NULL, NULL, prefs->vtk_binary, prefs->vtk_compress, 0);
     }
     if(noutput > 0 && s%noutput == 0)
     {
@@ -1909,8 +1940,8 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       char output[BFAM_BUFSIZ];
       snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-          volume, prefs->data_directory, output, (s)*dt, fields, NULL, NULL, 1,
-          1,0);
+          volume, prefs->data_directory, output, (s)*dt, fields, NULL, NULL,
+          prefs->vtk_binary, prefs->vtk_compress, 0);
     }
     if(nerr > 0 && s%nerr == 0)
     {
@@ -1936,7 +1967,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
         snprintf(err_output,BFAM_BUFSIZ,"%s_error_%05d",prefs->output_prefix,s);
         bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
             volume, prefs->data_directory, err_output, (s)*dt, err_flds, NULL,
-            NULL, 1, 1,0);
+            NULL, prefs->vtk_binary, prefs->vtk_compress, 0);
         energy = new_energy;
       }
     }
