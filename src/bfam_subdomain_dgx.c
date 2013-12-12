@@ -397,7 +397,7 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
         {
           const bfam_locidx_t f   = j + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
           bfam_real_t sq_sJ;
-          if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(0.5*sJ[f]);
+          if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(BFAM_REAL(0.5)*sJ[f]);
           else             sq_sJ = BFAM_REAL_SQRT(    sJ[f]);
 
           const bfam_real_t vn_e  = sq_sJ*(n1[f]*v1_m_elem[fmask[j]]
@@ -427,7 +427,7 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
             const bfam_locidx_t f = l + m*(sub_m_Nrp)
                                   + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
             bfam_real_t sq_sJ;
-            if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(0.25*sJ[f]);
+            if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(BFAM_REAL(0.25)*sJ[f]);
             else             sq_sJ = BFAM_REAL_SQRT(     sJ[f]);
 
             const int n = m*(sub_m->N+1)+l;
@@ -466,7 +466,7 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
       {
         const bfam_locidx_t f   = j + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
         bfam_real_t sq_sJ;
-        if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(0.5*sJ[f]);
+        if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(BFAM_REAL(0.5)*sJ[f]);
         else             sq_sJ = BFAM_REAL_SQRT(    sJ[f]);
 
         vn_g_elem[j]  = sq_sJ*(n1[f]*v1_m_elem[fmask[j]]
@@ -484,7 +484,7 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
           const bfam_locidx_t f = l + m*(sub_m_Nrp)
             + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
           bfam_real_t sq_sJ;
-          if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(0.25*sJ[f]);
+          if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(BFAM_REAL(0.25)*sJ[f]);
           else             sq_sJ = BFAM_REAL_SQRT(     sJ[f]);
 
           const int n = m*(sub_m->N+1)+l;
@@ -688,7 +688,7 @@ bfam_subdomain_dgx_get_tensor_fields_m(const char **comp,
           const bfam_locidx_t f   = j + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
           const bfam_locidx_t fm  = fmask[j];
           bfam_real_t sq_sJ;
-          if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(0.5*sJ[f]);
+          if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(BFAM_REAL(0.5)*sJ[f]);
           else             sq_sJ = BFAM_REAL_SQRT(    sJ[f]);
 
           bfam_real_t Tp1_e =
@@ -731,7 +731,7 @@ bfam_subdomain_dgx_get_tensor_fields_m(const char **comp,
             const int n = m*(sub_m->N+1)+l;
             const bfam_locidx_t fm  = fmask[n];
             bfam_real_t sq_sJ;
-            if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(0.25*sJ[f]);
+            if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(BFAM_REAL(0.25)*sJ[f]);
             else             sq_sJ = BFAM_REAL_SQRT(     sJ[f]);
 
             bfam_real_t Tp1_e = S11_m_elem[fm]*n1[f] + S12_m_elem[fm]*n2[f]
@@ -780,7 +780,7 @@ bfam_subdomain_dgx_get_tensor_fields_m(const char **comp,
         const bfam_locidx_t f   = j + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
         const bfam_locidx_t fm  = fmask[j];
         bfam_real_t sq_sJ;
-        if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(0.5*sJ[f]);
+        if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(BFAM_REAL(0.5)*sJ[f]);
         else             sq_sJ = BFAM_REAL_SQRT(    sJ[f]);
 
         Tp1_g_elem[j] = S11_m_elem[fm]*n1[f] + S12_m_elem[fm]*n2[f];
@@ -807,7 +807,7 @@ bfam_subdomain_dgx_get_tensor_fields_m(const char **comp,
           const int n = m*(sub_m->N+1)+l;
           const bfam_locidx_t fm  = fmask[n];
           bfam_real_t sq_sJ;
-          if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(0.25*sJ[f]);
+          if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(BFAM_REAL(0.25)*sJ[f]);
           else             sq_sJ = BFAM_REAL_SQRT(     sJ[f]);
 
           Tp1_g_elem[n] = S11_m_elem[fm]*n1[f] + S12_m_elem[fm]*n2[f]
