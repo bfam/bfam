@@ -1847,7 +1847,8 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     /* dump the pxest mesh */
     snprintf(output,BFAM_BUFSIZ,"%s/%s_pxest_mesh",
         prefs->data_directory,prefs->output_prefix);
-    p4est_vtk_write_file(beard->domain->pxest, NULL, output);
+    p4est_vtk_write_all(beard->domain->pxest, NULL,
+                        1, 1, 1, 0, 0, 0, output);
 
     const char *fields[] = {"rho", "lam", "mu", "v1", "v2", "v3", "S11", "S22",
       "S33", "S12", "S13", "S23",NULL};
