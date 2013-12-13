@@ -456,12 +456,6 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
     }
     else if(DIM == 1)
     {
-      /*
-       * Decide which interpolation operation to use.
-       */
-      const bfam_real_t *restrict interpolation =
-        glue_m->interpolation[EToHm[k]];
-      BFAM_ASSUME_ALIGNED(interpolation, 32);
       for(int j = 0; j < sub_m_Nfp; ++j)
       {
         const bfam_locidx_t f   = j + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
@@ -769,12 +763,6 @@ bfam_subdomain_dgx_get_tensor_fields_m(const char **comp,
     }
     else if(DIM == 1)
     {
-      /*
-       * Decide which interpolation operation to use.
-       */
-      const bfam_real_t *restrict interpolation =
-        glue_m->interpolation[EToHm[k]];
-      BFAM_ASSUME_ALIGNED(interpolation, 32);
       for(int j = 0; j < sub_m_Nfp; ++j)
       {
         const bfam_locidx_t f   = j + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
