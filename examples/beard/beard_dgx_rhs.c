@@ -1266,14 +1266,6 @@ void beard_dgx_inter_rhs_interface(
 
     /* check to tee if projection */
     /* locked */
-    if(MASSPROJECTION == 0 && PROJECTION == 0)
-    {
-      TpS_M = TpS_g;
-      TnS_M = TnS_g;
-      vpS_M = vpS_g;
-      vnS_M = vnS_g;
-    }
-    else
     {
       /* set to the correct Mass times projection */
       TpS_M = TpS_m_STORAGE;
@@ -1281,7 +1273,7 @@ void beard_dgx_inter_rhs_interface(
       vpS_M = vpS_m_STORAGE;
       vnS_M = vnS_m_STORAGE;
 
-      if(MASSPROJECTION)
+      if(MASSPROJECTION && (!glue_p->same_order || glue_p->EToHm[le] || glue_p->EToHp[le]))
       {
         BFAM_ASSERT(glue_m->massprojection);
 #if   DIM == 2
@@ -1302,7 +1294,7 @@ void beard_dgx_inter_rhs_interface(
 #endif
                                wi);
       }
-      else if(PROJECTION)
+      else if(PROJECTION  && (!glue_p->same_order || glue_p->EToHm[le] || glue_p->EToHp[le]))
       {
         BFAM_ASSERT(glue_m->projection);
 #if   DIM == 2
@@ -1322,6 +1314,13 @@ void beard_dgx_inter_rhs_interface(
                           ,P2
 #endif
                            );
+      }
+      else
+      {
+        TpS_M = TpS_g;
+        TnS_M = TnS_g;
+        vpS_M = vpS_g;
+        vnS_M = vnS_g;
       }
     }
 
@@ -1595,14 +1594,6 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
 
     /* check to tee if projection */
     /* locked */
-    if(MASSPROJECTION == 0 && PROJECTION == 0)
-    {
-      TpS_M = TpS_g;
-      TnS_M = TnS_g;
-      vpS_M = vpS_g;
-      vnS_M = vnS_g;
-    }
-    else
     {
       /* set to the correct Mass times projection */
       TpS_M = TpS_m_STORAGE;
@@ -1610,7 +1601,7 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
       vpS_M = vpS_m_STORAGE;
       vnS_M = vnS_m_STORAGE;
 
-      if(MASSPROJECTION)
+      if(MASSPROJECTION && (!glue_p->same_order || glue_p->EToHm[le] || glue_p->EToHp[le]))
       {
         BFAM_ASSERT(glue_m->massprojection);
 #if   DIM == 2
@@ -1631,7 +1622,7 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
 #endif
                                wi);
       }
-      else if(PROJECTION)
+      else if(PROJECTION  && (!glue_p->same_order || glue_p->EToHm[le] || glue_p->EToHp[le]))
       {
         BFAM_ASSERT(glue_m->projection);
 #if   DIM == 2
@@ -1651,6 +1642,13 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
                           ,P2
 #endif
                            );
+      }
+      else
+      {
+        TpS_M = TpS_g;
+        TnS_M = TnS_g;
+        vpS_M = vpS_g;
+        vnS_M = vnS_g;
       }
     }
 
