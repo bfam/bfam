@@ -1426,24 +1426,24 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zs_P  ,"","Zs"       ,fields_p);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp_P  ,"","Zp"       ,fields_p);
 
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(sJ_g   ,"","_grid_sJ" ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1_0  ,"","Tp1_0"    ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2_0  ,"","Tp2_0"    ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3_0  ,"","Tp3_0"    ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn_0   ,"","Tn_0"     ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1    ,"","Tp1"      ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2    ,"","Tp2"      ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3    ,"","Tp3"      ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn     ,"","Tn"       ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(V      ,"","V"        ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp1    ,"","Vp1"      ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp2    ,"","Vp2"      ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp3    ,"","Vp3"      ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dc     ,"","Dc"       ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dp     ,"","Dp"       ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fs     ,"","fs"       ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fc     ,"","fc"       ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fd     ,"","fd"       ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(sJ_g    ,"","_grid_sJ" ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1_0_g ,"","Tp1_0"    ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2_0_g ,"","Tp2_0"    ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3_0_g ,"","Tp3_0"    ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn_0_g  ,"","Tn_0"     ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1     ,"","Tp1"      ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2     ,"","Tp2"      ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3     ,"","Tp3"      ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn      ,"","Tn"       ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(V       ,"","V"        ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp1     ,"","Vp1"      ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp2     ,"","Vp2"      ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp3     ,"","Vp3"      ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dc      ,"","Dc"       ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dp      ,"","Dp"       ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fs      ,"","fs"       ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fc      ,"","fc"       ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fd      ,"","fd"       ,fields_g);
 
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDp ,rate_prefix,"Dp", fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDn ,rate_prefix,"Dn", fields_g);
@@ -1522,7 +1522,25 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
           &TnS_g[pnt],&TpS_g[3*pnt],&vnS_g[pnt],&vpS_g[3*pnt],
           TnM, TnP, TpM, TpP, vnM, vnP, vpM, vpP, ZpM, ZpP, ZsM, ZsP);
 
-      Tn[iG] = TnS_g[pnt]+Tn_0[iG];
+
+      bfam_real_t sq_sJ;
+      if(glue_p->EToHm[le] > 0)
+#if   DIM==2
+        sq_sJ = BFAM_REAL_SQRT( 0.5*sJ_g[iG]);
+#elif DIM==3
+        sq_sJ = BFAM_REAL_SQRT(0.25*sJ_g[iG]);
+#else
+#error "Bad Dimension"
+#endif
+      else
+        sq_sJ = BFAM_REAL_SQRT(sJ_g[iG]);
+
+      const bfam_real_t Tn_0  = sq_sJ*Tn_0_g[iG];
+      const bfam_real_t Tp1_0 = sq_sJ*Tp1_0_g[iG];
+      const bfam_real_t Tp2_0 = sq_sJ*Tp2_0_g[iG];
+      const bfam_real_t Tp3_0 = sq_sJ*Tp3_0_g[iG];
+
+      Tn[iG] = TnS_g[pnt]+Tn_0;
       if(Tn[iG] > 0)
       {
         BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x  ,"","_grid_x0" ,fields_g);
@@ -1536,23 +1554,25 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
       }
 
       const bfam_real_t Slock2 =
-        + (TpS_g[3*pnt+0]+Tp1_0[iG])*(TpS_g[3*pnt+0]+Tp1_0[iG])
-        + (TpS_g[3*pnt+1]+Tp2_0[iG])*(TpS_g[3*pnt+1]+Tp2_0[iG])
-        + (TpS_g[3*pnt+2]+Tp3_0[iG])*(TpS_g[3*pnt+2]+Tp3_0[iG]);
+        + (TpS_g[3*pnt+0] + Tp1_0)*(TpS_g[3*pnt+0] + Tp1_0)
+        + (TpS_g[3*pnt+1] + Tp2_0)*(TpS_g[3*pnt+1] + Tp2_0)
+        + (TpS_g[3*pnt+2] + Tp3_0)*(TpS_g[3*pnt+2] + Tp3_0);
 
       fc[iG] = fs[iG]-(fs[iG]-fd[iG])*BFAM_MIN(Dp[iG],Dc[iG])/Dc[iG];
       const bfam_real_t Sfric = -Tn[iG]*fc[iG];
 
+
       if(Sfric*Sfric < Slock2)
       {
         bfam_real_t Vps[3];
-        const bfam_real_t Tp0[] = {Tp1_0[iG],Tp2_0[iG],Tp3_0[iG]};
+        const bfam_real_t Tp0[] =
+            {Tp1_0, Tp2_0, Tp3_0};
         beard_dgx_upwind_state_friction_m(&TpS_g[3*pnt], &vpS_g[3*pnt], Vps,
             Sfric, TpM, TpP, Tp0, vpM, vpP, ZsM, ZsP);
 
-        Vp1[iG] = Vps[0];
-        Vp2[iG] = Vps[1];
-        Vp3[iG] = Vps[2];
+        Vp1[iG] = Vps[0]/sq_sJ;
+        Vp2[iG] = Vps[1]/sq_sJ;
+        Vp3[iG] = Vps[2]/sq_sJ;
         V[iG]   = BFAM_REAL_SQRT(Vps[0]*Vps[0] + Vps[1]*Vps[1] + Vps[2]*Vps[2]);
       }
       else
@@ -1563,26 +1583,14 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
         V[iG]   = 0;
       }
 
-      bfam_real_t sq_sJ;
-      if(glue_p->EToHm[le] > 0)
-#if   DIM==2
-        sq_sJ = BFAM_REAL_SQRT(2.0*sJ_g[iG]);
-#elif DIM==3
-      sq_sJ = BFAM_REAL_SQRT(4.0*sJ_g[iG]);
-#else
-#error "Bad Dimension"
-#endif
-      else
-        sq_sJ = BFAM_REAL_SQRT(sJ_g[iG]);
-
-      dDn[iG]  += (0                         ) / sq_sJ;
-      dDp[iG]  += (V[iG]                     ) / sq_sJ;
-      dDp1[iG] += (Vp1[iG]                   ) / sq_sJ;
-      dDp2[iG] += (Vp2[iG]                   ) / sq_sJ;
-      dDp3[iG] += (Vp3[iG]                   ) / sq_sJ;
-      Tp1[iG]   = (TpS_g[3*pnt+0] + Tp1_0[iG]) / sq_sJ;
-      Tp2[iG]   = (TpS_g[3*pnt+1] + Tp2_0[iG]) / sq_sJ;
-      Tp3[iG]   = (TpS_g[3*pnt+2] + Tp3_0[iG]) / sq_sJ;
+      dDn[iG]  += 0;
+      dDp[iG]  += V[iG];
+      dDp1[iG] += Vp1[iG];
+      dDp2[iG] += Vp2[iG];
+      dDp3[iG] += Vp3[iG];
+      Tp1[iG]   = (TpS_g[3*pnt+0] + Tp1_0) / sq_sJ;
+      Tp2[iG]   = (TpS_g[3*pnt+1] + Tp2_0) / sq_sJ;
+      Tp3[iG]   = (TpS_g[3*pnt+2] + Tp3_0) / sq_sJ;
 
 
       /* substract off the grid values */
