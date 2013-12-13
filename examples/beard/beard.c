@@ -852,7 +852,7 @@ beard_grid_boundary(bfam_locidx_t npoints, const char *name, bfam_real_t time,
 static void
 beard_grid_glue(bfam_locidx_t npoints, const char *name, bfam_real_t time,
     bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
-    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict sJ)
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict sq_sJ)
 {
   bfam_subdomain_dgx_t* sub_g = (bfam_subdomain_dgx_t*) s;
 
@@ -870,8 +870,8 @@ beard_grid_glue(bfam_locidx_t npoints, const char *name, bfam_real_t time,
   bfam_real_t *z_p = bfam_dictionary_get_value_ptr(fields_p, "_grid_x2");
 #endif
 
-  bfam_real_t *sJ_m = bfam_dictionary_get_value_ptr(fields_m, "_grid_sJ");
-  bfam_real_t *sJ_p = bfam_dictionary_get_value_ptr(fields_p, "_grid_sJ");
+  bfam_real_t *sq_sJ_m = bfam_dictionary_get_value_ptr(fields_m, "_grid_sq_sJ");
+  bfam_real_t *sq_sJ_p = bfam_dictionary_get_value_ptr(fields_p, "_grid_sq_sJ");
 
   BFAM_ASSERT(x_m  != NULL);
   BFAM_ASSERT(x_p  != NULL);
@@ -883,8 +883,8 @@ beard_grid_glue(bfam_locidx_t npoints, const char *name, bfam_real_t time,
   BFAM_ASSERT(z_p  != NULL);
 #endif
 
-  BFAM_ASSERT(sJ_m  != NULL);
-  BFAM_ASSERT(sJ_p  != NULL);
+  BFAM_ASSERT(sq_sJ_m  != NULL);
+  BFAM_ASSERT(sq_sJ_p  != NULL);
 
   for(int n = 0;n < npoints;n++)
   {
@@ -893,7 +893,7 @@ beard_grid_glue(bfam_locidx_t npoints, const char *name, bfam_real_t time,
 #if DIM==3
     z[n]  = BFAM_REAL(0.5)*(z_m[n]+z_p[n]);
 #endif
-    sJ[n]  = 0.5*(sJ_m[n]+sJ_p[n]);
+    sq_sJ[n]  = 0.5*(sq_sJ_m[n]+sq_sJ_p[n]);
   }
 
 }
@@ -978,13 +978,13 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
 #if DIM==3
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x2");
 #endif
-  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_sJ");
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_sq_sJ");
 
   const char *glue_face_scalar[] = {"_grid_nx0","_grid_nx1",
 #if DIM==3
     "_grid_nx2",
 #endif
-    "_grid_sJ",
+    "_grid_sq_sJ",
     NULL};
   for(bfam_locidx_t g = 0; glue_face_scalar[g] != NULL; g++)
   {
@@ -1023,7 +1023,7 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
    * we can trick init fields into handling locations
    * to glue
    */
-  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, glue, "_grid_sJ", 0,
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, glue, "_grid_sq_sJ", 0,
       beard_grid_glue, NULL);
 
   const char *boundary[] = {"_glue_boundary",NULL};

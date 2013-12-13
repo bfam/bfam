@@ -331,10 +331,10 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
   if(DIM > 2) BFAM_ASSERT(n3 != NULL);
   BFAM_ASSUME_ALIGNED(n3, 32);
 
-  bfam_real_t *restrict sJ =
-    bfam_dictionary_get_value_ptr(&sub_m->base.fields_face, "_grid_sJ");
-  BFAM_ASSERT(sJ != NULL);
-  BFAM_ASSUME_ALIGNED(sJ, 32);
+  bfam_real_t *restrict sq_sJ_m =
+    bfam_dictionary_get_value_ptr(&sub_m->base.fields_face, "_grid_sq_sJ");
+  BFAM_ASSERT(sq_sJ_m != NULL);
+  BFAM_ASSUME_ALIGNED(sq_sJ_m, 32);
 
   bfam_real_t *restrict send_vn  = data->buffer + buffer_offset + 0*Np*K;
   BFAM_ASSERT( send_vn != NULL);
@@ -347,6 +347,14 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
 
   bfam_real_t *restrict send_vp3 = data->buffer + buffer_offset + 3*Np*K;
   BFAM_ASSERT( send_vp3 != NULL);
+
+  bfam_real_t sq_sJ_DIM_scale;
+  if(DIM == 1)
+    sq_sJ_DIM_scale = (bfam_real_t) (BFAM_LONG_REAL_SQRT(BFAM_LONG_REAL(0.5 )));
+  else if(DIM == 2)
+    sq_sJ_DIM_scale = (bfam_real_t) (BFAM_LONG_REAL_SQRT(BFAM_LONG_REAL(0.25)));
+  else
+    BFAM_ABORT("Bad Dimension");
 
   for(bfam_locidx_t k = 0; k < K; ++k)
   {
@@ -396,9 +404,8 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
         for(int j = 0; j < sub_m_Nfp; ++j)
         {
           const bfam_locidx_t f   = j + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
-          bfam_real_t sq_sJ;
-          if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(BFAM_REAL(0.5)*sJ[f]);
-          else             sq_sJ = BFAM_REAL_SQRT(    sJ[f]);
+          bfam_real_t sq_sJ = sq_sJ_m[f];
+          if(EToHm[k] > 0) sq_sJ *= sq_sJ_DIM_scale;
 
           const bfam_real_t vn_e  = sq_sJ*(n1[f]*v1_m_elem[fmask[j]]
                                          + n2[f]*v2_m_elem[fmask[j]]);
@@ -426,9 +433,8 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
           {
             const bfam_locidx_t f = l + m*(sub_m_Nrp)
                                   + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
-            bfam_real_t sq_sJ;
-            if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(BFAM_REAL(0.25)*sJ[f]);
-            else             sq_sJ = BFAM_REAL_SQRT(     sJ[f]);
+            bfam_real_t sq_sJ = sq_sJ_m[f];
+            if(EToHm[k] > 0) sq_sJ *= sq_sJ_DIM_scale;
 
             const int n = m*(sub_m->N+1)+l;
             const bfam_real_t vn_e  = sq_sJ*(n1[f]*v1_m_elem[fmask[n]]
@@ -459,9 +465,8 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
       for(int j = 0; j < sub_m_Nfp; ++j)
       {
         const bfam_locidx_t f   = j + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
-        bfam_real_t sq_sJ;
-        if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(BFAM_REAL(0.5)*sJ[f]);
-        else             sq_sJ = BFAM_REAL_SQRT(    sJ[f]);
+        bfam_real_t sq_sJ = sq_sJ_m[f];
+        if(EToHm[k] > 0) sq_sJ *= sq_sJ_DIM_scale;
 
         vn_g_elem[j]  = sq_sJ*(n1[f]*v1_m_elem[fmask[j]]
                              + n2[f]*v2_m_elem[fmask[j]]);
@@ -477,9 +482,9 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
         {
           const bfam_locidx_t f = l + m*(sub_m_Nrp)
             + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
-          bfam_real_t sq_sJ;
-          if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(BFAM_REAL(0.25)*sJ[f]);
-          else             sq_sJ = BFAM_REAL_SQRT(     sJ[f]);
+
+          bfam_real_t sq_sJ = sq_sJ_m[f];
+          if(EToHm[k] > 0) sq_sJ *= sq_sJ_DIM_scale;
 
           const int n = m*(sub_m->N+1)+l;
           vn_g_elem[n]  = sq_sJ*(n1[f]*v1_m_elem[fmask[n]]
@@ -612,10 +617,10 @@ bfam_subdomain_dgx_get_tensor_fields_m(const char **comp,
   if(DIM > 2) BFAM_ASSERT(n3 != NULL);
   BFAM_ASSUME_ALIGNED(n3, 32);
 
-  bfam_real_t *restrict sJ =
-    bfam_dictionary_get_value_ptr(&sub_m->base.fields_face, "_grid_sJ");
-  BFAM_ASSERT(sJ != NULL);
-  BFAM_ASSUME_ALIGNED(sJ, 32);
+  bfam_real_t *restrict sq_sJ_m =
+    bfam_dictionary_get_value_ptr(&sub_m->base.fields_face, "_grid_sq_sJ");
+  BFAM_ASSERT(sq_sJ_m != NULL);
+  BFAM_ASSUME_ALIGNED(sq_sJ_m, 32);
 
   bfam_real_t *restrict send_Tn  = data->buffer + buffer_offset + 0*Np*K;
   BFAM_ASSERT( send_Tn != NULL);
@@ -628,6 +633,14 @@ bfam_subdomain_dgx_get_tensor_fields_m(const char **comp,
 
   bfam_real_t *restrict send_Tp3 = data->buffer + buffer_offset + 3*Np*K;
   BFAM_ASSERT( send_Tp3 != NULL);
+
+  bfam_real_t sq_sJ_DIM_scale;
+  if(DIM == 1)
+    sq_sJ_DIM_scale = (bfam_real_t) (BFAM_LONG_REAL_SQRT(BFAM_LONG_REAL(0.5 )));
+  else if(DIM == 2)
+    sq_sJ_DIM_scale = (bfam_real_t) (BFAM_LONG_REAL_SQRT(BFAM_LONG_REAL(0.25)));
+  else
+    BFAM_ABORT("Bad Dimension");
 
   for(bfam_locidx_t k = 0; k < K; ++k)
   {
@@ -681,9 +694,8 @@ bfam_subdomain_dgx_get_tensor_fields_m(const char **comp,
         {
           const bfam_locidx_t f   = j + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
           const bfam_locidx_t fm  = fmask[j];
-          bfam_real_t sq_sJ;
-          if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(BFAM_REAL(0.5)*sJ[f]);
-          else             sq_sJ = BFAM_REAL_SQRT(    sJ[f]);
+          bfam_real_t sq_sJ = sq_sJ_m[f];
+          if(EToHm[k] > 0) sq_sJ *= sq_sJ_DIM_scale;
 
           bfam_real_t Tp1_e =
             S11_m_elem[fm]*n1[f] + S12_m_elem[fm]*n2[f];
@@ -724,9 +736,9 @@ bfam_subdomain_dgx_get_tensor_fields_m(const char **comp,
                                   + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
             const int n = m*(sub_m->N+1)+l;
             const bfam_locidx_t fm  = fmask[n];
-            bfam_real_t sq_sJ;
-            if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(BFAM_REAL(0.25)*sJ[f]);
-            else             sq_sJ = BFAM_REAL_SQRT(     sJ[f]);
+
+            bfam_real_t sq_sJ = sq_sJ_m[f];
+            if(EToHm[k] > 0) sq_sJ *= sq_sJ_DIM_scale;
 
             bfam_real_t Tp1_e = S11_m_elem[fm]*n1[f] + S12_m_elem[fm]*n2[f]
                               + S13_m_elem[fm]*n3[f];
@@ -767,9 +779,9 @@ bfam_subdomain_dgx_get_tensor_fields_m(const char **comp,
       {
         const bfam_locidx_t f   = j + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
         const bfam_locidx_t fm  = fmask[j];
-        bfam_real_t sq_sJ;
-        if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(BFAM_REAL(0.5)*sJ[f]);
-        else             sq_sJ = BFAM_REAL_SQRT(    sJ[f]);
+
+        bfam_real_t sq_sJ = sq_sJ_m[f];
+        if(EToHm[k] > 0) sq_sJ *= sq_sJ_DIM_scale;
 
         Tp1_g_elem[j] = S11_m_elem[fm]*n1[f] + S12_m_elem[fm]*n2[f];
         Tp2_g_elem[j] = S12_m_elem[fm]*n1[f] + S22_m_elem[fm]*n2[f];
@@ -794,9 +806,9 @@ bfam_subdomain_dgx_get_tensor_fields_m(const char **comp,
             + sub_m_Nfp*(face + sub_m_Nf*EToEm[k]);
           const int n = m*(sub_m->N+1)+l;
           const bfam_locidx_t fm  = fmask[n];
-          bfam_real_t sq_sJ;
-          if(EToHm[k] > 0) sq_sJ = BFAM_REAL_SQRT(BFAM_REAL(0.25)*sJ[f]);
-          else             sq_sJ = BFAM_REAL_SQRT(     sJ[f]);
+
+          bfam_real_t sq_sJ = sq_sJ_m[f];
+          if(EToHm[k] > 0) sq_sJ *= sq_sJ_DIM_scale;
 
           Tp1_g_elem[n] = S11_m_elem[fm]*n1[f] + S12_m_elem[fm]*n2[f]
                         + S13_m_elem[fm]*n3[f];
@@ -2607,8 +2619,18 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
         BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s",name);
         bfam_real_t *restrict sJ =
           bfam_dictionary_get_value_ptr(&subdomain->base.fields_face, name);
+
+        char name2[] = "_grid_sq_sJ";
+        int rval2 = bfam_subdomain_dgx_field_face_add(&subdomain->base, name2);
+        BFAM_ABORT_IF_NOT(rval2 == 2, "Error adding %s",name2);
+        bfam_real_t *restrict sq_sJ =
+          bfam_dictionary_get_value_ptr(&subdomain->base.fields_face, name2);
+
         for(int n = 0; n < K*Ng[0]*Ngp[0]; ++n)
-          sJ[n] = (bfam_real_t) lsJ[n];
+        {
+          sJ[n]    = (bfam_real_t) lsJ[n];
+          sq_sJ[n] = (bfam_real_t) BFAM_LONG_REAL_SQRT(lsJ[n]);
+        }
       }
     }
     else

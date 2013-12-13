@@ -1167,6 +1167,7 @@ void beard_dgx_inter_rhs_interface(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(n2,"","_grid_nx1",fields_face);
   BEARD_D3_OP(BFAM_LOAD_FIELD_RESTRICT_ALIGNED(n3,"","_grid_nx2",fields_face));
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(sJ  ,"","_grid_sJ",fields_face);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(sq_sJ_m  ,"","_grid_sq_sJ",fields_face);
 
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zs_M  ,"","Zs"       ,fields_m);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp_M  ,"","Zp"       ,fields_m);
@@ -1179,6 +1180,14 @@ void beard_dgx_inter_rhs_interface(
   BFAM_ASSERT(glue_p->EToEm);
   BFAM_ASSERT(glue_p->EToFm);
   BFAM_ASSERT(glue_p->EToHm);
+
+  bfam_real_t sq_sJ_DIM_scale_m;
+  if(DIM == 2)
+    sq_sJ_DIM_scale_m = (bfam_real_t) BFAM_LONG_REAL_SQRT(BFAM_LONG_REAL(2.0));
+  else if(DIM == 3)
+    sq_sJ_DIM_scale_m = (bfam_real_t) BFAM_LONG_REAL_SQRT(BFAM_LONG_REAL(4.0 ));
+  else
+    BFAM_ABORT("Bad Dimension");
 
   for(bfam_locidx_t le = 0; le < sub_g->K; le++)
   {
@@ -1327,17 +1336,8 @@ void beard_dgx_inter_rhs_interface(
       bfam_locidx_t iM = sub_m->vmapM[f];
       const bfam_real_t nM[] = {n1[f],n2[f],BEARD_D3_AP(0,+n3[f])};
 
-      bfam_real_t sq_sJ;
-      if(glue_p->EToHm[le] > 0)
-#if   DIM==2
-        sq_sJ = BFAM_REAL_SQRT(2*sJ[f]);
-#elif DIM==3
-        sq_sJ = BFAM_REAL_SQRT(4*sJ[f]);
-#else
-#error "Bad Dimension"
-#endif
-      else
-        sq_sJ = BFAM_REAL_SQRT(sJ[f]);
+      bfam_real_t sq_sJ = sq_sJ_m[f];
+      if(glue_p->EToHm[le] > 0) sq_sJ *= sq_sJ_DIM_scale_m;
 
       beard_dgx_add_flux(1,
           TnS_M[pnt],&TpS_M[3*pnt],vnS_M[pnt],&vpS_M[3*pnt],iM,
@@ -1420,30 +1420,31 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(n2,"","_grid_nx1",fields_face);
   BEARD_D3_OP(BFAM_LOAD_FIELD_RESTRICT_ALIGNED(n3,"","_grid_nx2",fields_face));
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(sJ_m  ,"","_grid_sJ",fields_face);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(sq_sJ_m  ,"","_grid_sq_sJ",fields_face);
 
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zs_M  ,"","Zs"       ,fields_m);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp_M  ,"","Zp"       ,fields_m);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zs_P  ,"","Zs"       ,fields_p);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp_P  ,"","Zp"       ,fields_p);
 
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(sJ_g    ,"","_grid_sJ" ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1_0_g ,"","Tp1_0"    ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2_0_g ,"","Tp2_0"    ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3_0_g ,"","Tp3_0"    ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn_0_g  ,"","Tn_0"     ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1     ,"","Tp1"      ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2     ,"","Tp2"      ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3     ,"","Tp3"      ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn      ,"","Tn"       ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(V       ,"","V"        ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp1     ,"","Vp1"      ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp2     ,"","Vp2"      ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp3     ,"","Vp3"      ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dc      ,"","Dc"       ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dp      ,"","Dp"       ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fs      ,"","fs"       ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fc      ,"","fc"       ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fd      ,"","fd"       ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(sq_sJ_g ,"","_grid_sq_sJ" ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1_0_g ,"","Tp1_0"       ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2_0_g ,"","Tp2_0"       ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3_0_g ,"","Tp3_0"       ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn_0_g  ,"","Tn_0"        ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1     ,"","Tp1"         ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2     ,"","Tp2"         ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3     ,"","Tp3"         ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn      ,"","Tn"          ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(V       ,"","V"           ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp1     ,"","Vp1"         ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp2     ,"","Vp2"         ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp3     ,"","Vp3"         ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dc      ,"","Dc"          ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dp      ,"","Dp"          ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fs      ,"","fs"          ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fc      ,"","fc"          ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fd      ,"","fd"          ,fields_g);
 
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDp ,rate_prefix,"Dp", fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDn ,rate_prefix,"Dn", fields_g);
@@ -1457,6 +1458,21 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
   BFAM_ASSERT(glue_p->EToEm);
   BFAM_ASSERT(glue_p->EToFm);
   BFAM_ASSERT(glue_p->EToHm);
+
+  bfam_real_t sq_sJ_DIM_scale_m;
+  bfam_real_t sq_sJ_DIM_scale_g;
+  if(DIM == 2)
+  {
+    sq_sJ_DIM_scale_m = (bfam_real_t) BFAM_LONG_REAL_SQRT(BFAM_LONG_REAL(2.0));
+    sq_sJ_DIM_scale_g = (bfam_real_t) BFAM_LONG_REAL_SQRT(BFAM_LONG_REAL(0.5));
+  }
+  else if(DIM == 3)
+  {
+    sq_sJ_DIM_scale_m = (bfam_real_t) BFAM_LONG_REAL_SQRT(BFAM_LONG_REAL(4.0 ));
+    sq_sJ_DIM_scale_g = (bfam_real_t) BFAM_LONG_REAL_SQRT(BFAM_LONG_REAL(0.25));
+  }
+  else
+    BFAM_ABORT("Bad Dimension");
 
   for(bfam_locidx_t le = 0; le < sub_g->K; le++)
   {
@@ -1522,18 +1538,8 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
           &TnS_g[pnt],&TpS_g[3*pnt],&vnS_g[pnt],&vpS_g[3*pnt],
           TnM, TnP, TpM, TpP, vnM, vnP, vpM, vpP, ZpM, ZpP, ZsM, ZsP);
 
-
-      bfam_real_t sq_sJ;
-      if(glue_p->EToHm[le] > 0)
-#if   DIM==2
-        sq_sJ = BFAM_REAL_SQRT( 0.5*sJ_g[iG]);
-#elif DIM==3
-        sq_sJ = BFAM_REAL_SQRT(0.25*sJ_g[iG]);
-#else
-#error "Bad Dimension"
-#endif
-      else
-        sq_sJ = BFAM_REAL_SQRT(sJ_g[iG]);
+      bfam_real_t sq_sJ = sq_sJ_g[iG];
+      if(glue_p->EToHm[le] > 0) sq_sJ *= sq_sJ_DIM_scale_g;
 
       const bfam_real_t Tn_0  = sq_sJ*Tn_0_g[iG];
       const bfam_real_t Tp1_0 = sq_sJ*Tp1_0_g[iG];
@@ -1677,17 +1683,8 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
       bfam_locidx_t iM = sub_m->vmapM[f];
       const bfam_real_t nM[] = {n1[f],n2[f],BEARD_D3_AP(0,+n3[f])};
 
-      bfam_real_t sq_sJ;
-      if(glue_p->EToHm[le] > 0)
-#if   DIM==2
-        sq_sJ = BFAM_REAL_SQRT(2*sJ[f]);
-#elif DIM==3
-        sq_sJ = BFAM_REAL_SQRT(4*sJ[f]);
-#else
-#error "Bad Dimension"
-#endif
-      else
-        sq_sJ = BFAM_REAL_SQRT(sJ_m[f]);
+      bfam_real_t sq_sJ = sq_sJ_m[f];
+      if(glue_p->EToHm[le] > 0) sq_sJ *= sq_sJ_DIM_scale_m;
 
       beard_dgx_add_flux(1,
           TnS_M[pnt],&TpS_M[3*pnt],vnS_M[pnt],&vpS_M[3*pnt],iM,
