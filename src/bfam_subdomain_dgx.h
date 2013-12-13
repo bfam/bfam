@@ -41,7 +41,12 @@ typedef struct bfam_subdomain_dgx_glue_data
 {
   bfam_subdomain_glue_data_t base;
 
+  int               same_order; /* Boolean indicating if the elements connected
+                                 * through the glue are of the same order.
+                                 */
+
   bfam_locidx_t    *EToEp; /* Element     number on connected subdomain */
+  int8_t           *EToHp; /* Hanging     number on connected subdomain */
   bfam_locidx_t    *EToEm; /* Element     number on local subdomain */
   int8_t           *EToFm; /* Face        number on local subdomain */
   int8_t           *EToHm; /* Hanging     number on local subdomain */

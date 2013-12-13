@@ -2738,6 +2738,7 @@ bfam_subdomain_dgx_free_glue(bfam_subdomain_dgx_glue_data_t *glue)
     if(glue->exact_mass) bfam_free_aligned(glue->exact_mass);
 
     if(glue->EToEp) bfam_free_aligned(glue->EToEp);
+    if(glue->EToHp) bfam_free_aligned(glue->EToHp);
     if(glue->EToEm) bfam_free_aligned(glue->EToEm);
     if(glue->EToFm) bfam_free_aligned(glue->EToFm);
     if(glue->EToHm) bfam_free_aligned(glue->EToHm);
@@ -2902,6 +2903,7 @@ bfam_subdomain_dgx_glue_generic_init(bfam_subdomain_dgx_glue_data_t *glue,
   bfam_subdomain_glue_init(&glue->base, rank, id, id_s,
                            (bfam_subdomain_t*) sub_m);
   glue->EToEp          = NULL;
+  glue->EToHp          = NULL;
   glue->EToEm          = NULL;
   glue->EToFm          = NULL;
   glue->EToHm          = NULL;
@@ -3126,7 +3128,9 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
       glue_m->projection[i][n] = (bfam_real_t) projection[i][n];
   }
 
+  glue_p->same_order = (N_p == N_m);
   glue_p->EToEp = bfam_malloc_aligned(K*sizeof(bfam_locidx_t));
+  glue_p->EToHp = bfam_malloc_aligned(K*sizeof(int8_t));
   glue_p->EToEm = bfam_malloc_aligned(K*sizeof(bfam_locidx_t));
   glue_p->EToFm = bfam_malloc_aligned(K*sizeof(int8_t));
   glue_p->EToHm = bfam_malloc_aligned(K*sizeof(int8_t));
@@ -3186,18 +3190,20 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_,BFAM_DGX_DIMENSION)(
     glue_p->EToOm[k] = mapping[k].o;
 
     glue_p->EToEp[k] = mapping[k].i;
+    glue_p->EToHp[k] = mapping[k].nh;
   }
 
 #ifdef BFAM_DEBUG
   for(bfam_locidx_t k = 0; k < K; ++k)
     BFAM_ASSERT(mapping[k].s  == glue_m->base.id_s &&
                 mapping[k].ns == glue_p->base.id_s);
-  BFAM_LDEBUG("    k EToEp EToEm EToFm EToHm EToOm");
+  BFAM_LDEBUG("    k EToEp EToHp EToEm EToFm EToHm EToOm");
   for(bfam_locidx_t k = 0; k < K; ++k)
   {
-    BFAM_LDEBUG("%5d %5d %5d %5d %5d %5d",
+    BFAM_LDEBUG("%5d %5d %5d %5d %5d %5d %5d",
         k,
         glue_p->EToEp[k],
+        glue_p->EToHp[k],
         glue_p->EToEm[k],
         glue_p->EToFm[k],
         glue_p->EToHm[k],
