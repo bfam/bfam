@@ -190,6 +190,7 @@ bfam_subdomain_free(bfam_subdomain_t *thisSubdomain)
 void
 bfam_subdomain_add_tag(bfam_subdomain_t *thisSubdomain, const char* tag)
 {
+  BFAM_LDEBUG("subdomain %s: adding tag %s", thisSubdomain->name, tag);
   int r = bfam_critbit0_insert(&thisSubdomain->tags, tag);
 
   BFAM_ABORT_IF(!r, "Out of memory when adding tag: %s to subdomain %s",
