@@ -1023,7 +1023,7 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
    * we can trick init fields into handling locations
    * to glue
    */
-  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x1", 0,
+  bfam_domain_init_field(domain, BFAM_DOMAIN_OR, glue, "_grid_sJ", 0,
       beard_grid_glue, NULL);
 
   const char *boundary[] = {"_glue_boundary",NULL};
