@@ -227,13 +227,13 @@ beard_dgx_central_state_m(
     const bfam_real_t  Zpm, const bfam_real_t  Zpp,
     const bfam_real_t  Zsm, const bfam_real_t  Zsp)
 {
-  vns[0] = 0.5*(vnm-vnp);
-  Tns[0] = 0.5*(Tnm+Tnp);
+  vns[0] = BFAM_REAL(0.5)*(vnm-vnp);
+  Tns[0] = BFAM_REAL(0.5)*(Tnm+Tnp);
 
   for(bfam_locidx_t i = 0; i < 3; i++)
   {
-    vps[i] = 0.5*(vpm[i]+vpp[i]);
-    Tps[i] = 0.5*(Tpm[i]-Tpp[i]);
+    vps[i] = BFAM_REAL(0.5)*(vpm[i]+vpp[i]);
+    Tps[i] = BFAM_REAL(0.5)*(Tpm[i]-Tpp[i]);
   }
 }
 
@@ -1333,9 +1333,9 @@ void beard_dgx_inter_rhs_interface(
       bfam_real_t sq_sJ;
       if(glue_p->EToHm[le] > 0)
 #if   DIM==2
-        sq_sJ = BFAM_REAL_SQRT(2.0*sJ[f]);
+        sq_sJ = BFAM_REAL_SQRT(2*sJ[f]);
 #elif DIM==3
-        sq_sJ = BFAM_REAL_SQRT(4.0*sJ[f]);
+        sq_sJ = BFAM_REAL_SQRT(4*sJ[f]);
 #else
 #error "Bad Dimension"
 #endif
@@ -1661,9 +1661,9 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
       bfam_real_t sq_sJ;
       if(glue_p->EToHm[le] > 0)
 #if   DIM==2
-        sq_sJ = BFAM_REAL_SQRT(2.0*sJ[f]);
+        sq_sJ = BFAM_REAL_SQRT(2*sJ[f]);
 #elif DIM==3
-        sq_sJ = BFAM_REAL_SQRT(4.0*sJ[f]);
+        sq_sJ = BFAM_REAL_SQRT(4*sJ[f]);
 #else
 #error "Bad Dimension"
 #endif
@@ -1723,7 +1723,7 @@ void beard_dgx_energy(
           const bfam_real_t wi = w[i];
 
           /* setup up deviatoric stress tensor */
-          bfam_real_t mean_stress = (S11[n]+S22[n]+S33[n])/3.0;
+          bfam_real_t mean_stress = (S11[n]+S22[n]+S33[n])/3;
           bfam_real_t s11 = S11[n] - mean_stress;
           bfam_real_t s22 = S22[n] - mean_stress;
           bfam_real_t s33 = S33[n] - mean_stress;
@@ -1732,7 +1732,7 @@ void beard_dgx_energy(
           bfam_real_t s23 = S23[n];
 
           /* bulk modulus */
-          bfam_real_t K = lam[n] + 2.0*mu[n]/3.0;
+          bfam_real_t K = lam[n] + 2*mu[n]/3;
 
           energy_sq[0] += BEARD_D3_AP(wi*wj,*wk)*J[n]*(
               rho[n]*(v1[n]*v1[n] + v2[n]*v2[n] + v3[n]*v3[n])/2
