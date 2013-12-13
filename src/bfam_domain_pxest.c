@@ -1550,4 +1550,8 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
   bfam_domain_pxest_dgx_print_stats(domain);
 }
 
+#else
+
+void
+bfam_domain_pxest_stub() { }
 #endif
