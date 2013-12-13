@@ -1124,8 +1124,8 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
   /*
    * Set default boundary condition
    */
-  const char *default_boundary_glue[] = {"_glue_id_-1", NULL};
-  bfam_domain_add_tag((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
+  const char *default_boundary_glue[] = {"_glue_boundary","_glue_id_-1", NULL};
+  bfam_domain_add_tag((bfam_domain_t*)beard->domain, BFAM_DOMAIN_AND,
       default_boundary_glue, prefs->default_boundary_tag);
 
 
