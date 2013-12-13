@@ -1,3 +1,10 @@
+-- default parameters
+N1 = 10
+N2 = 10
+N3 = 10
+min_level = 1
+max_level = 1
+
 -- store random seed
 math.randomseed(0)
 
