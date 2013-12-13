@@ -1,6 +1,7 @@
 #include <bfam.h>
 #include <bfam_domain_pxest_3.h>
 
+#if 0
 static p4est_connectivity_t *
 snake(void)
 {
@@ -48,6 +49,7 @@ snake(void)
                                       NULL, &num_ett, NULL, NULL,
                                       NULL, &num_ctt, NULL, NULL);
 }
+#endif
 
 #define REAL_APPROX_EQ(x, y, K)                                              \
   BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, (K)*BFAM_REAL_EPS)

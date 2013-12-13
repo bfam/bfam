@@ -494,7 +494,7 @@ refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
       vxyz[0], vxyz[1], vxyz[2], vxyz[3], vxyz[ 4], vxyz[ 5],
       vxyz[6], vxyz[7], vxyz[8], vxyz[9], vxyz[10], vxyz[11],
       quadrant->level, which_tree, &val);
-  BFAM_ASSERT(result == 0);
+  BFAM_ABORT_IF_NOT(result == 0, "Expected 0 got %d", result);
 #elif DIM==3
   for(int iz = 0; iz < 2; iz++)
     for(int iy = 0; iy < 2; iy++)
@@ -516,7 +516,7 @@ refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
       vxyz[12], vxyz[13], vxyz[14], vxyz[15], vxyz[16], vxyz[17],
       vxyz[18], vxyz[19], vxyz[20], vxyz[21], vxyz[22], vxyz[23],
       quadrant->level, which_tree, &val);
-  BFAM_ASSERT(result == 0);
+  BFAM_ABORT_IF_NOT(result == 0, "Expected 0 got %d", result);
 #else
 #error "Bad Dimension"
 #endif

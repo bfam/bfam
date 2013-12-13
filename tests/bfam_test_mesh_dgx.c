@@ -219,6 +219,7 @@ check_vmaps(bfam_subdomain_dgx_t *sub, const char *name)
 
 
 
+#if 0
 static int
 check_back(bfam_subdomain_dgx_quad_glue_t *sub, const char *name)
 {
@@ -324,6 +325,7 @@ check_back(bfam_subdomain_dgx_quad_glue_t *sub, const char *name)
 
   return failures;
 }
+#endif
 
 static int
 build_mesh(MPI_Comm mpicomm)

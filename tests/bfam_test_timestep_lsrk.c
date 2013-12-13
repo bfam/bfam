@@ -98,12 +98,14 @@ test_lsrk_aux_rates(bfam_subdomain_t *sub, const char *prefix)
   char f1[BFAM_BUFSIZ];
   snprintf(f1,BFAM_BUFSIZ,"%s_f1",prefix);
   int rval = sub->field_add(sub,f1);
-  BFAM_ASSERT(rval != 1);
+  BFAM_ABORT_IF_NOT(rval != 1, "subdomain %s: problem adding field %s",
+      sub->name, f1);
 
   char f3[BFAM_BUFSIZ];
   snprintf(f3,BFAM_BUFSIZ,"%s_f3",prefix);
   rval = sub->field_add(sub,f3);
-  BFAM_ASSERT(rval != 1);
+  BFAM_ABORT_IF_NOT(rval != 1, "subdomain %s: problem adding field %s",
+      sub->name, f1);
 }
 
 void

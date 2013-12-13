@@ -173,7 +173,7 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts,
    for(int s = 0; s < numSubs;s++)
    {
      int rval = bfam_dictionary_insert_ptr(&ts->elems,subs[s]->name,subs[s]);
-     BFAM_ASSERT(rval != 1);
+     BFAM_ABORT_IF_NOT(rval != 1, "Issue adding subdomain %s", subs[s]->name);
 
      aux_rates(subs[s],BFAM_LSKR_PREFIX);
    }

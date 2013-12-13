@@ -1020,11 +1020,8 @@ void beard_dgx_inter_rhs_boundary(
     (bfam_subdomain_dgx_t*) sub_g->base.glue_m->sub_m;
 
   /* get the fields we will need */
-  bfam_subdomain_dgx_glue_data_t* glue_m =
-    (bfam_subdomain_dgx_glue_data_t*) sub_g->base.glue_m;
   bfam_subdomain_dgx_glue_data_t* glue_p =
     (bfam_subdomain_dgx_glue_data_t*) sub_g->base.glue_p;
-  BFAM_ASSERT(glue_m != NULL);
   BFAM_ASSERT(glue_p != NULL);
   bfam_dictionary_t *fields      = &sub_m->base.fields;
   bfam_dictionary_t *fields_face = &sub_m->base.fields_face;
