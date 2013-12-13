@@ -870,6 +870,9 @@ beard_grid_glue(bfam_locidx_t npoints, const char *name, bfam_real_t time,
   bfam_real_t *z_p = bfam_dictionary_get_value_ptr(fields_p, "_grid_x2");
 #endif
 
+  bfam_real_t *sJ_m = bfam_dictionary_get_value_ptr(fields_m, "_grid_sJ");
+  bfam_real_t *sJ_p = bfam_dictionary_get_value_ptr(fields_p, "_grid_sJ");
+
   BFAM_ASSERT(x_m  != NULL);
   BFAM_ASSERT(x_p  != NULL);
   BFAM_ASSERT(y_m  != NULL);
@@ -880,6 +883,9 @@ beard_grid_glue(bfam_locidx_t npoints, const char *name, bfam_real_t time,
   BFAM_ASSERT(z_p  != NULL);
 #endif
 
+  BFAM_ASSERT(sJ_m  != NULL);
+  BFAM_ASSERT(sJ_p  != NULL);
+
   for(int n = 0;n < npoints;n++)
   {
     x[n]  = BFAM_REAL(0.5)*(x_m[n]+x_p[n]);
@@ -887,6 +893,7 @@ beard_grid_glue(bfam_locidx_t npoints, const char *name, bfam_real_t time,
 #if DIM==3
     z[n]  = BFAM_REAL(0.5)*(z_m[n]+z_p[n]);
 #endif
+    sJ[n]  = 0.5*(sJ_m[n]+sJ_p[n]);
   }
 
 }
@@ -971,11 +978,13 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
 #if DIM==3
   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x2");
 #endif
+  bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_sJ");
 
   const char *glue_face_scalar[] = {"_grid_nx0","_grid_nx1",
 #if DIM==3
     "_grid_nx2",
 #endif
+    "_grid_sJ",
     NULL};
   for(bfam_locidx_t g = 0; glue_face_scalar[g] != NULL; g++)
   {
