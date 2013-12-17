@@ -1,5 +1,5 @@
 #include <bfam.h>
-#include <bfam_domain_p4est.h>
+#include <bfam_domain_pxest_2.h>
 
 static int          refine_level = 0;
 
@@ -92,18 +92,18 @@ build_mesh(MPI_Comm mpicomm)
 
   p4est_connectivity_t *conn = p4est_connectivity_new_corner();
 
-  bfam_domain_p4est_t* domain = bfam_domain_p4est_new(mpicomm, conn);
+  bfam_domain_pxest_t_2* domain = bfam_domain_pxest_new_2(mpicomm, conn);
 
   refine_level = 2;
-  p4est_refine(domain->p4est, 1, refine_fn, NULL);
-  p4est_balance(domain->p4est, P4EST_CONNECT_FACE, NULL);
-  p4est_partition(domain->p4est, NULL);
+  p4est_refine(domain->pxest, 1, refine_fn, NULL);
+  p4est_balance(domain->pxest, P4EST_CONNECT_FACE, NULL);
+  p4est_partition(domain->pxest, NULL);
 
-  p4est_vtk_write_file(domain->p4est, NULL, "p4est_mesh");
+  p4est_vtk_write_file(domain->pxest, NULL, "p4est_mesh");
 
   bfam_locidx_t numSubdomains = 4;
   bfam_locidx_t *subdomainID =
-    bfam_malloc(domain->p4est->local_num_quadrants*sizeof(bfam_locidx_t));
+    bfam_malloc(domain->pxest->local_num_quadrants*sizeof(bfam_locidx_t));
   bfam_locidx_t *N = bfam_malloc(numSubdomains*sizeof(int));
 
   /*
@@ -122,45 +122,45 @@ build_mesh(MPI_Comm mpicomm)
     N[id] = 3+id;
 
     p4est_gloidx_t first =
-      p4est_partition_cut_gloidx(domain->p4est->global_num_quadrants,
+      p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
           id, numSubdomains);
 
     p4est_gloidx_t last =
-      p4est_partition_cut_gloidx(domain->p4est->global_num_quadrants,
+      p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
           id + 1, numSubdomains) - 1;
 
     BFAM_ROOT_INFO("  id:%jd N:%d GIDs:%jd--%jd", (intmax_t) id, N[id],
         (intmax_t) first, (intmax_t) last);
   }
 
-  p4est_gloidx_t gkOffset = domain->p4est->global_first_quadrant[rank];
+  p4est_gloidx_t gkOffset = domain->pxest->global_first_quadrant[rank];
 
   bfam_locidx_t idStart = 0;
   while(gkOffset >
-      p4est_partition_cut_gloidx(domain->p4est->global_num_quadrants,
+      p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
         idStart + 1, numSubdomains) - 1) ++idStart;
 
   for(p4est_locidx_t lk = 0, id = idStart;
-      lk < domain->p4est->local_num_quadrants;
+      lk < domain->pxest->local_num_quadrants;
       ++lk)
   {
     p4est_gloidx_t gk = gkOffset + lk;
 
-    if(gk > p4est_partition_cut_gloidx(domain->p4est->global_num_quadrants,
+    if(gk > p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
                                        id + 1, numSubdomains) - 1)
       ++id;
 
     BFAM_ASSERT(
-      (gk >= p4est_partition_cut_gloidx(domain->p4est->global_num_quadrants,
+      (gk >= p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
                                    id, numSubdomains)) &&
-      (gk < p4est_partition_cut_gloidx(domain->p4est->global_num_quadrants,
+      (gk < p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
                                    id + 1, numSubdomains)));
 
     subdomainID[lk] = id;
   }
 
-  bfam_domain_p4est_split_dgx_quad_subdomains(domain, numSubdomains,
-      subdomainID, N);
+  bfam_domain_pxest_split_dgx_subdomains_2(domain, numSubdomains,
+      subdomainID, N, NULL);
 
   const char *volume[] = {"_volume", NULL};
   bfam_vtk_write_file((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume,
@@ -238,7 +238,7 @@ build_mesh(MPI_Comm mpicomm)
   bfam_free(subdomainID);
   bfam_free(N);
 
-  bfam_domain_p4est_free(domain);
+  bfam_domain_pxest_free_2(domain);
   bfam_free(domain);
   p4est_connectivity_destroy(conn);
 }

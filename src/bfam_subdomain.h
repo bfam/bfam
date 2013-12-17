@@ -148,11 +148,6 @@ typedef struct bfam_subdomain
   bfam_subdomain_glue_data_t *glue_m;
   bfam_subdomain_glue_data_t *glue_p;
 
-  /* This storage is depreciated and will be removed in the future */
-  bfam_dictionary_t fields_m; /**< a dictionary storing minus fields */
-  bfam_dictionary_t fields_p; /**< a dictionary storing plus fields */
-
-
   /* Function pointers that domain will need to call */
   void (*free)                (struct bfam_subdomain *thisSubdomain);
 

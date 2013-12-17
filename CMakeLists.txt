@@ -358,8 +358,6 @@ add_library(bfam
                  src/bfam_version.c
                  src/bfam_subdomain.c
                  src/bfam_domain.c
-                 src/bfam_domain_p4est.c
-                 src/bfam_subdomain_dgx_quad.c
                  src/bfam_vtk.c
                  src/bfam_timestep.c
                  src/bfam_timestep_lsrk.c
@@ -387,7 +385,7 @@ if(OPENCL_FOUND)
   target_link_libraries(bfam ${OPENCL_LIBRARIES})
 endif(OPENCL_FOUND)
 
-set(bfam_dgx_quad_norders  1  2  3  4  5  6  7  8  9 10
+set(bfam_dgx_norders  1  2  3  4  5  6  7  8  9 10
                           11 12 13 14 15 16 17 18 19 20
                           21 22 23 24)
 
@@ -479,7 +477,7 @@ bfam_multiple_build("NORDER" "${bfam_dgx_norders}"
   beard_dgx_rhs_2
   examples/beard/beard_dgx_rhs.c
   beard_2d)
-bfam_multiple_add_flag("BEARD_DGX_DIMENSION" "2" "${bfam_dgx_quad_norders}"
+bfam_multiple_add_flag("BEARD_DGX_DIMENSION" "2" "${bfam_dgx_norders}"
 beard_dgx_rhs_2)
 
 
@@ -487,18 +485,13 @@ bfam_multiple_build("NORDER" "${bfam_dgx_norders}"
   beard_dgx_rhs_3
   examples/beard/beard_dgx_rhs.c
   beard_3d)
-bfam_multiple_add_flag("BEARD_DGX_DIMENSION" "3" "${bfam_dgx_quad_norders}"
+bfam_multiple_add_flag("BEARD_DGX_DIMENSION" "3" "${bfam_dgx_norders}"
 beard_dgx_rhs_3)
 
 ##
 ## Tests
 ##
 enable_testing()
-
-add_executable(bfam_test_timestep_lsrk tests/bfam_test_timestep_lsrk.c)
-target_link_libraries(bfam_test_timestep_lsrk bfam)
-
-add_test(bfam_test_timestep_lsrk_test bfam_test_timestep_lsrk)
 
 add_executable(bfam_test_fail tests/bfam_test_fail.c)
 target_link_libraries(bfam_test_fail bfam)
@@ -571,11 +564,6 @@ target_link_libraries(bfam_test_kron bfam)
 
 add_test(bfam_test_kron_test bfam_test_kron)
 
-add_executable(bfam_test_mesh_dgquad_geo tests/bfam_test_mesh_dgquad_geo.c)
-target_link_libraries(bfam_test_mesh_dgquad_geo bfam)
-
-add_test(bfam_test_mesh_dgquad_geo bfam_test_mesh_dgquad_geo)
-
 add_executable(bfam_test_mesh_dgx_geo tests/bfam_test_mesh_dgx_geo.c)
 target_link_libraries(bfam_test_mesh_dgx_geo bfam)
 
@@ -590,21 +578,6 @@ add_executable(bfam_test_dgx_metric tests/bfam_test_dgx_metric.c)
 target_link_libraries(bfam_test_dgx_metric bfam)
 
 add_test(bfam_test_dgx_metric bfam_test_dgx_metric)
-
-add_executable(bfam_test_mesh_dgquad tests/bfam_test_mesh_dgquad.c)
-target_link_libraries(bfam_test_mesh_dgquad bfam)
-
-add_test(bfam_test_mesh_dgquad_1
-  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
-  ${MPIEXEC_PREFLAGS} ./bfam_test_mesh_dgquad ${MPIEXEC_POSTFLAGS})
-
-add_test(bfam_test_mesh_dgquad_2
-  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
-  ${MPIEXEC_PREFLAGS} ./bfam_test_mesh_dgquad ${MPIEXEC_POSTFLAGS})
-
-add_test(bfam_test_mesh_dgquad_3
-  ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
-  ${MPIEXEC_PREFLAGS} ./bfam_test_mesh_dgquad ${MPIEXEC_POSTFLAGS})
 
 add_executable(bfam_test_mesh_dgx tests/bfam_test_mesh_dgx.c)
 target_link_libraries(bfam_test_mesh_dgx bfam)
@@ -745,9 +718,6 @@ join("${BFAM_COMPILE_LIST}" "" BFAM_COMPILE_INFO)
 
 set(slash "\\")
 join("${bfam_dgx_norders}" ") X(" BFAM_DGX_NORDERS_MID)
-
-set(slash "\\")
-join("${bfam_dgx_quad_norders}" ") X(" BFAM_DGX_QUAD_NORDERS_MID)
 
 set(slash "\\")
 join("${bfam_dimensions}" ") X(" BFAM_DGX_DIMENSIONS_MID)

@@ -1755,7 +1755,7 @@ compute_energy(beard_t *beard, prefs_t *prefs, bfam_real_t t,
 
     switch(sub->N)
     {
-      BFAM_LIST_OF_DGX_QUAD_NORDERS
+      BFAM_LIST_OF_DGX_NORDERS
       default:
 #if   DIM==2
         beard_dgx_energy_2_(sub->N,&energy_local,sub,prefix);

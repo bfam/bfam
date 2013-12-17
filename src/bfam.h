@@ -12,7 +12,6 @@
 #include <bfam_opencl.h>
 #include <bfam_version.h>
 #include <bfam_subdomain.h>
-#include <bfam_subdomain_dgx_quad.h>
 #include <bfam_subdomain_dgx.h>
 #include <bfam_domain.h>
 #include <bfam_vtk.h>
