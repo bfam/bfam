@@ -264,7 +264,9 @@ build_mesh(MPI_Comm mpicomm)
   p8est_balance(domain->pxest, P8EST_CONNECT_CORNER, NULL);
   p8est_partition(domain->pxest, NULL);
 
+  /*
   p8est_vtk_write_file(domain->pxest, NULL, "p8est_mesh");
+  */
 
   bfam_locidx_t numSubdomains = 11;
   bfam_locidx_t *subdomainID =
@@ -459,8 +461,10 @@ build_mesh(MPI_Comm mpicomm)
 
   const char *ps[] = {"p1", "p2", "p3", "p4", "p5", "p6", NULL};
 
+  /*
   bfam_vtk_write_file((bfam_domain_t*)domain, BFAM_DOMAIN_OR, volume,
                        NULL,"ps",0, ps, NULL, NULL, 0, 0, 0);
+  */
 
   /*
    * Check local subdomain vmaps
