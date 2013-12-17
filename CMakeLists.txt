@@ -360,7 +360,6 @@ add_library(bfam
                  src/bfam_domain.c
                  src/bfam_domain_p4est.c
                  src/bfam_subdomain_dgx_quad.c
-                 src/bfam_subdomain_sbp.c
                  src/bfam_vtk.c
                  src/bfam_timestep.c
                  src/bfam_timestep_lsrk.c
@@ -551,9 +550,6 @@ target_link_libraries(bfam_test_aligned bfam)
 
 add_test(bfam_test_aligned_test bfam_test_aligned)
 
-# add_executable(bfam_test_sbp tests/bfam_test_sbp.c)
-# target_link_libraries(bfam_test_sbp bfam)
-
 add_executable(bfam_test_communicator tests/bfam_test_communicator.c)
 target_link_libraries(bfam_test_communicator bfam)
 
@@ -655,22 +651,6 @@ add_test(bfam_test_mesh_dgx_glue_split_3_2
 add_test(bfam_test_mesh_dgx_glue_split_3_3
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
   ${MPIEXEC_PREFLAGS} ./bfam_test_mesh_dgx_glue_split_3 ${MPIEXEC_POSTFLAGS})
-
-# add_test(bfam_test_sbp_test_1
-#   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
-#   ${MPIEXEC_PREFLAGS} ./bfam_test_sbp ${MPIEXEC_POSTFLAGS})
-
-# add_test(bfam_test_sbp_test_2
-#   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2
-#   ${MPIEXEC_PREFLAGS} ./bfam_test_sbp ${MPIEXEC_POSTFLAGS})
-
-# add_test(bfam_test_sbp_test_4
-#   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 4
-#   ${MPIEXEC_PREFLAGS} ./bfam_test_sbp ${MPIEXEC_POSTFLAGS})
-
-# add_test(bfam_test_sbp_test_25
-#   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 25
-#   ${MPIEXEC_PREFLAGS} ./bfam_test_sbp ${MPIEXEC_POSTFLAGS})
 
 add_test(bfam_test_communicator_test
   ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 3
