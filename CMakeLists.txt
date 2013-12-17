@@ -466,8 +466,6 @@ add_executable(beard_3d examples/beard/beard.c)
 set_target_properties(beard_3d PROPERTIES COMPILE_FLAGS
   "-DBEARD_DGX_DIMENSION=3")
 
-add_executable(beard_2d_old examples/beard_2d/beard.c)
-
 bfam_multiple_build("BFAM_PXEST_DIMENSION" "${pxest_dimensions}"
   bfam_domain_pxest
   src/bfam_domain_pxest.c
@@ -492,11 +490,6 @@ bfam_multiple_build("NORDER" "${bfam_dgx_norders}"
   beard_3d)
 bfam_multiple_add_flag("BEARD_DGX_DIMENSION" "3" "${bfam_dgx_quad_norders}"
 beard_dgx_rhs_3)
-
-bfam_multiple_build("NORDER" "${bfam_dgx_quad_norders}"
-  beard_2d_dgx_rhs
-  examples/beard_2d/beard_dgx_rhs.c
-  beard_2d_old)
 
 ##
 ## Tests
