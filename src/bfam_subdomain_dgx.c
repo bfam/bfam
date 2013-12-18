@@ -2042,7 +2042,7 @@ bfam_subdomain_dgx_gmask_set
       /* corners */
       for(int j = 0; j < 2; ++j)
         for(int i = 0; i < 2; ++i)
-          gmask[1][i+j*2][0] = i*N + j*(N+1);
+          gmask[1][i+j*2][0] = i*N + j*(N+1)*N;
       break;
 
     case 3:
