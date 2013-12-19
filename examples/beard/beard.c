@@ -84,6 +84,183 @@ bfam_real_t *field;                                                            \
 BFAM_ASSUME_ALIGNED(field,32);
 
 
+/*
+ * These algorithms are taken from
+ * http://www.grc.nasa.gov/WWW/winddocs/utilities/b4wind_guide/trilinear.html
+ *
+ * Accessed: 12/18/13
+ */
+static void
+inverse_bilinear(bfam_real_t *r,
+    const bfam_real_t x,  const bfam_real_t y,
+    const bfam_real_t x0, const bfam_real_t x1,
+    const bfam_real_t x2, const bfam_real_t x3,
+    const bfam_real_t y0, const bfam_real_t y1,
+    const bfam_real_t y2, const bfam_real_t y3)
+{
+  const bfam_real_t f0 = x3 + x2 + x1 + x0 - BFAM_REAL(4)*x;
+  const bfam_real_t f1 = x3 - x2 + x1 - x0;
+  const bfam_real_t f2 = x3 + x2 - x1 - x0;
+  const bfam_real_t f3 = x3 - x2 - x1 + x0;
+
+  const bfam_real_t g0 = y3 + y2 + y1 + y0 - BFAM_REAL(4)*y;
+  const bfam_real_t g1 = y3 - y2 + y1 - y0;
+  const bfam_real_t g2 = y3 + y2 - y1 - y0;
+  const bfam_real_t g3 = y3 - y2 - y1 + y0;
+
+  bfam_real_t a = 0;
+  bfam_real_t b = 0;
+
+  /* until we are curved this should converge in one iteration */
+  {
+    const bfam_real_t f = f0 + a*f1 + b*f2 + a*b*f3;
+    const bfam_real_t g = g0 + a*g1 + b*g2 + a*b*g3;
+
+    const bfam_real_t da = (  f       *(g2+a*g3) -  g       *(f2+a*f3)) /
+                           (-(f1+b*f3)*(g2+a*g3) + (g1+b*g3)*(f2+a*f3));
+    const bfam_real_t db = (  f       *(g1+b*g3) -  g       *(f1+b*f3)) /
+                           (-(f2+a*f3)*(g1+b*g3) + (g2+a*g3)*(f1+b*f3));
+
+    a += da;
+    b += db;
+  }
+
+  r[0] = a;
+  r[1] = b;
+
+#ifdef BFAM_DEBUG
+  if(BFAM_REAL_ABS(a) <= 1 && BFAM_REAL_ABS(b) <= 1)
+  {
+    BFAM_LDEBUG("Found point "
+        "(%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe") "
+        "with (r[0],r[1]) = "
+        "(%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe")",
+        x,y, r[0],r[1]);
+    BFAM_LDEBUG("in cell "
+        "(%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe") "
+        "(%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe") "
+        "(%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe") "
+        "(%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe")",
+        x0,y0,x1,y1,x2,y2,x3,y3);
+  }
+#endif
+}
+
+static void
+inverse_trilinear(bfam_real_t *r,
+    const bfam_real_t x, const bfam_real_t y, const bfam_real_t z,
+    const bfam_real_t x0, const bfam_real_t x1,
+    const bfam_real_t x2, const bfam_real_t x3,
+    const bfam_real_t x4, const bfam_real_t x5,
+    const bfam_real_t x6, const bfam_real_t x7,
+    const bfam_real_t y0, const bfam_real_t y1,
+    const bfam_real_t y2, const bfam_real_t y3,
+    const bfam_real_t y4, const bfam_real_t y5,
+    const bfam_real_t y6, const bfam_real_t y7,
+    const bfam_real_t z0, const bfam_real_t z1,
+    const bfam_real_t z2, const bfam_real_t z3,
+    const bfam_real_t z4, const bfam_real_t z5,
+    const bfam_real_t z6, const bfam_real_t z7)
+{
+  const bfam_real_t f0 = x7 + x6 + x5 + x4 + x3 + x2 + x1 + x0 - BFAM_REAL(8)*x;
+  const bfam_real_t f1 = x7 - x6 + x5 - x4 + x3 - x2 + x1 - x0;
+  const bfam_real_t f2 = x7 + x6 - x5 - x4 + x3 + x2 - x1 - x0;
+  const bfam_real_t f3 = x7 + x6 + x5 + x4 - x3 - x2 - x1 - x0;
+  const bfam_real_t f4 = x7 - x6 - x5 + x4 + x3 - x2 - x1 + x0;
+  const bfam_real_t f5 = x7 - x6 + x5 - x4 - x3 + x2 - x1 + x0;
+  const bfam_real_t f6 = x7 + x6 - x5 - x4 - x3 - x2 + x1 + x0;
+  const bfam_real_t f7 = x7 - x6 - x5 + x4 - x3 + x2 + x1 - x0;
+
+  const bfam_real_t g0 = y7 + y6 + y5 + y4 + y3 + y2 + y1 + y0 - BFAM_REAL(8)*y;
+  const bfam_real_t g1 = y7 - y6 + y5 - y4 + y3 - y2 + y1 - y0;
+  const bfam_real_t g2 = y7 + y6 - y5 - y4 + y3 + y2 - y1 - y0;
+  const bfam_real_t g3 = y7 + y6 + y5 + y4 - y3 - y2 - y1 - y0;
+  const bfam_real_t g4 = y7 - y6 - y5 + y4 + y3 - y2 - y1 + y0;
+  const bfam_real_t g5 = y7 - y6 + y5 - y4 - y3 + y2 - y1 + y0;
+  const bfam_real_t g6 = y7 + y6 - y5 - y4 - y3 - y2 + y1 + y0;
+  const bfam_real_t g7 = y7 - y6 - y5 + y4 - y3 + y2 + y1 - y0;
+
+  const bfam_real_t h0 = z7 + z6 + z5 + z4 + z3 + z2 + z1 + z0 - BFAM_REAL(8)*z;
+  const bfam_real_t h1 = z7 - z6 + z5 - z4 + z3 - z2 + z1 - z0;
+  const bfam_real_t h2 = z7 + z6 - z5 - z4 + z3 + z2 - z1 - z0;
+  const bfam_real_t h3 = z7 + z6 + z5 + z4 - z3 - z2 - z1 - z0;
+  const bfam_real_t h4 = z7 - z6 - z5 + z4 + z3 - z2 - z1 + z0;
+  const bfam_real_t h5 = z7 - z6 + z5 - z4 - z3 + z2 - z1 + z0;
+  const bfam_real_t h6 = z7 + z6 - z5 - z4 - z3 - z2 + z1 + z0;
+  const bfam_real_t h7 = z7 - z6 - z5 + z4 - z3 + z2 + z1 - z0;
+
+
+  bfam_real_t a = 0;
+  bfam_real_t b = 0;
+  bfam_real_t c = 0;
+
+  /* until we are curved this should converge in one iteration */
+  const int MAX_ITERATIONS = 200;
+  int diff = 0;
+  for(int n = 0; n < MAX_ITERATIONS; n++)
+  {
+    const bfam_real_t f =     f0 +   a*f1 +   b*f2 +     c*f3
+                        + a*b*f4 + a*c*f5 + b*c*f6 + a*b*c*f7;
+    const bfam_real_t g =     g0 +   a*g1 +   b*g2 +     c*g3
+                        + a*b*g4 + a*c*g5 + b*c*g6 + a*b*c*g7;
+    const bfam_real_t h =     h0 +   a*h1 +   b*h2 +     c*h3
+                        + a*b*h4 + a*c*h5 + b*c*h6 + a*b*c*h7;
+    diff = !BFAM_REAL_APPROX_EQ(BFAM_REAL(0), f, 10);
+    diff += !BFAM_REAL_APPROX_EQ(BFAM_REAL(0), g, 10);
+    diff += !BFAM_REAL_APPROX_EQ(BFAM_REAL(0), h, 10);
+    if(!diff) break;
+
+    const bfam_real_t a_f = f1 + b*f4 + c*f5 + b*c*f7;
+    const bfam_real_t b_f = f2 + a*f4 + c*f6 + a*c*f7;
+    const bfam_real_t c_f = f3 + a*f5 + b*f6 + a*b*f7;
+
+    const bfam_real_t a_g = g1 + b*g4 + c*g5 + b*c*g7;
+    const bfam_real_t b_g = g2 + a*g4 + c*g6 + a*c*g7;
+    const bfam_real_t c_g = g3 + a*g5 + b*g6 + a*b*g7;
+
+    const bfam_real_t a_h = h1 + b*h4 + c*h5 + b*c*h7;
+    const bfam_real_t b_h = h2 + a*h4 + c*h6 + a*c*h7;
+    const bfam_real_t c_h = h3 + a*h5 + b*h6 + a*b*h7;
+
+    const bfam_real_t da = (g*(b_f*c_h - b_h*c_f))/(a_f*b_g*c_h - a_f*b_h*c_g - a_g*b_f*c_h + a_g*b_h*c_f + a_h*b_f*c_g - a_h*b_g*c_f) - (f*(b_g*c_h - b_h*c_g))/(a_f*b_g*c_h - a_f*b_h*c_g - a_g*b_f*c_h + a_g*b_h*c_f + a_h*b_f*c_g - a_h*b_g*c_f) - (h*(b_f*c_g - b_g*c_f))/(a_f*b_g*c_h - a_f*b_h*c_g - a_g*b_f*c_h + a_g*b_h*c_f + a_h*b_f*c_g - a_h*b_g*c_f);
+    const bfam_real_t db = (f*(a_g*c_h - a_h*c_g))/(a_f*b_g*c_h - a_f*b_h*c_g - a_g*b_f*c_h + a_g*b_h*c_f + a_h*b_f*c_g - a_h*b_g*c_f) - (g*(a_f*c_h - a_h*c_f))/(a_f*b_g*c_h - a_f*b_h*c_g - a_g*b_f*c_h + a_g*b_h*c_f + a_h*b_f*c_g - a_h*b_g*c_f) + (h*(a_f*c_g - a_g*c_f))/(a_f*b_g*c_h - a_f*b_h*c_g - a_g*b_f*c_h + a_g*b_h*c_f + a_h*b_f*c_g - a_h*b_g*c_f);
+    const bfam_real_t dc = (g*(a_f*b_h - a_h*b_f))/(a_f*b_g*c_h - a_f*b_h*c_g - a_g*b_f*c_h + a_g*b_h*c_f + a_h*b_f*c_g - a_h*b_g*c_f) - (f*(a_g*b_h - a_h*b_g))/(a_f*b_g*c_h - a_f*b_h*c_g - a_g*b_f*c_h + a_g*b_h*c_f + a_h*b_f*c_g - a_h*b_g*c_f) - (h*(a_f*b_g - a_g*b_f))/(a_f*b_g*c_h - a_f*b_h*c_g - a_g*b_f*c_h + a_g*b_h*c_f + a_h*b_f*c_g - a_h*b_g*c_f);
+
+    a += da;
+    b += db;
+    c += dc;
+  }
+
+  BFAM_ABORT_IF(diff > 0, "inverse_trilinear did not converge");
+
+  r[0] = a;
+  r[1] = b;
+  r[2] = c;
+
+#ifdef BFAM_DEBUG
+  if(BFAM_REAL_ABS(a) <= 1 && BFAM_REAL_ABS(b) <= 1 && BFAM_REAL_ABS(c) <= 1)
+  {
+    BFAM_LDEBUG("Found point "
+        "(%+10.5"BFAM_REAL_PRIe  ",%+10.5"BFAM_REAL_PRIe",%+10.5"BFAM_REAL_PRIe") "
+        "with (r[0],r[1],r[2]) = "
+        "(%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe")",
+        x,y,z,r[0],r[1],r[2]);
+    BFAM_LDEBUG("in cell "
+        "(%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe") "
+        "(%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe") "
+        "(%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe") "
+        "(%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe") "
+        "(%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe") "
+        "(%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe") "
+        "(%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe") "
+        "(%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe ",%+10.5"BFAM_REAL_PRIe")",
+        x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3,
+        x4, y4, z4, x5, y5, z5, x6, y6, z6, x7, y7, z7);
+  }
+#endif
+}
+
+
 
 typedef struct beard
 {
@@ -1998,6 +2175,120 @@ shave_beard(beard_t *beard,prefs_t *prefs)
   p4est_connectivity_destroy(beard->conn);
 }
 
+static void
+init_stations(beard_t *beard, prefs_t *prefs)
+{
+  lua_State *L = prefs->L;
+#ifdef BFAM_DEBUG
+  int top = lua_gettop(L);
+#endif
+
+  lua_getglobal(L,"volume_stations");
+
+  if(!lua_istable(L, -1))
+    BFAM_ROOT_WARNING("table `%s' not found", "volume_stations");
+  else
+  {
+
+    const int length_stations = luaL_getn(L, -1);
+    BFAM_LDEBUG("volume_stations  #elem: %3d", length_stations);
+
+    BFAM_ABORT_IF_NOT(length_stations%DIM == 0,
+        "length of volume_stations should be a multiple of %d",DIM);
+
+    const int num_stations = length_stations/DIM;
+
+    bfam_real_t xyz[DIM*num_stations];
+
+    luaL_checktype(L, -1, LUA_TTABLE);
+
+    for(int i=0; i<num_stations; i++)
+    {
+      for(int j=0; j < DIM; j++)
+      {
+        lua_rawgeti(L, -1, DIM*i+j+1);
+        xyz[DIM*i+j] = (bfam_real_t)lua_tonumber(L, -1);
+        lua_pop(L, 1);
+      }
+
+#if DIM==2
+      BFAM_ROOT_LDEBUG("Station %04d:"
+          " %"BFAM_REAL_FMTe
+          " %"BFAM_REAL_FMTe,
+          i/DIM, xyz[DIM*i+0], xyz[DIM*i+1]);
+#elif DIM==3
+      BFAM_ROOT_LDEBUG("Station %04d:"
+          " %"BFAM_REAL_FMTe
+          " %"BFAM_REAL_FMTe
+          " %"BFAM_REAL_FMTe,
+          i/DIM, xyz[DIM*i+0], xyz[DIM*i+1], xyz[DIM*i+2]);
+#endif
+    }
+
+    const char *volume[] = {"_volume",NULL};
+    bfam_subdomain_t *subs[beard->domain->base.numSubdomains];
+    bfam_locidx_t num_subs = 0;
+    bfam_domain_get_subdomains((bfam_domain_t*) beard->domain,
+        BFAM_DOMAIN_OR,volume,beard->domain->base.numSubdomains,
+        subs,&num_subs);
+
+    for(int n = 0; n < num_subs; n++)
+    {
+      bfam_subdomain_dgx_t *s = (bfam_subdomain_dgx_t*) subs[n];
+      const int num_cells = s->K;
+
+      BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x,"","_grid_x0",&s->base.fields);
+      BFAM_LOAD_FIELD_RESTRICT_ALIGNED(y,"","_grid_x1",&s->base.fields);
+#if DIM==3
+      BFAM_LOAD_FIELD_RESTRICT_ALIGNED(z,"","_grid_x2",&s->base.fields);
+#endif
+
+      int** msk       = s->gmask[s->numg-1];
+      BFAM_INFO("%d %d %d %d %d %d %d %d",
+          msk[0][0],
+          msk[1][0],
+          msk[2][0],
+          msk[3][0],
+          msk[4][0],
+          msk[5][0],
+          msk[6][0],
+          msk[7][0]);
+      const int   num_corners = s->Ng   [s->numg-1];
+
+      for(int k = 0; k < num_cells; k++)
+      {
+        const bfam_real_t *x_e = x+k*s->Np;
+        const bfam_real_t *y_e = y+k*s->Np;
+        BEARD_D3_OP(const bfam_real_t *z_e = z+k*s->Np);
+        for(int i = 0; i < num_stations; i++)
+        {
+#if DIM == 2
+          bfam_real_t r[2];
+          inverse_bilinear(r, xyz[i*DIM+0], xyz[i*DIM+1],
+              x_e[msk[0][0]], x_e[msk[1][0]], x_e[msk[2][0]], x_e[msk[3][0]],
+              y_e[msk[0][0]], y_e[msk[1][0]], y_e[msk[2][0]], y_e[msk[3][0]]);
+#elif DIM == 3
+          bfam_real_t r[3];
+          inverse_trilinear(r, xyz[i*DIM+0], xyz[i*DIM+1], xyz[i*DIM+2],
+              x_e[msk[0][0]], x_e[msk[1][0]], x_e[msk[2][0]], x_e[msk[3][0]],
+              x_e[msk[4][0]], x_e[msk[5][0]], x_e[msk[6][0]], x_e[msk[7][0]],
+              y_e[msk[0][0]], y_e[msk[1][0]], y_e[msk[2][0]], y_e[msk[3][0]],
+              y_e[msk[4][0]], y_e[msk[5][0]], y_e[msk[6][0]], y_e[msk[7][0]],
+              z_e[msk[0][0]], z_e[msk[1][0]], z_e[msk[2][0]], z_e[msk[3][0]],
+              z_e[msk[4][0]], z_e[msk[5][0]], z_e[msk[6][0]], z_e[msk[7][0]]);
+#else
+#error "Bad Dimension"
+#endif
+        }
+      }
+    }
+  }
+
+  lua_pop(L, 1);
+  BFAM_ASSERT(top == lua_gettop(L));
+
+}
+
 /*
  * run the beard
  */
@@ -2011,6 +2302,8 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   init_domain(&beard, prefs);
 
   init_lsrk(&beard, prefs);
+
+  init_stations(&beard, prefs);
 
   run_simulation(&beard, prefs);
 

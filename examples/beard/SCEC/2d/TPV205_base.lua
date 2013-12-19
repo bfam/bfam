@@ -122,6 +122,22 @@ function time_step_parameters(dt)
   return dt,nsteps, ndisp, noutput, nfoutput
 end
 
+volume_stations = {
+ 12.0, 3.0,
+-12.0, 3.0,
+ -4.6, 1.7,
+}
+
+fault_stations = {
+ -4.5, 0.0,
+ -7.5, 0.0,
+-12.0, 0.0,
+  0.0, 0.0,
+  4.5, 0.0,
+  7.5, 0.0,
+ 12.0, 0.0,
+}
+
 -- faults
 fault_1 = {
   type   = "friction",
