@@ -37,6 +37,14 @@
 
 struct bfam_subdomain_dgx;
 
+typedef struct bfam_subdomain_dgx_point_interp
+{
+  int           num_interp;
+  bfam_real_t **interp;
+  char *file_name;
+  FILE *file_pointer;
+} bfam_subdomain_dgx_point_interp_t;
+
 typedef struct bfam_subdomain_dgx_glue_data
 {
   bfam_subdomain_glue_data_t base;
