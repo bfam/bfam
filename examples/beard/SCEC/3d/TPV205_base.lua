@@ -113,6 +113,7 @@ tend   = 12
 tout   = 1
 tfout  = 0.1
 tdisp  = 0.01
+tstations  = 0.01
 nerr   = 0
 
 function time_step_parameters(dt)
@@ -124,7 +125,6 @@ function time_step_parameters(dt)
   ndisp      = tdisp / dt
   nsteps     = tend / dt
   nstations  = tstations / dt
-  nsteps = 1
 
   return dt,nsteps, ndisp, noutput, nfoutput, nstations
 end

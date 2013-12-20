@@ -2002,11 +2002,36 @@ typedef struct station_args
 {
   prefs_t *prefs;
   const char **fields;
+  bfam_real_t time;
 } station_args_t;
+
+static int
+beard_output_stations(const char * key, void *val, void *in_args)
+{
+  bfam_subdomain_dgx_point_interp_t *point =
+    (bfam_subdomain_dgx_point_interp_t*)val;
+
+  station_args_t *args = (station_args_t*) in_args;
+  BFAM_ASSERT(args);
+
+  const char **fields = args->fields;
+
+  if(point->num_interp == 1)
+    bfam_subdomain_dgx_point_interp_fields_1(point,args->time,"",fields,1);
+  else if(point->num_interp == 2)
+    bfam_subdomain_dgx_point_interp_fields_2(point,args->time,"",fields,2);
+  else if(point->num_interp == 3)
+    bfam_subdomain_dgx_point_interp_fields_3(point,args->time,"",fields,3);
+  else BFAM_ABORT("Invalid number of interps %d (%s)",
+      point->num_interp, point->filename);
+
+  return 0;
+}
 
 static int
 beard_open_stations(const char * key, void *val, void *in_args)
 {
+  int i = 0;
   bfam_subdomain_dgx_point_interp_t *point =
     (bfam_subdomain_dgx_point_interp_t*)val;
   bfam_subdomain_dgx_point_interp_open_(point);
@@ -2018,6 +2043,7 @@ beard_open_stations(const char * key, void *val, void *in_args)
   const char **fields = args->fields;
 
   FILE *file = point->file;
+  BFAM_ABORT_IF_NOT(file, "problem with opening file %s",point->filename);
   fprintf(file,"# problem = %s\n",prefs->output_prefix);
   fprintf(file,"# date    = XXX\n");
   fprintf(file,"# code    = beard %dd\n",DIM);
@@ -2028,7 +2054,7 @@ beard_open_stations(const char * key, void *val, void *in_args)
   for(int n = 0; fields[n]; n++) fprintf(file," %s",fields[n]);
   fprintf(file,"\n");
 
-  return 0;
+  return beard_output_stations(key, val, args);
 }
 
 static void
@@ -2053,7 +2079,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   int nstations = 0;
 
   int result = lua_global_function_call(prefs->L,"time_step_parameters",
-      "r>riiii",dt,&dt,&nsteps,&ndisp,&noutput,&nfoutput,&nstations);
+      "r>riiiii",dt,&dt,&nsteps,&ndisp,&noutput,&nfoutput,&nstations);
   BFAM_ABORT_IF_NOT(result == 0,
       "problem with lua call to 'time_step_parameters': "
       "should be a function that takes dt "
@@ -2084,6 +2110,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     station_args_t volume_args;
     volume_args.prefs  = prefs;
     volume_args.fields = volume_station_fields;
+    volume_args.time   = 0;
     bfam_dictionary_allprefixed_ptr(beard->volume_stations, "",
         &beard_open_stations, &volume_args);
   }
@@ -2162,6 +2189,16 @@ run_simulation(beard_t *beard,prefs_t *prefs)
             energy/initial_energy-1);
       }
       energy = new_energy;
+    }
+    if(nstations > 0 && s%nstations == 0)
+    {
+      const char *volume_station_fields[] = {"v1", "v2", "v3", NULL};
+      station_args_t volume_args;
+      volume_args.prefs  = prefs;
+      volume_args.fields = volume_station_fields;
+      volume_args.time   = (s)*dt;
+      bfam_dictionary_allprefixed_ptr(beard->volume_stations, "",
+          &beard_output_stations, &volume_args);
     }
     if(nfoutput > 0 && s%nfoutput == 0)
     {

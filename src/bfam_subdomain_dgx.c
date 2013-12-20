@@ -63,10 +63,6 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,BFAM_DGX_DIMENSION)(
   const int DIM = inDIM;
 #endif
   const bfam_locidx_t elem = point->elem;
-  /*
-  const bfam_locidx_t o_d = elem * Np_d;
-  const bfam_locidx_t o_s = elem * Np_s;
-  */
 
   bfam_real_t d = 0;
 
@@ -94,6 +90,32 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,BFAM_DGX_DIMENSION)(
 
   return d;
 }
+
+void
+BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_fields_,BFAM_DGX_DIMENSION)(
+                       bfam_subdomain_dgx_point_interp_t* point,
+                       bfam_real_t                        t,
+                       const char*                        prefix,
+                       const char**                       fields,
+                       const int                          inDIM)
+{
+#ifdef USE_GENERIC_DGX_DIMENSION
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_point_interp_fields");
+  const int DIM = inDIM;
+#endif
+  BFAM_ASSERT(point->file);
+
+  fprintf(point->file,"%24.16"BFAM_REAL_PRIe, t);
+  for(int n = 0; fields[n]; n++)
+  {
+    const bfam_real_t v =
+      BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,
+          BFAM_DGX_DIMENSION)(point,prefix,fields[n],inDIM);
+    fprintf(point->file," %24.16"BFAM_REAL_PRIe, v);
+  }
+  fprintf(point->file,"\n");
+}
+
 
 void
 BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_open_,BFAM_DGX_DIMENSION)(

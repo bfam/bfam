@@ -340,6 +340,14 @@ bfam_subdomain_dgx_point_interp_field_(
                        const char*                        field,
                        const int                          inDIM);
 
+void
+bfam_subdomain_dgx_point_interp_fields_(
+                       bfam_subdomain_dgx_point_interp_t* point,
+                       bfam_real_t                        t,
+                       const char*                        prefix,
+                       const char**                       fields,
+                       const int                          inDIM);
+
 /** free up the memory allocated by the subdomain
  *
  * \param [in,out] subdomain subdomain to clean up
@@ -348,6 +356,13 @@ void
 bfam_subdomain_dgx_free_(bfam_subdomain_t *subdomain);
 
 #define X(dg_dim) \
+void                                                                     \
+bfam_subdomain_dgx_point_interp_fields_##dg_dim(                         \
+                       bfam_subdomain_dgx_point_interp_t* point,         \
+                       bfam_real_t                        t,             \
+                       const char*                        prefix,        \
+                       const char**                       fields,        \
+                       const int                          inDIM);        \
 bfam_real_t                                                              \
 bfam_subdomain_dgx_point_interp_field_##dg_dim(                          \
                        bfam_subdomain_dgx_point_interp_t* point,         \
