@@ -118,14 +118,15 @@ function time_step_parameters(dt)
   noutput  = tout  / dt
   ndisp   = tdisp / dt
   nsteps  = tend / dt
+  nsteps = 1
 
   return dt,nsteps, ndisp, noutput, nfoutput
 end
 
 volume_stations = {
- 12.0, 3.0,
--12.0, 3.0,
- -4.6, 1.7,
+ "p12_p3", 12.0, 3.0,
+ "m12_p3",-12.0, 3.0,
+ "m12_p3", -4.6, 1.7,
 }
 
 fault_stations = {
