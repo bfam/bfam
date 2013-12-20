@@ -120,12 +120,13 @@ function time_step_parameters(dt)
   nfoutput = math.ceil(tfout / dt)
   dt       = tfout / nfoutput
 
-  noutput  = tout  / dt
-  ndisp   = tdisp / dt
-  nsteps  = tend / dt
+  noutput    = tout  / dt
+  ndisp      = tdisp / dt
+  nsteps     = tend / dt
+  nstations  = tstations / dt
   nsteps = 1
 
-  return dt,nsteps, ndisp, noutput, nfoutput
+  return dt,nsteps, ndisp, noutput, nfoutput, nstations
 end
 
 volume_stations = {

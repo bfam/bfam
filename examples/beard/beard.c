@@ -1998,6 +1998,39 @@ check_error(bfam_locidx_t npoints, const char *name, bfam_real_t t,
   }
 }
 
+typedef struct station_args
+{
+  prefs_t *prefs;
+  const char **fields;
+} station_args_t;
+
+static int
+beard_open_stations(const char * key, void *val, void *in_args)
+{
+  bfam_subdomain_dgx_point_interp_t *point =
+    (bfam_subdomain_dgx_point_interp_t*)val;
+  bfam_subdomain_dgx_point_interp_open_(point);
+
+  station_args_t *args = (station_args_t*) in_args;
+  BFAM_ASSERT(args);
+
+  prefs_t *prefs      = args->prefs;
+  const char **fields = args->fields;
+
+  FILE *file = point->file;
+  fprintf(file,"# problem = %s\n",prefs->output_prefix);
+  fprintf(file,"# date    = XXX\n");
+  fprintf(file,"# code    = beard %dd\n",DIM);
+  fprintf(file,"# version = %s\n",bfam_version_get());
+  fprintf(file,"# station = %s\n",key);
+  fprintf(file,"# The line below lists the names of the data fields:\n");
+  fprintf(file,"t");
+  for(int n = 0; fields[n]; n++) fprintf(file," %s",fields[n]);
+  fprintf(file,"\n");
+
+  return 0;
+}
+
 static void
 run_simulation(beard_t *beard,prefs_t *prefs)
 {
@@ -2017,9 +2050,10 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   int ndisp   = 0;
   int noutput = 0;
   int nfoutput = 0;
+  int nstations = 0;
 
   int result = lua_global_function_call(prefs->L,"time_step_parameters",
-      "r>riiii",dt,&dt,&nsteps,&ndisp,&noutput,&nfoutput);
+      "r>riiii",dt,&dt,&nsteps,&ndisp,&noutput,&nfoutput,&nstations);
   BFAM_ABORT_IF_NOT(result == 0,
       "problem with lua call to 'time_step_parameters': "
       "should be a function that takes dt "
@@ -2036,12 +2070,23 @@ run_simulation(beard_t *beard,prefs_t *prefs)
             volume, err_flds[f]);
   }
 
-  BFAM_ROOT_INFO("dt       = %"BFAM_REAL_FMTe,dt);
-  BFAM_ROOT_INFO("nsteps   = %d",nsteps);
-  BFAM_ROOT_INFO("ndisp    = %d",ndisp);
-  BFAM_ROOT_INFO("noutput  = %d",noutput);
-  BFAM_ROOT_INFO("nfoutput = %d",nfoutput);
-  BFAM_ROOT_INFO("nerr     = %d",nerr);
+  BFAM_ROOT_INFO("dt        = %"BFAM_REAL_FMTe,dt);
+  BFAM_ROOT_INFO("nsteps    = %d",nsteps);
+  BFAM_ROOT_INFO("ndisp     = %d",ndisp);
+  BFAM_ROOT_INFO("noutput   = %d",noutput);
+  BFAM_ROOT_INFO("nfoutput  = %d",nfoutput);
+  BFAM_ROOT_INFO("nstations = %d",nstations);
+  BFAM_ROOT_INFO("nerr      = %d",nerr);
+
+  if(nstations >= 0)
+  {
+    const char *volume_station_fields[] = {"v1", "v2", "v3", NULL};
+    station_args_t volume_args;
+    volume_args.prefs  = prefs;
+    volume_args.fields = volume_station_fields;
+    bfam_dictionary_allprefixed_ptr(beard->volume_stations, "",
+        &beard_open_stations, &volume_args);
+  }
 
   if(nfoutput >= 0)
   {
@@ -2371,7 +2416,6 @@ init_stations(beard_t *beard, prefs_t *prefs)
 
   lua_pop(L, 1);
   BFAM_ASSERT(top == lua_gettop(L));
-
 }
 
 /*

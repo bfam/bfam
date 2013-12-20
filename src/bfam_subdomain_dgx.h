@@ -300,6 +300,9 @@ bfam_subdomain_dgx_point_interp_init_(
                              const int                          filename_size,
                              const int                          inDIM);
 
+void
+bfam_subdomain_dgx_point_interp_open_(bfam_subdomain_dgx_point_interp_t* point);
+
 /** create a dgx subdomain interpolation point
  *
  * \param [in]     sub             subdomain pointer for this point
@@ -354,6 +357,9 @@ bfam_subdomain_dgx_point_interp_field_##dg_dim(                          \
 void                                                                     \
 bfam_subdomain_dgx_point_interp_free_##dg_dim(                           \
                  bfam_subdomain_dgx_point_interp_t*  point);             \
+void                                                                     \
+bfam_subdomain_dgx_point_interp_open_##dg_dim(                           \
+                             bfam_subdomain_dgx_point_interp_t* point);  \
 void                                                                     \
 bfam_subdomain_dgx_point_interp_init_##dg_dim(                           \
                  bfam_subdomain_dgx_point_interp_t*  point,              \

@@ -38,7 +38,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_free_,BFAM_DGX_DIMENSION)(
   point->sub  = NULL;
   point->elem = -1;
 
-  fclose(point->file);
+  if(point->file) fclose(point->file);
   point->file = NULL;
 
   strncpy(point->filename,"",BFAM_BUFSIZ);
@@ -96,6 +96,13 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,BFAM_DGX_DIMENSION)(
 }
 
 void
+BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_open_,BFAM_DGX_DIMENSION)(
+    bfam_subdomain_dgx_point_interp_t* point)
+{
+  point->file = fopen(point->filename, "w");
+}
+
+void
 BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_init_,BFAM_DGX_DIMENSION)(
                        bfam_subdomain_dgx_point_interp_t* point,
                        bfam_subdomain_dgx_t*              sub,
@@ -120,7 +127,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_init_,BFAM_DGX_DIMENSION)(
     point->interp[n] = bfam_malloc_aligned((sub->N+1)*sizeof(bfam_real_t));
 
   strncpy(point->filename, filename, BFAM_BUFSIZ);
-  point->file = fopen(point->filename, "w");
+  point->file = NULL;
 
   bfam_long_real_t *cal_interp =
     bfam_malloc_aligned(sizeof(bfam_long_real_t)*(sub->N+1));
