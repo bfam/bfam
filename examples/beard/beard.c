@@ -532,7 +532,7 @@ new_prefs(const char *prefs_filename)
 
   /* get default boundary tag */
   lua_getglobal(L,"default_boundary_tag");
-  strncpy(prefs->default_boundary_tag,"free surface",BFAM_BUFSIZ);
+  strncpy(prefs->default_boundary_tag,"non-reflecting",BFAM_BUFSIZ);
   if(lua_isstring(L, -1))
   {
     const char *default_boundary_tag = lua_tostring(L, -1);
