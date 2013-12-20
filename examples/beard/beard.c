@@ -2286,7 +2286,7 @@ shave_beard(beard_t *beard,prefs_t *prefs)
 }
 
 static void
-init_stations(beard_t *beard, prefs_t *prefs)
+init_volume_stations(beard_t *beard, prefs_t *prefs)
 {
   lua_State *L = prefs->L;
 #ifdef BFAM_DEBUG
@@ -2475,7 +2475,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
 
   init_lsrk(&beard, prefs);
 
-  init_stations(&beard, prefs);
+  init_volume_stations(&beard, prefs);
 
   run_simulation(&beard, prefs);
 
