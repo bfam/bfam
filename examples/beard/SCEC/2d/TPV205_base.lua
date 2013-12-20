@@ -8,12 +8,12 @@ data_directory = "data"
 connectivity = "brick"
 brick =
 {
-  nx = 40,
-  ny = 20,
-  nz = 20,
-  periodic_x = 1,
-  periodic_y = 1,
-  periodic_z = 1,
+  nx = 96,
+  ny = 96,
+  nz = 48,
+  periodic_x = 0,
+  periodic_y = 0,
+  periodic_z = 0,
 }
 
 -- set up the domain
