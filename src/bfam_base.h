@@ -269,7 +269,7 @@ typedef double bfam_real_t;
 
 #define BFAM_REAL_APPROX_EQ(x, y, K)                                         \
   BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS,                \
-                 BFAM_REAL_EPS * BFAM_REAL_EPS)
+                 BFAM_REAL_EPS)
 
 /* Type for processor-local indexing */
 typedef int32_t bfam_locidx_t;
