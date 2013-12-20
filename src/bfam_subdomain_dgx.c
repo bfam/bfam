@@ -12,6 +12,154 @@
 #define DIM (BFAM_DGX_DIMENSION)
 #endif
 
+#define BFAM_LOAD_FIELD_RESTRICT_ALIGNED(field,prefix,base,dictionary)         \
+bfam_real_t *restrict field;                                                   \
+{                                                                              \
+  char bfam_load_field_name[BFAM_BUFSIZ];                                      \
+  snprintf(bfam_load_field_name,BFAM_BUFSIZ,"%s%s",(prefix),(base));           \
+  field = bfam_dictionary_get_value_ptr(dictionary, bfam_load_field_name);     \
+  BFAM_ASSERT(field != NULL);                                                  \
+}                                                                              \
+BFAM_ASSUME_ALIGNED(field,32);
+#define BFAM_LOAD_FIELD_ALIGNED(field,prefix,base,dictionary)                  \
+bfam_real_t *field;                                                            \
+{                                                                              \
+  char bfam_load_field_name[BFAM_BUFSIZ];                                      \
+  snprintf(bfam_load_field_name,BFAM_BUFSIZ,"%s%s",(prefix),(base));           \
+  field = bfam_dictionary_get_value_ptr(dictionary, bfam_load_field_name);     \
+  BFAM_ASSERT(field != NULL);                                                  \
+}                                                                              \
+BFAM_ASSUME_ALIGNED(field,32);
+
+void
+BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_free_,BFAM_DGX_DIMENSION)(
+                       bfam_subdomain_dgx_point_interp_t* point)
+{
+  point->sub  = NULL;
+  point->elem = -1;
+
+  fclose(point->file);
+  point->file = NULL;
+
+  strncpy(point->filename,"",BFAM_BUFSIZ);
+
+  for(int n = 0; n < point->num_interp; n++)
+    bfam_free_aligned(point->interp[n]);
+  bfam_free_aligned(point->interp);
+  point->interp = NULL;
+
+  point->num_interp = 0;
+}
+
+bfam_real_t
+BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,BFAM_DGX_DIMENSION)(
+                       bfam_subdomain_dgx_point_interp_t* point,
+                       const char*                        prefix,
+                       const char*                        field,
+                       const int                          inDIM)
+{
+#ifdef USE_GENERIC_DGX_DIMENSION
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_point_interp_field");
+  const int DIM = inDIM;
+#endif
+  const bfam_locidx_t elem = point->elem;
+  /*
+  const bfam_locidx_t o_d = elem * Np_d;
+  const bfam_locidx_t o_s = elem * Np_s;
+  */
+
+  bfam_real_t d = 0;
+
+  bfam_subdomain_dgx_t *sub = point->sub;
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(source,prefix,field,&sub->base.fields);
+
+  const bfam_real_t *s = source + elem * sub->Np;
+  bfam_real_t **interp = point->interp;
+
+  int Nrp = point->sub->N+1;
+  if(DIM==1)
+    for(int l = 0; l < Nrp; l++)
+      d += interp[0][l]*s[l];
+  else if(DIM==2)
+    for(int m = 0; m < Nrp; m++)
+      for(int l = 0; l < Nrp; l++)
+        d += interp[0][l]*interp[1][m]*s[m*Nrp+l];
+  else if(DIM==3)
+    for(int n = 0; n < Nrp; n++)
+      for(int m = 0; m < Nrp; m++)
+        for(int l = 0; l < Nrp; l++)
+        d += interp[0][l]*interp[1][m]*interp[2][n]*s[(n*Nrp+m)*Nrp+l];
+  else
+    BFAM_ABORT("Cannot handle dim = %d",DIM);
+
+  return d;
+}
+
+void
+BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_init_,BFAM_DGX_DIMENSION)(
+                       bfam_subdomain_dgx_point_interp_t* point,
+                       bfam_subdomain_dgx_t*              sub,
+                       const bfam_locidx_t                elem,
+                       const bfam_real_t*                 r,
+                       const char*                        filename,
+                       const int                          filename_size,
+                       const int                          inDIM)
+{
+#ifdef USE_GENERIC_DGX_DIMENSION
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_point_interp_init");
+  const int DIM = inDIM;
+#endif
+
+  point->sub        = sub;
+  point->elem       = elem;
+  BFAM_ASSERT(point->elem < sub->K);
+  point->num_interp = DIM;
+  point->interp     = bfam_malloc_aligned(DIM*sizeof(bfam_real_t*));
+
+  for(int n = 0; n < DIM; n++)
+    point->interp[n] = bfam_malloc_aligned((sub->N+1)*sizeof(bfam_real_t));
+
+  strncpy(point->filename, filename, BFAM_BUFSIZ);
+  point->file = fopen(point->filename, "w");
+
+  bfam_long_real_t *cal_interp =
+    bfam_malloc_aligned(sizeof(bfam_long_real_t)*(sub->N+1));
+  bfam_long_real_t lr[1] = {0};
+
+  for(int n = 0; n < DIM; n++)
+  {
+    lr[0] = r[n];
+    bfam_jacobi_p_interpolation(0, 0, sub->N, 1, lr, sub->V, cal_interp);
+    for(int m = 0; m < (sub->N+1); m++)
+      point->interp[n][m] = (bfam_real_t)cal_interp[m];
+  }
+
+  bfam_free_aligned(cal_interp);
+}
+
+bfam_subdomain_dgx_point_interp_t*
+BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_new_,BFAM_DGX_DIMENSION)(
+                       bfam_subdomain_dgx_t*       sub,
+                       const bfam_locidx_t         elem,
+                       const bfam_real_t*          r,
+                       const char*                 filename,
+                       const int                   filename_size,
+                       const int                   inDIM)
+{
+#ifdef USE_GENERIC_DGX_DIMENSION
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_point_interp_new");
+  const int DIM = inDIM;
+#endif
+
+  bfam_subdomain_dgx_point_interp_t* point =
+    bfam_malloc(sizeof(bfam_subdomain_dgx_point_interp_t));
+
+  BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_init_,BFAM_DGX_DIMENSION)(
+      point, sub, elem, r, filename, filename_size, DIM);
+
+  return point;
+}
+
 typedef struct bfam_subdomain_dgx_get_put_data
 {
   bfam_subdomain_dgx_t *sub;

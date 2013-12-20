@@ -37,14 +37,6 @@
 
 struct bfam_subdomain_dgx;
 
-typedef struct bfam_subdomain_dgx_point_interp
-{
-  int           num_interp;
-  bfam_real_t **interp;
-  char *file_name;
-  FILE *file_pointer;
-} bfam_subdomain_dgx_point_interp_t;
-
 typedef struct bfam_subdomain_dgx_glue_data
 {
   bfam_subdomain_glue_data_t base;
@@ -126,6 +118,17 @@ typedef struct bfam_subdomain_dgx
   int            ***gmask;   /* geometry mask: same order as Ng */
 
 } bfam_subdomain_dgx_t;
+
+typedef struct bfam_subdomain_dgx_point_interp
+{
+  bfam_subdomain_dgx_t *sub;
+  bfam_locidx_t         elem;
+  int                   num_interp;
+  bfam_real_t         **interp;
+  char                  filename[BFAM_BUFSIZ];
+  FILE                 *file;
+} bfam_subdomain_dgx_point_interp_t;
+
 
 /** create a dgx subdomain.
  *
@@ -275,6 +278,65 @@ bfam_subdomain_dgx_glue_init_(bfam_subdomain_dgx_t  *subdomain,
                               bfam_subdomain_face_map_entry_t *mapping,
                               const int                        inDIM);
 
+
+/** init a dgx subdomain interpolation point
+ *
+ * \param [in,out] point           point to initialized
+ * \param [in]     sub             subdomain pointer for this point
+ * \param [in]     elem            elem this interpolation is for
+ * \param [in]     r               array of size inDIM to build interp for
+ * \param [in]     filename        filename for this point
+ * \param [in]     filename_size   size of the filename
+ * \param [in]     inDIM           dimension of the point
+ *
+ */
+void
+bfam_subdomain_dgx_point_interp_init_(
+                             bfam_subdomain_dgx_point_interp_t* point,
+                             bfam_subdomain_dgx_t*              sub,
+                             const bfam_locidx_t                elem,
+                             const bfam_real_t*                 r,
+                             const char*                        filename,
+                             const int                          filename_size,
+                             const int                          inDIM);
+
+/** create a dgx subdomain interpolation point
+ *
+ * \param [in]     sub             subdomain pointer for this point
+ * \param [in]     elem            elem this interpolation is for
+ * \param [in]     r               array of size inDIM to build interp for
+ * \param [in]     filename        filename for this point
+ * \param [in]     filename_size   size of the filename
+ * \param [in]     inDIM           dimension of the point
+ *
+ * \return Initialized dgx subdomain interpolation point
+ *
+ */
+bfam_subdomain_dgx_point_interp_t*
+bfam_subdomain_dgx_point_interp_new_(
+                             bfam_subdomain_dgx_t*       sub,
+                             const bfam_locidx_t         elem,
+                             const bfam_real_t*          r,
+                             const char*                 filename,
+                             const int                   filename_size,
+                             const int                   inDIM);
+
+/** free a dgx subdomain interpolation point
+ *
+ * \param [in,out] point        point to free
+ *
+ */
+void
+bfam_subdomain_dgx_point_interp_free_(
+                             bfam_subdomain_dgx_point_interp_t* point);
+
+bfam_real_t
+bfam_subdomain_dgx_point_interp_field_(
+                       bfam_subdomain_dgx_point_interp_t* point,
+                       const char*                        prefix,
+                       const char*                        field,
+                       const int                          inDIM);
+
 /** free up the memory allocated by the subdomain
  *
  * \param [in,out] subdomain subdomain to clean up
@@ -283,6 +345,32 @@ void
 bfam_subdomain_dgx_free_(bfam_subdomain_t *subdomain);
 
 #define X(dg_dim) \
+bfam_real_t                                                              \
+bfam_subdomain_dgx_point_interp_field_##dg_dim(                          \
+                       bfam_subdomain_dgx_point_interp_t* point,         \
+                       const char*                        prefix,        \
+                       const char*                        field,         \
+                       const int                          inDIM);        \
+void                                                                     \
+bfam_subdomain_dgx_point_interp_free_##dg_dim(                           \
+                 bfam_subdomain_dgx_point_interp_t*  point);             \
+void                                                                     \
+bfam_subdomain_dgx_point_interp_init_##dg_dim(                           \
+                 bfam_subdomain_dgx_point_interp_t*  point,              \
+                 bfam_subdomain_dgx_t*               sub,                \
+                 const bfam_locidx_t                 elem,               \
+                 const bfam_real_t*                  r,                  \
+                 const char*                         filename,           \
+                 const int                           filename_size,      \
+                 const int                            dim);              \
+bfam_subdomain_dgx_point_interp_t*                                       \
+bfam_subdomain_dgx_point_interp_new_##dg_dim(                            \
+                             bfam_subdomain_dgx_t*       sub,            \
+                             const bfam_locidx_t         elem,           \
+                             const bfam_real_t*          r,              \
+                             const char*                 filename,       \
+                             const int                   filename_size,  \
+                             const int                   dim);           \
 bfam_subdomain_dgx_t*                                         \
 bfam_subdomain_dgx_new_##dg_dim(const bfam_locidx_t      id,  \
                              const bfam_locidx_t      uid,    \
