@@ -2275,6 +2275,7 @@ shave_beard(beard_t *beard,prefs_t *prefs)
     bfam_dictionary_allprefixed_ptr(beard->fault_stations, "",
         &beard_free_stations, NULL);
     bfam_dictionary_clear(beard->fault_stations);
+    bfam_free(beard->fault_stations);
     beard->fault_stations = NULL;
   }
   bfam_free(beard->comm_args);
