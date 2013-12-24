@@ -19,7 +19,8 @@
 
 #if   BEARD_DGX_DIMENSION==2
 
-#define DIM 2
+#define DIM  2
+#define FDIM 1
 #define BEARD_D3_AP(A1,A2) (A1)
 #define BEARD_D3_OP(A) BFAM_NOOP()
 #define bfam_domain_pxest_new bfam_domain_pxest_new_2
@@ -33,7 +34,8 @@
 
 #elif BEARD_DGX_DIMENSION==3
 
-#define DIM 3
+#define DIM  3
+#define FDIM 2
 #define BEARD_D3_AP(A1,A2) (A1 A2)
 #define BEARD_D3_OP(A) A
 #define bfam_domain_pxest_new bfam_domain_pxest_new_3
@@ -90,6 +92,29 @@ BFAM_ASSUME_ALIGNED(field,32);
  *
  * Accessed: 12/18/13
  */
+static void
+inverse_linear(bfam_real_t *r,
+    const bfam_real_t x,
+    const bfam_real_t x0, const bfam_real_t x1)
+{
+  r[0] = (2*x - (x0+x1)) / (x1 - x0);
+
+#ifdef BFAM_DEBUG
+  if(BFAM_REAL_ABS(r[0]) <= 1)
+  {
+    BFAM_LDEBUG("Found point "
+        "(%+10.5"BFAM_REAL_PRIe ") "
+        "with (r[0]) = "
+        "(%+10.5"BFAM_REAL_PRIe ")",
+        x, r[0]);
+      BFAM_LDEBUG("in cell "
+          "(%+10.5"BFAM_REAL_PRIe ") "
+          "(%+10.5"BFAM_REAL_PRIe ")",
+          x0,x1);
+  }
+#endif
+}
+
 static void
 inverse_bilinear(bfam_real_t *r,
     const bfam_real_t x,  const bfam_real_t y,
@@ -2031,7 +2056,6 @@ beard_output_stations(const char * key, void *val, void *in_args)
 static int
 beard_open_stations(const char * key, void *val, void *in_args)
 {
-  int i = 0;
   bfam_subdomain_dgx_point_interp_t *point =
     (bfam_subdomain_dgx_point_interp_t*)val;
   bfam_subdomain_dgx_point_interp_open_(point);
@@ -2113,6 +2137,15 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     volume_args.time   = 0;
     bfam_dictionary_allprefixed_ptr(beard->volume_stations, "",
         &beard_open_stations, &volume_args);
+
+    const char *fault_station_fields[] = {"V",   "Dp",
+                                          "Tp1", "Tp2", "Tp3", "Tn",NULL};
+    station_args_t fault_args;
+    fault_args.prefs  = prefs;
+    fault_args.fields = fault_station_fields;
+    fault_args.time   = 0;
+    bfam_dictionary_allprefixed_ptr(beard->fault_stations, "",
+        &beard_open_stations, &fault_args);
   }
 
   if(nfoutput >= 0)
@@ -2199,6 +2232,15 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       volume_args.time   = (s)*dt;
       bfam_dictionary_allprefixed_ptr(beard->volume_stations, "",
           &beard_output_stations, &volume_args);
+
+      const char *fault_station_fields[] = {"V",   "Dp",
+                                            "Tp1", "Tp2", "Tp3", "Tn",NULL};
+      station_args_t fault_args;
+      fault_args.prefs  = prefs;
+      fault_args.fields = fault_station_fields;
+      fault_args.time   = (s)*dt;
+      bfam_dictionary_allprefixed_ptr(beard->fault_stations, "",
+          &beard_output_stations, &fault_args);
     }
     if(nfoutput > 0 && s%nfoutput == 0)
     {
@@ -2284,6 +2326,168 @@ shave_beard(beard_t *beard,prefs_t *prefs)
   bfam_domain_pxest_free(beard->domain);
   bfam_free(beard->domain);
   p4est_connectivity_destroy(beard->conn);
+}
+
+static void
+init_fault_stations(beard_t *beard, prefs_t *prefs)
+{
+  lua_State *L = prefs->L;
+#ifdef BFAM_DEBUG
+  int top = lua_gettop(L);
+#endif
+
+  /* First we get the station info from lua */
+  lua_getglobal(L,"fault_stations");
+
+  BFAM_ASSERT(beard->fault_stations == NULL);
+  beard->fault_stations = bfam_malloc(sizeof(bfam_dictionary_t));
+  bfam_dictionary_init(beard->fault_stations);
+
+  if(!lua_istable(L, -1))
+    BFAM_ROOT_WARNING("table `%s' not found", "fault_stations");
+  else
+  {
+
+    const int length_stations = luaL_getn(L, -1);
+    BFAM_LDEBUG("fault_stations  #elem: %3d", length_stations);
+
+    BFAM_ABORT_IF_NOT(length_stations%(DIM+1)== 0,
+        "length of fault_stations should be a multiple of %d",(DIM+1));
+
+    const int num_stations = length_stations/(DIM+1);
+
+    bfam_real_t xyz[DIM*num_stations];
+    char station_names[num_stations][BFAM_BUFSIZ];
+
+    luaL_checktype(L, -1, LUA_TTABLE);
+
+    for(int i=0; i<num_stations; i++)
+    {
+      lua_rawgeti(L, -1, (DIM+1)*i+1);
+      BFAM_ABORT_IF_NOT(lua_isstring(L,-1),
+          "stations %d field 1 is not a string",i);
+      strncpy(station_names[i],lua_tostring(L,-1),BFAM_BUFSIZ);
+      lua_pop(L, 1);
+      for(int j=0; j < DIM; j++)
+      {
+        lua_rawgeti(L, -1, (DIM+1)*i+j+2);
+        BFAM_ABORT_IF_NOT(lua_isnumber(L,-1),
+            "stations %d field %d is not a number",i,j+1);
+        xyz[DIM*i+j] = (bfam_real_t)lua_tonumber(L, -1);
+        lua_pop(L, 1);
+      }
+
+#if DIM==2
+      BFAM_ROOT_LDEBUG("Station %04d (%s):"
+          " %"BFAM_REAL_FMTe
+          " %"BFAM_REAL_FMTe,
+          i, station_names[i], xyz[DIM*i+0], xyz[DIM*i+1]);
+#elif DIM==3
+      BFAM_ROOT_LDEBUG("Station %04d (%s):"
+          " %"BFAM_REAL_FMTe
+          " %"BFAM_REAL_FMTe
+          " %"BFAM_REAL_FMTe,
+          i, station_names[i], xyz[DIM*i+0], xyz[DIM*i+1], xyz[DIM*i+2]);
+#endif
+    }
+
+
+    /* Now we handle finding where we interp */
+
+    const char *fault[] = {"slip weakening",NULL};
+    bfam_subdomain_t *subs[beard->domain->base.numSubdomains];
+    bfam_locidx_t num_subs = 0;
+    bfam_domain_get_subdomains((bfam_domain_t*) beard->domain,
+        BFAM_DOMAIN_OR,fault,beard->domain->base.numSubdomains,
+        subs,&num_subs);
+
+    for(int n = 0; n < num_subs; n++)
+    {
+      bfam_subdomain_dgx_t *s = (bfam_subdomain_dgx_t*) subs[n];
+      const int num_cells = s->K;
+
+      BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x,"","_grid_x0",&s->base.fields);
+      BFAM_LOAD_FIELD_RESTRICT_ALIGNED(y,"","_grid_x1",&s->base.fields);
+#if DIM==3
+      BFAM_LOAD_FIELD_RESTRICT_ALIGNED(z,"","_grid_x2",&s->base.fields);
+#endif
+
+      int** msk       = s->gmask[s->numg-1];
+
+      for(int k = 0; k < num_cells; k++)
+      {
+        const bfam_real_t *x_e = x+k*s->Np;
+        BEARD_D3_OP(const bfam_real_t *y_e = y+k*s->Np);
+        for(int i = 0; i < num_stations; i++)
+        {
+#if DIM == 2
+          bfam_real_t r[1];
+          inverse_linear(r, xyz[i*DIM+0], x_e[msk[0][0]], x_e[msk[1][0]]);
+#elif DIM == 3
+          bfam_real_t r[2];
+          inverse_bilinear(r, xyz[i*DIM+0], xyz[i*DIM+1],
+              x_e[msk[0][0]], x_e[msk[1][0]], x_e[msk[2][0]], x_e[msk[3][0]],
+              y_e[msk[0][0]], y_e[msk[1][0]], y_e[msk[2][0]], y_e[msk[3][0]]);
+#else
+#error "Bad Dimension"
+#endif
+
+          /* if we are in the area, build the interpolant */
+          if(BEARD_D3_AP(BFAM_REAL_ABS(r[0]) <= 1+BFAM_REAL_EPS,
+                      && BFAM_REAL_ABS(r[2]) <= 1+BFAM_REAL_EPS))
+          {
+            char filename[BFAM_BUFSIZ];
+            snprintf(filename, BFAM_BUFSIZ,"%s/%s_%s_%s_%010d.dat",
+                prefs->data_directory, prefs->output_prefix, station_names[i],
+                s->base.name,k);
+            bfam_subdomain_dgx_point_interp_t* point =
+              BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_new_,FDIM)(
+                  s, k, r, filename, BFAM_BUFSIZ, FDIM);
+
+#ifdef BFAM_DEBUG
+            bfam_real_t xp =
+              BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,FDIM)(
+                  point,"","_grid_x0",FDIM);
+            BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(xp,xyz[i*DIM+0],10),
+                "problem with the station %s interpolation in x."
+                 "got: %"BFAM_REAL_FMTe
+                " expected: %"BFAM_REAL_FMTe,
+                station_names[i],
+                xp,xyz[i*DIM+0]);
+
+            bfam_real_t yp =
+              BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,FDIM)(
+                  point,"","_grid_x1",FDIM);
+            BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(yp,xyz[i*DIM+1],10),
+                "problem with the station %s interpolation in y."
+                " got: %"BFAM_REAL_FMTe
+                " expected: %"BFAM_REAL_FMTe,
+                station_names[i],
+                yp,xyz[i*DIM+1]);
+
+            BEARD_D3_OP(
+            bfam_real_t zp =
+              BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,FDIM)(
+                  point,"","_grid_x2",FDIM);
+            BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(zp,xyz[i*DIM+2],100),
+                "problem with the station %s interpolation in z."
+                 "got: %"BFAM_REAL_FMTe
+                " expected: %"BFAM_REAL_FMTe,
+                station_names[i],
+                zp,xyz[i*DIM+2])
+            );
+#endif
+
+            bfam_dictionary_insert_ptr(beard->fault_stations, filename,
+                point);
+          }
+        }
+      }
+    }
+  }
+
+  lua_pop(L, 1);
+  BFAM_ASSERT(top == lua_gettop(L));
 }
 
 static void
@@ -2477,6 +2681,8 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   init_lsrk(&beard, prefs);
 
   init_volume_stations(&beard, prefs);
+
+  init_fault_stations(&beard, prefs);
 
   run_simulation(&beard, prefs);
 
