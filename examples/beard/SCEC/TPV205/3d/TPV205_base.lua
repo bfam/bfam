@@ -7,9 +7,9 @@ output_prefix = "TPV205"
 connectivity = "brick"
 brick =
 {
-  nx = 40,
-  ny = 20,
-  nz = 20,
+  nx = 96,
+  ny = 96,
+  nz = 48,
   periodic_x = 0,
   periodic_y = 0,
   periodic_z = 0,

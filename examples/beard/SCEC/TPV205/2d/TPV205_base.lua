@@ -1,8 +1,9 @@
 -- refinement parameters
 min_level = 0
-max_level = 3
+max_level = 0
 output_prefix = "TPV205"
 data_directory = "data"
+elem_order = 2
 
 -- connectivity info
 connectivity = "brick"
@@ -79,10 +80,7 @@ function element_order(
   x2,y2,z2,x3,y3,z3,
   level, treeid)
 
-  -- N = treeid%3+1
-  N = 3
-
-  return N
+  return elem_order
 end
 
 -- material properties
@@ -123,7 +121,7 @@ function time_step_parameters(dt)
   nsteps     = tend / dt
   nstations  = tstations / dt
 
-  return dt,1, ndisp, noutput, nfoutput, nstations
+  return dt,nsteps, ndisp, noutput, nfoutput, nstations
 end
 
 volume_stations = {
