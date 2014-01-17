@@ -1514,12 +1514,21 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
       {
         BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x  ,"","_grid_x0" ,fields_g);
         BFAM_LOAD_FIELD_RESTRICT_ALIGNED(y  ,"","_grid_x1" ,fields_g);
+#if DIM==2
+        BFAM_ABORT("fault opening not implemented: point"
+            " %"BFAM_REAL_FMTe
+            " %"BFAM_REAL_FMTe,
+            x[iG], y[iG]);
+#elif DIM==3
         BFAM_LOAD_FIELD_RESTRICT_ALIGNED(z  ,"","_grid_x2" ,fields_g);
         BFAM_ABORT("fault opening not implemented: point"
             " %"BFAM_REAL_FMTe
             " %"BFAM_REAL_FMTe
             " %"BFAM_REAL_FMTe,
             x[iG], y[iG], z[iG]);
+#else
+#error "invalid DIM"
+#endif
       }
 
       const bfam_real_t Slock2 =
