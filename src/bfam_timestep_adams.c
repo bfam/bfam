@@ -1,15 +1,28 @@
 #include <bfam_timestep_adams.h>
 #include <bfam_log.h>
 
+#define BFAM_ADAMS_PREFIX ("_adams_rate_")
+
 bfam_ts_adams_t*
 bfam_ts_adams_new(bfam_domain_t* dom, bfam_ts_adams_method_t method,
     bfam_domain_match_t subdom_match, const char** subdom_tags,
     bfam_domain_match_t comm_match, const char** comm_tags,
-    MPI_Comm mpicomm, int mpitag, void *comm_data)
+    MPI_Comm mpicomm, int mpitag, void *comm_data,
+    void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
+    void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const char *field_prefix,
+      const bfam_long_real_t t),
+    void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const char *field_prefix,
+      const bfam_long_real_t t),
+    void (*add_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *field_prefix_lhs, const char *field_prefix_rhs,
+      const char *rate_prefix, const bfam_long_real_t a))
 {
   bfam_ts_adams_t* newTS = bfam_malloc(sizeof(bfam_ts_adams_t));
   bfam_ts_adams_init(newTS, dom, method, subdom_match, subdom_tags,
-      comm_match, comm_tags, mpicomm, mpitag, comm_data);
+      comm_match, comm_tags, mpicomm, mpitag, comm_data, aux_rates,
+      intra_rhs,inter_rhs,add_rates);
   return newTS;
 }
 
@@ -19,7 +32,17 @@ bfam_ts_adams_init(bfam_ts_adams_t* ts,
     bfam_domain_t* dom, bfam_ts_adams_method_t method,
     bfam_domain_match_t subdom_match, const char** subdom_tags,
     bfam_domain_match_t comm_match, const char** comm_tags,
-    MPI_Comm mpicomm, int mpitag, void* comm_data)
+    MPI_Comm mpicomm, int mpitag, void *comm_data,
+    void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
+    void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const char *field_prefix,
+      const bfam_long_real_t t),
+    void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix, const char *field_prefix,
+      const bfam_long_real_t t),
+    void (*add_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *field_prefix_lhs, const char *field_prefix_rhs,
+      const char *rate_prefix, const bfam_long_real_t a))
 {
   BFAM_LDEBUG("ADAMS INIT");
 
@@ -34,33 +57,9 @@ bfam_ts_adams_init(bfam_ts_adams_t* ts,
   /*
    * store the function calls
    */
-  /*
-  ts->scale_rates = scale_rates;
   ts->intra_rhs   = intra_rhs;
   ts->inter_rhs   = inter_rhs;
   ts->add_rates   = add_rates;
-  */
-
-  /*
-   * get the subdomains and create rates we will need
-   */
-   bfam_subdomain_t *subs[dom->numSubdomains+1];
-   bfam_locidx_t numSubs = 0;
-   bfam_domain_get_subdomains(dom,subdom_match,subdom_tags,
-       dom->numSubdomains,subs,&numSubs);
-   for(int s = 0; s < numSubs;s++)
-   {
-     int rval = bfam_dictionary_insert_ptr(&ts->elems,subs[s]->name,subs[s]);
-     BFAM_ABORT_IF_NOT(rval != 1, "Issue adding subdomain %s", subs[s]->name);
-
-     /* aux_rates(subs[s],BFAM_LSKR_PREFIX); */
-   }
-
-  /*
-   * Set up the communicator we will use
-   */
-   ts->comm = bfam_communicator_new(dom,comm_match,comm_tags,mpicomm,mpitag,
-       comm_data);
 
   switch(method)
   {
@@ -107,6 +106,32 @@ bfam_ts_adams_init(bfam_ts_adams_t* ts,
                  BFAM_LONG_REAL(  8);
       break;
   }
+
+  /*
+   * get the subdomains and create rates we will need
+   */
+   bfam_subdomain_t *subs[dom->numSubdomains+1];
+   bfam_locidx_t numSubs = 0;
+   bfam_domain_get_subdomains(dom,subdom_match,subdom_tags,
+       dom->numSubdomains,subs,&numSubs);
+   for(int s = 0; s < numSubs;s++)
+   {
+     int rval = bfam_dictionary_insert_ptr(&ts->elems,subs[s]->name,subs[s]);
+     BFAM_ABORT_IF_NOT(rval != 1, "Issue adding subdomain %s", subs[s]->name);
+
+     for(int n = 0; n < ts->nStages; n++)
+     {
+       char aux_rates_name[BFAM_BUFSIZ];
+       snprintf(aux_rates_name,BFAM_BUFSIZ,"%s_%d_",BFAM_ADAMS_PREFIX,n);
+       aux_rates(subs[s],aux_rates_name);
+     }
+   }
+
+  /*
+   * Set up the communicator we will use
+   */
+   ts->comm = bfam_communicator_new(dom,comm_match,comm_tags,mpicomm,mpitag,
+       comm_data);
 }
 
 void
