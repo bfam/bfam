@@ -17,6 +17,7 @@
 #include <bfam_vtk.h>
 #include <bfam_timestep.h>
 #include <bfam_timestep_lsrk.h>
+#include <bfam_timestep_adams.h>
 #include <bfam_util.h>
 #include <bfam_communicator.h>
 #include <bfam_kron.h>
