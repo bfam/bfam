@@ -67,7 +67,7 @@ bfam_ts_adams_init(bfam_ts_adams_t* ts,
     default:
       BFAM_WARNING("Invalid Adams scheme, using ADAMS_3");
     case BFAM_TS_ADAMS_3:
-      ts->nSteps = 3;
+      ts->nStages = 3;
       ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
 
       ts->A[0] = BFAM_LONG_REAL(23)/
@@ -79,13 +79,13 @@ bfam_ts_adams_init(bfam_ts_adams_t* ts,
 
       break;
     case BFAM_TS_ADAMS_1:
-      ts->nSteps = 1;
+      ts->nStages = 1;
       ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
 
       ts->A[0] = BFAM_LONG_REAL(1);
       break;
     case BFAM_TS_ADAMS_2:
-      ts->nSteps = 2;
+      ts->nStages = 2;
       ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
 
       ts->A[0] = BFAM_LONG_REAL( 3)/
@@ -94,7 +94,7 @@ bfam_ts_adams_init(bfam_ts_adams_t* ts,
                  BFAM_LONG_REAL( 2);
       break;
     case BFAM_TS_ADAMS_4:
-      ts->nSteps = 4;
+      ts->nStages = 4;
       ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
 
       ts->A[0] = BFAM_LONG_REAL( 55)/
@@ -119,7 +119,7 @@ bfam_ts_adams_free(bfam_ts_adams_t* ts)
   bfam_dictionary_clear(&ts->elems);
   bfam_free_aligned(ts->A);
   ts->A = NULL;
-  ts->nSteps = 0;
+  ts->nStages = 0;
   ts->t  = NAN;
   bfam_ts_free(&ts->base);
 }

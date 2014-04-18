@@ -19,7 +19,7 @@ typedef struct bfam_ts_adams
 {
   bfam_ts_t base;            /**< parent timestepper */
   bfam_long_real_t* A;       /**< coefficients */
-  int nSteps;                /**< number of steps */
+  int nStages;                /**< number of steps */
   bfam_long_real_t  t;       /**< domain time */
   bfam_communicator_t *comm; /**< communicator I handle */
   bfam_dictionary_t elems;   /**< dictionary of subdomains I step */
