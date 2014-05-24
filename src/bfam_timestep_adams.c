@@ -3,6 +3,12 @@
 
 #define BFAM_ADAMS_PREFIX ("_adams_rate_")
 
+typedef struct bfam_ts_allprefix
+{
+  bfam_ts_adams_t *ts;
+  bfam_long_real_t dt;
+} bfam_ts_adams_allprefix_t;
+
 bfam_ts_adams_t*
 bfam_ts_adams_new(bfam_domain_t* dom, bfam_ts_adams_method_t method,
     bfam_domain_match_t subdom_match, const char** subdom_tags,
@@ -26,13 +32,104 @@ bfam_ts_adams_new(bfam_domain_t* dom, bfam_ts_adams_method_t method,
   return newTS;
 }
 
+static int
+bfam_ts_adams_update(const char * key, void *val, void *arg)
+{
+  bfam_ts_adams_allprefix_t *data = (bfam_ts_adams_allprefix_t *) arg;
+  bfam_subdomain_t* sub = (bfam_subdomain_t*) val;
+  bfam_ts_adams_t* ts = data->ts;
+
+  /* Loop through the stages to scale rates and add in */
+  for(int k = 0; k < ts->nStages;k++)
+  {
+    char prefix[BFAM_BUFSIZ];
+    snprintf(prefix,BFAM_BUFSIZ,"%s_%d_",BFAM_ADAMS_PREFIX,
+        (ts->currentStage+k)%ts->nStages);
+    ts->add_rates(sub, "", "", prefix, data->dt*ts->A[k]);
+  }
+  return 1;
+}
+
+static int
+bfam_ts_adams_intra_rhs(const char * key, void *val, void *arg)
+{
+  bfam_ts_adams_allprefix_t *data = (bfam_ts_adams_allprefix_t *) arg;
+  bfam_subdomain_t* sub = (bfam_subdomain_t*) val;
+  char prefix[BFAM_BUFSIZ];
+  snprintf(prefix,BFAM_BUFSIZ,"%s_%d_",BFAM_ADAMS_PREFIX,
+      data->ts->currentStage%data->ts->nStages);
+  data->ts->intra_rhs(sub, prefix, "", data->ts->t);
+  return 1;
+}
+
+static int
+bfam_ts_adams_inter_rhs(const char * key, void *val, void *arg)
+{
+  bfam_ts_adams_allprefix_t *data = (bfam_ts_adams_allprefix_t *) arg;
+  bfam_subdomain_t* sub = (bfam_subdomain_t*) val;
+  char prefix[BFAM_BUFSIZ];
+  snprintf(prefix,BFAM_BUFSIZ,"%s_%d_",BFAM_ADAMS_PREFIX,
+      data->ts->currentStage%data->ts->nStages);
+  data->ts->inter_rhs(sub, prefix, "", data->ts->t);
+  return 1;
+}
+
 
 void
-bfam_ts_adams_init(bfam_ts_adams_t* ts,
-    bfam_domain_t* dom, bfam_ts_adams_method_t method,
-    bfam_domain_match_t subdom_match, const char** subdom_tags,
-    bfam_domain_match_t comm_match, const char** comm_tags,
-    MPI_Comm mpicomm, int mpitag, void *comm_data,
+bfam_ts_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
+{
+  /* cast to the proper type */
+  bfam_ts_adams_t *ts = (bfam_ts_adams_t*) a_ts;
+
+  bfam_ts_adams_allprefix_t data;
+  data.ts = ts;
+  data.dt = dt;
+
+  /* q_{n+1}  := q_{n} + dt \sum_{k=0}^{m} a_{k} dq_{n-k} */
+  bfam_dictionary_allprefixed_ptr(&ts->elems,
+      "",&bfam_ts_adams_update,&data);
+
+  /* shift the stage counter */
+  ts->currentStage = (ts->currentStage+1)%ts->nStages;
+
+  /* update the stage time */
+  ts->t += dt;
+
+  /*
+   * start the communication
+   */
+  bfam_communicator_start(ts->comm);
+
+  /*
+   * do the intra work
+   */
+  bfam_dictionary_allprefixed_ptr(&ts->elems,
+      "",&bfam_ts_adams_intra_rhs,&data);
+
+  /*
+   * finish the communication
+   */
+  bfam_communicator_finish(ts->comm);
+
+  /*
+   * do the inter work
+   */
+  bfam_dictionary_allprefixed_ptr(&ts->elems,
+      "",&bfam_ts_adams_inter_rhs,&data);
+}
+
+void
+bfam_ts_adams_init(
+    bfam_ts_adams_t*       ts,
+    bfam_domain_t*         dom,
+    bfam_ts_adams_method_t method,
+    bfam_domain_match_t    subdom_match,
+    const char**           subdom_tags,
+    bfam_domain_match_t    comm_match,
+    const char**           comm_tags,
+    MPI_Comm               mpicomm,
+    int                    mpitag,
+    void*                  comm_data,
     void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
     void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
       const char *rate_prefix, const char *field_prefix,
@@ -52,7 +149,7 @@ bfam_ts_adams_init(bfam_ts_adams_t* ts,
   bfam_ts_init(&ts->base, dom);
   bfam_dictionary_init(&ts->elems);
   ts->t  = BFAM_LONG_REAL(0.0);
-  /* ts->base.step = &bfam_ts_adams_step; */
+  ts->base.step = &bfam_ts_adams_step;
 
   /*
    * store the function calls
