@@ -314,6 +314,17 @@ struct lsrk_table {
   {NULL,   BFAM_TS_LSRK_NOOP},
 };
 
+struct adams_table {
+  const char *name;
+  bfam_ts_adams_method_t adams_method;
+} adams_table[] = {
+  {"Adams 1", BFAM_TS_ADAMS_1},
+  {"Adams 2", BFAM_TS_ADAMS_2},
+  {"Adams 3", BFAM_TS_ADAMS_3},
+  {"Adams 4", BFAM_TS_ADAMS_4},
+  {NULL,      BFAM_TS_ADAMS_NOOP},
+};
+
 typedef struct brick_args
 {
   int nx;
@@ -340,6 +351,9 @@ typedef struct prefs
 
   bfam_ts_lsrk_method_t lsrk_method;
   char lsrk_name[BFAM_BUFSIZ];
+
+  bfam_ts_adams_method_t adams_method;
+  char adams_name[BFAM_BUFSIZ];
 } prefs_t;
 
 
@@ -568,36 +582,83 @@ new_prefs(const char *prefs_filename)
         prefs->default_boundary_tag);
   lua_pop(L, 1);
 
-  /* get the time stepper type */
+  /* get the time stepper type: we look for both lsrk_method and adams_method */
+  prefs->lsrk_method = BFAM_TS_LSRK_NOOP;
   lua_getglobal(L, "lsrk_method");
-  prefs->lsrk_method = lsrk_table[0].lsrk_method;
-  strncpy(prefs->lsrk_name,lsrk_table[0].name,BFAM_BUFSIZ);
   if(lua_isstring(L, -1))
   {
-    int i;
-    const char *lsrk_name = lua_tostring(L, -1);
-    for(i = 0; lsrk_table[i].name != NULL; ++i)
+    prefs->lsrk_method = lsrk_table[0].lsrk_method;
+    strncpy(prefs->lsrk_name,lsrk_table[0].name,BFAM_BUFSIZ);
+    if(lua_isstring(L, -1))
     {
-      if(strcmp(lsrk_name, lsrk_table[i].name) == 0)
-        break;
-    }
+      int i;
+      const char *lsrk_name = lua_tostring(L, -1);
+      for(i = 0; lsrk_table[i].name != NULL; ++i)
+      {
+        if(strcmp(lsrk_name, lsrk_table[i].name) == 0)
+          break;
+      }
 
-    if(lsrk_table[i].name == NULL)
-      BFAM_ROOT_WARNING("invalid lsrk method name: `%s'; using default %s",
-          lsrk_name, prefs->lsrk_name);
+      if(lsrk_table[i].name == NULL)
+        BFAM_ROOT_WARNING("invalid lsrk method name: `%s'; using default %s",
+            lsrk_name, prefs->lsrk_name);
+      else
+      {
+        prefs->lsrk_method = lsrk_table[i].lsrk_method;
+        strncpy(prefs->lsrk_name,lsrk_table[i].name,BFAM_BUFSIZ);
+      }
+    }
     else
     {
-      prefs->lsrk_method = lsrk_table[i].lsrk_method;
-      strncpy(prefs->lsrk_name,lsrk_table[i].name,BFAM_BUFSIZ);
+      BFAM_ROOT_WARNING("`lsrk method' not found, using default: %s",
+          prefs->lsrk_name);
     }
+    BFAM_ASSERT(prefs->lsrk_method != BFAM_TS_LSRK_NOOP);
   }
-  else
-  {
-    BFAM_ROOT_WARNING("`lsrk method' not found, using default: %s",
-        prefs->lsrk_name);
-  }
-  BFAM_ASSERT(prefs->lsrk_method != BFAM_TS_LSRK_NOOP);
   lua_pop(L, 1);
+
+  prefs->adams_method = BFAM_TS_ADAMS_NOOP;
+  lua_getglobal(L, "adams_method");
+  if(lua_isstring(L, -1))
+  {
+    prefs->adams_method = adams_table[0].adams_method;
+    strncpy(prefs->adams_name,adams_table[0].name,BFAM_BUFSIZ);
+    if(lua_isstring(L, -1))
+    {
+      int i;
+      const char *adams_name = lua_tostring(L, -1);
+      for(i = 0; adams_table[i].name != NULL; ++i)
+      {
+        if(strcmp(adams_name, adams_table[i].name) == 0)
+          break;
+      }
+
+      if(adams_table[i].name == NULL)
+        BFAM_ROOT_WARNING("invalid adams method name: `%s'; using default %s",
+            adams_name, prefs->adams_name);
+      else
+      {
+        prefs->adams_method = adams_table[i].adams_method;
+        strncpy(prefs->adams_name,adams_table[i].name,BFAM_BUFSIZ);
+      }
+    }
+    else
+    {
+      BFAM_ROOT_WARNING("`adams method' not found, using default: %s",
+          prefs->adams_name);
+    }
+    BFAM_ASSERT(prefs->adams_method != BFAM_TS_LSRK_NOOP);
+  }
+  lua_pop(L, 1);
+
+  BFAM_ABORT_IF_NOT((prefs->lsrk_method  != BFAM_TS_LSRK_NOOP  &&
+                     prefs->adams_method == BFAM_TS_ADAMS_NOOP
+                    )
+                    ||
+                    (
+                     prefs->lsrk_method  == BFAM_TS_LSRK_NOOP  &&
+                     prefs->adams_method != BFAM_TS_ADAMS_NOOP
+                    ),"must have either LSRK or ADAMS time stepper");
 
   /* get the connectivity type */
   prefs->brick_args     = bfam_malloc(sizeof(brick_args_t));
@@ -629,7 +690,10 @@ print_prefs(prefs_t *prefs)
   BFAM_ROOT_INFO(" Beard Dimension          = %d",prefs->dimension);
   BFAM_ROOT_INFO(" Output prefix            = %s",prefs->output_prefix);
   BFAM_ROOT_INFO(" Default boundary tag     = %s",prefs->default_boundary_tag);
-  BFAM_ROOT_INFO(" Low Storage Time Stepper = %s",prefs->lsrk_name);
+  if(prefs->lsrk_method != BFAM_TS_LSRK_NOOP)
+    BFAM_ROOT_INFO(" Low Storage Time Stepper = %s",prefs->lsrk_name);
+  if(prefs->adams_method != BFAM_TS_ADAMS_NOOP)
+    BFAM_ROOT_INFO(" Adams-Bashforth Scheme   = %s",prefs->adams_name);
   if(prefs->brick_args != NULL)
   {
     BFAM_ROOT_INFO(" brick arguments");
@@ -1802,7 +1866,7 @@ void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
 }
 
 static void
-init_lsrk(beard_t *beard, prefs_t *prefs)
+init_time_stepper(beard_t *beard, prefs_t *prefs)
 {
   beard->comm_args = bfam_malloc(sizeof(bfam_subdomain_comm_args_t));
   bfam_subdomain_comm_args_t *args = beard->comm_args;
@@ -1826,10 +1890,16 @@ init_lsrk(beard_t *beard, prefs_t *prefs)
     "_glue_boundary", NULL};
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
 
-  beard->beard_ts = (bfam_ts_t*)bfam_ts_lsrk_new((bfam_domain_t*) beard->domain,
-      prefs->lsrk_method, BFAM_DOMAIN_OR,timestep_tags, BFAM_DOMAIN_OR,glue,
-      beard->mpicomm, 10, beard->comm_args,
-      &aux_rates,&scale_rates,&intra_rhs,&inter_rhs, &add_rates);
+  if(prefs->lsrk_method != BFAM_TS_LSRK_NOOP)
+    beard->beard_ts = (bfam_ts_t*)bfam_ts_lsrk_new((bfam_domain_t*) beard->domain,
+        prefs->lsrk_method, BFAM_DOMAIN_OR,timestep_tags, BFAM_DOMAIN_OR,glue,
+        beard->mpicomm, 10, beard->comm_args,
+        &aux_rates,&scale_rates,&intra_rhs,&inter_rhs, &add_rates);
+  else if(prefs->adams_method != BFAM_TS_ADAMS_NOOP)
+    beard->beard_ts = (bfam_ts_t*)bfam_ts_adams_new((bfam_domain_t*) beard->domain,
+        prefs->adams_method, BFAM_DOMAIN_OR, timestep_tags, BFAM_DOMAIN_OR,glue,
+        beard->mpicomm, 10, beard->comm_args,
+        &aux_rates,&intra_rhs,&inter_rhs, &add_rates);
 }
 
 static void
@@ -2321,7 +2391,8 @@ shave_beard(beard_t *beard,prefs_t *prefs)
     beard->fault_stations = NULL;
   }
   bfam_free(beard->comm_args);
-  bfam_ts_lsrk_free((bfam_ts_lsrk_t*) beard->beard_ts);
+  if(prefs->adams_method != BFAM_TS_ADAMS_NOOP)
+    bfam_ts_adams_free((bfam_ts_adams_t*) beard->beard_ts);
   bfam_free(beard->beard_ts);
   bfam_domain_pxest_free(beard->domain);
   bfam_free(beard->domain);
@@ -2678,7 +2749,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
 
   init_domain(&beard, prefs);
 
-  init_lsrk(&beard, prefs);
+  init_time_stepper(&beard, prefs);
 
   init_volume_stations(&beard, prefs);
 
