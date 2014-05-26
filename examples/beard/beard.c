@@ -296,8 +296,8 @@ typedef struct beard
   p4est_connectivity_t *conn;
   bfam_domain_pxest_t  *domain;
 
-  bfam_ts_lsrk_t       *lsrk;
-  bfam_subdomain_comm_args_t * comm_args;
+  bfam_ts_t                  *beard_ts;
+  bfam_subdomain_comm_args_t *comm_args;
 
   bfam_dictionary_t *volume_stations;
   bfam_dictionary_t *fault_stations;
@@ -1826,7 +1826,7 @@ init_lsrk(beard_t *beard, prefs_t *prefs)
     "_glue_boundary", NULL};
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
 
-  beard->lsrk = bfam_ts_lsrk_new((bfam_domain_t*) beard->domain,
+  beard->beard_ts = (bfam_ts_t*)bfam_ts_lsrk_new((bfam_domain_t*) beard->domain,
       prefs->lsrk_method, BFAM_DOMAIN_OR,timestep_tags, BFAM_DOMAIN_OR,glue,
       beard->mpicomm, 10, beard->comm_args,
       &aux_rates,&scale_rates,&intra_rhs,&inter_rhs, &add_rates);
@@ -2189,7 +2189,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
 
   for(int s = 1; s <= nsteps; s++)
   {
-    beard->lsrk->base.step((bfam_ts_t*) beard->lsrk,dt);
+    beard->beard_ts->step(beard->beard_ts,dt);
     if(s%ndisp == 0)
     {
       bfam_real_t new_energy = compute_energy(beard,prefs,s*dt,"");
@@ -2321,8 +2321,8 @@ shave_beard(beard_t *beard,prefs_t *prefs)
     beard->fault_stations = NULL;
   }
   bfam_free(beard->comm_args);
-  bfam_ts_lsrk_free(beard->lsrk);
-  bfam_free(beard->lsrk);
+  bfam_ts_lsrk_free((bfam_ts_lsrk_t*) beard->beard_ts);
+  bfam_free(beard->beard_ts);
   bfam_domain_pxest_free(beard->domain);
   bfam_free(beard->domain);
   p4est_connectivity_destroy(beard->conn);
@@ -2669,7 +2669,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   beard_t beard;
   beard.conn            = NULL;
   beard.domain          = NULL;
-  beard.lsrk            = NULL;
+  beard.beard_ts        = NULL;
   beard. comm_args      = NULL;
   beard.volume_stations = NULL;
   beard.fault_stations  = NULL;
