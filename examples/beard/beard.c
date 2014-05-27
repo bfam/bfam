@@ -2356,6 +2356,7 @@ beard_open_stations(const char * key, void *val, void *in_args)
   const char **fields = args->fields;
 
   FILE *file = point->file;
+  /*
   BFAM_ABORT_IF_NOT(file, "problem with opening file %s",point->filename);
   fprintf(file,"# problem = %s\n",prefs->output_prefix);
   fprintf(file,"# date    = XXX\n");
@@ -2366,6 +2367,7 @@ beard_open_stations(const char * key, void *val, void *in_args)
   fprintf(file,"t");
   for(int n = 0; fields[n]; n++) fprintf(file," %s",fields[n]);
   fprintf(file,"\n");
+  */
 
   return beard_output_stations(key, val, args);
 }

@@ -1,6 +1,6 @@
 -- refinement parameters
 min_level = 0
-max_level = 0
+max_level = 3
 output_prefix = "TPV14"
 data_directory = "data"
 elem_order = 2
@@ -26,6 +26,8 @@ Cx = brick.nx/2
 Cy = brick.ny/2
 Cz = brick.nz
 
+q_branch = math.pi/6
+
 function connectivity_vertices(x, y, z)
   x = Lx*(x-Cx)
   y = Ly*(y-Cy)
@@ -48,10 +50,9 @@ function connectivity_vertices(x, y, z)
   end
 
   if y < 0 then
-    q = math.pi/6
     H = math.max(y,-4*Ly)
-    x = x-H*math.cos(q)
-    y = y-H*math.sin(q)
+    x = x-H*math.cos(q_branch)
+    y = y-H*math.sin(q_branch)
   end
 
   return x,y,z
@@ -61,6 +62,33 @@ function refinement_function(
   x0,y0,z0,x1,y1,z1,
   x2,y2,z2,x3,y3,z3,
   level, treeid)
+
+  xa0 = math.abs(x0)
+  xa1 = math.abs(x1)
+  xa2 = math.abs(x2)
+  xa3 = math.abs(x3)
+  xmin = math.min( xa0,xa1)
+  xmin = math.min(xmin,xa2)
+  xmin = math.min(xmin,xa2)
+
+  ya0 = math.abs(y0+3)
+  ya1 = math.abs(y1+3)
+  ya2 = math.abs(y2+3)
+  ya3 = math.abs(y3+3)
+  ymin = math.min( ya0,ya1)
+  ymin = math.min(ymin,ya2)
+  ymin = math.min(ymin,ya3)
+
+  x = math.max(xmin-15,0) / (Cx*Lx-15)
+  y = math.max(ymin- 3,0) / (Cy*Ly- 3)
+  r = math.sqrt((x^2+y^2)/2)
+  l = (max_level+1) + (min_level-(max_level+1))*math.sqrt(r)
+
+  if level < l then
+    return 1
+  else
+    return 0
+  end
 
   return 0
 end
@@ -111,8 +139,7 @@ function time_step_parameters(dt)
   nsteps     = tend / dt
   nstations  = tstations / dt
 
-  -- return dt,nsteps, ndisp, noutput, nfoutput, nstations
-  return 1,1, 1, 1, 1, 1
+  return dt,nsteps, ndisp, noutput, nfoutput, nstations
 end
 
 -- volume_stations = {
@@ -151,14 +178,24 @@ nucleation_patch  = {
   S22_0  = -120.0,
 }
 
+
+snn    =  -120
+snm    =    70
+smm    =     0
+n1     = math.sin(q_branch)
+n2     = math.cos(q_branch)
+m1     = n2
+m2     =-n1
+
 branch_fault  = {
   type   = "friction",
   tag    = "slip weakening",
   fs     =    0.677,
   fd     =    0.525,
   Dc     =    0.4,
-  S12_0  =   70.0,
-  S22_0  = -120.0,
+  S22_0  = n2*snn*n2 + n2*snm*m2 + m2*snm*n2 + m2*smm*m2,
+  S12_0  = n1*snn*n2 + n1*snm*m2 + m1*snm*n2 + m1*smm*m2,
+  S11_0  = n1*snn*n1 + n1*snm*m1 + m1*snm*n1 + m1*smm*m1,
 }
 
 glue_info = {
