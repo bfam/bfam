@@ -1444,7 +1444,7 @@ init_domain(beard_t *beard, prefs_t *prefs)
     lua_pop(prefs->L, 1);
     void *current_user_pointer = beard->domain->pxest->user_pointer;
     beard->domain->pxest->user_pointer = prefs->L;
-    p4est_refine(beard->domain->pxest, 2, refine_fn, NULL);
+    p4est_refine(beard->domain->pxest, 1, refine_fn, NULL);
 
     beard->domain->pxest->user_pointer = current_user_pointer;
   }
