@@ -66,15 +66,15 @@ bfam_ts_adams_update(const char * key, void *val, void *arg)
   {
     case 1:
       {
-        bfam_long_real_t A[1] = {BFAM_LONG_REAL(1)};
+        bfam_long_real_t A[1] = {BFAM_LONG_REAL(1.0)};
         bfam_ts_adams_do_update(sub, A, ts, data->dt, 1);
       }
       break;
     case 2:
       {
         bfam_long_real_t A[2] = {
-          BFAM_LONG_REAL( 3) / BFAM_LONG_REAL( 2),
-          BFAM_LONG_REAL(-1)/ BFAM_LONG_REAL( 2),
+          BFAM_LONG_REAL( 3.0) / BFAM_LONG_REAL( 2.0),
+          BFAM_LONG_REAL(-1.0) / BFAM_LONG_REAL( 2.0),
         };
         bfam_ts_adams_do_update(sub, A, ts, data->dt, 2);
       }
@@ -82,9 +82,9 @@ bfam_ts_adams_update(const char * key, void *val, void *arg)
     case 3:
       {
         bfam_long_real_t A[3] = {
-          BFAM_LONG_REAL(23)/ BFAM_LONG_REAL(12),
-          BFAM_LONG_REAL(-4)/ BFAM_LONG_REAL( 3),
-          BFAM_LONG_REAL( 5)/ BFAM_LONG_REAL(12),
+          BFAM_LONG_REAL(23.0)/ BFAM_LONG_REAL(12.0),
+          BFAM_LONG_REAL(-4.0)/ BFAM_LONG_REAL( 3.0),
+          BFAM_LONG_REAL( 5.0)/ BFAM_LONG_REAL(12.0),
         };
         bfam_ts_adams_do_update(sub, A, ts, data->dt, 3);
       }
@@ -92,10 +92,10 @@ bfam_ts_adams_update(const char * key, void *val, void *arg)
     case 4:
       {
         bfam_long_real_t A[4] = {
-          BFAM_LONG_REAL( 55)/ BFAM_LONG_REAL( 24),
-          BFAM_LONG_REAL(-59)/ BFAM_LONG_REAL( 24),
-          BFAM_LONG_REAL( 37)/ BFAM_LONG_REAL( 24),
-          BFAM_LONG_REAL(  3)/ BFAM_LONG_REAL(  8),
+          BFAM_LONG_REAL( 55.0)/ BFAM_LONG_REAL( 24.0),
+          BFAM_LONG_REAL(-59.0)/ BFAM_LONG_REAL( 24.0),
+          BFAM_LONG_REAL( 37.0)/ BFAM_LONG_REAL( 24.0),
+          BFAM_LONG_REAL(  3.0)/ BFAM_LONG_REAL(  8.0),
         };
         bfam_ts_adams_do_update(sub, A, ts, data->dt, 4);
       }
@@ -231,43 +231,51 @@ bfam_ts_adams_init(
       BFAM_WARNING("Invalid Adams scheme, using ADAMS_3");
     case BFAM_TS_ADAMS_3:
       ts->nStages = 3;
+      /*
       ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
 
-      ts->A[0] = BFAM_LONG_REAL(23)/
-                 BFAM_LONG_REAL(12);
-      ts->A[1] = BFAM_LONG_REAL(-4)/
-                 BFAM_LONG_REAL( 3);
-      ts->A[2] = BFAM_LONG_REAL( 5)/
-                 BFAM_LONG_REAL(12);
+      ts->A[0] = BFAM_LONG_REAL(23.0)/
+                 BFAM_LONG_REAL(12.0);
+      ts->A[1] = BFAM_LONG_REAL(-4.0)/
+                 BFAM_LONG_REAL( 3.0);
+      ts->A[2] = BFAM_LONG_REAL( 5.0)/
+                 BFAM_LONG_REAL(12.0);
+      */
 
       break;
     case BFAM_TS_ADAMS_1:
       ts->nStages = 1;
+      /*
       ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
 
-      ts->A[0] = BFAM_LONG_REAL(1);
+      ts->A[0] = BFAM_LONG_REAL(1.0);
+      */
       break;
     case BFAM_TS_ADAMS_2:
       ts->nStages = 2;
+      /*
       ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
 
-      ts->A[0] = BFAM_LONG_REAL( 3)/
-                 BFAM_LONG_REAL( 2);
-      ts->A[1] = BFAM_LONG_REAL(-1)/
-                 BFAM_LONG_REAL( 2);
+      ts->A[0] = BFAM_LONG_REAL( 3.0)/
+                 BFAM_LONG_REAL( 2.0);
+      ts->A[1] = BFAM_LONG_REAL(-1.0)/
+                 BFAM_LONG_REAL( 2.0);
+      */
       break;
     case BFAM_TS_ADAMS_4:
       ts->nStages = 4;
+      /*
       ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
 
-      ts->A[0] = BFAM_LONG_REAL( 55)/
-                 BFAM_LONG_REAL( 24);
-      ts->A[1] = BFAM_LONG_REAL(-59)/
-                 BFAM_LONG_REAL( 24);
-      ts->A[2] = BFAM_LONG_REAL( 37)/
-                 BFAM_LONG_REAL( 24);
-      ts->A[3] = BFAM_LONG_REAL(  3)/
-                 BFAM_LONG_REAL(  8);
+      ts->A[0] = BFAM_LONG_REAL( 55.0)/
+                 BFAM_LONG_REAL( 24.0);
+      ts->A[1] = BFAM_LONG_REAL(-59.0)/
+                 BFAM_LONG_REAL( 24.0);
+      ts->A[2] = BFAM_LONG_REAL( 37.0)/
+                 BFAM_LONG_REAL( 24.0);
+      ts->A[3] = BFAM_LONG_REAL(  3.0)/
+                 BFAM_LONG_REAL(  8.0);
+      */
       break;
   }
 
@@ -301,13 +309,15 @@ bfam_ts_adams_init(
 void
 bfam_ts_adams_free(bfam_ts_adams_t* ts)
 {
-  BFAM_LDEBUG("ADMAS FREE");
+  BFAM_LDEBUG("ADAMS FREE");
   bfam_communicator_free(ts->comm);
   bfam_free(ts->comm);
   ts->comm = NULL;
   bfam_dictionary_clear(&ts->elems);
+  /*
   bfam_free_aligned(ts->A);
   ts->A = NULL;
+  */
   ts->nStages = 0;
   ts->t  = NAN;
   bfam_ts_free(&ts->base);
