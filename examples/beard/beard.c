@@ -2411,6 +2411,8 @@ shave_beard(beard_t *beard,prefs_t *prefs)
     beard->fault_stations = NULL;
   }
   bfam_free(beard->comm_args);
+  if(prefs->lsrk_method != BFAM_TS_LSRK_NOOP)
+    bfam_ts_lsrk_free((bfam_ts_lsrk_t*) beard->beard_ts);
   if(prefs->adams_method != BFAM_TS_ADAMS_NOOP)
     bfam_ts_adams_free((bfam_ts_adams_t*) beard->beard_ts);
   bfam_free(beard->beard_ts);
