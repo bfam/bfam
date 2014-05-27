@@ -38,6 +38,7 @@ static inline int
 bfam_ts_adams_do_update(bfam_subdomain_t* sub, const bfam_long_real_t* A,
     const bfam_ts_adams_t* ts, const bfam_long_real_t dt, const int nStages)
 {
+  BFAM_LDEBUG("BFAM_TS_ADAMS_DO_UPDATE");
 
   /* Loop through the stages to scale rates and add in */
   /*
