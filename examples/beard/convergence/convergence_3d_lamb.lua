@@ -271,7 +271,7 @@ end
 
 
 -- time stepper to use
-lsrk_method  = "KC54"
+-- lsrk_method  = "KC54"
 
 tend  = brick.ny/cs
 tout  = 2*tend

@@ -144,7 +144,7 @@ end
 
 
 -- time stepper to use
-lsrk_method  = "KC54"
+-- lsrk_method  = "KC54"
 
 tend  = 4*Lx/c_s
 tout  = 2*tend
