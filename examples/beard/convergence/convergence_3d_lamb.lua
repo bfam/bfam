@@ -279,13 +279,14 @@ tdisp = 2*tend
 terr  = 0.01*tend
 
 function time_step_parameters(dt)
-  dt      = 0.5*dt
+  dt      = dt_fudge*dt
   nsteps = math.ceil(tend / dt)
   dt      = tend / nsteps
   ndisp   = tdisp / dt
   noutput  = 0
   nfoutput = -1
-  return dt,nsteps, ndisp, noutput, nfoutput
+  nstations = -1
+  return dt,nsteps, ndisp, noutput, nfoutput, nstations
 end
 
 function nerr(dt)
