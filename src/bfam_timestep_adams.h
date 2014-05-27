@@ -26,6 +26,10 @@ typedef struct bfam_ts_adams
   bfam_communicator_t *comm; /**< communicator I handle */
   bfam_dictionary_t elems;   /**< dictionary of subdomains I step */
 
+  /* zero out a given rates function */
+  void (*zero_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix);
+
   /* compute rhs that does not require communication */
   void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
       const char *rate_prefix, const char *field_prefix,
@@ -67,6 +71,7 @@ typedef enum bfam_ts_adams_method
  * \param [in]  mpitag           tag to use for MPI communcation
  * \param [in]  comm_data        user data passed to the communicator new
  * \param [in]  aux_rates        create rate field with given prefix
+ * \param [in]  zero_rates       zero out rates
  * \param [in]  intra_rhs        function handle to intra RHS routine
  * \param [in]  inter_rhs        function handle to inter RHS routine
  * \param [in]  add_rates        function handle to add rates routine
@@ -79,6 +84,8 @@ bfam_ts_adams_new(bfam_domain_t* dom, bfam_ts_adams_method_t method,
     bfam_domain_match_t comm_match, const char** comm_tags,
     MPI_Comm mpicomm, int mpitag, void * comm_data,
     void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
+    void (*zero_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix),
     void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
       const char *rate_prefix, const char *field_prefix,
       const bfam_long_real_t t),
@@ -105,6 +112,7 @@ bfam_ts_adams_new(bfam_domain_t* dom, bfam_ts_adams_method_t method,
  * \param [in]  mpitag           tag to use for MPI communcation
  * \param [in]  comm_data        user data passed to the communicator new
  * \param [in]  aux_rates        create rate field with given prefix
+ * \param [in]  zero_rates       zero out rates
  * \param [in]  intra_rhs        function handle to intra RHS routine
  * \param [in]  inter_rhs        function handle to inter RHS routine
  * \param [in]  add_rates        function handle to add rates routine
@@ -116,6 +124,8 @@ bfam_ts_adams_init(bfam_ts_adams_t* ts,
     bfam_domain_match_t comm_match, const char** comm_tags,
     MPI_Comm mpicomm, int mpitag, void * comm_data,
     void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
+    void (*zero_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix),
     void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
       const char *rate_prefix, const char *field_prefix,
       const bfam_long_real_t t),

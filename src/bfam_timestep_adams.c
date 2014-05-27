@@ -15,6 +15,8 @@ bfam_ts_adams_new(bfam_domain_t* dom, bfam_ts_adams_method_t method,
     bfam_domain_match_t comm_match, const char** comm_tags,
     MPI_Comm mpicomm, int mpitag, void *comm_data,
     void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
+    void (*zero_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix),
     void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
       const char *rate_prefix, const char *field_prefix,
       const bfam_long_real_t t),
@@ -28,7 +30,7 @@ bfam_ts_adams_new(bfam_domain_t* dom, bfam_ts_adams_method_t method,
   bfam_ts_adams_t* newTS = bfam_malloc(sizeof(bfam_ts_adams_t));
   bfam_ts_adams_init(newTS, dom, method, subdom_match, subdom_tags,
       comm_match, comm_tags, mpicomm, mpitag, comm_data, aux_rates,
-      intra_rhs,inter_rhs,add_rates);
+      zero_rates,intra_rhs,inter_rhs,add_rates);
   return newTS;
 }
 
@@ -110,8 +112,10 @@ bfam_ts_adams_intra_rhs(const char * key, void *val, void *arg)
   bfam_ts_adams_allprefix_t *data = (bfam_ts_adams_allprefix_t *) arg;
   bfam_subdomain_t* sub = (bfam_subdomain_t*) val;
   char prefix[BFAM_BUFSIZ];
-  snprintf(prefix,BFAM_BUFSIZ,"%s_%d_",BFAM_ADAMS_PREFIX,
+  snprintf(prefix,BFAM_BUFSIZ,"%s%d_",BFAM_ADAMS_PREFIX,
       data->ts->currentStage%data->ts->nStages);
+  BFAM_LDEBUG("Adams intra: using prefix %s",prefix);
+  data->ts->zero_rates(sub, prefix);
   data->ts->intra_rhs(sub, prefix, "", data->ts->t);
   return 1;
 }
@@ -122,8 +126,9 @@ bfam_ts_adams_inter_rhs(const char * key, void *val, void *arg)
   bfam_ts_adams_allprefix_t *data = (bfam_ts_adams_allprefix_t *) arg;
   bfam_subdomain_t* sub = (bfam_subdomain_t*) val;
   char prefix[BFAM_BUFSIZ];
-  snprintf(prefix,BFAM_BUFSIZ,"%s_%d_",BFAM_ADAMS_PREFIX,
+  snprintf(prefix,BFAM_BUFSIZ,"%s%d_",BFAM_ADAMS_PREFIX,
       data->ts->currentStage%data->ts->nStages);
+  BFAM_LDEBUG("Adams inter: using prefix %s",prefix);
   data->ts->inter_rhs(sub, prefix, "", data->ts->t);
   return 1;
 }
@@ -187,6 +192,8 @@ bfam_ts_adams_init(
     int                    mpitag,
     void*                  comm_data,
     void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
+    void (*zero_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *rate_prefix),
     void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
       const char *rate_prefix, const char *field_prefix,
       const bfam_long_real_t t),
@@ -210,6 +217,7 @@ bfam_ts_adams_init(
   /*
    * store the function calls
    */
+  ts->zero_rates  = zero_rates;
   ts->intra_rhs   = intra_rhs;
   ts->inter_rhs   = inter_rhs;
   ts->add_rates   = add_rates;
@@ -278,7 +286,7 @@ bfam_ts_adams_init(
      for(int n = 0; n < ts->nStages; n++)
      {
        char aux_rates_name[BFAM_BUFSIZ];
-       snprintf(aux_rates_name,BFAM_BUFSIZ,"%s_%d_",BFAM_ADAMS_PREFIX,n);
+       snprintf(aux_rates_name,BFAM_BUFSIZ,"%s%d_",BFAM_ADAMS_PREFIX,n);
        aux_rates(subs[s],aux_rates_name);
      }
    }
