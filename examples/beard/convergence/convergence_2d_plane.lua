@@ -146,7 +146,7 @@ tdisp = 2*tend
 terr  = tend
 
 function time_step_parameters(dt)
-  dt      = 0.5*dt
+  dt      = dt_fudge*dt
   nsteps = math.ceil(tend / dt)
   dt      = tend / nsteps
   ndisp   = tdisp / dt

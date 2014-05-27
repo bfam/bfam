@@ -18,10 +18,10 @@ type gsed >/dev/null 2>&1 && SED=gsed
 
 for num in {1..10}; do
   cat $2 |                                                         \
-    $SED "\$amin_level=0\nmax_level=min_level+$7\nN1=$4\nN2=$5\nN3=$6\nstatic_refinement=$num-1\nadams_method = \"Adams 3\""\
-    > $2_$3_$4_$5_$6_$7_tmp.lua
+    $SED "\$amin_level=0\nmax_level=min_level+$7\nN1=$4\nN2=$5\nN3=$6\nstatic_refinement=$num-1\nadams_method = \"Adams 3\"\ndt_fudge = 0.05*0.5"\
+    > $2_$3_$4_$5_$6_$7_adams_tmp.lua
 
-  OUT=$(mpirun -n $3 $1 $2_$3_$4_$5_$6_$7_tmp.lua | grep error:)
+  OUT=$(mpirun -n $3 $1 $2_$3_$4_$5_$6_$7_adams_tmp.lua | grep error:)
 
   RES="0"
 
