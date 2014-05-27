@@ -647,7 +647,7 @@ new_prefs(const char *prefs_filename)
       BFAM_ROOT_WARNING("`adams method' not found, using default: %s",
           prefs->adams_name);
     }
-    BFAM_ASSERT(prefs->adams_method != BFAM_TS_LSRK_NOOP);
+    BFAM_ASSERT(prefs->adams_method != BFAM_TS_ADAMS_NOOP);
   }
   lua_pop(L, 1);
 
