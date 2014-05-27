@@ -21,6 +21,7 @@ typedef struct bfam_ts_adams
   bfam_long_real_t* A;       /**< coefficients */
   int nStages;               /**< number of steps */
   int currentStage;          /**< current stage counter */
+  int numSteps;              /**< number of steps completed */
   bfam_long_real_t  t;       /**< domain time */
   bfam_communicator_t *comm; /**< communicator I handle */
   bfam_dictionary_t elems;   /**< dictionary of subdomains I step */

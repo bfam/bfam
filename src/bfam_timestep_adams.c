@@ -32,6 +32,27 @@ bfam_ts_adams_new(bfam_domain_t* dom, bfam_ts_adams_method_t method,
   return newTS;
 }
 
+static inline int
+bfam_ts_adams_do_update(bfam_subdomain_t* sub, const bfam_long_real_t* A,
+    const bfam_ts_adams_t* ts, const bfam_long_real_t dt, const int nStages)
+{
+
+  /* Loop through the stages to scale rates and add in */
+  /*
+   * nStages is the computing number of stages whereas ts->nStages is the
+   * storage number of stages
+   */
+  for(int k = 0; k < nStages;k++)
+  {
+    char prefix[BFAM_BUFSIZ];
+    snprintf(prefix,BFAM_BUFSIZ,"%s%d_",BFAM_ADAMS_PREFIX,
+        (ts->currentStage+ts->nStages-k)%ts->nStages);
+    BFAM_LDEBUG("Adams step: stage %d of %d using prefix %s",k,nStages,prefix);
+    ts->add_rates(sub, "", "", prefix, dt*A[k]);
+  }
+  return 1;
+}
+
 static int
 bfam_ts_adams_update(const char * key, void *val, void *arg)
 {
@@ -39,13 +60,46 @@ bfam_ts_adams_update(const char * key, void *val, void *arg)
   bfam_subdomain_t* sub = (bfam_subdomain_t*) val;
   bfam_ts_adams_t* ts = data->ts;
 
-  /* Loop through the stages to scale rates and add in */
-  for(int k = 0; k < ts->nStages;k++)
+  switch(BFAM_MIN(ts->numSteps+1,ts->nStages))
   {
-    char prefix[BFAM_BUFSIZ];
-    snprintf(prefix,BFAM_BUFSIZ,"%s_%d_",BFAM_ADAMS_PREFIX,
-        (ts->currentStage+k)%ts->nStages);
-    ts->add_rates(sub, "", "", prefix, data->dt*ts->A[k]);
+    case 1:
+      {
+        bfam_long_real_t A[1] = {BFAM_LONG_REAL(1)};
+        bfam_ts_adams_do_update(sub, A, ts, data->dt, 1);
+      }
+      break;
+    case 2:
+      {
+        bfam_long_real_t A[2] = {
+          BFAM_LONG_REAL( 3) / BFAM_LONG_REAL( 2),
+          BFAM_LONG_REAL(-1)/ BFAM_LONG_REAL( 2),
+        };
+        bfam_ts_adams_do_update(sub, A, ts, data->dt, 2);
+      }
+      break;
+    case 3:
+      {
+        bfam_long_real_t A[3] = {
+          BFAM_LONG_REAL(23)/ BFAM_LONG_REAL(12),
+          BFAM_LONG_REAL(-4)/ BFAM_LONG_REAL( 3),
+          BFAM_LONG_REAL( 5)/ BFAM_LONG_REAL(12),
+        };
+        bfam_ts_adams_do_update(sub, A, ts, data->dt, 3);
+      }
+      break;
+    case 4:
+      {
+        bfam_long_real_t A[4] = {
+          BFAM_LONG_REAL( 55)/ BFAM_LONG_REAL( 24),
+          BFAM_LONG_REAL(-59)/ BFAM_LONG_REAL( 24),
+          BFAM_LONG_REAL( 37)/ BFAM_LONG_REAL( 24),
+          BFAM_LONG_REAL(  3)/ BFAM_LONG_REAL(  8),
+        };
+        bfam_ts_adams_do_update(sub, A, ts, data->dt, 4);
+      }
+      break;
+    default:
+      BFAM_ABORT("Adams-Bashforth order %d not implemented",ts->nStages);
   }
   return 1;
 }
@@ -85,13 +139,6 @@ bfam_ts_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
   data.ts = ts;
   data.dt = dt;
 
-  /* q_{n+1}  := q_{n} + dt \sum_{k=0}^{m} a_{k} dq_{n-k} */
-  bfam_dictionary_allprefixed_ptr(&ts->elems,
-      "",&bfam_ts_adams_update,&data);
-
-  /* shift the stage counter */
-  ts->currentStage = (ts->currentStage+1)%ts->nStages;
-
   /* update the stage time */
   ts->t += dt;
 
@@ -116,6 +163,15 @@ bfam_ts_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
    */
   bfam_dictionary_allprefixed_ptr(&ts->elems,
       "",&bfam_ts_adams_inter_rhs,&data);
+
+
+  /* q_{n+1}  := q_{n} + dt \sum_{k=0}^{m} a_{k} dq_{n-k} */
+  bfam_dictionary_allprefixed_ptr(&ts->elems,
+      "",&bfam_ts_adams_update,&data);
+
+  /* shift the stage counter */
+  ts->currentStage = (ts->currentStage+1)%ts->nStages;
+  ts->numSteps++;
 }
 
 void
@@ -157,6 +213,9 @@ bfam_ts_adams_init(
   ts->intra_rhs   = intra_rhs;
   ts->inter_rhs   = inter_rhs;
   ts->add_rates   = add_rates;
+
+  ts->currentStage = 0;
+  ts->numSteps     = 0;
 
   switch(method)
   {
