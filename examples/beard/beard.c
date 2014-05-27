@@ -1576,26 +1576,6 @@ void scale_rates_slip_weakening (bfam_subdomain_dgx_t *sub,
 #undef X
 }
 
-void zero_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix)
-{
-  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
-  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
-  {
-    bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
-    scale_rates_elastic(sub,rate_prefix,0);
-  }
-  else if(bfam_subdomain_has_tag(thisSubdomain,"slip weakening"))
-  {
-    bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
-    scale_rates_slip_weakening(sub,rate_prefix,0);
-  }
-  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"));
-  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel"));
-  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_local"));
-  else
-    BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
-}
-
 void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     const bfam_long_real_t a)
 {
@@ -1919,7 +1899,7 @@ init_time_stepper(beard_t *beard, prefs_t *prefs)
     beard->beard_ts = (bfam_ts_t*)bfam_ts_adams_new((bfam_domain_t*) beard->domain,
         prefs->adams_method, BFAM_DOMAIN_OR, timestep_tags, BFAM_DOMAIN_OR,glue,
         beard->mpicomm, 10, beard->comm_args,
-        &aux_rates,&zero_rates,&intra_rhs,&inter_rhs, &add_rates);
+        &aux_rates,&scale_rates,&intra_rhs,&inter_rhs, &add_rates);
 }
 
 static void
