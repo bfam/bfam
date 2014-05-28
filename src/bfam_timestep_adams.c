@@ -185,6 +185,7 @@ bfam_ts_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
     if(ts->numSteps+2 >= ts->nStages)
     {
       bfam_ts_lsrk_free(ts->lsrk);
+      bfam_free(ts->lsrk);
       ts->lsrk = NULL;
     }
   }
@@ -377,7 +378,10 @@ bfam_ts_adams_free(bfam_ts_adams_t* ts)
 {
   BFAM_LDEBUG("ADAMS FREE");
   if(ts->lsrk != NULL)
+  {
     bfam_ts_lsrk_free(ts->lsrk);
+    bfam_free(ts->lsrk);
+  }
   ts->lsrk = NULL;
   bfam_communicator_free(ts->comm);
   bfam_free(ts->comm);
