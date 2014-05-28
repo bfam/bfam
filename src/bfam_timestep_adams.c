@@ -25,12 +25,13 @@ bfam_ts_adams_new(bfam_domain_t* dom, bfam_ts_adams_method_t method,
       const bfam_long_real_t t),
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
-      const char *rate_prefix, const bfam_long_real_t a))
+      const char *rate_prefix, const bfam_long_real_t a),
+    const int RK_init)
 {
   bfam_ts_adams_t* newTS = bfam_malloc(sizeof(bfam_ts_adams_t));
   bfam_ts_adams_init(newTS, dom, method, subdom_match, subdom_tags,
       comm_match, comm_tags, mpicomm, mpitag, comm_data, aux_rates,
-      scale_rates,intra_rhs,inter_rhs,add_rates);
+      scale_rates,intra_rhs,inter_rhs,add_rates,RK_init);
   return newTS;
 }
 
@@ -145,9 +146,6 @@ bfam_ts_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
   data.ts = ts;
   data.dt = dt;
 
-  /* update the stage time */
-  ts->t += dt;
-
   /*
    * start the communication
    */
@@ -171,13 +169,37 @@ bfam_ts_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
       "",&bfam_ts_adams_inter_rhs,&data);
 
 
-  /* q_{n+1}  := q_{n} + dt \sum_{k=0}^{m} a_{k} dq_{n-k} */
-  bfam_dictionary_allprefixed_ptr(&ts->elems,
-      "",&bfam_ts_adams_update,&data);
+  if(ts->lsrk)
+  {
+    /*
+     * If we are using RK, we want to tell the RK scheme to use the next rate
+     * for storage (not the current rate which is valid
+     */
+    ts->lsrk->t = ts->t;
+    char rate_prefix[BFAM_BUFSIZ];
+    snprintf(rate_prefix,BFAM_BUFSIZ,"%s%d_",BFAM_ADAMS_PREFIX,
+        (ts->currentStage+1)%ts->nStages);
+    BFAM_LDEBUG("Adams step: RK rate rate_prefix %s",rate_prefix);
+    BFAM_ASSERT(ts->lsrk->step_extended);
+    ts->lsrk->step_extended((bfam_ts_t*)ts->lsrk,dt,rate_prefix,"","");
+    if(ts->numSteps+2 >= ts->nStages)
+    {
+      bfam_ts_lsrk_free(ts->lsrk);
+      ts->lsrk = NULL;
+    }
+  }
+  else
+    /* q_{n+1}  := q_{n} + dt \sum_{k=0}^{m} a_{k} dq_{n-k} */
+    bfam_dictionary_allprefixed_ptr(&ts->elems,
+        "",&bfam_ts_adams_update,&data);
 
   /* shift the stage counter */
   ts->currentStage = (ts->currentStage+1)%ts->nStages;
   ts->numSteps++;
+
+  /* update the stage time */
+  ts->t += dt;
+
 }
 
 void
@@ -203,7 +225,8 @@ bfam_ts_adams_init(
       const bfam_long_real_t t),
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
-      const char *rate_prefix, const bfam_long_real_t a))
+      const char *rate_prefix, const bfam_long_real_t a),
+    const int RK_init)
 {
   BFAM_LDEBUG("ADAMS INIT");
 
@@ -226,6 +249,9 @@ bfam_ts_adams_init(
   ts->currentStage = 0;
   ts->numSteps     = 0;
 
+  ts->lsrk         = NULL;
+
+
   switch(method)
   {
     default:
@@ -243,6 +269,15 @@ bfam_ts_adams_init(
                  BFAM_LONG_REAL(12.0);
       */
 
+      /* if necessary initialize the RK scheme */
+      if(RK_init)
+      {
+        ts->lsrk = bfam_ts_lsrk_new_extended(dom, BFAM_TS_LSRK_KC54,
+            subdom_match, subdom_tags, comm_match, comm_tags, mpicomm, mpitag,
+            comm_data, aux_rates, scale_rates, intra_rhs, inter_rhs, add_rates,
+            0);
+      }
+
       break;
     case BFAM_TS_ADAMS_1:
       ts->nStages = 1;
@@ -251,6 +286,16 @@ bfam_ts_adams_init(
 
       ts->A[0] = BFAM_LONG_REAL(1.0);
       */
+
+      /* if necessary initialize the RK scheme */
+      if(RK_init)
+      {
+        ts->lsrk = bfam_ts_lsrk_new_extended(dom, BFAM_TS_LSRK_FE,
+            subdom_match, subdom_tags, comm_match, comm_tags, mpicomm, mpitag,
+            comm_data, aux_rates, scale_rates, intra_rhs, inter_rhs, add_rates,
+            0);
+      }
+
       break;
     case BFAM_TS_ADAMS_2:
       ts->nStages = 2;
@@ -262,6 +307,16 @@ bfam_ts_adams_init(
       ts->A[1] = BFAM_LONG_REAL(-1.0)/
                  BFAM_LONG_REAL( 2.0);
       */
+
+      /* if necessary initialize the RK scheme */
+      if(RK_init)
+      {
+        ts->lsrk = bfam_ts_lsrk_new_extended(dom, BFAM_TS_LSRK_HEUN,
+            subdom_match, subdom_tags, comm_match, comm_tags, mpicomm, mpitag,
+            comm_data, aux_rates, scale_rates, intra_rhs, inter_rhs, add_rates,
+            0);
+      }
+
       break;
     case BFAM_TS_ADAMS_4:
       ts->nStages = 4;
@@ -277,6 +332,16 @@ bfam_ts_adams_init(
       ts->A[3] = BFAM_LONG_REAL(  3.0)/
                  BFAM_LONG_REAL(  8.0);
       */
+
+      /* if necessary initialize the RK scheme */
+      if(RK_init)
+      {
+        ts->lsrk = bfam_ts_lsrk_new_extended(dom, BFAM_TS_LSRK_KC54,
+            subdom_match, subdom_tags, comm_match, comm_tags, mpicomm, mpitag,
+            comm_data, aux_rates, scale_rates, intra_rhs, inter_rhs, add_rates,
+            0);
+      }
+
       break;
   }
 
@@ -311,6 +376,9 @@ void
 bfam_ts_adams_free(bfam_ts_adams_t* ts)
 {
   BFAM_LDEBUG("ADAMS FREE");
+  if(ts->lsrk != NULL)
+    bfam_ts_lsrk_free(ts->lsrk);
+  ts->lsrk = NULL;
   bfam_communicator_free(ts->comm);
   bfam_free(ts->comm);
   ts->comm = NULL;

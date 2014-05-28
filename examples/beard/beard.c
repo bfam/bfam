@@ -1891,15 +1891,17 @@ init_time_stepper(beard_t *beard, prefs_t *prefs)
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
 
   if(prefs->lsrk_method != BFAM_TS_LSRK_NOOP)
-    beard->beard_ts = (bfam_ts_t*)bfam_ts_lsrk_new((bfam_domain_t*) beard->domain,
-        prefs->lsrk_method, BFAM_DOMAIN_OR,timestep_tags, BFAM_DOMAIN_OR,glue,
-        beard->mpicomm, 10, beard->comm_args,
-        &aux_rates,&scale_rates,&intra_rhs,&inter_rhs, &add_rates);
+    beard->beard_ts = (bfam_ts_t*)bfam_ts_lsrk_new(
+        (bfam_domain_t*) beard->domain, prefs->lsrk_method,
+        BFAM_DOMAIN_OR,timestep_tags, BFAM_DOMAIN_OR,glue, beard->mpicomm, 10,
+        beard->comm_args, &aux_rates,&scale_rates,&intra_rhs,&inter_rhs,
+        &add_rates);
   else if(prefs->adams_method != BFAM_TS_ADAMS_NOOP)
-    beard->beard_ts = (bfam_ts_t*)bfam_ts_adams_new((bfam_domain_t*) beard->domain,
-        prefs->adams_method, BFAM_DOMAIN_OR, timestep_tags, BFAM_DOMAIN_OR,glue,
-        beard->mpicomm, 10, beard->comm_args,
-        &aux_rates,&scale_rates,&intra_rhs,&inter_rhs, &add_rates);
+    beard->beard_ts = (bfam_ts_t*)bfam_ts_adams_new(
+        (bfam_domain_t*) beard->domain, prefs->adams_method, BFAM_DOMAIN_OR,
+        timestep_tags, BFAM_DOMAIN_OR,glue, beard->mpicomm, 10,
+        beard->comm_args, &aux_rates,&scale_rates,&intra_rhs,&inter_rhs,
+        &add_rates, lua_get_global_int(prefs->L, "adams_RK_init", 1));
 }
 
 static void

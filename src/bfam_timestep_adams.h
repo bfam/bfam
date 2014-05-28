@@ -4,6 +4,7 @@
 #include <bfam_base.h>
 #include <bfam_domain.h>
 #include <bfam_timestep.h>
+#include <bfam_timestep_lsrk.h>
 #include <bfam_communicator.h>
 
 /**
@@ -25,6 +26,9 @@ typedef struct bfam_ts_adams
   bfam_long_real_t  t;       /**< domain time */
   bfam_communicator_t *comm; /**< communicator I handle */
   bfam_dictionary_t elems;   /**< dictionary of subdomains I step */
+
+  /* LSRK method for initialization */
+  bfam_ts_lsrk_t* lsrk;
 
   /* scale rates function */
   void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
@@ -75,6 +79,8 @@ typedef enum bfam_ts_adams_method
  * \param [in]  intra_rhs        function handle to intra RHS routine
  * \param [in]  inter_rhs        function handle to inter RHS routine
  * \param [in]  add_rates        function handle to add rates routine
+ * \param [in]  RK_init          boolean which if true signifies using LSRK to
+ *                               init Adams method
  *
  * \return the newly created low storage RK time stepper
  */
@@ -94,7 +100,8 @@ bfam_ts_adams_new(bfam_domain_t* dom, bfam_ts_adams_method_t method,
       const bfam_long_real_t t),
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
-      const char *rate_prefix, const bfam_long_real_t a));
+      const char *rate_prefix, const bfam_long_real_t a),
+    const int RK_init);
 
 /** initialize an Adams scheme
  *
@@ -116,6 +123,8 @@ bfam_ts_adams_new(bfam_domain_t* dom, bfam_ts_adams_method_t method,
  * \param [in]  intra_rhs        function handle to intra RHS routine
  * \param [in]  inter_rhs        function handle to inter RHS routine
  * \param [in]  add_rates        function handle to add rates routine
+ * \param [in]  RK_init          boolean which if true signifies using LSRK to
+ *                               init Adams method
  */
 void
 bfam_ts_adams_init(bfam_ts_adams_t* ts,
@@ -134,7 +143,8 @@ bfam_ts_adams_init(bfam_ts_adams_t* ts,
       const bfam_long_real_t t),
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
-      const char *rate_prefix, const bfam_long_real_t a));
+      const char *rate_prefix, const bfam_long_real_t a),
+    const int RK_init);
 
 /** free an Adams scheme
  *
