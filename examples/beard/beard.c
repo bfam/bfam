@@ -325,6 +325,17 @@ struct adams_table {
   {NULL,      BFAM_TS_ADAMS_NOOP},
 };
 
+struct local_adams_table {
+  const char *name;
+  bfam_ts_local_adams_method_t local_adams_method;
+} local_adams_table[] = {
+  {"Adams 1", BFAM_TS_LOCAL_ADAMS_1},
+  {"Adams 2", BFAM_TS_LOCAL_ADAMS_2},
+  {"Adams 3", BFAM_TS_LOCAL_ADAMS_3},
+  {"Adams 4", BFAM_TS_LOCAL_ADAMS_4},
+  {NULL,      BFAM_TS_LOCAL_ADAMS_NOOP},
+};
+
 typedef struct brick_args
 {
   int nx;
