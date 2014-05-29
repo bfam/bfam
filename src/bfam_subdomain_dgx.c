@@ -1179,7 +1179,8 @@ bfam_subdomain_dgx_put_send_buffer(bfam_subdomain_t *thisSubdomain,
     for(int s = 0; args->face_scalars_m[s] != NULL;s++)
     {
       const char *key  = args->face_scalars_m[s];
-      void *field = bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,key);
+      void *field = bfam_dictionary_get_value_ptr(
+          &data.sub->base.glue_m->fields,key);
       bfam_subdomain_dgx_get_face_scalar_fields_m(key,field,&data);
     }
   }

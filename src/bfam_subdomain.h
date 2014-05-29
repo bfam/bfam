@@ -23,7 +23,8 @@ typedef struct bfam_subdomain_comm_args
                                       *       will lead to 0 being used for that
                                       *       component */
 
-  const char ** tensors_m;           /* \c NULL terminated array of tensor to send
+  const char ** tensors_m;           /* \c NULL terminated array of tensor to
+                                      * send
                                       * \note will suffix n for normal component
                                       *       and p[1-3] for perpendicular
                                       *       components */
