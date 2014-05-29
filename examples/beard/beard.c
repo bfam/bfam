@@ -2873,7 +2873,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   beard.conn            = NULL;
   beard.domain          = NULL;
   beard.beard_ts        = NULL;
-  beard. comm_args      = NULL;
+  beard.comm_args       = NULL;
   beard.volume_stations = NULL;
   beard.fault_stations  = NULL;
 
