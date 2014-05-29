@@ -5,6 +5,8 @@
 #include <bfam_critbit.h>
 #include <bfam_dictionary.h>
 
+struct bfam_subdomain;
+
 typedef struct bfam_subdomain_comm_args
 {
   const char ** scalars_m;           /* \c NULL terminated array of scalars to
@@ -45,6 +47,22 @@ typedef struct bfam_subdomain_comm_args
   const char ** tensors_p;
   const char ** tensor_components_p;
   const char ** face_scalars_p;
+
+
+  /**< user specified glue grid communication info:
+   *   recv_sz and send_sz should be added to and not reset
+   */
+  void (*user_comm_info) (struct bfam_subdomain *thisSubdomain,
+      size_t *send_sz, size_t *recv_sz, void *args);
+
+  /**< user specified put data into the send buffer */
+  void (*user_put_send_buffer) (struct bfam_subdomain *thisSubdomain,
+      void *buffer, size_t send_sz, void *args);
+
+  /**< use specified get data from the recv buffer */
+  void (*user_get_recv_buffer) (struct bfam_subdomain *thisSubdomain,
+      void *buffer, size_t recv_sz, void *args);
+
 } bfam_subdomain_comm_args_t;
 
 typedef struct bfam_subdomain_face_map_entry
@@ -81,7 +99,6 @@ bfam_subdomain_face_send_cmp(const void *a, const void *b);
 int
 bfam_subdomain_face_recv_cmp(const void *a, const void *b);
 
-struct bfam_subdomain;
 
 /*
  * This is the field initialization function which will be called for each
@@ -200,7 +217,6 @@ typedef struct bfam_subdomain
   /**< Add a field to the faces of the subdomain */
   int (*field_face_add) (struct bfam_subdomain *thisSubdomain,
                          const char* name);
-
 
   /**< Initialize a field in the subdomain */
   void (*field_init) (struct bfam_subdomain *thisSubdomain, const char* name,

@@ -1332,6 +1332,11 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
   mat_args.tensor_components_p = mat_NULL;
   mat_args.face_scalars_p      = glue_face_scalar;
 
+  mat_args.user_comm_info       = NULL;
+  mat_args.user_put_send_buffer = NULL;
+  mat_args.user_get_recv_buffer = NULL;
+
+
   bfam_communicator_init(&material_comm,domain,BFAM_DOMAIN_OR,glue,
       beard->mpicomm,10,&mat_args);
   bfam_communicator_start( &material_comm);
@@ -1945,6 +1950,10 @@ init_time_stepper(beard_t *beard, prefs_t *prefs)
   args->tensor_components_p = comm_args_tensor_components;
   args->face_scalars_p      = comm_args_face_scalars;
 
+  args->user_comm_info       = NULL;
+  args->user_put_send_buffer = NULL;
+  args->user_get_recv_buffer = NULL;
+
 
   const char *timestep_tags[] = {"_volume","_glue_parallel","_glue_local",
     "_glue_boundary", NULL};
@@ -2307,7 +2316,6 @@ run_simulation(beard_t *beard,prefs_t *prefs)
 {
   const char *volume[] = {"_volume",NULL};
   const char *slip_weakening[] = {"slip weakening",NULL};
-
 
   int nsteps  = 0;
   int ndisp   = 0;

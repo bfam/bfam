@@ -287,6 +287,12 @@ bfam_subdomain_dgx_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
         bfam_dictionary_get_value_ptr(&data.sub->base.glue_p->fields,key);
         bfam_subdomain_dgx_put_scalar_fields_p(key,field,&data);
     }
+    if(args->user_get_recv_buffer)
+    {
+      const size_t buffer_offset = data.field * data.sub->Np * data.sub->K;
+      args->user_get_recv_buffer(thisSubdomain,data.buffer+buffer_offset,
+          recv_sz-buffer_offset*sizeof(bfam_real_t), comm_args);
+    }
   }
 }
 
@@ -1183,6 +1189,13 @@ bfam_subdomain_dgx_put_send_buffer(bfam_subdomain_t *thisSubdomain,
           &data.sub->base.glue_m->fields,key);
       bfam_subdomain_dgx_get_face_scalar_fields_m(key,field,&data);
     }
+
+    if(args->user_put_send_buffer)
+    {
+      const size_t buffer_offset = data.field * data.sub->Np * data.sub->K;
+      args->user_put_send_buffer(thisSubdomain,data.buffer+buffer_offset,
+          send_sz-buffer_offset*sizeof(bfam_real_t), comm_args);
+    }
   }
 }
 
@@ -1229,6 +1242,9 @@ bfam_subdomain_dgx_comm_info(bfam_subdomain_t *thisSubdomain,
     for(int i = 0; args->tensors_p[i] != NULL;i++)      count+=4;
     for(int i = 0; args->face_scalars_p[i] != NULL;i++) count++;
     recv_num = count * sub->K * sub->Np;
+
+    if(args->user_comm_info)
+      args->user_comm_info(thisSubdomain, send_sz, recv_sz, comm_args);
   }
 
   *send_sz  = send_num*sizeof(bfam_real_t);

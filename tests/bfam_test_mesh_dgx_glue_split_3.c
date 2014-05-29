@@ -167,6 +167,10 @@ build_state(MPI_Comm mpicomm, state_t* state)
   commargs.face_scalars_m = comm_args_face_scalars;
   commargs.face_scalars_p = comm_args_face_scalars;
 
+  commargs.user_comm_info = NULL;
+  commargs.user_get_recv_buffer = NULL;
+  commargs.user_put_send_buffer = NULL;
+
   bfam_communicator_t* communicator =
     bfam_communicator_new(d, BFAM_DOMAIN_OR, glue, mpicomm, 11, &commargs);
   bfam_communicator_start(communicator);
@@ -447,6 +451,10 @@ test_conn(MPI_Comm mpicomm, state_t *state)
 
   commargs.face_scalars_m = comm_args_face_scalars;
   commargs.face_scalars_p = comm_args_face_scalars;
+
+  commargs.user_comm_info = NULL;
+  commargs.user_get_recv_buffer = NULL;
+  commargs.user_put_send_buffer = NULL;
 
   /* add glue fields */
   for(int f = 0 ; comm_args_face_scalars[f] != NULL; f++)
