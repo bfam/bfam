@@ -1916,7 +1916,7 @@ init_time_stepper(beard_t *beard, prefs_t *prefs)
 }
 
 static void
-compute_dt(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+compute_subdomain_dt(bfam_locidx_t npoints, const char *name, bfam_real_t time,
     bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
     struct bfam_subdomain *s, void *arg, bfam_real_t *restrict JI)
 {
@@ -2164,44 +2164,81 @@ beard_open_stations(const char * key, void *val, void *in_args)
   return beard_output_stations(key, val, args);
 }
 
-static void
-run_simulation(beard_t *beard,prefs_t *prefs)
+static bfam_real_t
+compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *tags[],
+      int *nsteps_ptr, int *ndisp_ptr, int *noutput_ptr, int *nfoutput_ptr,
+      int *nstations_ptr, int *nerr_ptr)
 {
-  const char *volume[] = {"_volume",NULL};
-  const char *slip_weakening[] = {"slip weakening",NULL};
 
-  /* compute the time step information */
-  bfam_real_t ldt = INFINITY;
-  bfam_domain_init_field((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR, volume,
-      "_grid_JI", 0, compute_dt, &ldt);
+  /* first we get all the volume subdomains */
+  bfam_subdomain_t **subdomains =
+    bfam_malloc(((bfam_domain_t*)beard->domain)->numSubdomains
+        *sizeof(bfam_subdomain_t**));
+
+  bfam_locidx_t numSubdomains = 0;
+
+  bfam_domain_get_subdomains(((bfam_domain_t*)beard->domain), BFAM_DOMAIN_OR,
+      tags, ((bfam_domain_t*)beard->domain)->numSubdomains,
+      subdomains, &numSubdomains);
+
+  bfam_real_t ldt[numSubdomains];
+  bfam_real_t min_ldt = INFINITY;
+
+  for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
+  {
+    ldt[s] = INFINITY;
+    bfam_subdomain_field_init(subdomains[s], "_grid_JI", 0,
+        compute_subdomain_dt, &ldt[s]);
+    BFAM_INFO("local dt for %s is %"BFAM_REAL_FMTe,
+        subdomains[s]->name, ldt[s]);
+    min_ldt = BFAM_MIN(min_ldt,ldt[s]);
+  }
+
+  BFAM_INFO("min local dt is %"BFAM_REAL_FMTe, min_ldt);
+
+  bfam_free(subdomains);
+
   bfam_real_t dt = 0;
-  BFAM_INFO("local dt = %"BFAM_REAL_FMTe, ldt);
-  BFAM_MPI_CHECK(MPI_Allreduce(&ldt,&dt,1,BFAM_REAL_MPI, MPI_MIN,
+  BFAM_MPI_CHECK(MPI_Allreduce(&min_ldt,&dt,1,BFAM_REAL_MPI, MPI_MIN,
         beard->mpicomm));
 
-  int nsteps  = 0;
-  int ndisp   = 0;
-  int noutput = 0;
-  int nfoutput = 0;
-  int nstations = 0;
-
-  int result = lua_global_function_call(prefs->L,"time_step_parameters",
-      "r>riiiii",dt,&dt,&nsteps,&ndisp,&noutput,&nfoutput,&nstations);
+  int result = lua_global_function_call(prefs->L, "time_step_parameters",
+      "r>riiiii", dt, &dt, nsteps_ptr, ndisp_ptr, noutput_ptr, nfoutput_ptr,
+      nstations_ptr);
   BFAM_ABORT_IF_NOT(result == 0,
       "problem with lua call to 'time_step_parameters': "
       "should be a function that takes dt "
       "and returns dt, nsteps, ndisp, noutput,nfoutput");
-  int nerr = 0;
-  result = lua_global_function_call(prefs->L,"nerr","r>i",dt,&nerr);
-  if(nerr > 0)
+  result = lua_global_function_call(prefs->L,"nerr","r>i",dt,nerr_ptr);
+  if(*nerr_ptr > 0)
   {
       const char *err_flds[] = { "error_v1",  "error_v2",  "error_v3",
                                 "error_S11", "error_S22", "error_S33",
                                 "error_S12", "error_S13", "error_S23", NULL};
       for(int f = 0; err_flds[f] != NULL; f++)
         bfam_domain_add_field ((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
-            volume, err_flds[f]);
+            tags, err_flds[f]);
   }
+
+  return dt;
+}
+
+static void
+run_simulation(beard_t *beard,prefs_t *prefs)
+{
+  const char *volume[] = {"_volume",NULL};
+  const char *slip_weakening[] = {"slip weakening",NULL};
+
+
+  int nsteps  = 0;
+  int ndisp   = 0;
+  int noutput = 0;
+  int nfoutput = 0;
+  int nstations = 0;
+  int nerr = 0;
+
+  bfam_real_t dt = compute_domain_dt(beard, prefs, volume,
+      &nsteps, &ndisp, &noutput, &nfoutput, &nstations, &nerr);
 
   BFAM_ROOT_INFO("dt        = %"BFAM_REAL_FMTe,dt);
   BFAM_ROOT_INFO("nsteps    = %d",nsteps);
