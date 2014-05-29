@@ -8,7 +8,8 @@
 #include <bfam_communicator.h>
 
 /**
- * structure comtaining the necessary features of an explicit Adams method
+ * structure comtaining the necessary features of an explicit, local Adams
+ * method
  *
  * Each step is of the form
  * t_{n+1}  := t_n + dt
@@ -19,7 +20,6 @@
 typedef struct bfam_ts_local_adams
 {
   bfam_ts_t base;            /**< parent timestepper */
-  // bfam_long_real_t* A;       /**< coefficients */
   int nStages;               /**< number of steps */
   int currentStage;          /**< current stage counter */
   int numSteps;              /**< number of steps completed */
