@@ -365,6 +365,9 @@ typedef struct prefs
 
   bfam_ts_adams_method_t adams_method;
   char adams_name[BFAM_BUFSIZ];
+
+  bfam_ts_local_adams_method_t local_adams_method;
+  char local_adams_name[BFAM_BUFSIZ];
 } prefs_t;
 
 
@@ -662,14 +665,60 @@ new_prefs(const char *prefs_filename)
   }
   lua_pop(L, 1);
 
-  BFAM_ABORT_IF_NOT((prefs->lsrk_method  != BFAM_TS_LSRK_NOOP  &&
-                     prefs->adams_method == BFAM_TS_ADAMS_NOOP
+  prefs->local_adams_method = BFAM_TS_LOCAL_ADAMS_NOOP;
+  lua_getglobal(L, "local_adams_method");
+  if(lua_isstring(L, -1))
+  {
+    prefs->local_adams_method = local_adams_table[0].local_adams_method;
+    strncpy(prefs->local_adams_name,local_adams_table[0].name,BFAM_BUFSIZ);
+    if(lua_isstring(L, -1))
+    {
+      int i;
+      const char *local_adams_name = lua_tostring(L, -1);
+      for(i = 0; local_adams_table[i].name != NULL; ++i)
+      {
+        if(strcmp(local_adams_name, local_adams_table[i].name) == 0)
+          break;
+      }
+
+      if(local_adams_table[i].name == NULL)
+        BFAM_ROOT_WARNING("invalid local adams method name: `%s';"
+            " using default %s",
+            local_adams_name, prefs->local_adams_name);
+      else
+      {
+        prefs->local_adams_method =
+          local_adams_table[i].local_adams_method;
+        strncpy(prefs->local_adams_name,local_adams_table[i].name,BFAM_BUFSIZ);
+      }
+    }
+    else
+    {
+      BFAM_ROOT_WARNING("`local_adams method' not found, using default: %s",
+          prefs->local_adams_name);
+    }
+    BFAM_ASSERT(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP);
+  }
+  lua_pop(L, 1);
+
+
+  BFAM_ABORT_IF_NOT((prefs->lsrk_method        != BFAM_TS_LSRK_NOOP  &&
+                     prefs->adams_method       == BFAM_TS_ADAMS_NOOP &&
+                     prefs->local_adams_method == BFAM_TS_LOCAL_ADAMS_NOOP
                     )
                     ||
                     (
-                     prefs->lsrk_method  == BFAM_TS_LSRK_NOOP  &&
-                     prefs->adams_method != BFAM_TS_ADAMS_NOOP
-                    ),"must have either LSRK or ADAMS time stepper");
+                     prefs->lsrk_method        == BFAM_TS_LSRK_NOOP  &&
+                     prefs->adams_method       != BFAM_TS_ADAMS_NOOP &&
+                     prefs->local_adams_method == BFAM_TS_LOCAL_ADAMS_NOOP
+                    )
+                    ||
+                    (
+                     prefs->lsrk_method        == BFAM_TS_LSRK_NOOP  &&
+                     prefs->adams_method       == BFAM_TS_ADAMS_NOOP &&
+                     prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP
+                    )
+                    ,"must have either LSRK, ADAMS, or LOCAL time stepper");
 
   /* get the connectivity type */
   prefs->brick_args     = bfam_malloc(sizeof(brick_args_t));
@@ -2196,15 +2245,14 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *tags[],
 
   BFAM_INFO("min local dt is %"BFAM_REAL_FMTe, min_ldt);
 
-  bfam_free(subdomains);
-
-  bfam_real_t dt = 0;
-  BFAM_MPI_CHECK(MPI_Allreduce(&min_ldt,&dt,1,BFAM_REAL_MPI, MPI_MIN,
+  bfam_real_t min_global_dt = 0;
+  BFAM_MPI_CHECK(MPI_Allreduce(&min_ldt,&min_global_dt,1,BFAM_REAL_MPI, MPI_MIN,
         beard->mpicomm));
 
+  bfam_real_t dt = 0;
   int result = lua_global_function_call(prefs->L, "time_step_parameters",
-      "r>riiiii", dt, &dt, nsteps_ptr, ndisp_ptr, noutput_ptr, nfoutput_ptr,
-      nstations_ptr);
+      "r>riiiii", min_global_dt, &dt, nsteps_ptr, ndisp_ptr, noutput_ptr,
+      nfoutput_ptr, nstations_ptr);
   BFAM_ABORT_IF_NOT(result == 0,
       "problem with lua call to 'time_step_parameters': "
       "should be a function that takes dt "
@@ -2219,6 +2267,37 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *tags[],
         bfam_domain_add_field ((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
             tags, err_flds[f]);
   }
+  if(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
+  {
+    bfam_real_t max_ldt = dt;
+
+    bfam_long_real_t dt_fudge = (bfam_long_real_t)dt /
+                                (bfam_long_real_t)min_global_dt;
+    for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
+    {
+      ldt[s] = dt_fudge*ldt[s];
+
+      /* keep double time_step until the level is big enough */
+      int time_level = 1;
+      while(2*time_level < ldt[s] / dt) time_level *= 2;
+      BFAM_ASSERT(time_level > 0);
+
+      /* set this guys real dt */
+      ldt[s] = dt*time_level;
+
+      BFAM_INFO("For %s is time level %d with local dt %"BFAM_REAL_FMTe,
+          subdomains[s]->name, time_level, ldt[s]);
+
+      max_ldt = BFAM_MAX(max_ldt,ldt[s]);
+    }
+
+    BFAM_INFO("max local dt is %"BFAM_REAL_FMTe, max_ldt);
+
+    BFAM_MPI_CHECK(MPI_Allreduce(&max_ldt,&dt,1,BFAM_REAL_MPI,
+          MPI_MAX, beard->mpicomm));
+  }
+
+  bfam_free(subdomains);
 
   return dt;
 }
@@ -2307,6 +2386,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
         prefs->vtk_binary, prefs->vtk_compress, 0);
   }
 
+  BFAM_ASSERT(beard->beard_ts);
   for(int s = 1; s <= nsteps; s++)
   {
     beard->beard_ts->step(beard->beard_ts,dt);
