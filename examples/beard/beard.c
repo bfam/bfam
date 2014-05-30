@@ -1578,6 +1578,59 @@ void aux_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
   }
 }
 
+void glue_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
+{
+  if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel") ||
+     bfam_subdomain_has_tag(thisSubdomain,"_glue_local"   ))
+  {
+    for(int f = 0 ; comm_args_scalars[f] != NULL; f++)
+    {
+      char field[BFAM_BUFSIZ];
+      snprintf(field,BFAM_BUFSIZ,"%s%s",prefix,comm_args_scalars[f]);
+      thisSubdomain->field_minus_add(thisSubdomain,field);
+      thisSubdomain->field_plus_add(thisSubdomain,field);
+    }
+    for(int f = 0 ; comm_args_vectors[f] != NULL; f++)
+    {
+      char field[BFAM_BUFSIZ];
+      snprintf(field,BFAM_BUFSIZ, "%s%sn",prefix,comm_args_vectors[f]);
+      thisSubdomain->field_minus_add(thisSubdomain,field);
+      thisSubdomain->field_plus_add(thisSubdomain,field);
+
+      snprintf(field,BFAM_BUFSIZ, "%s%sp1",prefix,comm_args_vectors[f]);
+      thisSubdomain->field_minus_add(thisSubdomain,field);
+      thisSubdomain->field_plus_add(thisSubdomain,field);
+
+      snprintf(field,BFAM_BUFSIZ, "%s%sp2",prefix,comm_args_vectors[f]);
+      thisSubdomain->field_minus_add(thisSubdomain,field);
+      thisSubdomain->field_plus_add(thisSubdomain,field);
+
+      snprintf(field,BFAM_BUFSIZ, "%s%sp3",prefix,comm_args_vectors[f]);
+      thisSubdomain->field_minus_add(thisSubdomain,field);
+      thisSubdomain->field_plus_add(thisSubdomain,field);
+    }
+    for(int f = 0 ; comm_args_tensors[f] != NULL; f++)
+    {
+      char field[BFAM_BUFSIZ];
+      snprintf(field,BFAM_BUFSIZ, "%s%sn",prefix,comm_args_tensors[f]);
+      thisSubdomain->field_minus_add(thisSubdomain,field);
+      thisSubdomain->field_plus_add(thisSubdomain,field);
+
+      snprintf(field,BFAM_BUFSIZ, "%s%sp1",prefix,comm_args_tensors[f]);
+      thisSubdomain->field_minus_add(thisSubdomain,field);
+      thisSubdomain->field_plus_add(thisSubdomain,field);
+
+      snprintf(field,BFAM_BUFSIZ, "%s%sp2",prefix,comm_args_tensors[f]);
+      thisSubdomain->field_minus_add(thisSubdomain,field);
+      thisSubdomain->field_plus_add(thisSubdomain,field);
+
+      snprintf(field,BFAM_BUFSIZ, "%s%sp3",prefix,comm_args_tensors[f]);
+      thisSubdomain->field_minus_add(thisSubdomain,field);
+      thisSubdomain->field_plus_add(thisSubdomain,field);
+    }
+  }
+}
+
 void scale_rates_elastic (bfam_subdomain_dgx_t *sub, const char *rate_prefix,
     const bfam_long_real_t a)
 {
@@ -1972,7 +2025,13 @@ init_time_stepper(beard_t *beard, prefs_t *prefs)
         (bfam_domain_t*) beard->domain, prefs->adams_method, BFAM_DOMAIN_OR,
         timestep_tags, BFAM_DOMAIN_OR,glue, beard->mpicomm, 10,
         beard->comm_args, &aux_rates,&scale_rates,&intra_rhs,&inter_rhs,
-        &add_rates, lua_get_global_int(prefs->L, "adams_RK_init", 1));
+        &add_rates, lua_get_global_int(prefs->L, "RK_init", 1));
+  else if(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
+    beard->beard_ts = (bfam_ts_t*)bfam_ts_local_adams_new(
+        (bfam_domain_t*) beard->domain, prefs->local_adams_method,
+        BFAM_DOMAIN_OR, timestep_tags, BFAM_DOMAIN_OR,glue, beard->mpicomm, 10,
+        beard->comm_args, &aux_rates, &glue_rates, &scale_rates,&intra_rhs
+        ,&inter_rhs, &add_rates, lua_get_global_int(prefs->L, "RK_init", 1));
 }
 
 static void
