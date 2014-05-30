@@ -2238,24 +2238,34 @@ static void
 time_level_put_send_buffer(bfam_subdomain_t* thisSubdomain, void *buffer,
     size_t send_sz, void *comm_args)
 {
+  /* just some sanity check */
+  BFAM_ASSERT(send_sz == sizeof(int));
   BFAM_ASSERT(comm_args);
+  BFAM_ASSERT(thisSubdomain->glue_m);
+  BFAM_ASSERT(thisSubdomain->glue_m->sub_m);
+
+  /* determine the level of the minus side and add tag to minus side */
   bfam_subdomain_comm_args_t *args =
     (bfam_subdomain_comm_args_t*) comm_args;
-
   BFAM_ASSERT(args->user_data);
   int max_lvl = *(int*)args->user_data;
 
   int lvl = 1;
+  char tag[BFAM_BUFSIZ];
   for(; lvl <= max_lvl;lvl*=2)
   {
-    char tag[BFAM_BUFSIZ];
     bfam_ts_local_adams_fill_level_tag(tag,BFAM_BUFSIZ,lvl);
-    if(bfam_subdomain_has_tag(thisSubdomain,tag)) break;
+    if(bfam_subdomain_has_tag(thisSubdomain->glue_m->sub_m,tag)) break;
   }
   BFAM_ABORT_IF(lvl > max_lvl,"glue %s: "
       "max number of levels searched in minus side %s "
       "and no level tag found",
       thisSubdomain->name,thisSubdomain->glue_m->sub_m->name);
+
+  bfam_subdomain_minus_add_tag(thisSubdomain,tag);
+
+  /* store the level */
+  *(int*)buffer = lvl;
 }
 
 static void
@@ -2263,6 +2273,11 @@ time_level_get_recv_buffer(bfam_subdomain_t *thisSubdomain, void *buffer,
     size_t recv_sz, void *comm_args)
 {
   BFAM_ASSERT(comm_args);
+  BFAM_ASSERT(recv_sz == sizeof(int));
+  int lvl = *(int*)buffer;
+  char tag[BFAM_BUFSIZ];
+  bfam_ts_local_adams_fill_level_tag(tag,BFAM_BUFSIZ,lvl);
+  bfam_subdomain_plus_add_tag(thisSubdomain,tag);
 }
 
 static bfam_real_t
@@ -2336,6 +2351,10 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *volume[],
       int time_level = 1;
       while(2*time_level < ldt[s] / dt) time_level *= 2;
       BFAM_ASSERT(time_level > 0);
+
+      char tag[BFAM_BUFSIZ];
+      bfam_ts_local_adams_fill_level_tag(tag,BFAM_BUFSIZ,time_level);
+      bfam_subdomain_add_tag(subdomains[s],tag);
 
       /* set this guys real dt */
       ldt[s] = dt*time_level;
