@@ -205,6 +205,58 @@ bfam_subdomain_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag)
   return bfam_critbit0_contains(&thisSubdomain->tags, tag);
 }
 
+void
+bfam_subdomain_minus_add_tag(bfam_subdomain_t *thisSubdomain, const char* tag)
+{
+  BFAM_ASSERT(thisSubdomain->glue_m);
+  BFAM_LDEBUG("subdomain %s: adding minus tag %s", thisSubdomain->name, tag);
+  int r = bfam_critbit0_insert(&thisSubdomain->glue_m->tags, tag);
+
+  BFAM_ABORT_IF(!r, "Out of memory when adding minus tag: %s to subdomain %s",
+      tag, thisSubdomain->name);
+}
+
+int
+bfam_subdomain_minus_delete_tag(bfam_subdomain_t *thisSubdomain,
+                                const char* tag)
+{
+  BFAM_ASSERT(thisSubdomain->glue_m);
+  return bfam_critbit0_delete(&thisSubdomain->glue_m->tags, tag);
+}
+
+int
+bfam_subdomain_minus_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag)
+{
+  BFAM_ASSERT(thisSubdomain->glue_m);
+  return bfam_critbit0_contains(&thisSubdomain->glue_m->tags, tag);
+}
+
+void
+bfam_subdomain_plus_add_tag(bfam_subdomain_t *thisSubdomain, const char* tag)
+{
+  BFAM_ASSERT(thisSubdomain->glue_p);
+  BFAM_LDEBUG("subdomain %s: adding plus tag %s", thisSubdomain->name, tag);
+  int r = bfam_critbit0_insert(&thisSubdomain->glue_p->tags, tag);
+
+  BFAM_ABORT_IF(!r, "Out of memory when adding plus tag: %s to subdomain %s",
+      tag, thisSubdomain->name);
+}
+
+int
+bfam_subdomain_plus_delete_tag(bfam_subdomain_t *thisSubdomain,
+                                const char* tag)
+{
+  BFAM_ASSERT(thisSubdomain->glue_p);
+  return bfam_critbit0_delete(&thisSubdomain->glue_p->tags, tag);
+}
+
+int
+bfam_subdomain_plus_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag)
+{
+  BFAM_ASSERT(thisSubdomain->glue_p);
+  return bfam_critbit0_contains(&thisSubdomain->glue_p->tags, tag);
+}
+
 int
 bfam_subdomain_field_add(bfam_subdomain_t *thisSubdomain, const char* name)
 {

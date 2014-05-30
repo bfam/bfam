@@ -2882,6 +2882,7 @@ bfam_subdomain_dgx_free_glue(bfam_subdomain_dgx_glue_data_t *glue)
         bfam_free_aligned(glue->mapOm[n]);
       bfam_free_aligned(glue->mapOm);
     }
+    bfam_critbit0_clear(&glue->base.tags);
     bfam_free(glue);
   }
 }
@@ -3048,6 +3049,7 @@ bfam_subdomain_dgx_glue_generic_init(bfam_subdomain_dgx_glue_data_t *glue,
   glue->projection     = NULL;
   glue->massprojection = NULL;
   glue->exact_mass     = NULL;
+  glue->base.tags.root = NULL;
 }
 
 void

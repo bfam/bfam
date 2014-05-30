@@ -141,6 +141,8 @@ typedef struct bfam_subdomain_glue_data
 
   bfam_dictionary_t fields; /**< a dictionary storing glue fields */
 
+  bfam_critbit0_tree_t tags; /**< critbit for tags for the glue */
+
   /* The following pointers should only be \ne NULL on the minus side */
   struct bfam_subdomain *sub_m;  /* Local neighboring subdomain */
 } bfam_subdomain_glue_data_t;
@@ -279,6 +281,95 @@ bfam_subdomain_glue_init(bfam_subdomain_glue_data_t *glue,
  */
 void
 bfam_subdomain_free(bfam_subdomain_t *thisSubdomain);
+
+/** Add a tag to the subdomain
+ *
+ * \param [in,out] thisSubdomain subdomain to andd the tag to
+ * \param [in]     tag           tag of the domain (\0 terminated string)
+ *
+ */
+void
+bfam_subdomain_add_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+
+/** Remove a tag from the subdomain
+ *
+ * \param [in,out] thisSubdomain subdomain to remove the tag from
+ * \param [in]     tag           tag of the domain (\0 terminated string)
+ *
+ * \returns It returns 1 if the tag was removed, 0 otherwise.
+ */
+int
+bfam_subdomain_delete_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+
+/** Check to see if a subdomain has a tag
+ *
+ * \param [in,out] thisSubdomain subdomain to search for the tag
+ * \param [in]     tag           tag of the domain (\0 terminated string)
+ *
+ * \return nonzero iff \a thisSubdomain has the tag \a tag
+ */
+int
+bfam_subdomain_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+
+/** Add a tag to the subdomain minus glue
+ *
+ * \param [in,out] thisSubdomain subdomain to andd the tag to
+ * \param [in]     tag           tag of the domain (\0 terminated string)
+ *
+ */
+void
+bfam_subdomain_minus_add_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+
+/** Remove a tag from the subdomain minus glue
+ *
+ * \param [in,out] thisSubdomain subdomain to remove the tag from
+ * \param [in]     tag           tag of the domain (\0 terminated string)
+ *
+ * \returns It returns 1 if the tag was removed, 0 otherwise.
+ */
+int
+bfam_subdomain_minus_delete_tag(bfam_subdomain_t *thisSubdomain,
+                                const char* tag);
+
+/** Check to see if a subdomain has a tag minus glue
+ *
+ * \param [in,out] thisSubdomain subdomain to search for the tag
+ * \param [in]     tag           tag of the domain (\0 terminated string)
+ *
+ * \return nonzero iff \a thisSubdomain has the tag \a tag
+ */
+int
+bfam_subdomain_minus_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+
+/** Add a tag to the subdomain plus glue
+ *
+ * \param [in,out] thisSubdomain subdomain to andd the tag to
+ * \param [in]     tag           tag of the domain (\0 terminated string)
+ *
+ */
+void
+bfam_subdomain_plus_add_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+
+/** Remove a tag from the subdomain plus glue
+ *
+ * \param [in,out] thisSubdomain subdomain to remove the tag from
+ * \param [in]     tag           tag of the domain (\0 terminated string)
+ *
+ * \returns It returns 1 if the tag was removed, 0 otherwise.
+ */
+int
+bfam_subdomain_plus_delete_tag(bfam_subdomain_t *thisSubdomain,
+                                const char* tag);
+
+/** Check to see if a subdomain has a tag plus glue
+ *
+ * \param [in,out] thisSubdomain subdomain to search for the tag
+ * \param [in]     tag           tag of the domain (\0 terminated string)
+ *
+ * \return nonzero iff \a thisSubdomain has the tag \a tag
+ */
+int
+bfam_subdomain_plus_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
 
 /** Add a tag to the subdomain
  *
