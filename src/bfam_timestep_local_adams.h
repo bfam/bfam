@@ -60,4 +60,7 @@ typedef enum bfam_ts_local_adams_method
   BFAM_TS_LOCAL_ADAMS_NOOP,
 } bfam_ts_local_adams_method_t;
 
+void
+bfam_ts_local_adams_fill_level_tag(char* tag, size_t buf_siz, int level);
+
 #endif

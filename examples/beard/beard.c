@@ -1335,6 +1335,7 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
   mat_args.user_comm_info       = NULL;
   mat_args.user_put_send_buffer = NULL;
   mat_args.user_get_recv_buffer = NULL;
+  mat_args.user_data            = NULL;
 
 
   bfam_communicator_init(&material_comm,domain,BFAM_DOMAIN_OR,glue,
@@ -1953,6 +1954,7 @@ init_time_stepper(beard_t *beard, prefs_t *prefs)
   args->user_comm_info       = NULL;
   args->user_put_send_buffer = NULL;
   args->user_get_recv_buffer = NULL;
+  args->user_data            = NULL;
 
 
   const char *timestep_tags[] = {"_volume","_glue_parallel","_glue_local",
@@ -2222,10 +2224,51 @@ beard_open_stations(const char * key, void *val, void *in_args)
   return beard_output_stations(key, val, args);
 }
 
+
+static void
+time_level_comm_info(bfam_subdomain_t* thisSubdomain, size_t *send_sz,
+    size_t *recv_sz, void *comm_args)
+{
+  BFAM_ASSERT(comm_args);
+  *send_sz += sizeof(int);
+  *recv_sz += sizeof(int);
+}
+
+static void
+time_level_put_send_buffer(bfam_subdomain_t* thisSubdomain, void *buffer,
+    size_t send_sz, void *comm_args)
+{
+  BFAM_ASSERT(comm_args);
+  bfam_subdomain_comm_args_t *args =
+    (bfam_subdomain_comm_args_t*) comm_args;
+
+  BFAM_ASSERT(args->user_data);
+  int max_lvl = *(int*)args->user_data;
+
+  int lvl = 1;
+  for(; lvl <= max_lvl;lvl*=2)
+  {
+    char tag[BFAM_BUFSIZ];
+    bfam_ts_local_adams_fill_level_tag(tag,BFAM_BUFSIZ,lvl);
+    if(bfam_subdomain_has_tag(thisSubdomain,tag)) break;
+  }
+  BFAM_ABORT_IF(lvl > max_lvl,"glue %s: "
+      "max number of levels searched in minus side %s "
+      "and no level tag found",
+      thisSubdomain->name,thisSubdomain->glue_m->sub_m->name);
+}
+
+static void
+time_level_get_recv_buffer(bfam_subdomain_t *thisSubdomain, void *buffer,
+    size_t recv_sz, void *comm_args)
+{
+  BFAM_ASSERT(comm_args);
+}
+
 static bfam_real_t
-compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *tags[],
-      int *nsteps_ptr, int *ndisp_ptr, int *noutput_ptr, int *nfoutput_ptr,
-      int *nstations_ptr, int *nerr_ptr)
+compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *volume[],
+    const char *glue[], int *nsteps_ptr, int *ndisp_ptr, int *noutput_ptr,
+    int *nfoutput_ptr, int *nstations_ptr, int *nerr_ptr)
 {
 
   /* first we get all the volume subdomains */
@@ -2236,7 +2279,7 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *tags[],
   bfam_locidx_t numSubdomains = 0;
 
   bfam_domain_get_subdomains(((bfam_domain_t*)beard->domain), BFAM_DOMAIN_OR,
-      tags, ((bfam_domain_t*)beard->domain)->numSubdomains,
+      volume, ((bfam_domain_t*)beard->domain)->numSubdomains,
       subdomains, &numSubdomains);
 
   bfam_real_t ldt[numSubdomains];
@@ -2274,14 +2317,17 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *tags[],
                                 "error_S12", "error_S13", "error_S23", NULL};
       for(int f = 0; err_flds[f] != NULL; f++)
         bfam_domain_add_field ((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
-            tags, err_flds[f]);
+            volume, err_flds[f]);
   }
+
   if(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
   {
     bfam_real_t max_ldt = dt;
 
     bfam_long_real_t dt_fudge = (bfam_long_real_t)dt /
                                 (bfam_long_real_t)min_global_dt;
+
+    int max_time_level = 0;
     for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
     {
       ldt[s] = dt_fudge*ldt[s];
@@ -2298,12 +2344,44 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *tags[],
           subdomains[s]->name, time_level, ldt[s]);
 
       max_ldt = BFAM_MAX(max_ldt,ldt[s]);
+
+      max_time_level = BFAM_MAX(max_time_level, time_level);
     }
 
     BFAM_INFO("max local dt is %"BFAM_REAL_FMTe, max_ldt);
 
     BFAM_MPI_CHECK(MPI_Allreduce(&max_ldt,&dt,1,BFAM_REAL_MPI,
           MPI_MAX, beard->mpicomm));
+
+    bfam_communicator_t level_comm;
+
+    bfam_subdomain_comm_args_t level_args;
+    const char * level_NULL[]      = {NULL};
+    level_args.scalars_m           = level_NULL;
+    level_args.vectors_m           = level_NULL;
+    level_args.vector_components_m = level_NULL;
+    level_args.tensors_m           = level_NULL;
+    level_args.tensor_components_m = level_NULL;
+    level_args.face_scalars_m      = level_NULL;
+
+    level_args.scalars_p           = level_NULL;
+    level_args.vectors_p           = level_NULL;
+    level_args.vector_components_p = level_NULL;
+    level_args.tensors_p           = level_NULL;
+    level_args.tensor_components_p = level_NULL;
+    level_args.face_scalars_p      = level_NULL;
+
+    level_args.user_comm_info       = time_level_comm_info;
+    level_args.user_put_send_buffer = time_level_put_send_buffer;
+    level_args.user_get_recv_buffer = time_level_get_recv_buffer;
+    level_args.user_data            = &max_time_level;
+
+
+    bfam_communicator_init(&level_comm,(bfam_domain_t*)beard->domain,
+        BFAM_DOMAIN_OR,glue, beard->mpicomm,10,&level_args);
+    bfam_communicator_start( &level_comm);
+    bfam_communicator_finish(&level_comm);
+    bfam_communicator_free(  &level_comm);
   }
 
   bfam_free(subdomains);
@@ -2315,6 +2393,7 @@ static void
 run_simulation(beard_t *beard,prefs_t *prefs)
 {
   const char *volume[] = {"_volume",NULL};
+  const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
   const char *slip_weakening[] = {"slip weakening",NULL};
 
   int nsteps  = 0;
@@ -2324,7 +2403,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   int nstations = 0;
   int nerr = 0;
 
-  bfam_real_t dt = compute_domain_dt(beard, prefs, volume,
+  bfam_real_t dt = compute_domain_dt(beard, prefs, volume, glue,
       &nsteps, &ndisp, &noutput, &nfoutput, &nstations, &nerr);
 
   BFAM_ROOT_INFO("dt        = %"BFAM_REAL_FMTe,dt);

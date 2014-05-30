@@ -492,6 +492,7 @@ build_mesh(MPI_Comm mpicomm)
   commargs.user_comm_info = NULL;
   commargs.user_get_recv_buffer = NULL;
   commargs.user_put_send_buffer = NULL;
+  commargs.user_data = NULL;
 
   /* add glue fields */
   for(int f = 0 ; comm_args_face_scalars[f] != NULL; f++)

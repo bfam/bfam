@@ -63,6 +63,9 @@ typedef struct bfam_subdomain_comm_args
   void (*user_get_recv_buffer) (struct bfam_subdomain *thisSubdomain,
       void *buffer, size_t recv_sz, void *args);
 
+  /**< all the user to pass data */
+  void *user_data;
+
 } bfam_subdomain_comm_args_t;
 
 typedef struct bfam_subdomain_face_map_entry
@@ -165,6 +168,9 @@ typedef struct bfam_subdomain
   /* glue quantities */
   bfam_subdomain_glue_data_t *glue_m;
   bfam_subdomain_glue_data_t *glue_p;
+
+  /* user data */
+  void* user_data;
 
   /* Function pointers that domain will need to call */
   void (*free)                (struct bfam_subdomain *thisSubdomain);

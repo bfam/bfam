@@ -1242,13 +1242,19 @@ bfam_subdomain_dgx_comm_info(bfam_subdomain_t *thisSubdomain,
     for(int i = 0; args->tensors_p[i] != NULL;i++)      count+=4;
     for(int i = 0; args->face_scalars_p[i] != NULL;i++) count++;
     recv_num = count * sub->K * sub->Np;
-
-    if(args->user_comm_info)
-      args->user_comm_info(thisSubdomain, send_sz, recv_sz, comm_args);
   }
 
   *send_sz  = send_num*sizeof(bfam_real_t);
   *recv_sz  = recv_num*sizeof(bfam_real_t);
+
+  if(comm_args != NULL)
+  {
+    bfam_subdomain_comm_args_t *args =
+      (bfam_subdomain_comm_args_t*) comm_args;
+
+    if(args->user_comm_info)
+      args->user_comm_info(thisSubdomain, send_sz, recv_sz, comm_args);
+  }
 
   BFAM_LDEBUG(
       " rank %3d   ns %3jd   ms %3jd   uid %3jd   send_sz %3zd   recv_sz %3zd",
