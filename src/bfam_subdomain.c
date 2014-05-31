@@ -205,6 +205,22 @@ bfam_subdomain_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag)
   return bfam_critbit0_contains(&thisSubdomain->tags, tag);
 }
 
+static int
+contains_prefix(const char * value, void * arg)
+{
+  (*(int*)arg)++;
+  return 1;
+}
+
+int
+bfam_subdomain_has_tag_prefix(bfam_subdomain_t *thisSubdomain, const char* tag)
+{
+  int found = 0;
+  bfam_critbit0_allprefixed(&(thisSubdomain->tags), tag,
+      &contains_prefix, &found);
+  return found;
+}
+
 void
 bfam_subdomain_minus_add_tag(bfam_subdomain_t *thisSubdomain, const char* tag)
 {
@@ -231,6 +247,17 @@ bfam_subdomain_minus_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag)
   return bfam_critbit0_contains(&thisSubdomain->glue_m->tags, tag);
 }
 
+int
+bfam_subdomain_minus_has_tag_prefix(bfam_subdomain_t *thisSubdomain,
+    const char* tag)
+{
+  BFAM_ASSERT(thisSubdomain->glue_m);
+  int found = 0;
+  bfam_critbit0_allprefixed(&(thisSubdomain->glue_m->tags), tag,
+      &contains_prefix, &found);
+  return found;
+}
+
 void
 bfam_subdomain_plus_add_tag(bfam_subdomain_t *thisSubdomain, const char* tag)
 {
@@ -255,6 +282,17 @@ bfam_subdomain_plus_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag)
 {
   BFAM_ASSERT(thisSubdomain->glue_p);
   return bfam_critbit0_contains(&thisSubdomain->glue_p->tags, tag);
+}
+
+int
+bfam_subdomain_plus_has_tag_prefix(bfam_subdomain_t *thisSubdomain,
+    const char* tag)
+{
+  BFAM_ASSERT(thisSubdomain->glue_p);
+  int found = 0;
+  bfam_critbit0_allprefixed(&(thisSubdomain->glue_p->tags), tag,
+      &contains_prefix, &found);
+  return found;
 }
 
 int

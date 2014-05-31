@@ -3,11 +3,19 @@
 
 #define BFAM_LOCAL_ADAMS_PREFIX ("_local_adams_rate_")
 #define BFAM_LOCAL_ADAMS_LVL_PREFIX ("_local_adams_lvl_")
+#define BFAM_LOCAL_ADAMS_COMM_LVL_PREFIX ("_local_adams_comm_lvl_")
+#define BFAM_LOCAL_ADAMS_INTERP_LVL_PREFIX ("_local_adams_interp_lvl_")
 
 void
 bfam_ts_local_adams_fill_level_tag(char* tag, size_t buf_sz, int level)
 {
   snprintf(tag,buf_sz,"%s%d",BFAM_LOCAL_ADAMS_LVL_PREFIX,level);
+}
+
+void
+bfam_ts_local_adams_fill_comm_level_tag(char* tag, size_t buf_sz, int level)
+{
+  snprintf(tag,buf_sz,"%s%d",BFAM_LOCAL_ADAMS_COMM_LVL_PREFIX,level);
 }
 
 bfam_ts_local_adams_t*
@@ -86,6 +94,7 @@ bfam_ts_local_adams_init(
   ts->numSteps     = 0;
 
   ts->lsrk         = NULL;
+  ts->comm         = NULL;
 
   switch(method)
   {
@@ -148,27 +157,97 @@ bfam_ts_local_adams_init(
   /*
    * get the subdomains and create rates we will need
    */
-   bfam_subdomain_t *subs[dom->numSubdomains+1];
-   bfam_locidx_t numSubs = 0;
-   bfam_domain_get_subdomains(dom,subdom_match,subdom_tags,
-       dom->numSubdomains,subs,&numSubs);
-   for(int s = 0; s < numSubs;s++)
-   {
-     int rval = bfam_dictionary_insert_ptr(&ts->elems,subs[s]->name,subs[s]);
-     BFAM_ABORT_IF_NOT(rval != 1, "Issue adding subdomain %s", subs[s]->name);
+  bfam_subdomain_t *subs[dom->numSubdomains+1];
+  bfam_locidx_t numSubs = 0;
+  bfam_domain_get_subdomains(dom,subdom_match,subdom_tags,
+      dom->numSubdomains,subs,&numSubs);
+  for(int s = 0; s < numSubs;s++)
+  {
+    int rval = bfam_dictionary_insert_ptr(&ts->elems,subs[s]->name,subs[s]);
+    BFAM_ABORT_IF_NOT(rval != 1, "Issue adding subdomain %s", subs[s]->name);
 
-     for(int n = 0; n < ts->nStages; n++)
-     {
-       char aux_rates_name[BFAM_BUFSIZ];
-       snprintf(aux_rates_name,BFAM_BUFSIZ,"%s%d_",BFAM_LOCAL_ADAMS_PREFIX,n);
-       aux_rates(subs[s],aux_rates_name);
-       glue_rates(subs[s],aux_rates_name);
-     }
-   }
+    for(int n = 0; n < ts->nStages; n++)
+    {
+      char aux_rates_name[BFAM_BUFSIZ];
+      snprintf(aux_rates_name,BFAM_BUFSIZ,"%s%d_",BFAM_LOCAL_ADAMS_PREFIX,n);
+      aux_rates(subs[s],aux_rates_name);
+      glue_rates(subs[s],aux_rates_name);
+    }
+  }
+
+  numSubs = 0;
+  bfam_domain_get_subdomains(dom,comm_match,comm_tags,
+      dom->numSubdomains,subs,&numSubs);
+
+  /* this tracks the max level that I know about */
+  int max_level = 0;
+
+  /* find the plus and minus levels for the glue grids */
+  for(int s = 0; s < numSubs;s++)
+  {
+    char lvl_tag[BFAM_BUFSIZ];
+
+    /* Handle the minus side */
+    BFAM_ABORT_IF_NOT(bfam_subdomain_plus_has_tag_prefix(subs[s],
+          BFAM_LOCAL_ADAMS_LVL_PREFIX),
+        "subdomain %s plus side does not have level", subs[s]->name);
+    int m_lvl = 1;
+    for(;;m_lvl*=2)
+    {
+      bfam_ts_local_adams_fill_level_tag(lvl_tag, BFAM_BUFSIZ, m_lvl);
+      if(bfam_subdomain_minus_has_tag(subs[s],lvl_tag)) break;
+    }
+
+    /* just a sanity check since these should match */
+    BFAM_ASSERT(subs[s]->glue_m->sub_m);
+    BFAM_ASSERT(bfam_subdomain_has_tag(subs[s]->glue_m->sub_m, lvl_tag));
+
+    /* Handle the plus side */
+    BFAM_ABORT_IF_NOT(bfam_subdomain_minus_has_tag_prefix(subs[s],
+          BFAM_LOCAL_ADAMS_LVL_PREFIX),
+        "subdomain %s minus side does not have level", subs[s]->name);
+    int p_lvl = 1;
+    for(;;p_lvl*=2)
+    {
+      bfam_ts_local_adams_fill_level_tag(lvl_tag, BFAM_BUFSIZ, p_lvl);
+      if(bfam_subdomain_plus_has_tag(subs[s],lvl_tag)) break;
+    }
+
+    /* communicate as infrequently as needed, so use the higher level */
+    bfam_ts_local_adams_fill_comm_level_tag(lvl_tag,BFAM_BUFSIZ,
+        BFAM_MAX(m_lvl, p_lvl));
+    bfam_subdomain_add_tag(subs[s],lvl_tag);
+
+    /* update the max level */
+    max_level = BFAM_MAX(max_level,BFAM_MAX(m_lvl,p_lvl));
+  }
+
+  BFAM_ASSERT(max_level);
 
   /*
-   * Set up the communicator we will use
+   * fast log2 computation for ints using bitwise operations from
+   * http://stackoverflow.com/questions/994593/how-to-do-an-integer-log2-in-c
    */
-   ts->comm = bfam_communicator_new(dom,comm_match,comm_tags,mpicomm,mpitag,
-       comm_data);
+  int tmp = max_level;
+  int num_levels = 1;
+  while (tmp >>= 1) ++num_levels;
+
+  /* loop through all possible commmunication tags */
+  char *local_comm_tags[num_levels+1];
+  char tag_stor[BFAM_BUFSIZ*max_level];
+  ts->comm = bfam_malloc(num_levels*sizeof(bfam_ts_local_adams_t*));
+
+  for(int lvl = 1, k=0; lvl <= max_level; lvl*=2, k++)
+  {
+    local_comm_tags[k] = &tag_stor[BFAM_BUFSIZ*k];
+    bfam_ts_local_adams_fill_comm_level_tag(&tag_stor[BFAM_BUFSIZ*k],
+        BFAM_BUFSIZ, lvl);
+    local_comm_tags[k+1] = NULL;
+
+    /*
+     * Set up the communicator we will use
+     */
+    ts->comm[k] = bfam_communicator_new(dom, BFAM_DOMAIN_OR,
+        (const char**)local_comm_tags, mpicomm, mpitag, comm_data);
+  }
 }

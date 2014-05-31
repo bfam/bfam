@@ -311,6 +311,16 @@ bfam_subdomain_delete_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
 int
 bfam_subdomain_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
 
+/** Check to see if a subdomain has a tag with the given prefix
+ *
+ * \param [in,out] thisSubdomain subdomain to search for the tag
+ * \param [in]     tag           prefix tag of the domain (\0 terminated string)
+ *
+ * \return nonzero iff \a thisSubdomain has the tag \a tag
+ */
+int
+bfam_subdomain_has_tag_prefix(bfam_subdomain_t *thisSubdomain, const char* tag);
+
 /** Add a tag to the subdomain minus glue
  *
  * \param [in,out] thisSubdomain subdomain to andd the tag to
@@ -341,6 +351,17 @@ bfam_subdomain_minus_delete_tag(bfam_subdomain_t *thisSubdomain,
 int
 bfam_subdomain_minus_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
 
+/** Check to see if a subdomain has a minus glue tag with the given prefix
+ *
+ * \param [in,out] thisSubdomain subdomain to search for the tag
+ * \param [in]     tag           prefix tag of the domain (\0 terminated string)
+ *
+ * \return nonzero iff \a thisSubdomain has the tag \a tag
+ */
+int
+bfam_subdomain_minus_has_tag_prefix(bfam_subdomain_t *thisSubdomain,
+    const char* tag);
+
 /** Add a tag to the subdomain plus glue
  *
  * \param [in,out] thisSubdomain subdomain to andd the tag to
@@ -370,6 +391,17 @@ bfam_subdomain_plus_delete_tag(bfam_subdomain_t *thisSubdomain,
  */
 int
 bfam_subdomain_plus_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+
+/** Check to see if a subdomain has a plus glue tag with the given prefix
+ *
+ * \param [in,out] thisSubdomain subdomain to search for the tag
+ * \param [in]     tag           prefix tag of the domain (\0 terminated string)
+ *
+ * \return nonzero iff \a thisSubdomain has the tag \a tag
+ */
+int
+bfam_subdomain_plus_has_tag_prefix(bfam_subdomain_t *thisSubdomain,
+    const char* tag);
 
 /** Add a tag to the subdomain
  *

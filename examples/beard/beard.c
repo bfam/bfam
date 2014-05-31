@@ -1583,6 +1583,7 @@ void glue_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
   if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel") ||
      bfam_subdomain_has_tag(thisSubdomain,"_glue_local"   ))
   {
+    BFAM_LDEBUG("Adding glue rate to %s",thisSubdomain->name);
     for(int f = 0 ; comm_args_scalars[f] != NULL; f++)
     {
       char field[BFAM_BUFSIZ];
@@ -2484,6 +2485,8 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   bfam_real_t dt = compute_domain_dt(beard, prefs, volume, glue,
       &nsteps, &ndisp, &noutput, &nfoutput, &nstations, &nerr);
 
+  init_time_stepper(beard, prefs);
+
   BFAM_ROOT_INFO("dt        = %"BFAM_REAL_FMTe,dt);
   BFAM_ROOT_INFO("nsteps    = %d",nsteps);
   BFAM_ROOT_INFO("ndisp     = %d",ndisp);
@@ -3045,8 +3048,6 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
   init_mpi(&beard, mpicomm);
 
   init_domain(&beard, prefs);
-
-  init_time_stepper(&beard, prefs);
 
   init_volume_stations(&beard, prefs);
 
