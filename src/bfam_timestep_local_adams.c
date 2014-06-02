@@ -46,6 +46,11 @@ bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
 }
 
 void
+bfam_ts_local_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
+{
+}
+
+void
 bfam_ts_local_adams_init(
     bfam_ts_local_adams_t*       ts,
     bfam_domain_t*               dom,
@@ -80,7 +85,7 @@ bfam_ts_local_adams_init(
   bfam_ts_init(&ts->base, dom);
   bfam_dictionary_init(&ts->elems);
   ts->t  = BFAM_LONG_REAL(0.0);
-  // ts->base.step = &bfam_ts_local_adams_step;
+  ts->base.step = &bfam_ts_local_adams_step;
 
   /*
    * store the function calls
