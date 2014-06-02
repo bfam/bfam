@@ -99,7 +99,7 @@ bfam_ts_local_adams_init(
   ts->numSteps     = 0;
 
   ts->lsrk         = NULL;
-  ts->comm         = NULL;
+  ts->comm_array   = NULL;
 
   switch(method)
   {
@@ -240,7 +240,8 @@ bfam_ts_local_adams_init(
   /* loop through all possible commmunication tags */
   char *local_comm_tags[num_levels+1];
   char tag_stor[BFAM_BUFSIZ*max_level];
-  ts->comm = bfam_malloc(num_levels*sizeof(bfam_ts_local_adams_t*));
+  ts->comm_array = bfam_malloc((num_levels+1)*sizeof(bfam_ts_local_adams_t*));
+  ts->comm_array[num_levels] = NULL;
 
   for(int lvl = 1, k=0; lvl <= max_level; lvl*=2, k++)
   {
@@ -252,7 +253,35 @@ bfam_ts_local_adams_init(
     /*
      * Set up the communicator we will use
      */
-    ts->comm[k] = bfam_communicator_new(dom, BFAM_DOMAIN_OR,
+    ts->comm_array[k] = bfam_communicator_new(dom, BFAM_DOMAIN_OR,
         (const char**)local_comm_tags, mpicomm, mpitag, comm_data);
   }
+  BFAM_ASSERT(ts->comm_array[num_levels] == NULL);
+}
+
+void
+bfam_ts_local_adams_free(bfam_ts_local_adams_t* ts)
+{
+  BFAM_LDEBUG("LOCAL ADAMS FREE");
+  if(ts->lsrk != NULL)
+  {
+    bfam_ts_lsrk_free(ts->lsrk);
+    bfam_free(ts->lsrk);
+  }
+  ts->lsrk = NULL;
+  for(int k = 0; ts->comm_array[k]; k++)
+  {
+    bfam_communicator_free(ts->comm_array[k]);
+    bfam_free(ts->comm_array[k]);
+    ts->comm_array[k] = NULL;
+  }
+  bfam_free(ts->comm_array);
+  bfam_dictionary_clear(&ts->elems);
+  /*
+  bfam_free_aligned(ts->A);
+  ts->A = NULL;
+  */
+  ts->nStages = 0;
+  ts->t  = NAN;
+  bfam_ts_free(&ts->base);
 }

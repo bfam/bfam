@@ -2693,6 +2693,8 @@ shave_beard(beard_t *beard,prefs_t *prefs)
     bfam_ts_lsrk_free((bfam_ts_lsrk_t*) beard->beard_ts);
   if(prefs->adams_method != BFAM_TS_ADAMS_NOOP)
     bfam_ts_adams_free((bfam_ts_adams_t*) beard->beard_ts);
+  if(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
+    bfam_ts_local_adams_free((bfam_ts_local_adams_t*) beard->beard_ts);
   bfam_free(beard->beard_ts);
   bfam_domain_pxest_free(beard->domain);
   bfam_free(beard->domain);
