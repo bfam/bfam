@@ -1986,7 +1986,7 @@ void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
 }
 
 static void
-init_time_stepper(beard_t *beard, prefs_t *prefs)
+init_time_stepper(beard_t *beard, prefs_t *prefs, bfam_locidx_t levels)
 {
   beard->comm_args = bfam_malloc(sizeof(bfam_subdomain_comm_args_t));
   bfam_subdomain_comm_args_t *args = beard->comm_args;
@@ -2029,10 +2029,10 @@ init_time_stepper(beard_t *beard, prefs_t *prefs)
         &add_rates, lua_get_global_int(prefs->L, "RK_init", 1));
   else if(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
     beard->beard_ts = (bfam_ts_t*)bfam_ts_local_adams_new(
-        (bfam_domain_t*) beard->domain, prefs->local_adams_method,
+        (bfam_domain_t*) beard->domain, prefs->local_adams_method, levels,
         BFAM_DOMAIN_OR, timestep_tags, BFAM_DOMAIN_OR,glue, beard->mpicomm, 10,
-        beard->comm_args, &aux_rates, &glue_rates, &scale_rates,&intra_rhs
-        ,&inter_rhs, &add_rates, lua_get_global_int(prefs->L, "RK_init", 1));
+        beard->comm_args, &aux_rates, &glue_rates, &scale_rates,&intra_rhs,
+        &inter_rhs, &add_rates, lua_get_global_int(prefs->L, "RK_init", 1));
 }
 
 static void
@@ -2395,6 +2395,7 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *volume[],
             volume, err_flds[f]);
   }
 
+  bfam_locidx_t max_time_level = 0;
   if(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
   {
     bfam_real_t max_ldt = dt;
@@ -2402,13 +2403,12 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *volume[],
     bfam_long_real_t dt_fudge = (bfam_long_real_t)dt /
                                 (bfam_long_real_t)min_global_dt;
 
-    int max_time_level = 0;
     for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
     {
       ldt[s] = dt_fudge*ldt[s];
 
       /* keep double time_step until the level is big enough */
-      int time_level = 1;
+      bfam_locidx_t time_level = 1;
       while(2*time_level < ldt[s] / dt) time_level *= 2;
       BFAM_ASSERT(time_level > 0);
 
@@ -2426,11 +2426,17 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *volume[],
 
       max_time_level = BFAM_MAX(max_time_level, time_level);
     }
+    BFAM_INFO("local number of time levels %"BFAM_LOCIDX_PRId,max_time_level);
 
     BFAM_INFO("max local dt is %"BFAM_REAL_FMTe, max_ldt);
 
-    BFAM_MPI_CHECK(MPI_Allreduce(&max_ldt,&dt,1,BFAM_REAL_MPI,
+    BFAM_MPI_CHECK(MPI_Allreduce(MPI_IN_PLACE,&max_time_level,1,BFAM_LOCIDX_MPI,
           MPI_MAX, beard->mpicomm));
+
+    dt = max_time_level*dt;
+
+    BFAM_INFO("number of time levels %"BFAM_LOCIDX_PRId
+        " for global dt %"BFAM_REAL_FMTe, max_time_level, dt);
 
     bfam_communicator_t level_comm;
 
@@ -2465,6 +2471,8 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *volume[],
 
   bfam_free(subdomains);
 
+  init_time_stepper(beard, prefs, max_time_level);
+
   return dt;
 }
 
@@ -2484,8 +2492,6 @@ run_simulation(beard_t *beard,prefs_t *prefs)
 
   bfam_real_t dt = compute_domain_dt(beard, prefs, volume, glue,
       &nsteps, &ndisp, &noutput, &nfoutput, &nstations, &nerr);
-
-  init_time_stepper(beard, prefs);
 
   BFAM_ROOT_INFO("dt        = %"BFAM_REAL_FMTe,dt);
   BFAM_ROOT_INFO("nsteps    = %d",nsteps);

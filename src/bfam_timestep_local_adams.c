@@ -20,9 +20,9 @@ bfam_ts_local_adams_fill_comm_level_tag(char* tag, size_t buf_sz, int level)
 
 bfam_ts_local_adams_t*
 bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
-    bfam_domain_match_t subdom_match, const char** subdom_tags,
-    bfam_domain_match_t comm_match, const char** comm_tags,
-    MPI_Comm mpicomm, int mpitag, void *comm_data,
+    bfam_locidx_t numLevels, bfam_domain_match_t subdom_match,
+    const char** subdom_tags, bfam_domain_match_t comm_match, const char**
+    comm_tags, MPI_Comm mpicomm, int mpitag, void *comm_data,
     void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
     void (*glue_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
     void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
@@ -39,9 +39,9 @@ bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
     const int RK_init)
 {
   bfam_ts_local_adams_t* newTS = bfam_malloc(sizeof(bfam_ts_local_adams_t));
-  bfam_ts_local_adams_init(newTS, dom, method, subdom_match, subdom_tags,
-      comm_match, comm_tags, mpicomm, mpitag, comm_data, aux_rates, glue_rates,
-      scale_rates,intra_rhs,inter_rhs,add_rates,RK_init);
+  bfam_ts_local_adams_init(newTS, dom, method, numLevels, subdom_match,
+      subdom_tags, comm_match, comm_tags, mpicomm, mpitag, comm_data, aux_rates,
+      glue_rates, scale_rates,intra_rhs,inter_rhs,add_rates,RK_init);
   return newTS;
 }
 
@@ -55,6 +55,7 @@ bfam_ts_local_adams_init(
     bfam_ts_local_adams_t*       ts,
     bfam_domain_t*               dom,
     bfam_ts_local_adams_method_t method,
+    bfam_locidx_t                numLevels,
     bfam_domain_match_t          subdom_match,
     const char**                 subdom_tags,
     bfam_domain_match_t          comm_match,
@@ -97,6 +98,7 @@ bfam_ts_local_adams_init(
 
   ts->currentStage = 0;
   ts->numSteps     = 0;
+  ts->numLevels    = numLevels;
 
   ts->lsrk         = NULL;
   ts->comm_array   = NULL;
@@ -185,7 +187,9 @@ bfam_ts_local_adams_init(
       dom->numSubdomains,subs,&numSubs);
 
   /* this tracks the max level that I know about */
+#ifdef BFAM_DEBUG
   int max_level = 0;
+#endif
 
   /* find the plus and minus levels for the glue grids */
   for(int s = 0; s < numSubs;s++)
@@ -224,9 +228,14 @@ bfam_ts_local_adams_init(
     bfam_subdomain_add_tag(subs[s],lvl_tag);
 
     /* update the max level */
+
+#ifdef BFAM_DEBUG
     max_level = BFAM_MAX(max_level,BFAM_MAX(m_lvl,p_lvl));
+#endif
   }
 
+
+#ifdef BFAM_DEBUG
   BFAM_ASSERT(max_level);
 
   /*
@@ -237,13 +246,15 @@ bfam_ts_local_adams_init(
   int num_levels = 1;
   while (tmp >>= 1) ++num_levels;
 
-  /* loop through all possible commmunication tags */
-  char *local_comm_tags[num_levels+1];
-  char tag_stor[BFAM_BUFSIZ*max_level];
-  ts->comm_array = bfam_malloc((num_levels+1)*sizeof(bfam_ts_local_adams_t*));
-  ts->comm_array[num_levels] = NULL;
+  BFAM_ASSERT(max_level <= numLevels);
+#endif
 
-  for(int lvl = 1, k=0; lvl <= max_level; lvl*=2, k++)
+  /* loop through all possible commmunication tags */
+  char *local_comm_tags[numLevels+1];
+  char tag_stor[BFAM_BUFSIZ*numLevels];
+  ts->comm_array = bfam_malloc(numLevels*sizeof(bfam_ts_local_adams_t*));
+
+  for(int lvl = 1, k=0; k < numLevels; lvl*=2, k++)
   {
     local_comm_tags[k] = &tag_stor[BFAM_BUFSIZ*k];
     bfam_ts_local_adams_fill_comm_level_tag(&tag_stor[BFAM_BUFSIZ*k],
@@ -256,7 +267,6 @@ bfam_ts_local_adams_init(
     ts->comm_array[k] = bfam_communicator_new(dom, BFAM_DOMAIN_OR,
         (const char**)local_comm_tags, mpicomm, mpitag, comm_data);
   }
-  BFAM_ASSERT(ts->comm_array[num_levels] == NULL);
 }
 
 void
@@ -269,7 +279,7 @@ bfam_ts_local_adams_free(bfam_ts_local_adams_t* ts)
     bfam_free(ts->lsrk);
   }
   ts->lsrk = NULL;
-  for(int k = 0; ts->comm_array[k]; k++)
+  for(int k = 0; k < ts->numLevels; k++)
   {
     bfam_communicator_free(ts->comm_array[k]);
     bfam_free(ts->comm_array[k]);
