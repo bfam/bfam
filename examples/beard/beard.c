@@ -2807,7 +2807,7 @@ init_fault_stations(beard_t *beard, prefs_t *prefs)
 
           /* if we are in the area, build the interpolant */
           if(BEARD_D3_AP(BFAM_REAL_ABS(r[0]) <= 1+BFAM_REAL_EPS,
-                      && BFAM_REAL_ABS(r[2]) <= 1+BFAM_REAL_EPS))
+                      && BFAM_REAL_ABS(r[1]) <= 1+BFAM_REAL_EPS))
           {
             char filename[BFAM_BUFSIZ];
             snprintf(filename, BFAM_BUFSIZ,"%s/%s_%s_%s_%010d.dat",
