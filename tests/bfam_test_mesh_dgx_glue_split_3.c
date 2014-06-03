@@ -150,7 +150,6 @@ build_state(MPI_Comm mpicomm, state_t* state)
   const char *comm_args_vector_components[] = {NULL};
   const char *comm_args_tensors[]           = {NULL};
   const char *comm_args_tensor_components[] = {NULL};
-  const char *comm_prefix                   = "";
 
   commargs.scalars_m           = comm_args_scalars;
   commargs.scalars_p           = comm_args_scalars;
@@ -172,7 +171,7 @@ build_state(MPI_Comm mpicomm, state_t* state)
   commargs.user_get_recv_buffer = NULL;
   commargs.user_put_send_buffer = NULL;
   commargs.user_data = NULL;
-  commargs.prefix = comm_prefix;
+  commargs.user_prefix_function = NULL;
 
   bfam_communicator_t* communicator =
     bfam_communicator_new(d, BFAM_DOMAIN_OR, glue, mpicomm, 11, &commargs);
@@ -439,7 +438,6 @@ test_conn(MPI_Comm mpicomm, state_t *state)
                                                "p6", "p4", "p5",
                                                "p2", "p3", "p1",
                                                "p5", "p4", "p6", NULL};
-  const char *comm_prefix                   = "";
   commargs.scalars_m           = comm_args_scalars;
   commargs.scalars_p           = comm_args_scalars;
 
@@ -460,7 +458,7 @@ test_conn(MPI_Comm mpicomm, state_t *state)
   commargs.user_get_recv_buffer = NULL;
   commargs.user_put_send_buffer = NULL;
   commargs.user_data = NULL;
-  commargs.prefix = comm_prefix;
+  commargs.user_prefix_function = NULL;
 
   /* add glue fields */
   for(int f = 0 ; comm_args_face_scalars[f] != NULL; f++)

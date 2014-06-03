@@ -47,8 +47,6 @@ typedef struct bfam_subdomain_comm_args
   const char ** tensors_p;
   const char ** tensor_components_p;
   const char ** face_scalars_p;
-  const char *  prefix;
-
 
   /**< user specified glue grid communication info:
    *   recv_sz and send_sz should be added to and not reset
@@ -66,6 +64,10 @@ typedef struct bfam_subdomain_comm_args
 
   /**< all the user to pass data */
   void *user_data;
+
+  /**< callback function for custom user prefix */
+  void (*user_prefix_function) (struct bfam_subdomain *thisSubdomain,
+      char *prefix, size_t buf_siz, void* user_data);
 
 } bfam_subdomain_comm_args_t;
 

@@ -249,11 +249,18 @@ bfam_subdomain_dgx_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
   }
   else
   {
+    char prefix[BFAM_BUFSIZ];
+    prefix[0] = '\0';
+
     bfam_subdomain_comm_args_t *args = (bfam_subdomain_comm_args_t*) comm_args;
+    if(args->user_prefix_function)
+      args->user_prefix_function(thisSubdomain, prefix, BFAM_BUFSIZ,
+                                 args->user_data);
+
     for(int s = 0; args->scalars_p[s] != NULL;s++)
     {
       char key[BFAM_BUFSIZ];
-      snprintf(key,BFAM_BUFSIZ,"%s%s" ,args->prefix, args->scalars_p[s]);
+      snprintf(key,BFAM_BUFSIZ,"%s%s" ,prefix, args->scalars_p[s]);
       void *field =
         bfam_dictionary_get_value_ptr(&data.sub->base.glue_p->fields,key);
       bfam_subdomain_dgx_put_scalar_fields_p(key,field,&data);
@@ -264,7 +271,7 @@ bfam_subdomain_dgx_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
       for(int c = 0; vt_postfix[c] != NULL;c++)
       {
         char key[BFAM_BUFSIZ];
-        snprintf(key,BFAM_BUFSIZ,"%s%s%s" ,args->prefix, args->vectors_p[v],
+        snprintf(key,BFAM_BUFSIZ,"%s%s%s" ,prefix, args->vectors_p[v],
             vt_postfix[c]);
         void *field  =
           bfam_dictionary_get_value_ptr(&data.sub->base.glue_p->fields, key);
@@ -276,7 +283,7 @@ bfam_subdomain_dgx_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
       for(int c = 0; vt_postfix[c] != NULL;c++)
       {
         char key[BFAM_BUFSIZ];
-        snprintf(key,BFAM_BUFSIZ,"%s%s%s" ,args->prefix, args->tensors_p[t],
+        snprintf(key,BFAM_BUFSIZ,"%s%s%s" ,prefix, args->tensors_p[t],
             vt_postfix[c]);
         void *field  =
           bfam_dictionary_get_value_ptr(&data.sub->base.glue_p->fields, key);
@@ -1135,11 +1142,18 @@ bfam_subdomain_dgx_put_send_buffer(bfam_subdomain_t *thisSubdomain,
   }
   else
   {
+    char prefix[BFAM_BUFSIZ];
+    prefix[0] = '\0';
+
     bfam_subdomain_comm_args_t *args = (bfam_subdomain_comm_args_t*) comm_args;
+    if(args->user_prefix_function)
+      args->user_prefix_function(thisSubdomain, prefix, BFAM_BUFSIZ,
+                                 args->user_data);
+
     for(int s = 0; args->scalars_m[s] != NULL;s++)
     {
       char key[BFAM_BUFSIZ];
-      snprintf(key,BFAM_BUFSIZ,"%s%s" ,args->prefix, args->scalars_m[s]);
+      snprintf(key,BFAM_BUFSIZ,"%s%s" ,prefix, args->scalars_m[s]);
       void *field =
         bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,key);
       bfam_subdomain_dgx_get_scalar_fields_m(key,field,&data);
@@ -1148,16 +1162,16 @@ bfam_subdomain_dgx_put_send_buffer(bfam_subdomain_t *thisSubdomain,
     {
       const char *vec_prefix  = args->vectors_m[v];
       char str[BFAM_BUFSIZ];
-      snprintf(str,BFAM_BUFSIZ,"%s%sn" ,args->prefix, vec_prefix);
+      snprintf(str,BFAM_BUFSIZ,"%s%sn" ,prefix, vec_prefix);
       void *vn  =
         bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,str);
-      snprintf(str,BFAM_BUFSIZ,"%s%sp1",args->prefix, vec_prefix);
+      snprintf(str,BFAM_BUFSIZ,"%s%sp1",prefix, vec_prefix);
       void *vp1 =
         bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,str);
-      snprintf(str,BFAM_BUFSIZ,"%s%sp2",args->prefix, vec_prefix);
+      snprintf(str,BFAM_BUFSIZ,"%s%sp2",prefix, vec_prefix);
       void *vp2 =
         bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,str);
-      snprintf(str,BFAM_BUFSIZ,"%s%sp3",args->prefix, vec_prefix);
+      snprintf(str,BFAM_BUFSIZ,"%s%sp3",prefix, vec_prefix);
       void *vp3 =
         bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,str);
       BFAM_ASSERT(vn != NULL && vp1 != NULL && vp2 != NULL && vp3 != NULL);
@@ -1169,16 +1183,16 @@ bfam_subdomain_dgx_put_send_buffer(bfam_subdomain_t *thisSubdomain,
     {
       const char *ten_prefix  = args->tensors_m[t];
       char str[BFAM_BUFSIZ];
-      snprintf(str,BFAM_BUFSIZ,"%s%sn" ,args->prefix, ten_prefix);
+      snprintf(str,BFAM_BUFSIZ,"%s%sn" ,prefix, ten_prefix);
       void *Tn  =
         bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,str);
-      snprintf(str,BFAM_BUFSIZ,"%s%sp1",args->prefix, ten_prefix);
+      snprintf(str,BFAM_BUFSIZ,"%s%sp1",prefix, ten_prefix);
       void *Tp1 =
         bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,str);
-      snprintf(str,BFAM_BUFSIZ,"%s%sp2",args->prefix, ten_prefix);
+      snprintf(str,BFAM_BUFSIZ,"%s%sp2",prefix, ten_prefix);
       void *Tp2 =
         bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,str);
-      snprintf(str,BFAM_BUFSIZ,"%s%sp3",args->prefix, ten_prefix);
+      snprintf(str,BFAM_BUFSIZ,"%s%sp3",prefix, ten_prefix);
       void *Tp3 =
         bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,str);
       BFAM_ASSERT(Tn != NULL && Tp1 != NULL && Tp2 != NULL && Tp3 != NULL);
