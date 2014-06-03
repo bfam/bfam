@@ -47,6 +47,7 @@ typedef struct bfam_subdomain_comm_args
   const char ** tensors_p;
   const char ** tensor_components_p;
   const char ** face_scalars_p;
+  const char *  prefix;
 
 
   /**< user specified glue grid communication info:

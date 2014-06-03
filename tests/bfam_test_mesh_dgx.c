@@ -473,6 +473,7 @@ build_mesh(MPI_Comm mpicomm)
                                                "p4", "p5", "p6",
                                                "p1", "p3", "p5",
                                                "p2", "p4", "p6", NULL};
+  const char *comm_prefix                   = "";
   commargs.scalars_m           = comm_args_scalars;
   commargs.scalars_p           = comm_args_scalars;
 
@@ -493,6 +494,7 @@ build_mesh(MPI_Comm mpicomm)
   commargs.user_get_recv_buffer = NULL;
   commargs.user_put_send_buffer = NULL;
   commargs.user_data = NULL;
+  commargs.prefix = comm_prefix;
 
   /* add glue fields */
   for(int f = 0 ; comm_args_face_scalars[f] != NULL; f++)

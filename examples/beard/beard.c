@@ -59,6 +59,7 @@ const char *comm_args_vector_components[] = {"v1","v2","v3",NULL};
 const char *comm_args_tensors[]           = {"T",NULL};
 const char *comm_args_tensor_components[] = {"S11","S12","S13",
                                              "S22","S23","S33",NULL};
+const char *comm_prefix                   = "";
 
 const char *sw_fields[] = {"Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
   "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3", "Dc", "Dp", "fs", "fc", "fd",
@@ -1336,6 +1337,7 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
   mat_args.user_put_send_buffer = NULL;
   mat_args.user_get_recv_buffer = NULL;
   mat_args.user_data            = NULL;
+  mat_args.prefix               = comm_prefix;
 
 
   bfam_communicator_init(&material_comm,domain,BFAM_DOMAIN_OR,glue,
@@ -2031,6 +2033,7 @@ init_time_stepper(beard_t *beard, prefs_t *prefs, bfam_locidx_t num_lvl)
   args->user_put_send_buffer = NULL;
   args->user_get_recv_buffer = NULL;
   args->user_data            = NULL;
+  args->prefix               = comm_prefix;
 
 
   const char *timestep_tags[] = {"_volume","_glue_parallel","_glue_local",
@@ -2482,6 +2485,7 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *volume[],
     level_args.user_put_send_buffer = time_level_put_send_buffer;
     level_args.user_get_recv_buffer = time_level_get_recv_buffer;
     level_args.user_data            = &num_time_lvl;
+    level_args.prefix               = comm_prefix;
 
 
     bfam_communicator_init(&level_comm,(bfam_domain_t*)beard->domain,
