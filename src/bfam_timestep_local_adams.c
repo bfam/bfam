@@ -20,7 +20,7 @@ bfam_ts_local_adams_fill_comm_level_tag(char* tag, size_t buf_sz, int level)
 
 bfam_ts_local_adams_t*
 bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
-    bfam_locidx_t numLevels, bfam_domain_match_t subdom_match,
+    bfam_locidx_t max_level, bfam_domain_match_t subdom_match,
     const char** subdom_tags, bfam_domain_match_t comm_match, const char**
     comm_tags, MPI_Comm mpicomm, int mpitag, void *comm_data,
     void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
@@ -39,15 +39,47 @@ bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
     const int RK_init)
 {
   bfam_ts_local_adams_t* newTS = bfam_malloc(sizeof(bfam_ts_local_adams_t));
-  bfam_ts_local_adams_init(newTS, dom, method, numLevels, subdom_match,
+  bfam_ts_local_adams_init(newTS, dom, method, max_level, subdom_match,
       subdom_tags, comm_match, comm_tags, mpicomm, mpitag, comm_data, aux_rates,
       glue_rates, scale_rates,intra_rhs,inter_rhs,add_rates,RK_init);
   return newTS;
 }
 
-void
+static void
+do_local_step(bfam_ts_local_adams_t* ts, bfam_long_real_t dt,
+    bfam_locidx_t lvl)
+{
+  /* First we tell the next level down to do two steps */
+  if(lvl > 0)
+  {
+    do_local_step(ts, BFAM_LONG_REAL(0.5)*dt, lvl-1);
+    do_local_step(ts, BFAM_LONG_REAL(0.5)*dt, lvl-1);
+  }
+
+  /* And now we can do a step */
+
+  /*
+   * start the communication
+   */
+
+  /*
+   * do the intra work
+   */
+
+  /*
+   * finish the communication
+   */
+
+  /*
+   * do the inter work
+   */
+}
+
+static void
 bfam_ts_local_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
 {
+  bfam_ts_local_adams_t* ts = (bfam_ts_local_adams_t*) a_ts;
+  do_local_step(ts, dt, ts->numLevels);
 }
 
 void
@@ -55,7 +87,7 @@ bfam_ts_local_adams_init(
     bfam_ts_local_adams_t*       ts,
     bfam_domain_t*               dom,
     bfam_ts_local_adams_method_t method,
-    bfam_locidx_t                numLevels,
+    bfam_locidx_t                max_level,
     bfam_domain_match_t          subdom_match,
     const char**                 subdom_tags,
     bfam_domain_match_t          comm_match,
@@ -96,9 +128,19 @@ bfam_ts_local_adams_init(
   ts->inter_rhs   = inter_rhs;
   ts->add_rates   = add_rates;
 
-  ts->currentStage = 0;
   ts->numSteps     = 0;
-  ts->numLevels    = numLevels;
+
+  /*
+   * fast log2 computation for ints using bitwise operations from
+   * http://stackoverflow.com/questions/994593/how-to-do-an-integer-log2-in-c
+   */
+  int tmp = max_level;
+  ts->numLevels = 1;
+  while (tmp >>= 1) ++ts->numLevels;
+
+  ts->currentStageArray = bfam_malloc(ts->numLevels*sizeof(bfam_locidx_t));
+  for(bfam_locidx_t k = 0; k < ts->numLevels; k++)
+    ts->currentStageArray[k] = 0;
 
   ts->lsrk         = NULL;
   ts->comm_array   = NULL;
@@ -188,7 +230,7 @@ bfam_ts_local_adams_init(
 
   /* this tracks the max level that I know about */
 #ifdef BFAM_DEBUG
-  int max_level = 0;
+  int local_max_levels = 0;
 #endif
 
   /* find the plus and minus levels for the glue grids */
@@ -230,31 +272,22 @@ bfam_ts_local_adams_init(
     /* update the max level */
 
 #ifdef BFAM_DEBUG
-    max_level = BFAM_MAX(max_level,BFAM_MAX(m_lvl,p_lvl));
+    local_max_levels = BFAM_MAX(local_max_levels,BFAM_MAX(m_lvl,p_lvl));
 #endif
   }
 
 
 #ifdef BFAM_DEBUG
-  BFAM_ASSERT(max_level);
-
-  /*
-   * fast log2 computation for ints using bitwise operations from
-   * http://stackoverflow.com/questions/994593/how-to-do-an-integer-log2-in-c
-   */
-  int tmp = max_level;
-  int num_levels = 1;
-  while (tmp >>= 1) ++num_levels;
-
-  BFAM_ASSERT(max_level <= numLevels);
+  BFAM_ASSERT(local_max_levels);
+  BFAM_ASSERT(local_max_levels <= max_level);
 #endif
 
   /* loop through all possible commmunication tags */
-  char *local_comm_tags[numLevels+1];
-  char tag_stor[BFAM_BUFSIZ*numLevels];
-  ts->comm_array = bfam_malloc(numLevels*sizeof(bfam_ts_local_adams_t*));
+  char *local_comm_tags[ts->numLevels+1];
+  char tag_stor[BFAM_BUFSIZ*ts->numLevels];
+  ts->comm_array = bfam_malloc(ts->numLevels*sizeof(bfam_ts_local_adams_t*));
 
-  for(int lvl = 1, k=0; k < numLevels; lvl*=2, k++)
+  for(int lvl = 1, k=0; k < ts->numLevels; lvl*=2, k++)
   {
     local_comm_tags[k] = &tag_stor[BFAM_BUFSIZ*k];
     bfam_ts_local_adams_fill_comm_level_tag(&tag_stor[BFAM_BUFSIZ*k],
@@ -292,6 +325,7 @@ bfam_ts_local_adams_free(bfam_ts_local_adams_t* ts)
   ts->A = NULL;
   */
   ts->nStages = 0;
+  bfam_free(ts->currentStageArray);
   ts->t  = NAN;
   bfam_ts_free(&ts->base);
 }

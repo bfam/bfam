@@ -19,12 +19,12 @@
  */
 typedef struct bfam_ts_local_adams
 {
-  bfam_ts_t base;             /**< parent timestepper */
-  int nStages;                /**< number of steps */
-  int currentStage;           /**< current stage counter */
-  int numSteps;               /**< number of steps completed */
-  bfam_locidx_t numLevels;    /**< number of levels to time step */
-  bfam_long_real_t  t;        /**< domain time */
+  bfam_ts_t base;                   /**< parent timestepper */
+  int nStages;                      /**< number of steps */
+  bfam_locidx_t *currentStageArray; /**< array of current stage counter */
+  int numSteps;                     /**< number of steps completed */
+  bfam_locidx_t numLevels;          /**< number of levels to time step */
+  bfam_long_real_t  t;              /**< domain time */
   bfam_communicator_t **comm_array; /**< NULL terminated array of communicators
                                          for the local level communicator I
                                          handle
@@ -80,7 +80,7 @@ bfam_ts_local_adams_fill_level_tag(char* tag, size_t buf_siz, int level);
  *
  * \param [in]  dom              pointer to the domain
  * \param [in]  method           Adams tyoe we are using
- * \param [in]  numLevels        number of levels to time step
+ * \param [in]  max_level        number of levels to time step
  * \param [in]  subdom_match     match type for subdomains
  * \param [in]  subdom_tags      tags for the subdomains to time step
  * \param [in]  comm_match       match type for communication
@@ -101,7 +101,7 @@ bfam_ts_local_adams_fill_level_tag(char* tag, size_t buf_siz, int level);
  */
 bfam_ts_local_adams_t*
 bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
-    bfam_locidx_t numLevels, bfam_domain_match_t subdom_match, const char**
+    bfam_locidx_t max_level, bfam_domain_match_t subdom_match, const char**
     subdom_tags, bfam_domain_match_t comm_match, const char** comm_tags,
     MPI_Comm mpicomm, int mpitag, void * comm_data,
     void (*aux_rates)  (bfam_subdomain_t *thisSubdomain, const char *prefix),
@@ -127,7 +127,7 @@ bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
  * \param [in,out]  ts           pointer to time stepper to initialize
  * \param [in]  dom              pointer to the domain
  * \param [in]  method           Low storage RK tyoe we are using
- * \param [in]  numLevels        number of levels to time step
+ * \param [in]  max_level        number of levels to time step
  * \param [in]  subdom_match     match type for subdomains
  * \param [in]  subdom_tags      tags for the subdomains to time step
  * \param [in]  comm_match       match type for communication
@@ -147,7 +147,7 @@ bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
 void
 bfam_ts_local_adams_init(bfam_ts_local_adams_t* ts,
     bfam_domain_t* dom, bfam_ts_local_adams_method_t method, bfam_locidx_t
-    numLevels, bfam_domain_match_t subdom_match, const char** subdom_tags,
+    max_level, bfam_domain_match_t subdom_match, const char** subdom_tags,
     bfam_domain_match_t comm_match, const char** comm_tags, MPI_Comm mpicomm,
     int mpitag, void * comm_data,
     void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
