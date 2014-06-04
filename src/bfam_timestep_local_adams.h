@@ -29,7 +29,7 @@ typedef struct bfam_ts_local_adams
                                          for the local level communicator I
                                          handle
                                       */
-  bfam_dictionary_t elems;    /**< dictionary of subdomains I step */
+  bfam_dictionary_t elems;          /**< dictionary of subdomains I step */
 
   /* LSRK method for initialization */
   bfam_ts_lsrk_t* lsrk;
