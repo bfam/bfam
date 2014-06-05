@@ -2409,7 +2409,7 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *volume[],
 
       /* keep double time_step until the level is big enough */
       bfam_locidx_t time_level = 1;
-      while(2*time_level < ldt[s] / dt) time_level *= 2;
+      if(ldt[s] != INFINITY) while(2*time_level < ldt[s] / dt) time_level *= 2;
       BFAM_ASSERT(time_level > 0);
 
       char tag[BFAM_BUFSIZ];
