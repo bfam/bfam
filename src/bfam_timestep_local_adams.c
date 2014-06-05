@@ -5,6 +5,13 @@
 #define BFAM_LOCAL_ADAMS_LVL_PREFIX "_local_adams_lvl_"
 #define BFAM_LOCAL_ADAMS_COMM_LVL_PREFIX ("_local_adams_comm_lvl_")
 
+typedef struct bfam_ts_local_allprefix
+{
+  bfam_ts_local_adams_t *ts;
+  bfam_locidx_t    lvl; /* this marks the level to the updated */
+  bfam_long_real_t dt;  /* this is the fastest time step */
+} bfam_ts_local_adams_allprefix_t;
+
 void
 bfam_ts_local_adams_fill_level_tag(char* tag, size_t buf_sz, int level)
 {
@@ -35,11 +42,11 @@ bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
     void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
       const char *rate_prefix, const bfam_long_real_t a),
     void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix,
-      const bfam_long_real_t t),
+      const char *rate_prefix, const char *minus_rate_prefix,
+      const char *field_prefix, const bfam_long_real_t t),
     void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix,
-      const bfam_long_real_t t),
+      const char *rate_prefix, const char *minus_rate_prefix,
+      const char *field_prefix, const bfam_long_real_t t),
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
       const char *rate_prefix, const bfam_long_real_t a),
@@ -52,6 +59,32 @@ bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
   return newTS;
 }
 
+static int
+bfam_ts_local_adams_intra_rhs(const char * key, void *val, void *arg)
+{
+  bfam_ts_local_adams_allprefix_t *data =
+    (bfam_ts_local_adams_allprefix_t *) arg;
+  bfam_subdomain_t* sub = (bfam_subdomain_t*) val;
+
+  bfam_locidx_t lvl = -1;
+  bfam_critbit0_allprefixed(&sub->tags, BFAM_LOCAL_ADAMS_LVL_PREFIX,
+      get_tag_level_number,&lvl);
+  BFAM_INFO("%d %d",lvl,data->lvl);
+  if(lvl <= data->lvl+1)
+  {
+  }
+
+  /*
+  char prefix[BFAM_BUFSIZ];
+  snprintf(prefix,BFAM_BUFSIZ,"%s%d_",BFAM_ADAMS_PREFIX,
+      data->ts->currentStage%data->ts->nStages);
+  BFAM_LDEBUG("Adams intra: using prefix %s",prefix);
+  data->ts->scale_rates(sub, prefix, 0);
+  data->ts->intra_rhs(sub, prefix, "", data->ts->t);
+  */
+  return 1;
+}
+
 static void
 bfam_ts_local_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
 {
@@ -60,12 +93,18 @@ bfam_ts_local_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
   BFAM_LDEBUG("Number of steps for the local time stepper %"BFAM_LOCIDX_PRId,
       num_steps);
 
+  dt /= ts->numLevels;
+  bfam_ts_local_adams_allprefix_t data;
+  data.ts = ts;
+  data.dt = dt;
+  data.lvl = -1;
+
   /* determine the level of comm to do: max of this update and last update */
-  bfam_locidx_t last_max_updated = 0;
+  bfam_locidx_t last_lvl = 0;
   for(bfam_locidx_t s = 0; s < num_steps; s++)
   {
     BFAM_LDEBUG("local time step number %"BFAM_LOCIDX_PRId, s);
-    bfam_locidx_t this_max_updated = 0;
+    data.lvl = 0;
 
     /* loop through the levels */
     for(bfam_locidx_t lvl = 0; lvl < ts->numLevels; lvl++)
@@ -74,33 +113,32 @@ bfam_ts_local_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
       if(!(s%chk))
       {
         BFAM_LDEBUG("level %"BFAM_LOCIDX_PRId" to be updated",lvl);
-        this_max_updated = BFAM_MAX(this_max_updated, lvl);
+        data.lvl = BFAM_MAX(data.lvl, lvl);
       }
     }
-    bfam_locidx_t comm_level = BFAM_MAX(this_max_updated, last_max_updated);
+    bfam_locidx_t comm_lvl = BFAM_MAX(data.lvl, last_lvl);
     BFAM_LDEBUG("step %"BFAM_LOCIDX_PRId
         ": update level %"BFAM_LOCIDX_PRId
         ": and communication level %"BFAM_LOCIDX_PRId,
-        s, this_max_updated, comm_level);
+        s, data.lvl, comm_lvl);
 
     /* start the communication */
-    bfam_communicator_start(ts->comm_array[comm_level]);
+    bfam_communicator_start(ts->comm_array[comm_lvl-1]);
 
     /* Do the intra work for the levels to be udpated */
-    for(bfam_locidx_t lvl = 0; lvl <= this_max_updated; lvl++)
-    {
-    }
+    bfam_dictionary_allprefixed_ptr(&ts->elems,
+        "",&bfam_ts_local_adams_intra_rhs,&data);
 
     /* finish the communication */
-    bfam_communicator_finish(ts->comm_array[comm_level]);
+    bfam_communicator_finish(ts->comm_array[comm_lvl-1]);
 
     /* Do the inter work for the levels to be udpated */
-    for(bfam_locidx_t lvl = 0; lvl <= this_max_updated; lvl++)
+    for(bfam_locidx_t lvl = 0; lvl < data.lvl; lvl++)
     {
     }
 
     /* set last update to next update */
-    last_max_updated = this_max_updated;
+    last_lvl = data.lvl;
   }
 }
 
@@ -122,11 +160,11 @@ bfam_ts_local_adams_init(
     void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
       const char *rate_prefix, const bfam_long_real_t a),
     void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix,
-      const bfam_long_real_t t),
+      const char *rate_prefix, const char *minus_rate_prefix,
+      const char *field_prefix, const bfam_long_real_t t),
     void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix,
-      const bfam_long_real_t t),
+      const char *rate_prefix, const char *minus_rate_prefix,
+      const char *field_prefix, const bfam_long_real_t t),
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
       const char *rate_prefix, const bfam_long_real_t a),

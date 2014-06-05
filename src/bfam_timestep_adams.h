@@ -36,13 +36,13 @@ typedef struct bfam_ts_adams
 
   /* compute rhs that does not require communication */
   void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix,
-      const bfam_long_real_t t);
+      const char *rate_prefix, const char *minus_rate_prefix,
+      const char *field_prefix, const bfam_long_real_t t);
 
   /* compute rhs that does require communication */
   void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix,
-      const bfam_long_real_t t);
+      const char *rate_prefix, const char *minus_rate_prefix,
+      const char *field_prefix, const bfam_long_real_t t);
 
   /* add the rates to the fields: q_lhs := q_rhs + a*dq */
   /* NOTE: should handle case of in place addition */
@@ -93,11 +93,11 @@ bfam_ts_adams_new(bfam_domain_t* dom, bfam_ts_adams_method_t method,
     void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
       const char *rate_prefix, const bfam_long_real_t a),
     void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix,
-      const bfam_long_real_t t),
+      const char *rate_prefix, const char*minus_rate_prefix,
+      const char *field_prefix, const bfam_long_real_t t),
     void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix,
-      const bfam_long_real_t t),
+      const char *rate_prefix, const char *minus_rate_prefix,
+      const char *field_prefix, const bfam_long_real_t t),
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
       const char *rate_prefix, const bfam_long_real_t a),
@@ -136,11 +136,11 @@ bfam_ts_adams_init(bfam_ts_adams_t* ts,
     void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
       const char *rate_prefix, const bfam_long_real_t a),
     void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix,
-      const bfam_long_real_t t),
+      const char *rate_prefix, const char *minus_rate_prefix,
+      const char *field_prefix, const bfam_long_real_t t),
     void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix,
-      const bfam_long_real_t t),
+      const char *rate_prefix, const char *minus_rate_prefix,
+      const char *field_prefix, const bfam_long_real_t t),
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
       const char *rate_prefix, const bfam_long_real_t a),

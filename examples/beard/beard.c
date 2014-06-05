@@ -1750,7 +1750,8 @@ intra_rhs_elastic(int N, bfam_subdomain_dgx_t *sub,
 }
 
 void intra_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-    const char *field_prefix, const bfam_long_real_t t)
+    const char *minus_rate_prefix, const char *field_prefix,
+    const bfam_long_real_t t)
 {
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
 
@@ -1797,16 +1798,17 @@ void inter_rhs_boundary(int N, bfam_subdomain_dgx_t *sub,
 }
 
 void inter_rhs_slip_weakening_interface(int N, bfam_subdomain_dgx_t *sub,
-    const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t)
+    const char *rate_prefix, const char* minus_rate_prefix,
+    const char *field_prefix, const bfam_long_real_t t)
 {
 #if   DIM==2
 #define X(order) \
   case order: beard_dgx_inter_rhs_slip_weakening_interface_2_##order(N,sub, \
-                  rate_prefix,field_prefix,t); break;
+                  rate_prefix,minus_rate_prefix,field_prefix,t); break;
 #elif DIM==3
 #define X(order) \
   case order: beard_dgx_inter_rhs_slip_weakening_interface_3_##order(N,sub, \
-                  rate_prefix,field_prefix,t); break;
+                  rate_prefix,minus_rate_prefix,field_prefix,t); break;
 #else
 #error "bad dimension"
 #endif
@@ -1818,10 +1820,10 @@ void inter_rhs_slip_weakening_interface(int N, bfam_subdomain_dgx_t *sub,
     default:
 #if   DIM==2
       beard_dgx_inter_rhs_slip_weakening_interface_2_(N,sub,rate_prefix,
-          field_prefix,t);
+          minus_rate_prefix, field_prefix,t);
 #elif DIM==3
       beard_dgx_inter_rhs_slip_weakening_interface_3_(N,sub,rate_prefix,
-          field_prefix,t);
+          minus_rate_prefix, field_prefix,t);
 #else
 #error "bad dimension"
 #endif
@@ -1863,7 +1865,8 @@ void inter_rhs_interface(int N, bfam_subdomain_dgx_t *sub,
 }
 
 void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-    const char *field_prefix, const bfam_long_real_t t)
+    const char *minus_rate_prefix, const char *field_prefix,
+    const bfam_long_real_t t)
 {
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
 
@@ -1873,23 +1876,23 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
   else if(bfam_subdomain_has_tag(thisSubdomain,"slip weakening"))
     inter_rhs_slip_weakening_interface(
         ((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
-        sub,rate_prefix,field_prefix,t);
+        sub,rate_prefix,minus_rate_prefix,field_prefix,t);
   else if(bfam_subdomain_has_tag(thisSubdomain,"non-reflecting"))
     inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
-        sub,rate_prefix,field_prefix,t,0);
+        sub,minus_rate_prefix,field_prefix,t,0);
   else if(bfam_subdomain_has_tag(thisSubdomain,"free surface"))
     inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
-        sub,rate_prefix,field_prefix,t,1);
+        sub,minus_rate_prefix,field_prefix,t,1);
   else if(bfam_subdomain_has_tag(thisSubdomain,"rigid"))
     inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
-        sub,rate_prefix,field_prefix,t,-1);
+        sub,minus_rate_prefix,field_prefix,t,-1);
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"))
     inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
-        sub,rate_prefix,field_prefix,t,0);
+        sub,minus_rate_prefix,field_prefix,t,0);
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"))
     inter_rhs_interface(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
-        sub,rate_prefix,field_prefix,t);
+        sub,minus_rate_prefix,field_prefix,t);
   else
     BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
 }

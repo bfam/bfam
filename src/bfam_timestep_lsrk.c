@@ -27,7 +27,7 @@ bfam_ts_lsrk_intra_rhs(const char * key, void *val, void *arg)
   bfam_ts_lsrk_allprefix_t *data = (bfam_ts_lsrk_allprefix_t *) arg;
   bfam_subdomain_t* sub = (bfam_subdomain_t*) val;
   data->ts->intra_rhs(sub, data->rate_prefix, data->field_prefix_rhs,
-      data->arg);
+      data->field_prefix_rhs, data->arg);
   return 1;
 }
 
@@ -37,7 +37,7 @@ bfam_ts_lsrk_inter_rhs(const char * key, void *val, void *arg)
   bfam_ts_lsrk_allprefix_t *data = (bfam_ts_lsrk_allprefix_t *) arg;
   bfam_subdomain_t* sub = (bfam_subdomain_t*) val;
   data->ts->inter_rhs(sub, data->rate_prefix, data->field_prefix_rhs,
-      data->arg);
+      data->field_prefix_rhs, data->arg);
   return 1;
 }
 
@@ -125,11 +125,11 @@ bfam_ts_lsrk_new(bfam_domain_t* dom, bfam_ts_lsrk_method_t method,
     void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
       const char *rate_prefix, const bfam_long_real_t a),
     void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix,
-      const bfam_long_real_t t),
+      const char *rate_prefix, const char *minus_rate_prefix,
+      const char *field_prefix, const bfam_long_real_t t),
     void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix,
-      const bfam_long_real_t t),
+      const char *rate_prefix, const char *minus_rate_prefix,
+      const char *field_prefix, const bfam_long_real_t t),
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
       const char *rate_prefix, const bfam_long_real_t a))
@@ -152,11 +152,11 @@ bfam_ts_lsrk_init(bfam_ts_lsrk_t* ts,
     void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
       const char *rate_prefix, const bfam_long_real_t a),
     void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix,
-      const bfam_long_real_t t),
+      const char *rate_prefix, const char *minus_rate_prefix,
+      const char *field_prefix, const bfam_long_real_t t),
     void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix,
-      const bfam_long_real_t t),
+      const char *rate_prefix, const char *minus_rate_prefix,
+      const char *field_prefix, const bfam_long_real_t t),
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
       const char *rate_prefix, const bfam_long_real_t a))
@@ -175,11 +175,11 @@ bfam_ts_lsrk_new_extended(bfam_domain_t* dom, bfam_ts_lsrk_method_t method,
     void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
       const char *rate_prefix, const bfam_long_real_t a),
     void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix,
-      const bfam_long_real_t t),
+      const char *rate_prefix, const char *minus_rate_prefix,
+      const char *field_prefix, const bfam_long_real_t t),
     void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix,
-      const bfam_long_real_t t),
+      const char *rate_prefix, const char *minus_rate_prefix,
+      const char *field_prefix, const bfam_long_real_t t),
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
       const char *rate_prefix, const bfam_long_real_t a),
@@ -203,11 +203,11 @@ bfam_ts_lsrk_init_extended(bfam_ts_lsrk_t* ts,
     void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
       const char *rate_prefix, const bfam_long_real_t a),
     void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix,
-      const bfam_long_real_t t),
+      const char *rate_prefix, const char *minus_rate_prefix,
+      const char *field_prefix, const bfam_long_real_t t),
     void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *field_prefix,
-      const bfam_long_real_t t),
+      const char *rate_prefix, const char *minus_rate_prefix,
+      const char *field_prefix, const bfam_long_real_t t),
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
       const char *rate_prefix, const bfam_long_real_t a),
