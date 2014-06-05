@@ -1874,25 +1874,43 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     (bfam_subdomain_dgx_t*) thisSubdomain;
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"));
   else if(bfam_subdomain_has_tag(thisSubdomain,"slip weakening"))
+  {
+    BFAM_ASSERT(rate_prefix);
     inter_rhs_slip_weakening_interface(
         ((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
         sub,rate_prefix,minus_rate_prefix,field_prefix,t);
+  }
   else if(bfam_subdomain_has_tag(thisSubdomain,"non-reflecting"))
+  {
+    BFAM_ASSERT(minus_rate_prefix);
     inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
         sub,minus_rate_prefix,field_prefix,t,0);
+  }
   else if(bfam_subdomain_has_tag(thisSubdomain,"free surface"))
+  {
+    BFAM_ASSERT(minus_rate_prefix);
     inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
         sub,minus_rate_prefix,field_prefix,t,1);
+  }
   else if(bfam_subdomain_has_tag(thisSubdomain,"rigid"))
+  {
+    BFAM_ASSERT(minus_rate_prefix);
     inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
         sub,minus_rate_prefix,field_prefix,t,-1);
+  }
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"))
+  {
+    BFAM_ASSERT(minus_rate_prefix);
     inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
         sub,minus_rate_prefix,field_prefix,t,0);
+  }
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"))
+  {
+    BFAM_ASSERT(minus_rate_prefix);
     inter_rhs_interface(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
         sub,minus_rate_prefix,field_prefix,t);
+  }
   else
     BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
 }
