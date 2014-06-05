@@ -26,7 +26,7 @@ bfam_ts_lsrk_intra_rhs(const char * key, void *val, void *arg)
 {
   bfam_ts_lsrk_allprefix_t *data = (bfam_ts_lsrk_allprefix_t *) arg;
   bfam_subdomain_t* sub = (bfam_subdomain_t*) val;
-  data->ts->intra_rhs(sub, data->rate_prefix, data->field_prefix_rhs,
+  data->ts->intra_rhs(sub, data->rate_prefix, data->rate_prefix,
       data->field_prefix_rhs, data->arg);
   return 1;
 }
@@ -36,7 +36,7 @@ bfam_ts_lsrk_inter_rhs(const char * key, void *val, void *arg)
 {
   bfam_ts_lsrk_allprefix_t *data = (bfam_ts_lsrk_allprefix_t *) arg;
   bfam_subdomain_t* sub = (bfam_subdomain_t*) val;
-  data->ts->inter_rhs(sub, data->rate_prefix, data->field_prefix_rhs,
+  data->ts->inter_rhs(sub, data->rate_prefix, data->rate_prefix,
       data->field_prefix_rhs, data->arg);
   return 1;
 }
