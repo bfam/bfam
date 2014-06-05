@@ -52,40 +52,55 @@ bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
 }
 
 static void
-do_local_step(bfam_ts_local_adams_t* ts, bfam_long_real_t dt,
-    bfam_locidx_t lvl)
-{
-  /* First we tell the next level down to do two steps */
-  if(lvl > 0)
-  {
-    do_local_step(ts, BFAM_LONG_REAL(0.5)*dt, lvl-1);
-    do_local_step(ts, BFAM_LONG_REAL(0.5)*dt, lvl-1);
-  }
-
-  /* And now we can do a step */
-
-  /*
-   * start the communication
-   */
-
-  /*
-   * do the intra work
-   */
-
-  /*
-   * finish the communication
-   */
-
-  /*
-   * do the inter work
-   */
-}
-
-static void
 bfam_ts_local_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
 {
   bfam_ts_local_adams_t* ts = (bfam_ts_local_adams_t*) a_ts;
-  do_local_step(ts, dt, ts->numLevels);
+  bfam_locidx_t num_steps = 1<<(ts->numLevels-1);
+  BFAM_LDEBUG("Number of steps for the local time stepper %"BFAM_LOCIDX_PRId,
+      num_steps);
+
+  /* determine the level of comm to do: max of this update and last update */
+  bfam_locidx_t last_max_updated = 0;
+  for(bfam_locidx_t s = 0; s < num_steps; s++)
+  {
+    BFAM_LDEBUG("local time step number %"BFAM_LOCIDX_PRId, s);
+    bfam_locidx_t this_max_updated = 0;
+
+    /* loop through the levels */
+    for(bfam_locidx_t lvl = 0; lvl < ts->numLevels; lvl++)
+    {
+      bfam_locidx_t chk = 1 << lvl;
+      if(!(s%chk))
+      {
+        BFAM_LDEBUG("level %"BFAM_LOCIDX_PRId" to be updated",lvl);
+        this_max_updated = BFAM_MAX(this_max_updated, lvl);
+      }
+    }
+    bfam_locidx_t comm_level = BFAM_MAX(this_max_updated, last_max_updated);
+    BFAM_LDEBUG("step %"BFAM_LOCIDX_PRId
+        ": update level %"BFAM_LOCIDX_PRId
+        ": and communication level %"BFAM_LOCIDX_PRId,
+        s, this_max_updated, comm_level);
+
+    /* start the communication */
+    bfam_communicator_start(ts->comm_array[comm_level]);
+
+    /* Do the intra work for the levels to be udpated */
+    for(bfam_locidx_t lvl = 0; lvl <= this_max_updated; lvl++)
+    {
+    }
+
+    /* finish the communication */
+    bfam_communicator_finish(ts->comm_array[comm_level]);
+
+    /* Do the inter work for the levels to be udpated */
+    for(bfam_locidx_t lvl = 0; lvl <= this_max_updated; lvl++)
+    {
+    }
+
+    /* set last update to next update */
+    last_max_updated = this_max_updated;
+  }
 }
 
 void
