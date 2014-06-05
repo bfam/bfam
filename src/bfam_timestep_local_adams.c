@@ -2,14 +2,20 @@
 #include <bfam_log.h>
 
 #define BFAM_LOCAL_ADAMS_PREFIX ("_local_adams_rate_")
-#define BFAM_LOCAL_ADAMS_LVL_PREFIX ("_local_adams_lvl_")
+#define BFAM_LOCAL_ADAMS_LVL_PREFIX "_local_adams_lvl_"
 #define BFAM_LOCAL_ADAMS_COMM_LVL_PREFIX ("_local_adams_comm_lvl_")
-#define BFAM_LOCAL_ADAMS_INTERP_LVL_PREFIX ("_local_adams_interp_lvl_")
 
 void
 bfam_ts_local_adams_fill_level_tag(char* tag, size_t buf_sz, int level)
 {
   snprintf(tag,buf_sz,"%s%d",BFAM_LOCAL_ADAMS_LVL_PREFIX,level);
+}
+
+static int
+get_tag_level_number(const char * key, void *val)
+{
+  return sscanf(key, BFAM_LOCAL_ADAMS_LVL_PREFIX"%"BFAM_LOCIDX_PRId,
+      (bfam_locidx_t*) val);
 }
 
 void
@@ -236,42 +242,37 @@ bfam_ts_local_adams_init(
   /* find the plus and minus levels for the glue grids */
   for(int s = 0; s < numSubs;s++)
   {
-    char lvl_tag[BFAM_BUFSIZ];
+    bfam_locidx_t m_lvl = -1;
+    bfam_locidx_t p_lvl = -1;
 
-    /* Handle the minus side */
-    BFAM_ABORT_IF_NOT(bfam_subdomain_plus_has_tag_prefix(subs[s],
-          BFAM_LOCAL_ADAMS_LVL_PREFIX),
-        "subdomain %s plus side does not have level", subs[s]->name);
-    int m_lvl = 1;
-    for(;;m_lvl*=2)
-    {
-      bfam_ts_local_adams_fill_level_tag(lvl_tag, BFAM_BUFSIZ, m_lvl);
-      if(bfam_subdomain_minus_has_tag(subs[s],lvl_tag)) break;
-    }
+    BFAM_ASSERT(subs[s]->glue_m);
+    BFAM_ASSERT(subs[s]->glue_p);
 
+    bfam_critbit0_allprefixed(&subs[s]->glue_p->tags,
+        BFAM_LOCAL_ADAMS_LVL_PREFIX, get_tag_level_number,&p_lvl);
+    bfam_critbit0_allprefixed(&subs[s]->glue_m->tags,
+        BFAM_LOCAL_ADAMS_LVL_PREFIX, get_tag_level_number,&m_lvl);
+
+    BFAM_ASSERT(m_lvl > 0);
+    BFAM_ASSERT(p_lvl > 0);
+
+#ifdef BFAM_DEBUG
     /* just a sanity check since these should match */
     BFAM_ASSERT(subs[s]->glue_m->sub_m);
-    BFAM_ASSERT(bfam_subdomain_has_tag(subs[s]->glue_m->sub_m, lvl_tag));
-
-    /* Handle the plus side */
-    BFAM_ABORT_IF_NOT(bfam_subdomain_minus_has_tag_prefix(subs[s],
-          BFAM_LOCAL_ADAMS_LVL_PREFIX),
-        "subdomain %s minus side does not have level", subs[s]->name);
-    int p_lvl = 1;
-    for(;;p_lvl*=2)
-    {
-      bfam_ts_local_adams_fill_level_tag(lvl_tag, BFAM_BUFSIZ, p_lvl);
-      if(bfam_subdomain_plus_has_tag(subs[s],lvl_tag)) break;
-    }
+    bfam_locidx_t s_lvl = -1;
+    bfam_critbit0_allprefixed(&subs[s]->glue_m->sub_m->tags,
+        BFAM_LOCAL_ADAMS_LVL_PREFIX, get_tag_level_number,&s_lvl);
+    BFAM_ASSERT(s_lvl == m_lvl);
+#endif
 
     /* communicate as infrequently as needed, so use the higher level */
+    char lvl_tag[BFAM_BUFSIZ];
     bfam_ts_local_adams_fill_comm_level_tag(lvl_tag,BFAM_BUFSIZ,
         BFAM_MAX(m_lvl, p_lvl));
     bfam_subdomain_add_tag(subs[s],lvl_tag);
 
-    /* update the max level */
-
 #ifdef BFAM_DEBUG
+    /* update the max level */
     local_max_levels = BFAM_MAX(local_max_levels,BFAM_MAX(m_lvl,p_lvl));
 #endif
   }
