@@ -14,6 +14,7 @@ bfam_ts_local_adams_fill_level_tag(char* tag, size_t buf_sz, int level)
 static int
 get_tag_level_number(const char * key, void *val)
 {
+  BFAM_ASSERT(*(bfam_locidx_t*)val < 0);
   return sscanf(key, BFAM_LOCAL_ADAMS_LVL_PREFIX"%"BFAM_LOCIDX_PRId,
       (bfam_locidx_t*) val);
 }
@@ -26,7 +27,7 @@ bfam_ts_local_adams_fill_comm_level_tag(char* tag, size_t buf_sz, int level)
 
 bfam_ts_local_adams_t*
 bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
-    bfam_locidx_t max_level, bfam_domain_match_t subdom_match,
+    bfam_locidx_t num_lvl, bfam_domain_match_t subdom_match,
     const char** subdom_tags, bfam_domain_match_t comm_match, const char**
     comm_tags, MPI_Comm mpicomm, int mpitag, void *comm_data,
     void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
@@ -45,7 +46,7 @@ bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
     const int RK_init)
 {
   bfam_ts_local_adams_t* newTS = bfam_malloc(sizeof(bfam_ts_local_adams_t));
-  bfam_ts_local_adams_init(newTS, dom, method, max_level, subdom_match,
+  bfam_ts_local_adams_init(newTS, dom, method, num_lvl, subdom_match,
       subdom_tags, comm_match, comm_tags, mpicomm, mpitag, comm_data, aux_rates,
       glue_rates, scale_rates,intra_rhs,inter_rhs,add_rates,RK_init);
   return newTS;
@@ -108,7 +109,7 @@ bfam_ts_local_adams_init(
     bfam_ts_local_adams_t*       ts,
     bfam_domain_t*               dom,
     bfam_ts_local_adams_method_t method,
-    bfam_locidx_t                max_level,
+    bfam_locidx_t                num_lvl,
     bfam_domain_match_t          subdom_match,
     const char**                 subdom_tags,
     bfam_domain_match_t          comm_match,
@@ -155,9 +156,7 @@ bfam_ts_local_adams_init(
    * fast log2 computation for ints using bitwise operations from
    * http://stackoverflow.com/questions/994593/how-to-do-an-integer-log2-in-c
    */
-  int tmp = max_level;
-  ts->numLevels = 1;
-  while (tmp >>= 1) ++ts->numLevels;
+  ts->numLevels = num_lvl;
 
   ts->currentStageArray = bfam_malloc(ts->numLevels*sizeof(bfam_locidx_t));
   for(bfam_locidx_t k = 0; k < ts->numLevels; k++)
@@ -268,8 +267,8 @@ bfam_ts_local_adams_init(
     bfam_critbit0_allprefixed(&subs[s]->glue_m->tags,
         BFAM_LOCAL_ADAMS_LVL_PREFIX, get_tag_level_number,&m_lvl);
 
-    BFAM_ASSERT(m_lvl > 0);
-    BFAM_ASSERT(p_lvl > 0);
+    BFAM_ASSERT(m_lvl >= 0);
+    BFAM_ASSERT(p_lvl >= 0);
 
 #ifdef BFAM_DEBUG
     /* just a sanity check since these should match */
@@ -295,7 +294,7 @@ bfam_ts_local_adams_init(
 
 #ifdef BFAM_DEBUG
   BFAM_ASSERT(local_max_levels);
-  BFAM_ASSERT(local_max_levels <= max_level);
+  BFAM_ASSERT(local_max_levels <= num_lvl);
 #endif
 
   /* loop through all possible commmunication tags */

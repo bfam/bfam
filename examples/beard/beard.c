@@ -1986,7 +1986,7 @@ void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
 }
 
 static void
-init_time_stepper(beard_t *beard, prefs_t *prefs, bfam_locidx_t levels)
+init_time_stepper(beard_t *beard, prefs_t *prefs, bfam_locidx_t num_lvl)
 {
   beard->comm_args = bfam_malloc(sizeof(bfam_subdomain_comm_args_t));
   bfam_subdomain_comm_args_t *args = beard->comm_args;
@@ -2029,7 +2029,7 @@ init_time_stepper(beard_t *beard, prefs_t *prefs, bfam_locidx_t levels)
         &add_rates, lua_get_global_int(prefs->L, "RK_init", 1));
   else if(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
     beard->beard_ts = (bfam_ts_t*)bfam_ts_local_adams_new(
-        (bfam_domain_t*) beard->domain, prefs->local_adams_method, levels,
+        (bfam_domain_t*) beard->domain, prefs->local_adams_method, num_lvl,
         BFAM_DOMAIN_OR, timestep_tags, BFAM_DOMAIN_OR,glue, beard->mpicomm, 10,
         beard->comm_args, &aux_rates, &glue_rates, &scale_rates,&intra_rhs,
         &inter_rhs, &add_rates, lua_get_global_int(prefs->L, "RK_init", 1));
@@ -2310,9 +2310,9 @@ time_level_put_send_buffer(bfam_subdomain_t* thisSubdomain, void *buffer,
   BFAM_ASSERT(args->user_data);
   int max_lvl = *(int*)args->user_data;
 
-  int lvl = 1;
+  int lvl = 0;
   char tag[BFAM_BUFSIZ];
-  for(; lvl <= max_lvl;lvl*=2)
+  for(; lvl <= max_lvl;lvl++)
   {
     bfam_ts_local_adams_fill_level_tag(tag,BFAM_BUFSIZ,lvl);
     if(bfam_subdomain_has_tag(thisSubdomain->glue_m->sub_m,tag)) break;
@@ -2395,7 +2395,7 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *volume[],
             volume, err_flds[f]);
   }
 
-  bfam_locidx_t max_time_level = 0;
+  bfam_locidx_t num_time_lvl = 0;
   if(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
   {
     bfam_real_t max_ldt = dt;
@@ -2408,35 +2408,35 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *volume[],
       ldt[s] = dt_fudge*ldt[s];
 
       /* keep double time_step until the level is big enough */
-      bfam_locidx_t time_level = 1;
-      if(ldt[s] != INFINITY) while(2*time_level < ldt[s] / dt) time_level *= 2;
-      BFAM_ASSERT(time_level > 0);
+      bfam_locidx_t time_level = 0;
+      if(ldt[s] != INFINITY) for(;(1<<(time_level+1))*dt < ldt[s];time_level++);
+      BFAM_ASSERT(time_level >= 0);
 
       char tag[BFAM_BUFSIZ];
       bfam_ts_local_adams_fill_level_tag(tag,BFAM_BUFSIZ,time_level);
       bfam_subdomain_add_tag(subdomains[s],tag);
 
       /* set this guys real dt */
-      ldt[s] = dt*time_level;
+      ldt[s] = dt*(1<<time_level);
 
       BFAM_INFO("For %s is time level %d with local dt %"BFAM_REAL_FMTe,
           subdomains[s]->name, time_level, ldt[s]);
 
       max_ldt = BFAM_MAX(max_ldt,ldt[s]);
 
-      max_time_level = BFAM_MAX(max_time_level, time_level);
+      num_time_lvl = BFAM_MAX(num_time_lvl, time_level+1);
     }
-    BFAM_INFO("local number of time levels %"BFAM_LOCIDX_PRId,max_time_level);
+    BFAM_INFO("local number of time levels %"BFAM_LOCIDX_PRId,num_time_lvl);
 
     BFAM_INFO("max local dt is %"BFAM_REAL_FMTe, max_ldt);
 
-    BFAM_MPI_CHECK(MPI_Allreduce(MPI_IN_PLACE,&max_time_level,1,BFAM_LOCIDX_MPI,
+    BFAM_MPI_CHECK(MPI_Allreduce(MPI_IN_PLACE,&num_time_lvl,1,BFAM_LOCIDX_MPI,
           MPI_MAX, beard->mpicomm));
 
-    dt = max_time_level*dt;
+    dt = num_time_lvl*dt;
 
     BFAM_INFO("number of time levels %"BFAM_LOCIDX_PRId
-        " for global dt %"BFAM_REAL_FMTe, max_time_level, dt);
+        " for global dt %"BFAM_REAL_FMTe, num_time_lvl, dt);
 
     bfam_communicator_t level_comm;
 
@@ -2459,7 +2459,7 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *volume[],
     level_args.user_comm_info       = time_level_comm_info;
     level_args.user_put_send_buffer = time_level_put_send_buffer;
     level_args.user_get_recv_buffer = time_level_get_recv_buffer;
-    level_args.user_data            = &max_time_level;
+    level_args.user_data            = &num_time_lvl;
 
 
     bfam_communicator_init(&level_comm,(bfam_domain_t*)beard->domain,
@@ -2471,7 +2471,7 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *volume[],
 
   bfam_free(subdomains);
 
-  init_time_stepper(beard, prefs, max_time_level);
+  init_time_stepper(beard, prefs, num_time_lvl);
 
   return dt;
 }
