@@ -1699,6 +1699,7 @@ void scale_rates_slip_weakening (bfam_subdomain_dgx_t *sub,
 void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     const bfam_long_real_t a)
 {
+  BFAM_ASSERT(rate_prefix);
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
   {
