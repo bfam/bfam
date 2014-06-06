@@ -22,7 +22,7 @@ typedef struct bfam_ts_local_adams
   bfam_ts_t base;                   /**< parent timestepper */
   int nStages;                      /**< number of steps */
   bfam_locidx_t *currentStageArray; /**< array of current stage counter */
-  int numSteps;                     /**< number of steps completed */
+  bfam_locidx_t *numStepsArray;     /**< array of number of steps completed */
   bfam_locidx_t numLevels;          /**< number of levels to time step */
   bfam_long_real_t  t;              /**< domain time */
   bfam_communicator_t **comm_array; /**< NULL terminated array of communicators

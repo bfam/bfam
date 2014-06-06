@@ -183,7 +183,7 @@ bfam_ts_local_adams_update(const char * key, void *val, void *arg)
       get_tag_level_number,&lvl);
 
   if(lvl>=0)
-    switch(BFAM_MIN(ts->numSteps+1,ts->nStages))
+    switch(BFAM_MIN(ts->numStepsArray[lvl]+1,ts->nStages))
     {
       case 1:
         {
@@ -318,11 +318,13 @@ bfam_ts_local_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
 
     /* update the stage counters */
     for(bfam_locidx_t k=0; k <= data.lvl;k++)
+    {
+      ts->numStepsArray[k]++;
       ts->currentStageArray[k] = (ts->currentStageArray[k]+1)%ts->nStages;
+    }
     ts->t += dt;
   }
 
-  ts->numSteps++;
 }
 
 void
@@ -371,8 +373,6 @@ bfam_ts_local_adams_init(
   ts->inter_rhs   = inter_rhs;
   ts->add_rates   = add_rates;
 
-  ts->numSteps     = 0;
-
   /*
    * fast log2 computation for ints using bitwise operations from
    * http://stackoverflow.com/questions/994593/how-to-do-an-integer-log2-in-c
@@ -380,8 +380,12 @@ bfam_ts_local_adams_init(
   ts->numLevels = num_lvl;
 
   ts->currentStageArray = bfam_malloc(ts->numLevels*sizeof(bfam_locidx_t));
+  ts->numStepsArray     = bfam_malloc(ts->numLevels*sizeof(bfam_locidx_t));
   for(bfam_locidx_t k = 0; k < ts->numLevels; k++)
+  {
+    ts->numStepsArray[k] = 0;
     ts->currentStageArray[k] = 0;
+  }
 
   ts->lsrk         = NULL;
   ts->comm_array   = NULL;
@@ -560,6 +564,7 @@ bfam_ts_local_adams_free(bfam_ts_local_adams_t* ts)
   ts->A = NULL;
   */
   ts->nStages = 0;
+  bfam_free(ts->numStepsArray);
   bfam_free(ts->currentStageArray);
   ts->t  = NAN;
   bfam_ts_free(&ts->base);
