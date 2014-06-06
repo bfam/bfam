@@ -396,7 +396,6 @@ bfam_ts_local_adams_init(
 
 
 #ifdef BFAM_DEBUG
-  BFAM_ASSERT(local_max_levels);
   BFAM_ASSERT(local_max_levels <= num_lvl);
 #endif
 
