@@ -404,11 +404,11 @@ bfam_ts_local_adams_init(
   char tag_stor[BFAM_BUFSIZ*ts->numLevels];
   ts->comm_array = bfam_malloc(ts->numLevels*sizeof(bfam_ts_local_adams_t*));
 
-  for(int lvl = 1, k=0; k < ts->numLevels; lvl*=2, k++)
+  for(int k=0; k < ts->numLevels; k++)
   {
     local_comm_tags[k] = &tag_stor[BFAM_BUFSIZ*k];
     bfam_ts_local_adams_fill_comm_level_tag(&tag_stor[BFAM_BUFSIZ*k],
-        BFAM_BUFSIZ, lvl);
+        BFAM_BUFSIZ, k);
     local_comm_tags[k+1] = NULL;
 
     /*
