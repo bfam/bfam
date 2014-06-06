@@ -103,7 +103,7 @@ bfam_ts_local_adams_t*
 bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
     bfam_locidx_t num_lvls, bfam_domain_match_t subdom_match, const char**
     subdom_tags, bfam_domain_match_t comm_match, const char** comm_tags,
-    MPI_Comm mpicomm, int mpitag, void * comm_data,
+    MPI_Comm mpicomm, int mpitag, bfam_subdomain_comm_args_t * comm_data,
     void (*aux_rates)  (bfam_subdomain_t *thisSubdomain, const char *prefix),
     void (*glue_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
     void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
@@ -149,7 +149,7 @@ bfam_ts_local_adams_init(bfam_ts_local_adams_t* ts,
     bfam_domain_t* dom, bfam_ts_local_adams_method_t method, bfam_locidx_t
     num_lvls, bfam_domain_match_t subdom_match, const char** subdom_tags,
     bfam_domain_match_t comm_match, const char** comm_tags, MPI_Comm mpicomm,
-    int mpitag, void * comm_data,
+    int mpitag, bfam_subdomain_comm_args_t * comm_data,
     void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
     void (*glue_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
     void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
