@@ -147,6 +147,86 @@ bfam_ts_local_adams_inter_rhs(const char * key, void *val, void *arg)
   return 1;
 }
 
+static inline int
+bfam_ts_local_adams_do_update(bfam_subdomain_t* sub, const bfam_long_real_t* A,
+    const bfam_ts_local_adams_t* ts, const bfam_long_real_t dt,
+    const int nStages, const bfam_locidx_t lvl)
+{
+  BFAM_LDEBUG("BFAM_TS_LOCAL_ADAMS_DO_UPDATE");
+
+  /* Loop through the stages to scale rates and add in */
+  /*
+   * nStages is the computing number of stages whereas ts->nStages is the
+   * storage number of stages
+   */
+  for(int k = 0; k < nStages;k++)
+  {
+    char prefix[BFAM_BUFSIZ];
+    snprintf(prefix,BFAM_BUFSIZ,"%s%d_",BFAM_LOCAL_ADAMS_PREFIX,
+        (ts->currentStageArray[lvl]+ts->nStages-k)%ts->nStages);
+    BFAM_LDEBUG("Adams step: stage %d of %d using prefix %s",k,nStages,prefix);
+    ts->add_rates(sub, "", "", prefix, dt*A[k]);
+  }
+  return 1;
+}
+
+static int
+bfam_ts_local_adams_update(const char * key, void *val, void *arg)
+{
+  bfam_ts_local_adams_allprefix_t *data =
+    (bfam_ts_local_adams_allprefix_t *) arg;
+  bfam_subdomain_t* sub = (bfam_subdomain_t*) val;
+  bfam_ts_local_adams_t* ts = data->ts;
+
+  bfam_locidx_t lvl = -1;
+  bfam_critbit0_allprefixed(&sub->tags, BFAM_LOCAL_ADAMS_LVL_PREFIX,
+      get_tag_level_number,&lvl);
+
+  if(lvl>=0)
+    switch(BFAM_MIN(ts->numSteps+1,ts->nStages))
+    {
+      case 1:
+        {
+          bfam_long_real_t A[1] = {BFAM_LONG_REAL(1.0)};
+          bfam_ts_local_adams_do_update(sub, A, ts, (1<<lvl)*data->dt, 1, lvl);
+        }
+        break;
+      case 2:
+        {
+          bfam_long_real_t A[2] = {
+            BFAM_LONG_REAL( 3.0) / BFAM_LONG_REAL( 2.0),
+            BFAM_LONG_REAL(-1.0) / BFAM_LONG_REAL( 2.0),
+          };
+          bfam_ts_local_adams_do_update(sub, A, ts, (1<<lvl)*data->dt, 2, lvl);
+        }
+        break;
+      case 3:
+        {
+          bfam_long_real_t A[3] = {
+            BFAM_LONG_REAL(23.0)/ BFAM_LONG_REAL(12.0),
+            BFAM_LONG_REAL(-4.0)/ BFAM_LONG_REAL( 3.0),
+            BFAM_LONG_REAL( 5.0)/ BFAM_LONG_REAL(12.0),
+          };
+          bfam_ts_local_adams_do_update(sub, A, ts, (1<<lvl)*data->dt, 3, lvl);
+        }
+        break;
+      case 4:
+        {
+          bfam_long_real_t A[4] = {
+            BFAM_LONG_REAL( 55.0)/ BFAM_LONG_REAL( 24.0),
+            BFAM_LONG_REAL(-59.0)/ BFAM_LONG_REAL( 24.0),
+            BFAM_LONG_REAL( 37.0)/ BFAM_LONG_REAL( 24.0),
+            BFAM_LONG_REAL(  3.0)/ BFAM_LONG_REAL(  8.0),
+          };
+          bfam_ts_local_adams_do_update(sub, A, ts, (1<<lvl)*data->dt, 4, lvl);
+        }
+        break;
+      default:
+        BFAM_ABORT("Adams-Bashforth order %d not implemented",ts->nStages);
+    }
+  return 1;
+}
+
 static void
 bfam_ts_local_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
 {
@@ -163,48 +243,86 @@ bfam_ts_local_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
 
   /* determine the level of comm to do: max of this update and last update */
   bfam_locidx_t last_lvl = 0;
-  for(bfam_locidx_t s = 0; s < num_steps; s++)
+  for(bfam_locidx_t step = 0; step < num_steps; step++)
   {
-    BFAM_LDEBUG("local time step number %"BFAM_LOCIDX_PRId, s);
+    BFAM_LDEBUG("local time step number %"BFAM_LOCIDX_PRId, step);
     data.lvl = 0;
 
     /* loop through the levels */
     for(bfam_locidx_t lvl = 0; lvl < ts->numLevels; lvl++)
     {
       bfam_locidx_t chk = 1 << lvl;
-      if(!(s%chk))
+      if(!(step%chk))
       {
         BFAM_LDEBUG("level %"BFAM_LOCIDX_PRId" to be updated",lvl);
         data.lvl = BFAM_MAX(data.lvl, lvl);
       }
     }
     bfam_locidx_t comm_lvl = BFAM_MAX(data.lvl, last_lvl);
-    BFAM_LDEBUG("step %"BFAM_LOCIDX_PRId
+    BFAM_INFO("step %"BFAM_LOCIDX_PRId
         ": update level %"BFAM_LOCIDX_PRId
         ": and communication level %"BFAM_LOCIDX_PRId,
-        s, data.lvl, comm_lvl);
+        step, data.lvl, comm_lvl);
 
     /* start the communication */
-    bfam_communicator_start(ts->comm_array[comm_lvl-1]);
+    bfam_communicator_start(ts->comm_array[comm_lvl]);
 
     /* Do the intra work for the levels to be udpated */
     bfam_dictionary_allprefixed_ptr(&ts->elems,
         "",&bfam_ts_local_adams_intra_rhs,&data);
 
     /* finish the communication */
-    bfam_communicator_finish(ts->comm_array[comm_lvl-1]);
+    bfam_communicator_finish(ts->comm_array[comm_lvl]);
+
+    /*
+     * Loop through everything we just communicated and determine the rate we
+     * need to store
+     */
+    for(bfam_locidx_t k=0; k<ts->comm_array[comm_lvl]->num_subs;k++)
+    {
+      bfam_subdomain_t* sub = ts->comm_array[comm_lvl]->sub_data[k].subdomain;
+      bfam_locidx_t m_lvl = -1;
+      bfam_locidx_t p_lvl = -1;
+
+      BFAM_ASSERT(sub->glue_m);
+      BFAM_ASSERT(sub->glue_p);
+
+      bfam_critbit0_allprefixed(&sub->glue_p->tags,
+          BFAM_LOCAL_ADAMS_LVL_PREFIX, get_tag_level_number,&p_lvl);
+      bfam_critbit0_allprefixed(&sub->glue_m->tags,
+          BFAM_LOCAL_ADAMS_LVL_PREFIX, get_tag_level_number,&m_lvl);
+
+      BFAM_ASSERT(m_lvl >= 0);
+      BFAM_ASSERT(p_lvl >= 0);
+
+      /*
+       * If my plus side is a bigger level than me and they just updated, I need
+       * to compute their rate
+       */
+      if(p_lvl > m_lvl && p_lvl <= last_lvl)
+      {
+        BFAM_INFO("Step %d : rate %d -> %d",step,p_lvl,m_lvl);
+      }
+    }
 
     /* Do the inter work for the levels to be udpated */
     bfam_dictionary_allprefixed_ptr(&ts->elems,
         "",&bfam_ts_local_adams_inter_rhs,&data);
 
+    /* Do the inter work for the levels to be udpated */
+    bfam_dictionary_allprefixed_ptr(&ts->elems,
+        "",&bfam_ts_local_adams_update,&data);
+
     /* set last update to next update */
     last_lvl = data.lvl;
 
     /* update the stage counters */
-    for(bfam_locidx_t s=0; s <= data.lvl;s++)
-      ts->currentStageArray[s] = (ts->currentStageArray[s]+1)%ts->nStages;
+    for(bfam_locidx_t k=0; k <= data.lvl;k++)
+      ts->currentStageArray[k] = (ts->currentStageArray[k]+1)%ts->nStages;
+    ts->t += dt;
   }
+
+  ts->numSteps++;
 }
 
 void
