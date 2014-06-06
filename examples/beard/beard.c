@@ -2455,7 +2455,7 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *volume[],
     BFAM_MPI_CHECK(MPI_Allreduce(MPI_IN_PLACE,&num_time_lvl,1,BFAM_LOCIDX_MPI,
           MPI_MAX, beard->mpicomm));
 
-    dt = num_time_lvl*dt;
+    dt = (1<<(num_time_lvl-1))*dt;
 
     BFAM_INFO("number of time levels %"BFAM_LOCIDX_PRId
         " for global dt %"BFAM_REAL_FMTe, num_time_lvl, dt);
