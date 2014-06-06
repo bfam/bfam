@@ -12,6 +12,15 @@ typedef struct bfam_ts_local_allprefix
   bfam_long_real_t dt;  /* this is the fastest time step */
 } bfam_ts_local_adams_allprefix_t;
 
+
+static void
+bfam_ts_local_adams_comm_prefix_function(bfam_subdomain_t *sub,
+    char *prefix, size_t buf_siz, void* user_data)
+{
+  BFAM_ASSERT(sub->glue_m);
+  BFAM_ASSERT(sub->glue_p);
+}
+
 void
 bfam_ts_local_adams_fill_level_tag(char* tag, size_t buf_sz, int level)
 {
@@ -486,6 +495,14 @@ bfam_ts_local_adams_init(
   char *local_comm_tags[ts->numLevels+1];
   char tag_stor[BFAM_BUFSIZ*ts->numLevels];
   ts->comm_array = bfam_malloc(ts->numLevels*sizeof(bfam_ts_local_adams_t*));
+
+  /* since we will use these make sure they are NULL */
+  BFAM_ASSERT(comm_data->user_data == NULL);
+  BFAM_ASSERT(comm_data->user_prefix_function == NULL);
+  BFAM_ASSERT(comm_data->user_comm_info == NULL);
+  BFAM_ASSERT(comm_data->user_put_send_buffer == NULL);
+  BFAM_ASSERT(comm_data->user_get_recv_buffer == NULL);
+  comm_data->user_prefix_function = bfam_ts_local_adams_comm_prefix_function;
 
   for(int k=0; k < ts->numLevels; k++)
   {
