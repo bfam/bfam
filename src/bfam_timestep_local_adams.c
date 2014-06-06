@@ -12,15 +12,6 @@ typedef struct bfam_ts_local_allprefix
   bfam_long_real_t dt;  /* this is the fastest time step */
 } bfam_ts_local_adams_allprefix_t;
 
-
-static void
-bfam_ts_local_adams_comm_prefix_function(bfam_subdomain_t *sub,
-    char *prefix, size_t buf_siz, void* user_data)
-{
-  BFAM_ASSERT(sub->glue_m);
-  BFAM_ASSERT(sub->glue_p);
-}
-
 void
 bfam_ts_local_adams_fill_level_tag(char* tag, size_t buf_sz, int level)
 {
@@ -39,6 +30,84 @@ void
 bfam_ts_local_adams_fill_comm_level_tag(char* tag, size_t buf_sz, int level)
 {
   snprintf(tag,buf_sz,"%s%d",BFAM_LOCAL_ADAMS_COMM_LVL_PREFIX,level);
+}
+
+static void
+comm_send_prefix(bfam_subdomain_t *sub,
+    char *prefix, size_t buf_siz, void* user_data)
+{
+  BFAM_ASSERT(sub->glue_m);
+  BFAM_ASSERT(sub->glue_p);
+
+  /* Get the plus and minus side levels */
+  bfam_locidx_t m_lvl = -1;
+  bfam_critbit0_allprefixed(&sub->glue_m->tags,
+      BFAM_LOCAL_ADAMS_LVL_PREFIX, get_tag_level_number,&m_lvl);
+  BFAM_ASSERT(m_lvl>=0);
+
+  bfam_locidx_t p_lvl = -1;
+  bfam_critbit0_allprefixed(&sub->glue_p->tags,
+      BFAM_LOCAL_ADAMS_LVL_PREFIX, get_tag_level_number,&p_lvl);
+  BFAM_ASSERT(p_lvl>=0);
+
+  bfam_ts_local_adams_allprefix_t* data =
+    (bfam_ts_local_adams_allprefix_t*) user_data;
+  BFAM_ASSERT(data);
+
+  /*
+   * send the rates if my level number is greater than my neighbors
+   * and I am not being not being updated (i.e., my level is greater
+   * than the updated level number)
+   *
+   * We have to shift back on b/c the stage number has already been moved
+   * forward by 1
+   */
+  if(p_lvl < m_lvl && data->lvl < m_lvl)
+  {
+    snprintf(prefix,buf_siz,"%s%d_",BFAM_LOCAL_ADAMS_PREFIX,
+        (data->ts->currentStageArray[m_lvl]+data->ts->nStages-1)
+        %data->ts->nStages);
+    BFAM_LDEBUG("send: %d %d %d %s",data->lvl, m_lvl, p_lvl, prefix);
+  }
+}
+
+static void
+comm_recv_prefix(bfam_subdomain_t *sub,
+    char *prefix, size_t buf_siz, void* user_data)
+{
+  BFAM_ASSERT(sub->glue_m);
+  BFAM_ASSERT(sub->glue_p);
+
+  /* Get the plus and minus side levels */
+  bfam_locidx_t m_lvl = -1;
+  bfam_critbit0_allprefixed(&sub->glue_m->tags,
+      BFAM_LOCAL_ADAMS_LVL_PREFIX, get_tag_level_number,&m_lvl);
+  BFAM_ASSERT(m_lvl>=0);
+
+  bfam_locidx_t p_lvl = -1;
+  bfam_critbit0_allprefixed(&sub->glue_p->tags,
+      BFAM_LOCAL_ADAMS_LVL_PREFIX, get_tag_level_number,&p_lvl);
+  BFAM_ASSERT(p_lvl>=0);
+
+  bfam_ts_local_adams_allprefix_t* data =
+    (bfam_ts_local_adams_allprefix_t*) user_data;
+  BFAM_ASSERT(data);
+
+  /*
+   * recv the rates if neigh level number is greater than my level
+   * and neighbor is not being not being updated (i.e., neighbors level is
+   * greater than the updated level number)
+   *
+   * We have to shift back on b/c the stage number has already been moved
+   * forward by 1
+   */
+  if(m_lvl < p_lvl && data->lvl < p_lvl)
+  {
+    snprintf(prefix,buf_siz,"%s%d_",BFAM_LOCAL_ADAMS_PREFIX,
+        (data->ts->currentStageArray[p_lvl]+data->ts->nStages-1)
+        %data->ts->nStages);
+    BFAM_LDEBUG("recv: %d %d %d %s",data->lvl, m_lvl, p_lvl, prefix);
+  }
 }
 
 bfam_ts_local_adams_t*
@@ -251,6 +320,7 @@ bfam_ts_local_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
   data.dt = dt;
   data.lvl = -1;
 
+
   /* determine the level of comm to do: max of this update and last update */
   bfam_locidx_t last_lvl = 0;
   for(bfam_locidx_t step = 0; step < num_steps; step++)
@@ -275,6 +345,14 @@ bfam_ts_local_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
         step, data.lvl, comm_lvl);
 
     /* start the communication */
+    bfam_subdomain_comm_args_t* sub_comm_data =
+      (bfam_subdomain_comm_args_t*) ts->comm_array[comm_lvl]->user_args;
+    BFAM_ASSERT(sub_comm_data);
+    BFAM_ASSERT(sub_comm_data->user_data == NULL);
+    BFAM_ASSERT(sub_comm_data->user_prefix_function == NULL);
+
+    sub_comm_data->user_prefix_function = comm_send_prefix;
+    sub_comm_data->user_data = &data;
     bfam_communicator_start(ts->comm_array[comm_lvl]);
 
     /* Do the intra work for the levels to be udpated */
@@ -282,38 +360,12 @@ bfam_ts_local_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
         "",&bfam_ts_local_adams_intra_rhs,&data);
 
     /* finish the communication */
+    sub_comm_data->user_prefix_function = comm_recv_prefix;
     bfam_communicator_finish(ts->comm_array[comm_lvl]);
 
-    /*
-     * Loop through everything we just communicated and determine the rate we
-     * need to store
-     */
-    for(bfam_locidx_t k=0; k<ts->comm_array[comm_lvl]->num_subs;k++)
-    {
-      bfam_subdomain_t* sub = ts->comm_array[comm_lvl]->sub_data[k].subdomain;
-      bfam_locidx_t m_lvl = -1;
-      bfam_locidx_t p_lvl = -1;
-
-      BFAM_ASSERT(sub->glue_m);
-      BFAM_ASSERT(sub->glue_p);
-
-      bfam_critbit0_allprefixed(&sub->glue_p->tags,
-          BFAM_LOCAL_ADAMS_LVL_PREFIX, get_tag_level_number,&p_lvl);
-      bfam_critbit0_allprefixed(&sub->glue_m->tags,
-          BFAM_LOCAL_ADAMS_LVL_PREFIX, get_tag_level_number,&m_lvl);
-
-      BFAM_ASSERT(m_lvl >= 0);
-      BFAM_ASSERT(p_lvl >= 0);
-
-      /*
-       * If my plus side is a bigger level than me and they just updated, I need
-       * to compute their rate
-       */
-      if(p_lvl > m_lvl && p_lvl <= last_lvl)
-      {
-        BFAM_INFO("Step %d : rate %d -> %d",step,p_lvl,m_lvl);
-      }
-    }
+    /* reset the pointer to NULL */
+    sub_comm_data->user_data = NULL;
+    sub_comm_data->user_prefix_function = NULL;
 
     /* Do the inter work for the levels to be udpated */
     bfam_dictionary_allprefixed_ptr(&ts->elems,
@@ -502,7 +554,6 @@ bfam_ts_local_adams_init(
   BFAM_ASSERT(comm_data->user_comm_info == NULL);
   BFAM_ASSERT(comm_data->user_put_send_buffer == NULL);
   BFAM_ASSERT(comm_data->user_get_recv_buffer == NULL);
-  comm_data->user_prefix_function = bfam_ts_local_adams_comm_prefix_function;
 
   for(int k=0; k < ts->numLevels; k++)
   {
