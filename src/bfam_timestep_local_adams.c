@@ -155,7 +155,7 @@ bfam_ts_local_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
   BFAM_LDEBUG("Number of steps for the local time stepper %"BFAM_LOCIDX_PRId,
       num_steps);
 
-  dt /= ts->numLevels;
+  dt /= num_steps;
   bfam_ts_local_adams_allprefix_t data;
   data.ts = ts;
   data.dt = dt;
