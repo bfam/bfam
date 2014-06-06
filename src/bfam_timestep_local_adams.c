@@ -397,55 +397,15 @@ bfam_ts_local_adams_init(
       BFAM_WARNING("Invalid Adams scheme, using ADAMS_3");
     case BFAM_TS_LOCAL_ADAMS_3:
       ts->nStages = 3;
-
-      /* if necessary initialize the RK scheme */
-      if(RK_init)
-      {
-        ts->lsrk = bfam_ts_lsrk_new_extended(dom, BFAM_TS_LSRK_KC54,
-            subdom_match, subdom_tags, comm_match, comm_tags, mpicomm, mpitag,
-            comm_data, aux_rates, scale_rates, intra_rhs, inter_rhs, add_rates,
-            0);
-      }
-
       break;
     case BFAM_TS_LOCAL_ADAMS_1:
       ts->nStages = 1;
-
-      /* if necessary initialize the RK scheme */
-      if(RK_init)
-      {
-        ts->lsrk = bfam_ts_lsrk_new_extended(dom, BFAM_TS_LSRK_FE,
-            subdom_match, subdom_tags, comm_match, comm_tags, mpicomm, mpitag,
-            comm_data, aux_rates, scale_rates, intra_rhs, inter_rhs, add_rates,
-            0);
-      }
-
       break;
     case BFAM_TS_LOCAL_ADAMS_2:
       ts->nStages = 2;
-
-      /* if necessary initialize the RK scheme */
-      if(RK_init)
-      {
-        ts->lsrk = bfam_ts_lsrk_new_extended(dom, BFAM_TS_LSRK_HEUN,
-            subdom_match, subdom_tags, comm_match, comm_tags, mpicomm, mpitag,
-            comm_data, aux_rates, scale_rates, intra_rhs, inter_rhs, add_rates,
-            0);
-      }
-
       break;
     case BFAM_TS_LOCAL_ADAMS_4:
       ts->nStages = 4;
-
-      /* if necessary initialize the RK scheme */
-      if(RK_init)
-      {
-        ts->lsrk = bfam_ts_lsrk_new_extended(dom, BFAM_TS_LSRK_KC54,
-            subdom_match, subdom_tags, comm_match, comm_tags, mpicomm, mpitag,
-            comm_data, aux_rates, scale_rates, intra_rhs, inter_rhs, add_rates,
-            0);
-      }
-
       break;
   }
 
