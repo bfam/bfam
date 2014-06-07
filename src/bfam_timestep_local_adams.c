@@ -220,6 +220,20 @@ bfam_ts_local_adams_inter_rhs(const char * key, void *val, void *arg)
         " using minus rate prefix %s",m_lvl,minus_rate_prefix_storage);
   }
 
+
+  bfam_locidx_t p_lvl = -1;
+  if(sub->glue_p)
+    bfam_critbit0_allprefixed(&sub->glue_p->tags,
+        BFAM_LOCAL_ADAMS_LVL_PREFIX, get_tag_level_number,&p_lvl);
+
+  /*
+   * If my level is less than my neighbor and my neighbor is not being updated
+   * then do the interpolation
+   */
+  if(m_lvl > -1 && m_lvl < p_lvl && p_lvl > data->lvl)
+  {
+  }
+
   if(rate_prefix || minus_rate_prefix)
     data->ts->inter_rhs(sub, rate_prefix, minus_rate_prefix, "", data->ts->t);
 
