@@ -455,9 +455,9 @@ bfam_ts_local_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
       }
     }
     bfam_locidx_t comm_lvl = BFAM_MAX(data.lvl, last_lvl);
-    BFAM_INFO("step %"BFAM_LOCIDX_PRId
-        ": update level %"BFAM_LOCIDX_PRId
-        ": and communication level %"BFAM_LOCIDX_PRId,
+    BFAM_INFO("step %02"BFAM_LOCIDX_PRId
+        ": update level %02"BFAM_LOCIDX_PRId
+        ": and communication level %02"BFAM_LOCIDX_PRId,
         step, data.lvl, comm_lvl);
 
     /* start the communication */
