@@ -21,7 +21,7 @@
       bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,       \
       const char *field_prefix_rhs, const char *rate_prefix,         \
       const bfam_long_real_t a);                                     \
-  void beard_dgx_add_rates_glue_m_##order(int N,                     \
+  void beard_dgx_add_rates_glue_p_##order(int N,                     \
       bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,       \
       const char *field_prefix_rhs, const char *rate_prefix,         \
       const bfam_long_real_t a,                                      \
@@ -60,7 +60,7 @@ void beard_dgx_add_rates_slip_weakening_2_(int N,
     bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
     const bfam_long_real_t a);
-void beard_dgx_add_rates_glue_m_2(int N,
+void beard_dgx_add_rates_glue_p_2(int N,
     bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
     const bfam_long_real_t a,

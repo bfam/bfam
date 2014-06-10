@@ -116,8 +116,8 @@
 #define beard_dgx_add_rates_slip_weakening \
   BEARD_APPEND_EXPAND_4(beard_dgx_add_rates_slip_weakening_,DIM,_,NORDER)
 
-#define beard_dgx_add_rates_glue_m \
-  BEARD_APPEND_EXPAND_4(beard_dgx_add_rates_glue_m_,DIM,_,NORDER)
+#define beard_dgx_add_rates_glue_p \
+  BEARD_APPEND_EXPAND_4(beard_dgx_add_rates_glue_p_,DIM,_,NORDER)
 
 #define beard_dgx_inter_rhs_boundary \
   BEARD_APPEND_EXPAND_4(beard_dgx_inter_rhs_boundary_,DIM,_,NORDER)
@@ -989,13 +989,13 @@ void beard_dgx_add_rates_slip_weakening(
   }
 }
 
-void beard_dgx_add_rates_glue_m(
+void beard_dgx_add_rates_glue_p(
     int inN, bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
     const bfam_long_real_t a,
     const char** scalars, const char** vectors, const char** tenors)
 {
-  GENERIC_INIT(inN,beard_dgx_glue_m);
+  GENERIC_INIT(inN,beard_dgx_glue_p);
 
   const bfam_locidx_t num_pts = sub->K * Np;
 
