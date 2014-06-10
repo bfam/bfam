@@ -309,7 +309,7 @@ bfam_ts_local_adams_update(const char * key, void *val, void *arg)
             BFAM_LONG_REAL( 55.0)/ BFAM_LONG_REAL( 24.0),
             BFAM_LONG_REAL(-59.0)/ BFAM_LONG_REAL( 24.0),
             BFAM_LONG_REAL( 37.0)/ BFAM_LONG_REAL( 24.0),
-            BFAM_LONG_REAL(  3.0)/ BFAM_LONG_REAL(  8.0),
+            BFAM_LONG_REAL( -3.0)/ BFAM_LONG_REAL(  8.0),
           };
           bfam_ts_local_adams_do_update(sub, A, ts, (1<<lvl)*data->dt, 4, lvl);
         }
