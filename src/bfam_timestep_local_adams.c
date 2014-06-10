@@ -8,8 +8,9 @@
 typedef struct bfam_ts_local_allprefix
 {
   bfam_ts_local_adams_t *ts;
-  bfam_locidx_t    lvl; /* this marks the level to the updated */
-  bfam_long_real_t dt;  /* this is the fastest time step */
+  bfam_locidx_t    step; /* what number step are we on */
+  bfam_locidx_t    lvl;  /* this marks the level to the updated */
+  bfam_long_real_t dt;   /* this is the fastest time step */
 } bfam_ts_local_adams_allprefix_t;
 
 void
@@ -183,6 +184,99 @@ bfam_ts_local_adams_intra_rhs(const char * key, void *val, void *arg)
   return 1;
 }
 
+static void
+interp_fields(bfam_ts_local_adams_allprefix_t* data,
+    bfam_subdomain_t* sub, bfam_locidx_t m_lvl, bfam_locidx_t p_lvl)
+{
+  BFAM_ASSERT(m_lvl < p_lvl && p_lvl > data->lvl);
+
+  /* last time the plus and minu sides were updated */
+  bfam_locidx_t m_last = (1<<m_lvl)*(data->step/(1<<m_lvl) - 1);
+  bfam_locidx_t p_last = (1<<p_lvl)*(data->step/(1<<p_lvl)    );
+
+  /* the amount the plus field is ahead of actual field */
+  bfam_locidx_t p_delta = m_last - p_last;
+
+
+  /*
+   * When doing the interpolation we assume that the guy whose rates we are
+   * updating have steps that are size 1 apart, thus a is the fraction of the
+   * step he has already done and b is the fraction of the step we are about to
+   * do, that is, we need to add the rate
+   *   \int_{a}^{b} f(q,t) dt
+   * to the current field values
+   */
+  bfam_long_real_t a =   (bfam_long_real_t)p_delta
+                       / (bfam_long_real_t)(1<<p_lvl);
+
+  bfam_long_real_t b =   (bfam_long_real_t)(p_delta+(1<<m_lvl))
+                       / (bfam_long_real_t)(1<<p_lvl);
+
+  BFAM_LDEBUG("My level %2d :: neigh level %2d"
+      " :: My last  %2d :: neigh last  %2d :: neigh delta %d"
+      " :: a %"BFAM_LONG_REAL_PRIe" :: b %"BFAM_LONG_REAL_PRIe,
+      m_lvl, p_lvl, m_last, p_last, p_delta,a,b);
+
+  /*
+   * we have to look at the p_lvl because these are the guys we are
+   * interpolating
+   */
+  bfam_long_real_t A[4];
+  bfam_locidx_t    num_stages = BFAM_MIN(data->ts->numStepsArray[p_lvl]+1,
+                                         data->ts->nStages);
+  switch(num_stages)
+  {
+    case 1:
+      {
+        /* \int_{a}^{b} 1 dt */
+        A[0] = b-a;
+      }
+      break;
+    case 2:
+      {
+        /* \int_{a}^{b} (t+1) dt */
+        A[0] = (-a*a-2*a+b*b+2*b)/2;
+
+        /* \int_{a}^{b} -t dt */
+        A[1] = (a*a-b*b)/2;
+      }
+      break;
+    case 3:
+      {
+        /* \int_{a}^{b} (t+1)(t+2)/2 dt */
+        A[0] = (-2*a*a*a-9*a*a-12*a+2*b*b*b+9*b*b+12*b)/12;
+
+        /* \int_{a}^{b} t(t+2)/(-1) dt */
+        A[1] = (a*a*a+3*a*a-b*b*b-3*b*b)/3;
+
+        /* \int_{a}^{b} t(t+1)/2 dt */
+        A[2] = (-2*a*a*a-3*a*a+2*b*b*b+3*b*b)/12;
+        break;
+      }
+    case 4:
+      {
+        /* \int_{a}^{b} (t+1)(t+2)(t+3)/6 dt */
+        A[0] = (-a*a*a*a-8*a*a*a-22*a*a-24*a
+                +b*b*b*b+8*b*b*b+22*b*b+24*b)/24;
+
+        /* \int_{a}^{b} t(t+2)(t+3)/(-2) dt */
+        A[1] = (3*a*a*a*a+20*a*a*a+36*a*a
+               -3*b*b*b*b-20*b*b*b-36*b*b)/24;
+
+        /* \int_{a}^{b} t(t+1)(t+3)/(2) dt */
+        A[2] = (-3*a*a*a*a-16*a*a*a-18*a*a
+                +3*b*b*b*b+16*b*b*b+18*b*b)/24;
+
+        /* \int_{a}^{b} t(t+1)(t+2)/(-6) dt */
+        A[3] = (a*a*a*a+4*a*a*a+4*a*a
+               -b*b*b*b-4*b*b*b-4*b*b)/24;
+      }
+      break;
+    default:
+      BFAM_ABORT("Adams-Bashforth order %d not implemented",num_stages);
+  }
+}
+
 static int
 bfam_ts_local_adams_inter_rhs(const char * key, void *val, void *arg)
 {
@@ -205,6 +299,10 @@ bfam_ts_local_adams_inter_rhs(const char * key, void *val, void *arg)
         " using rate prefix %s",lvl,rate_prefix_storage);
   }
 
+  /*
+   * Determine if the minus side exists and whether imterpolation need to occure
+   * on the plus side
+   */
   bfam_locidx_t m_lvl = -1;
   if(sub->glue_m && sub->glue_m->sub_m)
     bfam_critbit0_allprefixed(&sub->glue_m->sub_m->tags,
@@ -218,21 +316,23 @@ bfam_ts_local_adams_inter_rhs(const char * key, void *val, void *arg)
         data->ts->currentStageArray[m_lvl]%data->ts->nStages);
     BFAM_LDEBUG("Local Adams inter: level %"BFAM_LOCIDX_PRId
         " using minus rate prefix %s",m_lvl,minus_rate_prefix_storage);
+
+    bfam_locidx_t p_lvl = -1;
+    if(sub->glue_p)
+      bfam_critbit0_allprefixed(&sub->glue_p->tags,
+          BFAM_LOCAL_ADAMS_LVL_PREFIX, get_tag_level_number,&p_lvl);
+
+    /*
+     * If my level is less than my neighbor and my neighbor is not being updated
+     * then do the interpolation
+     */
+    if(m_lvl < p_lvl && p_lvl > data->lvl)
+    {
+      interp_fields(data,sub,m_lvl,p_lvl);
+    }
+
   }
 
-
-  bfam_locidx_t p_lvl = -1;
-  if(sub->glue_p)
-    bfam_critbit0_allprefixed(&sub->glue_p->tags,
-        BFAM_LOCAL_ADAMS_LVL_PREFIX, get_tag_level_number,&p_lvl);
-
-  /*
-   * If my level is less than my neighbor and my neighbor is not being updated
-   * then do the interpolation
-   */
-  if(m_lvl > -1 && m_lvl < p_lvl && p_lvl > data->lvl)
-  {
-  }
 
   if(rate_prefix || minus_rate_prefix)
     data->ts->inter_rhs(sub, rate_prefix, minus_rate_prefix, "", data->ts->t);
@@ -339,6 +439,8 @@ bfam_ts_local_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
   bfam_locidx_t last_lvl = 0;
   for(bfam_locidx_t step = 0; step < num_steps; step++)
   {
+    data.step = step;
+
     BFAM_LDEBUG("local time step number %"BFAM_LOCIDX_PRId, step);
     data.lvl = 0;
 
