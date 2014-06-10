@@ -1000,7 +1000,8 @@ void beard_dgx_add_rates_glue_p(
   const bfam_locidx_t num_pts = sub->K * Np;
 
   /* get the fields we will need */
-  bfam_dictionary_t *fields = &sub->base.fields;
+  BFAM_ASSERT(sub->base.glue_p);
+  bfam_dictionary_t *fields = &sub->base.glue_p->fields;
 
   for(int s = 0; scalars[s] != NULL;s++)
   {
