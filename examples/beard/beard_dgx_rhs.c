@@ -116,6 +116,9 @@
 #define beard_dgx_add_rates_slip_weakening \
   BEARD_APPEND_EXPAND_4(beard_dgx_add_rates_slip_weakening_,DIM,_,NORDER)
 
+#define beard_dgx_add_rates_glue_m \
+  BEARD_APPEND_EXPAND_4(beard_dgx_add_rates_glue_m_,DIM,_,NORDER)
+
 #define beard_dgx_inter_rhs_boundary \
   BEARD_APPEND_EXPAND_4(beard_dgx_inter_rhs_boundary_,DIM,_,NORDER)
 
@@ -983,6 +986,55 @@ void beard_dgx_add_rates_slip_weakening(
     BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,f_names[f],fields);
     BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,f_names[f],fields);
     for(bfam_locidx_t n = 0; n < num_pts; n++) lhs[n] = rhs[n] + a*rate[n];
+  }
+}
+
+void beard_dgx_add_rates_glue_m(
+    int inN, bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
+    const char *field_prefix_rhs, const char *rate_prefix,
+    const bfam_long_real_t a,
+    const char** scalars, const char** vectors, const char** tenors)
+{
+  GENERIC_INIT(inN,beard_dgx_glue_m);
+
+  const bfam_locidx_t num_pts = sub->K * Np;
+
+  /* get the fields we will need */
+  bfam_dictionary_t *fields = &sub->base.fields;
+
+  for(int s = 0; scalars[s] != NULL;s++)
+  {
+    BFAM_LOAD_FIELD_ALIGNED(         lhs ,field_prefix_lhs,scalars[s],fields);
+    BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,scalars[s],fields);
+    BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,scalars[s],fields);
+    for(bfam_locidx_t n = 0; n < num_pts; n++) lhs[n] = rhs[n] + a*rate[n];
+  }
+
+  const char* postfix[] = {"n","p1","p2","p3",NULL};
+  for(int s = 0; vectors[s] != NULL;s++)
+  {
+    char name[BFAM_BUFSIZ];
+    for(int k = 0; postfix[k] != NULL;k++)
+    {
+      snprintf(name,BFAM_BUFSIZ,"%s%s",vectors[s],postfix[k]);
+      BFAM_LOAD_FIELD_ALIGNED(         lhs ,field_prefix_lhs,name,fields);
+      BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,name,fields);
+      BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,name,fields);
+      for(bfam_locidx_t n = 0; n < num_pts; n++) lhs[n] = rhs[n] + a*rate[n];
+    }
+  }
+
+  for(int s = 0; tenors[s] != NULL;s++)
+  {
+    char name[BFAM_BUFSIZ];
+    for(int k = 0; postfix[k] != NULL;k++)
+    {
+      snprintf(name,BFAM_BUFSIZ,"%s%s",tenors[s],postfix[k]);
+      BFAM_LOAD_FIELD_ALIGNED(         lhs ,field_prefix_lhs,name,fields);
+      BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,name,fields);
+      BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,name,fields);
+      for(bfam_locidx_t n = 0; n < num_pts; n++) lhs[n] = rhs[n] + a*rate[n];
+    }
   }
 }
 

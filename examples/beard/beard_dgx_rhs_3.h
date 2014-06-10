@@ -21,6 +21,11 @@
       bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,       \
       const char *field_prefix_rhs, const char *rate_prefix,         \
       const bfam_long_real_t a);                                     \
+  void beard_dgx_add_rates_glue_m_##order(int N,                     \
+      bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,       \
+      const char *field_prefix_rhs, const char *rate_prefix,         \
+      const bfam_long_real_t a,                                      \
+      const char** scals, const char** vects, const char** tens);    \
   void beard_dgx_inter_rhs_boundary_3_##order(int N,                 \
       bfam_subdomain_dgx_t *sub, const char *rate_prefix,            \
       const char *field_prefix, const bfam_long_real_t t,            \
@@ -55,6 +60,11 @@ void beard_dgx_add_rates_slip_weakening_3_(int N,
     bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
     const bfam_long_real_t a);
+void beard_dgx_add_rates_glue_m_3(int N,
+    bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
+    const char *field_prefix_rhs, const char *rate_prefix,
+    const bfam_long_real_t a,
+    const char** scals, const char** vects, const char** tens);
 void beard_dgx_inter_rhs_boundary_3_(int N,
     bfam_subdomain_dgx_t *sub, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t, const bfam_real_t R);
