@@ -256,6 +256,7 @@ bfam_subdomain_dgx_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
     if(args->user_prefix_function)
       args->user_prefix_function(thisSubdomain, prefix, BFAM_BUFSIZ,
                                  args->user_data);
+    }
 
     for(int s = 0; args->scalars_p[s] != NULL;s++)
     {
@@ -306,7 +307,7 @@ bfam_subdomain_dgx_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
   }
 }
 
-static int
+static void
 bfam_subdomain_dgx_fill_scalar_fields_m(const char * key, void *val,
     void *arg)
 {
@@ -419,15 +420,16 @@ bfam_subdomain_dgx_fill_scalar_fields_m(const char * key, void *val,
         glue_elem[i] = sub_m_elem[fmask[i]];
     }
   }
-
-  return 0;
 }
 
-static int
+static void
 bfam_subdomain_dgx_fill_glue_m(void *val, void *arg)
 {
   bfam_subdomain_dgx_get_put_data_t *data =
     (bfam_subdomain_dgx_get_put_data_t*) arg;
+
+  /* if the buffer is NULL we don't do anything */
+  if(!data->buffer) return;
 
   bfam_subdomain_dgx_t *sub = data->sub;
 
@@ -478,7 +480,6 @@ bfam_subdomain_dgx_fill_glue_m(void *val, void *arg)
   }
 
   ++data->field;
-  return 0;
 }
 
 static int
@@ -486,10 +487,11 @@ bfam_subdomain_dgx_get_scalar_fields_m(const char * key, void *val,
     void *arg)
 {
   bfam_subdomain_dgx_fill_scalar_fields_m(key, val, arg);
-  return bfam_subdomain_dgx_fill_glue_m(val, arg);
+  bfam_subdomain_dgx_fill_glue_m(val, arg);
+  return 0;
 }
 
-static int
+static void
 bfam_subdomain_dgx_fill_vector_fields_m(const char* prefix,
     const char **comp, void *vn, void *vp1, void *vp2, void *vp3, void *arg)
 {
@@ -695,8 +697,6 @@ bfam_subdomain_dgx_fill_vector_fields_m(const char* prefix,
         }
     }
   }
-
-  return 0;
 }
 
 static int
@@ -711,7 +711,7 @@ bfam_subdomain_dgx_get_vector_fields_m(const char* prefix,
   return 0;
 }
 
-static int
+static void
 bfam_subdomain_dgx_fill_tensor_fields_m(const char* prefix,
     const char **comp, void *Tn, void *Tp1, void *Tp2, void *Tp3, void *arg)
 {
@@ -962,8 +962,6 @@ bfam_subdomain_dgx_fill_tensor_fields_m(const char* prefix,
     }
 
   }
-
-  return 0;
 }
 
 static int
@@ -978,7 +976,7 @@ bfam_subdomain_dgx_get_tensor_fields_m(const char* prefix,
   return 0;
 }
 
-static int
+static void
 bfam_subdomain_dgx_fill_face_scalar_fields_m(const char * key, void *val,
     void *arg)
 {
@@ -1092,8 +1090,6 @@ bfam_subdomain_dgx_fill_face_scalar_fields_m(const char * key, void *val,
         glue_elem[i] = sub_m_face_elem[i];
     }
   }
-
-  return 0;
 }
 
 static int
@@ -1101,7 +1097,8 @@ bfam_subdomain_dgx_get_face_scalar_fields_m(const char * key, void *val,
     void *arg)
 {
   bfam_subdomain_dgx_fill_face_scalar_fields_m(key,val,arg);
-  return bfam_subdomain_dgx_fill_glue_m(val,arg);
+  bfam_subdomain_dgx_fill_glue_m(val,arg);
+  return 0;
 }
 
 static void
@@ -1117,7 +1114,8 @@ bfam_subdomain_dgx_put_send_buffer(bfam_subdomain_t *thisSubdomain,
 
   if(comm_args == NULL)
   {
-    BFAM_ASSERT(send_sz == data.sub->base.glue_m->fields.num_entries *
+    BFAM_ASSERT(!buffer ||
+        send_sz == data.sub->base.glue_m->fields.num_entries *
         data.sub->K * data.sub->Np * sizeof(bfam_real_t));
 
     /*
