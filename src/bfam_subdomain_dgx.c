@@ -424,18 +424,15 @@ bfam_subdomain_dgx_fill_scalar_fields_m(const char * key, void *val,
 }
 
 static int
-bfam_subdomain_dgx_get_scalar_fields_m(const char * key, void *val,
-    void *arg)
+bfam_subdomain_dgx_fill_glue_m(void *val, void *arg)
 {
-  bfam_subdomain_dgx_fill_scalar_fields_m(key, val, arg);
-
   bfam_subdomain_dgx_get_put_data_t *data =
     (bfam_subdomain_dgx_get_put_data_t*) arg;
 
   bfam_subdomain_dgx_t *sub = data->sub;
 
 #ifdef USE_GENERIC_DGX_DIMENSION
-  BFAM_WARNING("Using generic bfam_subdomain_dgx_get_scalar_fields_m");
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_fill_glue_m");
 #endif
 
   bfam_subdomain_dgx_glue_data_t* glue_p =
@@ -482,6 +479,14 @@ bfam_subdomain_dgx_get_scalar_fields_m(const char * key, void *val,
 
   ++data->field;
   return 0;
+}
+
+static int
+bfam_subdomain_dgx_get_scalar_fields_m(const char * key, void *val,
+    void *arg)
+{
+  bfam_subdomain_dgx_fill_scalar_fields_m(key, val, arg);
+  return bfam_subdomain_dgx_fill_glue_m(val, arg);
 }
 
 static int
@@ -699,84 +704,10 @@ bfam_subdomain_dgx_get_vector_fields_m(const char* prefix,
     const char **comp, void *vn, void *vp1, void *vp2, void *vp3, void *arg)
 {
   bfam_subdomain_dgx_fill_vector_fields_m(prefix, comp, vn, vp1, vp2, vp3, arg);
-
-  BFAM_ASSUME_ALIGNED(vn, 32);
-  BFAM_ASSUME_ALIGNED(vp1, 32);
-  BFAM_ASSUME_ALIGNED(vp2, 32);
-  BFAM_ASSUME_ALIGNED(vp3, 32);
-
-  bfam_subdomain_dgx_get_put_data_t *data =
-    (bfam_subdomain_dgx_get_put_data_t*) arg;
-
-  bfam_subdomain_dgx_t *sub = data->sub;
-
-#ifdef USE_GENERIC_DGX_DIMENSION
-  BFAM_WARNING("Using generic bfam_subdomain_dgx_get_vector_fields_m");
-#endif
-
-  bfam_subdomain_dgx_glue_data_t* glue_p =
-    (bfam_subdomain_dgx_glue_data_t*) sub->base.glue_p;
-
-  const bfam_locidx_t K = sub->K;
-  const int Np = sub->Np;
-
-  const bfam_locidx_t *restrict EToEp = glue_p->EToEp;
-  const int8_t        *restrict EToOm = glue_p->EToOm;
-  BFAM_ASSUME_ALIGNED(EToEp, 32);
-  BFAM_ASSUME_ALIGNED(EToOm, 32);
-
-  const size_t buffer_offset = data->field * Np * K;
-
-  BFAM_ASSERT((data->field+4) * Np * K * sizeof(bfam_real_t) <= data->size);
-
-  bfam_real_t *restrict send_vn  = data->buffer + buffer_offset + 0*Np*K;
-  BFAM_ASSERT( send_vn != NULL);
-
-  bfam_real_t *restrict send_vp1 = data->buffer + buffer_offset + 1*Np*K;
-  BFAM_ASSERT( send_vp1 != NULL);
-
-  bfam_real_t *restrict send_vp2 = data->buffer + buffer_offset + 2*Np*K;
-  BFAM_ASSERT( send_vp2 != NULL);
-
-  bfam_real_t *restrict send_vp3 = data->buffer + buffer_offset + 3*Np*K;
-  BFAM_ASSERT( send_vp3 != NULL);
-
-  for(bfam_locidx_t k = 0; k < K; ++k)
-  {
-    BFAM_ASSERT(EToEp[k] < sub->K);
-
-    bfam_real_t *restrict vn_s_elem  = send_vn  + EToEp[k] * Np;
-    bfam_real_t *restrict vp1_s_elem = send_vp1 + EToEp[k] * Np;
-    bfam_real_t *restrict vp2_s_elem = send_vp2 + EToEp[k] * Np;
-    bfam_real_t *restrict vp3_s_elem = send_vp3 + EToEp[k] * Np;
-
-    bfam_real_t *restrict vn_g_elem  = (bfam_real_t*)vn  + k * Np;
-    bfam_real_t *restrict vp1_g_elem = (bfam_real_t*)vp1 + k * Np;
-    bfam_real_t *restrict vp2_g_elem = (bfam_real_t*)vp2 + k * Np;
-    bfam_real_t *restrict vp3_g_elem = (bfam_real_t*)vp3 + k * Np;
-
-    /*
-     * Copy data to send buffer based on orientation.
-     */
-    BFAM_ASSERT(EToOm[k] >= 0 && EToOm[k] < glue_p->num_orient);
-    if(EToOm[k])
-      for(int n = 0; n < Np; ++n)
-      {
-        vn_s_elem[n]  = vn_g_elem [glue_p->mapOm[EToOm[k]][n]];
-        vp1_s_elem[n] = vp1_g_elem[glue_p->mapOm[EToOm[k]][n]];
-        vp2_s_elem[n] = vp2_g_elem[glue_p->mapOm[EToOm[k]][n]];
-        vp3_s_elem[n] = vp3_g_elem[glue_p->mapOm[EToOm[k]][n]];
-      }
-    else
-    {
-      memcpy(vn_s_elem,  vn_g_elem,  Np * sizeof(bfam_real_t));
-      memcpy(vp1_s_elem, vp1_g_elem, Np * sizeof(bfam_real_t));
-      memcpy(vp2_s_elem, vp2_g_elem, Np * sizeof(bfam_real_t));
-      memcpy(vp3_s_elem, vp3_g_elem, Np * sizeof(bfam_real_t));
-    }
-  }
-
-  data->field += 4;
+  bfam_subdomain_dgx_fill_glue_m(vn, arg);
+  bfam_subdomain_dgx_fill_glue_m(vp1, arg);
+  bfam_subdomain_dgx_fill_glue_m(vp2, arg);
+  bfam_subdomain_dgx_fill_glue_m(vp3, arg);
   return 0;
 }
 
@@ -1040,84 +971,10 @@ bfam_subdomain_dgx_get_tensor_fields_m(const char* prefix,
     const char **comp, void *Tn, void *Tp1, void *Tp2, void *Tp3, void *arg)
 {
   bfam_subdomain_dgx_fill_tensor_fields_m(prefix,comp,Tn,Tp1,Tp2,Tp3,arg);
-
-  BFAM_ASSUME_ALIGNED(Tn, 32);
-  BFAM_ASSUME_ALIGNED(Tp1, 32);
-  BFAM_ASSUME_ALIGNED(Tp2, 32);
-  BFAM_ASSUME_ALIGNED(Tp3, 32);
-
-  bfam_subdomain_dgx_get_put_data_t *data =
-    (bfam_subdomain_dgx_get_put_data_t*) arg;
-
-  bfam_subdomain_dgx_t *sub = data->sub;
-
-#ifdef USE_GENERIC_DGX_DIMENSION
-  BFAM_WARNING("Using generic bfam_subdomain_dgx_get_tensor_fields_m");
-#endif
-
-  bfam_subdomain_dgx_glue_data_t* glue_p =
-    (bfam_subdomain_dgx_glue_data_t*) sub->base.glue_p;
-
-  const bfam_locidx_t K = sub->K;
-  const int Np = sub->Np;
-
-  const bfam_locidx_t *restrict EToEp = glue_p->EToEp;
-  const int8_t        *restrict EToOm = glue_p->EToOm;
-  BFAM_ASSUME_ALIGNED(EToEp, 32);
-  BFAM_ASSUME_ALIGNED(EToOm, 32);
-
-  const size_t buffer_offset = data->field * Np * K;
-
-  BFAM_ASSERT((data->field+4) * Np * K * sizeof(bfam_real_t) <= data->size);
-
-  bfam_real_t *restrict send_Tn  = data->buffer + buffer_offset + 0*Np*K;
-  BFAM_ASSERT( send_Tn != NULL);
-
-  bfam_real_t *restrict send_Tp1 = data->buffer + buffer_offset + 1*Np*K;
-  BFAM_ASSERT( send_Tp1 != NULL);
-
-  bfam_real_t *restrict send_Tp2 = data->buffer + buffer_offset + 2*Np*K;
-  BFAM_ASSERT( send_Tp2 != NULL);
-
-  bfam_real_t *restrict send_Tp3 = data->buffer + buffer_offset + 3*Np*K;
-  BFAM_ASSERT( send_Tp3 != NULL);
-
-  for(bfam_locidx_t k = 0; k < K; ++k)
-  {
-    BFAM_ASSERT(EToEp[k] < sub->K);
-
-    bfam_real_t *restrict Tn_s_elem  = send_Tn  + EToEp[k] * Np;
-    bfam_real_t *restrict Tp1_s_elem = send_Tp1 + EToEp[k] * Np;
-    bfam_real_t *restrict Tp2_s_elem = send_Tp2 + EToEp[k] * Np;
-    bfam_real_t *restrict Tp3_s_elem = send_Tp3 + EToEp[k] * Np;
-
-    bfam_real_t *restrict Tn_g_elem  = (bfam_real_t*)Tn  + k * Np;
-    bfam_real_t *restrict Tp1_g_elem = (bfam_real_t*)Tp1 + k * Np;
-    bfam_real_t *restrict Tp2_g_elem = (bfam_real_t*)Tp2 + k * Np;
-    bfam_real_t *restrict Tp3_g_elem = (bfam_real_t*)Tp3 + k * Np;
-
-    /*
-     * Copy data to send buffer based on orientation.
-     */
-    BFAM_ASSERT(EToOm[k] >= 0 && EToOm[k] < glue_p->num_orient);
-    if(EToOm[k])
-      for(int n = 0; n < Np; ++n)
-      {
-        Tn_s_elem[n]  = Tn_g_elem [glue_p->mapOm[EToOm[k]][n]];
-        Tp1_s_elem[n] = Tp1_g_elem[glue_p->mapOm[EToOm[k]][n]];
-        Tp2_s_elem[n] = Tp2_g_elem[glue_p->mapOm[EToOm[k]][n]];
-        Tp3_s_elem[n] = Tp3_g_elem[glue_p->mapOm[EToOm[k]][n]];
-      }
-    else
-    {
-      memcpy(Tn_s_elem,  Tn_g_elem,  Np * sizeof(bfam_real_t));
-      memcpy(Tp1_s_elem, Tp1_g_elem, Np * sizeof(bfam_real_t));
-      memcpy(Tp2_s_elem, Tp2_g_elem, Np * sizeof(bfam_real_t));
-      memcpy(Tp3_s_elem, Tp3_g_elem, Np * sizeof(bfam_real_t));
-    }
-  }
-
-  data->field += 4;
+  bfam_subdomain_dgx_fill_glue_m(Tn, arg);
+  bfam_subdomain_dgx_fill_glue_m(Tp1, arg);
+  bfam_subdomain_dgx_fill_glue_m(Tp2, arg);
+  bfam_subdomain_dgx_fill_glue_m(Tp3, arg);
   return 0;
 }
 
@@ -1244,64 +1101,7 @@ bfam_subdomain_dgx_get_face_scalar_fields_m(const char * key, void *val,
     void *arg)
 {
   bfam_subdomain_dgx_fill_face_scalar_fields_m(key,val,arg);
-
-  bfam_subdomain_dgx_get_put_data_t *data =
-    (bfam_subdomain_dgx_get_put_data_t*) arg;
-
-  bfam_subdomain_dgx_t *sub = data->sub;
-
-#ifdef USE_GENERIC_DGX_DIMENSION
-  BFAM_WARNING("Using generic bfam_subdomain_dgx_get_face_scalar_fields_m");
-#endif
-
-  bfam_subdomain_dgx_glue_data_t* glue_p =
-    (bfam_subdomain_dgx_glue_data_t*) sub->base.glue_p;
-
-  const bfam_locidx_t K = sub->K;
-  const int Np = sub->Np;
-
-
-  const bfam_locidx_t *restrict EToEp = glue_p->EToEp;
-  const int8_t        *restrict EToOm = glue_p->EToOm;
-  BFAM_ASSUME_ALIGNED(EToEp, 32);
-  BFAM_ASSUME_ALIGNED(EToOm, 32);
-
-  const size_t buffer_offset = data->field * Np * K;
-
-  bfam_real_t *restrict send_field = data->buffer + buffer_offset;
-
-  BFAM_ASSERT((data->field+1) * Np * K * sizeof(bfam_real_t) <= data->size);
-
-  bfam_real_t *restrict glue_field = val;
-
-  BFAM_ASSERT( send_field != NULL);
-  BFAM_ASSERT( glue_field != NULL);
-
-  BFAM_ASSUME_ALIGNED( glue_field, 32);
-
-  BFAM_ASSUME_ALIGNED(EToEp, 32);
-  BFAM_ASSUME_ALIGNED(EToOm, 32);
-
-  for(bfam_locidx_t k = 0; k < K; ++k)
-  {
-    BFAM_ASSERT(EToEp[k] < sub->K);
-
-    bfam_real_t *restrict send_elem = send_field + EToEp[k] * Np;
-    bfam_real_t *restrict glue_elem = glue_field + k * Np;
-
-    /*
-     * Copy data to send buffer based on orientation.
-     */
-    BFAM_ASSERT(EToOm[k] >= 0 && EToOm[k] < glue_p->num_orient);
-    if(EToOm[k])
-      for(int n = 0; n < Np; ++n)
-        send_elem[n] = glue_elem[glue_p->mapOm[EToOm[k]][n]];
-    else
-      memcpy(send_elem, glue_elem, Np * sizeof(bfam_real_t));
-  }
-
-  ++data->field;
-  return 0;
+  return bfam_subdomain_dgx_fill_glue_m(val,arg);
 }
 
 static void
