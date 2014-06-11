@@ -993,7 +993,7 @@ void beard_dgx_add_rates_glue_p(
     int inN, bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
     const bfam_long_real_t a,
-    const char** scalars, const char** vectors, const char** tenors)
+    const char** scalars, const char** vectors, const char** tensors)
 {
   GENERIC_INIT(inN,beard_dgx_glue_p);
 
@@ -1025,12 +1025,12 @@ void beard_dgx_add_rates_glue_p(
     }
   }
 
-  for(int s = 0; tenors[s] != NULL;s++)
+  for(int s = 0; tensors[s] != NULL;s++)
   {
     char name[BFAM_BUFSIZ];
     for(int k = 0; postfix[k] != NULL;k++)
     {
-      snprintf(name,BFAM_BUFSIZ,"%s%s",tenors[s],postfix[k]);
+      snprintf(name,BFAM_BUFSIZ,"%s%s",tensors[s],postfix[k]);
       BFAM_LOAD_FIELD_ALIGNED(         lhs ,field_prefix_lhs,name,fields);
       BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,name,fields);
       BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,name,fields);
