@@ -348,6 +348,13 @@ bfam_subdomain_dgx_point_interp_fields_(
                        const char**                       fields,
                        const int                          inDIM);
 
+void
+bfam_subdomain_dgx_add_rates_glue_p_(
+    bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
+    const char *field_prefix_rhs, const char *rate_prefix,
+    const bfam_long_real_t a,
+    const char** scalars, const char** vectors, const char** tensors);
+
 /** free up the memory allocated by the subdomain
  *
  * \param [in,out] subdomain subdomain to clean up
@@ -451,7 +458,17 @@ bfam_subdomain_dgx_glue_init_##dg_dim(bfam_subdomain_dgx_t  *subdomain,    \
                               bfam_locidx_t                   *ktok_m,     \
                               const bfam_locidx_t              K,          \
                               bfam_subdomain_face_map_entry_t *mapping,    \
-                              const int                        inDIM);
+                              const int                        inDIM);     \
+void                                                                       \
+bfam_subdomain_dgx_add_rates_glue_p_##dg_dim(                              \
+    bfam_subdomain_dgx_t *sub,                                             \
+    const char *field_prefix_lhs,                                          \
+    const char *field_prefix_rhs,                                          \
+    const char *rate_prefix,                                               \
+    const bfam_long_real_t a,                                              \
+    const char** scalars,                                                  \
+    const char** vectors,                                                  \
+    const char** tensors);
 BFAM_LIST_OF_DGX_DIMENSIONS
 #undef X
 

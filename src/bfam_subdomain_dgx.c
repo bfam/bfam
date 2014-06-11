@@ -101,7 +101,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_fields_,BFAM_DGX_DIMENSION)(
 {
 #ifdef USE_GENERIC_DGX_DIMENSION
   BFAM_WARNING("Using generic bfam_subdomain_dgx_point_interp_fields");
-  const int DIM = inDIM;
+  // const int DIM = inDIM;
 #endif
   BFAM_ASSERT(point->file);
 
@@ -220,6 +220,98 @@ bfam_subdomain_dgx_put_scalar_fields_p(const char * key, void *val,
 
   ++data->field;
   return 0;
+}
+
+void
+BFAM_APPEND_EXPAND(bfam_subdomain_dgx_add_rates_glue_p_,BFAM_DGX_DIMENSION)(
+    bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
+    const char *field_prefix_rhs, const char *rate_prefix,
+    const bfam_long_real_t a,
+    const char** scalars, const char** vectors, const char** tensors)
+{
+
+  bfam_locidx_t num_pts = sub->K * sub->Np;
+
+  for(int s = 0; scalars[s] != NULL;s++)
+  {
+    char key[BFAM_BUFSIZ];
+
+    snprintf(key,BFAM_BUFSIZ,"%s%s" ,field_prefix_lhs, scalars[s]);
+    bfam_real_t *lhs =
+      (bfam_real_t*) bfam_dictionary_get_value_ptr(
+          &sub->base.glue_p->fields,key);
+
+    snprintf(key,BFAM_BUFSIZ,"%s%s" ,field_prefix_rhs, scalars[s]);
+    bfam_real_t *rhs =
+      (bfam_real_t*) bfam_dictionary_get_value_ptr(
+          &sub->base.glue_p->fields,key);
+
+    snprintf(key,BFAM_BUFSIZ,"%s%s" ,rate_prefix, scalars[s]);
+    bfam_real_t *rate =
+      (bfam_real_t*) bfam_dictionary_get_value_ptr(
+          &sub->base.glue_p->fields,key);
+    BFAM_ASSERT(lhs && rhs && rate);
+
+    for(int n = 0; n < num_pts; n++)
+      lhs[n] = rhs[n] + a*rate[n];
+  }
+  const char *vt_postfix[] = {"n","p1","p2","p3",NULL};
+  for(int v = 0; vectors[v] != NULL;v++)
+  {
+    for(int c = 0; vt_postfix[c] != NULL;c++)
+    {
+      char key[BFAM_BUFSIZ];
+      snprintf(key,BFAM_BUFSIZ,"%s%s%s" ,field_prefix_lhs, vectors[v],
+          vt_postfix[c]);
+      bfam_real_t *lhs =
+        (bfam_real_t*) bfam_dictionary_get_value_ptr(
+            &sub->base.glue_p->fields,key);
+
+      snprintf(key,BFAM_BUFSIZ,"%s%s%s" ,field_prefix_rhs, vectors[v],
+          vt_postfix[c]);
+      bfam_real_t *rhs =
+        (bfam_real_t*) bfam_dictionary_get_value_ptr(
+            &sub->base.glue_p->fields,key);
+
+      snprintf(key,BFAM_BUFSIZ,"%s%s%s" ,rate_prefix, vectors[v],
+          vt_postfix[c]);
+      bfam_real_t *rate =
+        (bfam_real_t*) bfam_dictionary_get_value_ptr(
+            &sub->base.glue_p->fields,key);
+
+      BFAM_ASSERT(lhs && rhs && rate);
+      for(int n = 0; n < num_pts; n++)
+        lhs[n] = rhs[n] + a*rate[n];
+    }
+  }
+  for(int t = 0; tensors[t] != NULL;t++)
+  {
+    for(int c = 0; vt_postfix[c] != NULL;c++)
+    {
+      char key[BFAM_BUFSIZ];
+      snprintf(key,BFAM_BUFSIZ,"%s%s%s" ,field_prefix_lhs, tensors[t],
+          vt_postfix[c]);
+      bfam_real_t *lhs =
+        (bfam_real_t*) bfam_dictionary_get_value_ptr(
+            &sub->base.glue_p->fields,key);
+
+      snprintf(key,BFAM_BUFSIZ,"%s%s%s" ,field_prefix_rhs, tensors[t],
+          vt_postfix[c]);
+      bfam_real_t *rhs =
+        (bfam_real_t*) bfam_dictionary_get_value_ptr(
+            &sub->base.glue_p->fields,key);
+
+      snprintf(key,BFAM_BUFSIZ,"%s%s%s" ,rate_prefix, tensors[t],
+          vt_postfix[c]);
+      bfam_real_t *rate =
+        (bfam_real_t*) bfam_dictionary_get_value_ptr(
+            &sub->base.glue_p->fields,key);
+
+      BFAM_ASSERT(lhs && rhs && rate);
+      for(int n = 0; n < num_pts; n++)
+        lhs[n] = rhs[n] + a*rate[n];
+    }
+  }
 }
 
 static void
