@@ -444,8 +444,8 @@ bfam_subdomain_dgx_get_scalar_fields_m(const char * key, void *val,
 }
 
 static int
-bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
-    void *vn, void *vp1, void *vp2, void *vp3, void *arg)
+bfam_subdomain_dgx_get_vector_fields_m(const char* prefix,
+    const char **comp, void *vn, void *vp1, void *vp2, void *vp3, void *arg)
 {
   BFAM_ASSUME_ALIGNED(vn, 32);
   BFAM_ASSUME_ALIGNED(vp1, 32);
@@ -494,18 +494,22 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
 
   BFAM_ASSERT((data->field+4) * Np * K * sizeof(bfam_real_t) <= data->size);
 
+  char str[BFAM_BUFSIZ];
+  snprintf(str,BFAM_BUFSIZ,"%s%s",prefix, comp[0]);
   const bfam_real_t *v1 =
-    bfam_dictionary_get_value_ptr(&sub_m->base.fields, comp[0]);
+    bfam_dictionary_get_value_ptr(&sub_m->base.fields, str);
   BFAM_ASSERT(v1 != NULL);
   BFAM_ASSUME_ALIGNED(v1, 32);
 
+  snprintf(str,BFAM_BUFSIZ,"%s%s",prefix, comp[1]);
   const bfam_real_t *v2 =
-    bfam_dictionary_get_value_ptr(&sub_m->base.fields, comp[1]);
+    bfam_dictionary_get_value_ptr(&sub_m->base.fields, str);
   BFAM_ASSERT(v2 != NULL);
   BFAM_ASSUME_ALIGNED(v2, 32);
 
+  snprintf(str,BFAM_BUFSIZ,"%s%s",prefix, comp[2]);
   const bfam_real_t *v3 =
-    bfam_dictionary_get_value_ptr(&sub_m->base.fields, comp[2]);
+    bfam_dictionary_get_value_ptr(&sub_m->base.fields, str);
   BFAM_ASSERT(v3 != NULL);
   BFAM_ASSUME_ALIGNED(v3, 32);
 
@@ -692,8 +696,8 @@ bfam_subdomain_dgx_get_vector_fields_m(const char **comp,
 }
 
 static int
-bfam_subdomain_dgx_get_tensor_fields_m(const char **comp,
-    void *Tn, void *Tp1, void *Tp2, void *Tp3, void *arg)
+bfam_subdomain_dgx_get_tensor_fields_m(const char* prefix,
+    const char **comp, void *Tn, void *Tp1, void *Tp2, void *Tp3, void *arg)
 {
   BFAM_ASSUME_ALIGNED(Tn, 32);
   BFAM_ASSUME_ALIGNED(Tp1, 32);
@@ -742,33 +746,40 @@ bfam_subdomain_dgx_get_tensor_fields_m(const char **comp,
 
   BFAM_ASSERT((data->field+4) * Np * K * sizeof(bfam_real_t) <= data->size);
 
+  char str[BFAM_BUFSIZ];
+  snprintf(str,BFAM_BUFSIZ,"%s%s",prefix, comp[0]);
   const bfam_real_t *S11 =
-    bfam_dictionary_get_value_ptr(&sub_m->base.fields, comp[0]);
+    bfam_dictionary_get_value_ptr(&sub_m->base.fields, str);
   BFAM_ASSERT(S11 != NULL);
   BFAM_ASSUME_ALIGNED(S11, 32);
 
+  snprintf(str,BFAM_BUFSIZ,"%s%s",prefix, comp[1]);
   const bfam_real_t *S12 =
-    bfam_dictionary_get_value_ptr(&sub_m->base.fields, comp[1]);
+    bfam_dictionary_get_value_ptr(&sub_m->base.fields, str);
   BFAM_ASSERT(S12 != NULL);
   BFAM_ASSUME_ALIGNED(S12, 32);
 
+  snprintf(str,BFAM_BUFSIZ,"%s%s",prefix, comp[2]);
   const bfam_real_t *S13 =
-    bfam_dictionary_get_value_ptr(&sub_m->base.fields, comp[2]);
+    bfam_dictionary_get_value_ptr(&sub_m->base.fields, str);
   BFAM_ASSERT(S13 != NULL);
   BFAM_ASSUME_ALIGNED(S13, 32);
 
+  snprintf(str,BFAM_BUFSIZ,"%s%s",prefix, comp[3]);
   const bfam_real_t *S22 =
-    bfam_dictionary_get_value_ptr(&sub_m->base.fields, comp[3]);
+    bfam_dictionary_get_value_ptr(&sub_m->base.fields, str);
   BFAM_ASSERT(S22 != NULL);
   BFAM_ASSUME_ALIGNED(S22, 32);
 
+  snprintf(str,BFAM_BUFSIZ,"%s%s",prefix, comp[4]);
   const bfam_real_t *S23 =
-    bfam_dictionary_get_value_ptr(&sub_m->base.fields, comp[4]);
+    bfam_dictionary_get_value_ptr(&sub_m->base.fields, str);
   BFAM_ASSERT(S23 != NULL);
   BFAM_ASSUME_ALIGNED(S23, 32);
 
+  snprintf(str,BFAM_BUFSIZ,"%s%s",prefix, comp[5]);
   const bfam_real_t *S33 =
-    bfam_dictionary_get_value_ptr(&sub_m->base.fields, comp[5]);
+    bfam_dictionary_get_value_ptr(&sub_m->base.fields, str);
   BFAM_ASSERT(S33 != NULL);
   BFAM_ASSUME_ALIGNED(S33, 32);
 
@@ -1176,7 +1187,7 @@ bfam_subdomain_dgx_put_send_buffer(bfam_subdomain_t *thisSubdomain,
         bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,str);
       BFAM_ASSERT(vn != NULL && vp1 != NULL && vp2 != NULL && vp3 != NULL);
       const char **comps = args->vector_components_m + 3*v;
-      bfam_subdomain_dgx_get_vector_fields_m(comps,vn,vp1,vp2,vp3,
+      bfam_subdomain_dgx_get_vector_fields_m(prefix,comps,vn,vp1,vp2,vp3,
           &data);
     }
     for(int t = 0; args->tensors_m[t] != NULL;t++)
@@ -1197,7 +1208,7 @@ bfam_subdomain_dgx_put_send_buffer(bfam_subdomain_t *thisSubdomain,
         bfam_dictionary_get_value_ptr(&data.sub->base.glue_m->fields,str);
       BFAM_ASSERT(Tn != NULL && Tp1 != NULL && Tp2 != NULL && Tp3 != NULL);
       const char **comps = args->tensor_components_m + 3*t;
-      bfam_subdomain_dgx_get_tensor_fields_m(comps,Tn,Tp1,Tp2,Tp3,
+      bfam_subdomain_dgx_get_tensor_fields_m(prefix,comps,Tn,Tp1,Tp2,Tp3,
           &data);
     }
     for(int s = 0; args->face_scalars_m[s] != NULL;s++)
