@@ -5,6 +5,8 @@
 #define BFAM_LOCAL_ADAMS_LVL_PREFIX "_local_adams_lvl_"
 #define BFAM_LOCAL_ADAMS_COMM_LVL_PREFIX ("_local_adams_comm_lvl_")
 
+/* #define BFAM_LOCAL_ADAMS_ALWAYS_INTERP */
+
 typedef struct bfam_ts_local_allprefix
 {
   bfam_ts_local_adams_t *ts;
@@ -63,7 +65,11 @@ comm_send_prefix(bfam_subdomain_t *sub,
    * We have to shift back on b/c the stage number has already been moved
    * forward by 1
    */
+#ifdef BFAM_LOCAL_ADAMS_ALWAYS_INTERP
+  if(data->ts->numStepsArray[m_lvl] > 0)
+#else
   if(p_lvl < m_lvl && data->lvl < m_lvl)
+#endif
   {
     snprintf(prefix,buf_siz,"%s%d_",BFAM_LOCAL_ADAMS_PREFIX,
         (data->ts->currentStageArray[m_lvl]+data->ts->nStages-1)
@@ -102,7 +108,11 @@ comm_recv_prefix(bfam_subdomain_t *sub,
    * We have to shift back on b/c the stage number has already been moved
    * forward by 1
    */
+#ifdef BFAM_LOCAL_ADAMS_ALWAYS_INTERP
+  if(data->ts->numStepsArray[m_lvl] > 0)
+#else
   if(m_lvl < p_lvl && data->lvl < p_lvl)
+#endif
   {
     snprintf(prefix,buf_siz,"%s%d_",BFAM_LOCAL_ADAMS_PREFIX,
         (data->ts->currentStageArray[p_lvl]+data->ts->nStages-1)
@@ -130,12 +140,16 @@ bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
       const char *rate_prefix, const bfam_long_real_t a),
+    void (*add_rates_glue_p) (bfam_subdomain_t *thisSubdomain,
+      const char *field_prefix_lhs, const char *field_prefix_rhs,
+      const char *rate_prefix, const bfam_long_real_t a),
     const int RK_init)
 {
   bfam_ts_local_adams_t* newTS = bfam_malloc(sizeof(bfam_ts_local_adams_t));
   bfam_ts_local_adams_init(newTS, dom, method, num_lvl, subdom_match,
       subdom_tags, comm_match, comm_tags, mpicomm, mpitag, comm_data, aux_rates,
-      glue_rates, scale_rates,intra_rhs,inter_rhs,add_rates,RK_init);
+      glue_rates, scale_rates,intra_rhs,inter_rhs,add_rates,add_rates_glue_p,
+      RK_init);
   return newTS;
 }
 
@@ -167,10 +181,15 @@ bfam_ts_local_adams_intra_rhs(const char * key, void *val, void *arg)
         BFAM_LOCAL_ADAMS_LVL_PREFIX, get_tag_level_number,&m_lvl);
   char *minus_rate_prefix = NULL;
   char minus_rate_prefix_storage[BFAM_BUFSIZ];
+#ifdef BFAM_LOCAL_ADAMS_ALWAYS_INTERP
+  if(data->ts->numStepsArray[m_lvl] > 0)
+#else
   if(m_lvl > -1 && m_lvl <= data->lvl)
+#endif
   {
     minus_rate_prefix = minus_rate_prefix_storage;
-    snprintf(minus_rate_prefix_storage,BFAM_BUFSIZ,"%s%d_",BFAM_LOCAL_ADAMS_PREFIX,
+    snprintf(minus_rate_prefix_storage,BFAM_BUFSIZ,"%s%d_",
+        BFAM_LOCAL_ADAMS_PREFIX,
         data->ts->currentStageArray[m_lvl]%data->ts->nStages);
     BFAM_LDEBUG("Local Adams intra: level %"BFAM_LOCIDX_PRId
         " using minus rate prefix %s",m_lvl,minus_rate_prefix_storage);
@@ -188,7 +207,19 @@ static void
 interp_fields(bfam_ts_local_adams_allprefix_t* data,
     bfam_subdomain_t* sub, bfam_locidx_t m_lvl, bfam_locidx_t p_lvl)
 {
+  /*
+   * First we we interp, then we don't have our current fields so first we get
+   * those
+   */
+  bfam_subdomain_comm_args_t* sub_comm_data =
+    (bfam_subdomain_comm_args_t*) data->ts->comm_array[m_lvl]->user_args;
+  BFAM_ASSERT(sub_comm_data);
+  BFAM_ASSERT(sub_comm_data->user_data == NULL);
+  BFAM_ASSERT(sub_comm_data->user_prefix_function == NULL);
+  sub->glue_put_send_buffer(sub, NULL, 0, sub_comm_data);
+#ifndef BFAM_LOCAL_ADAMS_ALWAYS_INTERP
   BFAM_ASSERT(m_lvl < p_lvl && p_lvl > data->lvl);
+#endif
 
   /* last time the plus and minu sides were updated */
   bfam_locidx_t m_last = (1<<m_lvl)*(data->step/(1<<m_lvl) - 1);
@@ -212,9 +243,9 @@ interp_fields(bfam_ts_local_adams_allprefix_t* data,
   bfam_long_real_t b =   (bfam_long_real_t)(p_delta+(1<<m_lvl))
                        / (bfam_long_real_t)(1<<p_lvl);
 
-  BFAM_LDEBUG("My level %2d :: neigh level %2d"
-      " :: My last  %2d :: neigh last  %2d :: neigh delta %d"
-      " :: a %"BFAM_LONG_REAL_PRIe" :: b %"BFAM_LONG_REAL_PRIe,
+  BFAM_LDEBUG("lvl %2d :: ngh lvl %2d"
+      " :: last  %2d :: ngh last  %2d :: ngh delta %d"
+      " :: a = %"BFAM_LONG_REAL_PRIe" :: b = %"BFAM_LONG_REAL_PRIe,
       m_lvl, p_lvl, m_last, p_last, p_delta,a,b);
 
   /*
@@ -222,7 +253,7 @@ interp_fields(bfam_ts_local_adams_allprefix_t* data,
    * interpolating
    */
   bfam_long_real_t A[4];
-  bfam_locidx_t    num_stages = BFAM_MIN(data->ts->numStepsArray[p_lvl]+1,
+  bfam_locidx_t    num_stages = BFAM_MIN(data->ts->numStepsArray[p_lvl],
                                          data->ts->nStages);
   switch(num_stages)
   {
@@ -275,6 +306,19 @@ interp_fields(bfam_ts_local_adams_allprefix_t* data,
     default:
       BFAM_ABORT("Adams-Bashforth order %d not implemented",num_stages);
   }
+
+  bfam_long_real_t dt = data->dt*(1<<m_lvl);
+  for(int k = 0; k < num_stages;k++)
+  {
+    char prefix[BFAM_BUFSIZ];
+    /* minus 1 here b/c we need the last guys (not the current guys */
+    snprintf(prefix,BFAM_BUFSIZ,"%s%d_",BFAM_LOCAL_ADAMS_PREFIX,
+        (data->ts->currentStageArray[p_lvl]+data->ts->nStages-k-1)
+        %data->ts->nStages);
+    BFAM_LDEBUG("Adams step: stage %d of %d using prefix %s",k,num_stages,
+        prefix);
+    data->ts->add_rates_glue_p(sub, "", "", prefix, dt*A[k]);
+  }
 }
 
 static int
@@ -312,7 +356,8 @@ bfam_ts_local_adams_inter_rhs(const char * key, void *val, void *arg)
   if(m_lvl > -1 && m_lvl <= data->lvl)
   {
     minus_rate_prefix = minus_rate_prefix_storage;
-    snprintf(minus_rate_prefix_storage,BFAM_BUFSIZ,"%s%d_",BFAM_LOCAL_ADAMS_PREFIX,
+    snprintf(minus_rate_prefix_storage,BFAM_BUFSIZ,"%s%d_",
+        BFAM_LOCAL_ADAMS_PREFIX,
         data->ts->currentStageArray[m_lvl]%data->ts->nStages);
     BFAM_LDEBUG("Local Adams inter: level %"BFAM_LOCIDX_PRId
         " using minus rate prefix %s",m_lvl,minus_rate_prefix_storage);
@@ -326,13 +371,15 @@ bfam_ts_local_adams_inter_rhs(const char * key, void *val, void *arg)
      * If my level is less than my neighbor and my neighbor is not being updated
      * then do the interpolation
      */
+#ifdef BFAM_LOCAL_ADAMS_ALWAYS_INTERP
+    if(data->ts->numStepsArray[m_lvl] > 0)
+#else
     if(m_lvl < p_lvl && p_lvl > data->lvl)
+#endif
     {
       interp_fields(data,sub,m_lvl,p_lvl);
     }
-
   }
-
 
   if(rate_prefix || minus_rate_prefix)
     data->ts->inter_rhs(sub, rate_prefix, minus_rate_prefix, "", data->ts->t);
@@ -375,7 +422,7 @@ bfam_ts_local_adams_update(const char * key, void *val, void *arg)
   bfam_critbit0_allprefixed(&sub->tags, BFAM_LOCAL_ADAMS_LVL_PREFIX,
       get_tag_level_number,&lvl);
 
-  if(lvl>=0)
+  if(lvl >= 0 && !(data->step%(1<<lvl)))
     switch(BFAM_MIN(ts->numStepsArray[lvl]+1,ts->nStages))
     {
       case 1:
@@ -415,7 +462,8 @@ bfam_ts_local_adams_update(const char * key, void *val, void *arg)
         }
         break;
       default:
-        BFAM_ABORT("Adams-Bashforth order %d not implemented",ts->nStages);
+        BFAM_ABORT("Adams-Bashforth order %d not implemented",
+            BFAM_MIN(ts->numStepsArray[lvl]+1,ts->nStages));
     }
   return 1;
 }
@@ -455,7 +503,7 @@ bfam_ts_local_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
       }
     }
     bfam_locidx_t comm_lvl = BFAM_MAX(data.lvl, last_lvl);
-    BFAM_INFO("step %02"BFAM_LOCIDX_PRId
+    BFAM_LDEBUG("step %02"BFAM_LOCIDX_PRId
         ": update level %02"BFAM_LOCIDX_PRId
         ": and communication level %02"BFAM_LOCIDX_PRId,
         step, data.lvl, comm_lvl);
@@ -531,6 +579,9 @@ bfam_ts_local_adams_init(
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
       const char *rate_prefix, const bfam_long_real_t a),
+    void (*add_rates_glue_p) (bfam_subdomain_t *thisSubdomain,
+      const char *field_prefix_lhs, const char *field_prefix_rhs,
+      const char *rate_prefix, const bfam_long_real_t a),
     const int RK_init)
 {
   BFAM_LDEBUG("LOCAL ADAMS INIT");
@@ -546,10 +597,11 @@ bfam_ts_local_adams_init(
   /*
    * store the function calls
    */
-  ts->scale_rates = scale_rates;
-  ts->intra_rhs   = intra_rhs;
-  ts->inter_rhs   = inter_rhs;
-  ts->add_rates   = add_rates;
+  ts->scale_rates      = scale_rates;
+  ts->intra_rhs        = intra_rhs;
+  ts->inter_rhs        = inter_rhs;
+  ts->add_rates        = add_rates;
+  ts->add_rates_glue_p = add_rates_glue_p;
 
   /*
    * fast log2 computation for ints using bitwise operations from

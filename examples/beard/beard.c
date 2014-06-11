@@ -754,6 +754,9 @@ print_prefs(prefs_t *prefs)
     BFAM_ROOT_INFO(" Low Storage Time Stepper = %s",prefs->lsrk_name);
   if(prefs->adams_method != BFAM_TS_ADAMS_NOOP)
     BFAM_ROOT_INFO(" Adams-Bashforth Scheme   = %s",prefs->adams_name);
+  if(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
+    BFAM_ROOT_INFO(" Local Adams-Bashforth Scheme   = %s",
+        prefs->local_adams_name);
   if(prefs->brick_args != NULL)
   {
     BFAM_ROOT_INFO(" brick arguments");
@@ -1986,6 +1989,63 @@ void add_rates_elastic (bfam_subdomain_dgx_t *sub,
 #undef X
 }
 
+void add_rates_elastic_glue_p (bfam_subdomain_dgx_t *sub,
+    const char *field_prefix_lhs, const char *field_prefix_rhs,
+    const char *rate_prefix, const bfam_long_real_t a)
+{
+#if   DIM==2
+#define X(order) \
+  case order: beard_dgx_add_rates_glue_p_2_##order(sub->N,sub, \
+                  field_prefix_lhs,field_prefix_rhs,rate_prefix,a,\
+                  comm_args_scalars, comm_args_vectors, comm_args_tensors);\
+  break;
+#elif DIM==3
+#define X(order) \
+  case order: beard_dgx_add_rates_glue_p_3_##order(sub->N,sub, \
+                  field_prefix_lhs,field_prefix_rhs,rate_prefix,a,\
+                  comm_args_scalars, comm_args_vectors, comm_args_tensors);\
+  break;
+#else
+#error "bad dimension"
+#endif
+
+  switch(sub->N)
+  {
+    BFAM_LIST_OF_DGX_NORDERS
+    default:
+#if   DIM==2
+      beard_dgx_add_rates_glue_p_2_(sub->N,sub,field_prefix_lhs,
+          field_prefix_rhs,rate_prefix,a, comm_args_scalars, comm_args_vectors,
+          comm_args_tensors);
+#elif DIM==3
+      beard_dgx_add_rates_glue_p_3_(sub->N,sub,field_prefix_lhs,
+          field_prefix_rhs,rate_prefix,a, comm_args_scalars, comm_args_vectors,
+          comm_args_tensors);
+#else
+#error "bad dimension"
+#endif
+      break;
+  }
+#undef X
+}
+
+
+void add_rates_glue_p (bfam_subdomain_t *thisSubdomain,
+    const char *field_prefix_lhs, const char *field_prefix_rhs,
+    const char *rate_prefix, const bfam_long_real_t a)
+{
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
+  if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"   ))
+  {
+    bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
+    add_rates_elastic_glue_p(sub,field_prefix_lhs,field_prefix_rhs,
+                             rate_prefix,a);
+  }
+  else
+    BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
+}
+
 void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
     const bfam_long_real_t a)
@@ -2057,7 +2117,8 @@ init_time_stepper(beard_t *beard, prefs_t *prefs, bfam_locidx_t num_lvl)
         (bfam_domain_t*) beard->domain, prefs->local_adams_method, num_lvl,
         BFAM_DOMAIN_OR, timestep_tags, BFAM_DOMAIN_OR,glue, beard->mpicomm, 10,
         beard->comm_args, &aux_rates, &glue_rates, &scale_rates,&intra_rhs,
-        &inter_rhs, &add_rates, lua_get_global_int(prefs->L, "RK_init", 1));
+        &inter_rhs, &add_rates, &add_rates_glue_p,
+        lua_get_global_int(prefs->L, "RK_init", 1));
 }
 
 static void

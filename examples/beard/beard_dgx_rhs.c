@@ -997,7 +997,7 @@ void beard_dgx_add_rates_glue_p(
 {
   GENERIC_INIT(inN,beard_dgx_glue_p);
 
-  const bfam_locidx_t num_pts = sub->K * Np;
+  const bfam_locidx_t num_pts = sub->K * Nfp;
 
   /* get the fields we will need */
   BFAM_ASSERT(sub->base.glue_p);
@@ -1022,6 +1022,7 @@ void beard_dgx_add_rates_glue_p(
       BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,name,fields);
       BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,name,fields);
       for(bfam_locidx_t n = 0; n < num_pts; n++) lhs[n] = rhs[n] + a*rate[n];
+      // for(bfam_locidx_t n = 0; n < num_pts; n++) BFAM_INFO("%d %f",n,lhs[n]);
     }
   }
 
@@ -1295,6 +1296,13 @@ void beard_dgx_inter_rhs_interface(
       BEARD_STATE(
           &TnS_g[pnt],&TpS_g[3*pnt],&vnS_g[pnt],&vpS_g[3*pnt],
           TnM, TnP, TpM, TpP, vnM, vnP, vpM, vpP, ZpM, ZpP, ZsM, ZsP);
+
+      /*
+      BFAM_INFO("TP: %f %f %f %f",TnP,TpP[0],TpP[1],TpP[2]);
+      BFAM_INFO("TM: %f %f %f %f",TnM,TpM[0],TpM[1],TpM[2]);
+      BFAM_INFO("vP: %f %f %f %f",vnP,vpP[0],vpP[1],vpP[2]);
+      BFAM_INFO("vM: %f %f %f %f",vnM,vpM[0],vpM[1],vpM[2]);
+      */
 
       /* substract off the grid values */
       TpS_g[3*pnt+0] -= TpM[0];

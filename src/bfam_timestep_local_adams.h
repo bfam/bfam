@@ -53,6 +53,12 @@ typedef struct bfam_ts_local_adams
   void (*add_rates) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
       const char *rate_prefix, const bfam_long_real_t a);
+
+  /* add the rates to the fields: q_lhs := q_rhs + a*dq */
+  /* NOTE: should handle case of in place addition */
+  void (*add_rates_glue_p) (bfam_subdomain_t *thisSubdomain,
+      const char *field_prefix_lhs, const char *field_prefix_rhs,
+      const char *rate_prefix, const bfam_long_real_t a);
 } bfam_ts_local_adams_t;
 
 typedef enum bfam_ts_local_adams_method
@@ -94,6 +100,7 @@ bfam_ts_local_adams_fill_level_tag(char* tag, size_t buf_siz, int level);
  * \param [in]  intra_rhs        function handle to intra RHS routine
  * \param [in]  inter_rhs        function handle to inter RHS routine
  * \param [in]  add_rates        function handle to add rates routine
+ * \param [in]  add_rates_glue_p function handle to add rates routine for glue_p
  * \param [in]  RK_init          boolean which if true signifies using LSRK to
  *                               init Local Adams method
  *
@@ -115,6 +122,9 @@ bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
       const char *rate_prefix, const char *minus_rate_prefix,
       const char *field_prefix, const bfam_long_real_t t),
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *field_prefix_lhs, const char *field_prefix_rhs,
+      const char *rate_prefix, const bfam_long_real_t a),
+    void (*add_rates_glue_p) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
       const char *rate_prefix, const bfam_long_real_t a),
     const int RK_init);
@@ -141,6 +151,7 @@ bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
  * \param [in]  intra_rhs        function handle to intra RHS routine
  * \param [in]  inter_rhs        function handle to inter RHS routine
  * \param [in]  add_rates        function handle to add rates routine
+ * \param [in]  add_rates_glue_p function handle to add rates routine for glue_p
  * \param [in]  RK_init          boolean which if true signifies using LSRK to
  *                               init Local Adams method
  */
@@ -161,6 +172,9 @@ bfam_ts_local_adams_init(bfam_ts_local_adams_t* ts,
       const char *rate_prefix, const char *minus_rate_prefix,
       const char *field_prefix, const bfam_long_real_t t),
     void (*add_rates) (bfam_subdomain_t *thisSubdomain,
+      const char *field_prefix_lhs, const char *field_prefix_rhs,
+      const char *rate_prefix, const bfam_long_real_t a),
+    void (*add_rates_glue_p) (bfam_subdomain_t *thisSubdomain,
       const char *field_prefix_lhs, const char *field_prefix_rhs,
       const char *rate_prefix, const bfam_long_real_t a),
     const int RK_init);
