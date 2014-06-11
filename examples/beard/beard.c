@@ -2428,6 +2428,7 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *volume[],
     bfam_long_real_t dt_fudge = (bfam_long_real_t)dt /
                                 (bfam_long_real_t)min_global_dt;
 
+    int max_time_level = lua_get_global_int(prefs->L, "max_time_level", 32);
     for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
     {
       ldt[s] = dt_fudge*ldt[s];
@@ -2435,6 +2436,7 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *volume[],
       /* keep double time_step until the level is big enough */
       bfam_locidx_t time_level = 0;
       if(ldt[s] != INFINITY) for(;(1<<(time_level+1))*dt < ldt[s];time_level++);
+      time_level = BFAM_MIN(time_level,max_time_level);
       BFAM_ASSERT(time_level >= 0);
 
       char tag[BFAM_BUFSIZ];
