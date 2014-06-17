@@ -1442,8 +1442,8 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
           lua_gettable(L,-2);
           if(!lua_isnumber(L,-1))
             BFAM_ROOT_WARNING(
-                "  does not contain `%s', using default %"BFAM_REAL_PRIe,
-                sw_fields[f], value);
+                " glue %d does not contain `%s', using default %"BFAM_REAL_PRIe,
+                i, sw_fields[f], value);
           else
             value = (bfam_real_t)lua_tonumber(L, -1);
           lua_pop(L, 1);
