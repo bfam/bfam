@@ -2589,6 +2589,9 @@ bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
   subdomain->gmask =
     bfam_subdomain_dgx_gmask_set(numg, N, &subdomain->Np, Ng, Ngp, DIM);
 
+  subdomain->hadapt = NULL;
+  subdomain->padapt = NULL;
+
   if(DIM > 0)
   {
     const int Nrp = N+1;
@@ -2637,6 +2640,14 @@ bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
 
     bfam_free_aligned(lr);
     bfam_free_aligned(lw);
+
+    subdomain->hadapt = bfam_malloc_aligned(K*sizeof(int8_t));
+    subdomain->padapt = bfam_malloc_aligned(K*sizeof(int8_t));
+    for(bfam_locidx_t k = 0; k < K; ++k)
+    {
+      subdomain->hadapt[k] = 0;
+      subdomain->padapt[k] = N;
+    }
   }
 }
 
@@ -3022,6 +3033,9 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,BFAM_DGX_DIMENSION)(
 
   if(sub->vmapP) bfam_free_aligned(sub->vmapP); sub->vmapP = NULL;
   if(sub->vmapM) bfam_free_aligned(sub->vmapM); sub->vmapM = NULL;
+
+  if(sub->hadapt) bfam_free_aligned(sub->hadapt); sub->hadapt = NULL;
+  if(sub->padapt) bfam_free_aligned(sub->padapt); sub->padapt = NULL;
 
   bfam_subdomain_dgx_null_all_values(sub);
 
