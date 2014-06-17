@@ -230,6 +230,12 @@ endif(LINUX)
 if("${CMAKE_BUILD_TYPE}" MATCHES "Release")
   if("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native -ftree-vectorize") #  -save-temps -funroll-all-loops -fsplit-ivs-in-unroller
+    if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+      # To be able to run with native instructions we need to use the Clang linker.
+      # See http://stackoverflow.com/questions/9840207/how-to-use-avx-pclmulqdq-on-mac-os-x-lion
+      # for more detials.
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wa,-q")
+    endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   endif("${CMAKE_C_COMPILER_ID}" MATCHES "GNU")
   if("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -mtune=native")
