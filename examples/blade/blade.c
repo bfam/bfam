@@ -148,7 +148,6 @@ typedef struct prefs
   char data_directory[BFAM_BUFSIZ];
   int  vtk_binary;
   int  vtk_compress;
-  char default_boundary_tag[BFAM_BUFSIZ];
 
   brick_args_t* brick_args;
 
@@ -307,6 +306,276 @@ init_mpi(blade_t *blade, MPI_Comm mpicomm)
   BFAM_MPI_CHECK(MPI_Comm_size(mpicomm, &blade->mpisize));
 }
 
+/*
+ * Set up the blade preference file
+ */
+static prefs_t *
+new_prefs(const char *prefs_filename)
+{
+  prefs_t *prefs = bfam_malloc(sizeof(prefs_t));
+
+  lua_State *L = luaL_newstate();
+  luaL_openlibs(L);
+
+  if(luaL_loadfile(L, prefs_filename) || lua_pcall(L, 0, 0, 0))
+    BFAM_LERROR("cannot run configuration file: `%s'", lua_tostring(L, -1));
+
+  prefs->L = L;
+
+  BFAM_ASSERT(lua_gettop(L)==0);
+
+  prefs->dimension = DIM;
+
+  BFAM_ABORT_IF_NOT(prefs->dimension == 2 || prefs->dimension == 3,
+      "blade not set up to handle dimension %d", prefs->dimension);
+
+  /* get output prefix */
+  lua_getglobal(L,"output_prefix");
+  strncpy(prefs->output_prefix,"solution",BFAM_BUFSIZ);
+  if(lua_isstring(L, -1))
+  {
+    const char *output_prefix = lua_tostring(L, -1);
+    strncpy(prefs->output_prefix,output_prefix,BFAM_BUFSIZ);
+  }
+  else
+    BFAM_ROOT_WARNING("using default 'output_prefix': %s",prefs->output_prefix);
+  lua_pop(L, 1);
+
+  /* get output prefix */
+  lua_getglobal(L,"data_directory");
+  strncpy(prefs->data_directory,".",BFAM_BUFSIZ);
+  if(lua_isstring(L, -1))
+  {
+    const char *data_directory = lua_tostring(L, -1);
+    strncpy(prefs->data_directory,data_directory,BFAM_BUFSIZ);
+  }
+  else
+    BFAM_ROOT_WARNING("using default 'data_directory': %s",
+        prefs->data_directory);
+  lua_pop(L, 1);
+
+  /* get vtk_binary */
+  lua_getglobal(L,"vtk_binary");
+  if(lua_isboolean(L, -1))
+  {
+    prefs->vtk_binary = lua_toboolean(L, -1);
+  }
+  else
+  {
+    prefs->vtk_binary = 1;
+    BFAM_ROOT_WARNING("using default 'vtk_binary': %d",
+        prefs->vtk_binary);
+  }
+  lua_pop(L, 1);
+
+  /* get vtk_compress */
+  lua_getglobal(L,"vtk_compress");
+  if(lua_isboolean(L, -1))
+  {
+    prefs->vtk_compress = lua_toboolean(L, -1);
+  }
+  else
+  {
+    prefs->vtk_compress = 1;
+    BFAM_ROOT_WARNING("using default 'vtk_compress': %d",
+        prefs->vtk_compress);
+  }
+  lua_pop(L, 1);
+
+
+  /* get the time stepper type: we look for both lsrk_method and adams_method */
+  prefs->lsrk_method = BFAM_TS_LSRK_NOOP;
+  lua_getglobal(L, "lsrk_method");
+  if(lua_isstring(L, -1))
+  {
+    prefs->lsrk_method = lsrk_table[0].lsrk_method;
+    strncpy(prefs->lsrk_name,lsrk_table[0].name,BFAM_BUFSIZ);
+    if(lua_isstring(L, -1))
+    {
+      int i;
+      const char *lsrk_name = lua_tostring(L, -1);
+      for(i = 0; lsrk_table[i].name != NULL; ++i)
+      {
+        if(strcmp(lsrk_name, lsrk_table[i].name) == 0)
+          break;
+      }
+
+      if(lsrk_table[i].name == NULL)
+        BFAM_ROOT_WARNING("invalid lsrk method name: `%s'; using default %s",
+            lsrk_name, prefs->lsrk_name);
+      else
+      {
+        prefs->lsrk_method = lsrk_table[i].lsrk_method;
+        strncpy(prefs->lsrk_name,lsrk_table[i].name,BFAM_BUFSIZ);
+      }
+    }
+    else
+    {
+      BFAM_ROOT_WARNING("`lsrk method' not found, using default: %s",
+          prefs->lsrk_name);
+    }
+    BFAM_ASSERT(prefs->lsrk_method != BFAM_TS_LSRK_NOOP);
+  }
+  lua_pop(L, 1);
+
+  prefs->adams_method = BFAM_TS_ADAMS_NOOP;
+  lua_getglobal(L, "adams_method");
+  if(lua_isstring(L, -1))
+  {
+    prefs->adams_method = adams_table[0].adams_method;
+    strncpy(prefs->adams_name,adams_table[0].name,BFAM_BUFSIZ);
+    if(lua_isstring(L, -1))
+    {
+      int i;
+      const char *adams_name = lua_tostring(L, -1);
+      for(i = 0; adams_table[i].name != NULL; ++i)
+      {
+        if(strcmp(adams_name, adams_table[i].name) == 0)
+          break;
+      }
+
+      if(adams_table[i].name == NULL)
+        BFAM_ROOT_WARNING("invalid adams method name: `%s'; using default %s",
+            adams_name, prefs->adams_name);
+      else
+      {
+        prefs->adams_method = adams_table[i].adams_method;
+        strncpy(prefs->adams_name,adams_table[i].name,BFAM_BUFSIZ);
+      }
+    }
+    else
+    {
+      BFAM_ROOT_WARNING("`adams method' not found, using default: %s",
+          prefs->adams_name);
+    }
+    BFAM_ASSERT(prefs->adams_method != BFAM_TS_ADAMS_NOOP);
+  }
+  lua_pop(L, 1);
+
+  prefs->local_adams_method = BFAM_TS_LOCAL_ADAMS_NOOP;
+  lua_getglobal(L, "local_adams_method");
+  if(lua_isstring(L, -1))
+  {
+    prefs->local_adams_method = local_adams_table[0].local_adams_method;
+    strncpy(prefs->local_adams_name,local_adams_table[0].name,BFAM_BUFSIZ);
+    if(lua_isstring(L, -1))
+    {
+      int i;
+      const char *local_adams_name = lua_tostring(L, -1);
+      for(i = 0; local_adams_table[i].name != NULL; ++i)
+      {
+        if(strcmp(local_adams_name, local_adams_table[i].name) == 0)
+          break;
+      }
+
+      if(local_adams_table[i].name == NULL)
+        BFAM_ROOT_WARNING("invalid local adams method name: `%s';"
+            " using default %s",
+            local_adams_name, prefs->local_adams_name);
+      else
+      {
+        prefs->local_adams_method =
+          local_adams_table[i].local_adams_method;
+        strncpy(prefs->local_adams_name,local_adams_table[i].name,BFAM_BUFSIZ);
+      }
+    }
+    else
+    {
+      BFAM_ROOT_WARNING("`local_adams method' not found, using default: %s",
+          prefs->local_adams_name);
+    }
+    BFAM_ASSERT(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP);
+  }
+  lua_pop(L, 1);
+
+
+  BFAM_ABORT_IF_NOT((prefs->lsrk_method        != BFAM_TS_LSRK_NOOP  &&
+                     prefs->adams_method       == BFAM_TS_ADAMS_NOOP &&
+                     prefs->local_adams_method == BFAM_TS_LOCAL_ADAMS_NOOP
+                    )
+                    ||
+                    (
+                     prefs->lsrk_method        == BFAM_TS_LSRK_NOOP  &&
+                     prefs->adams_method       != BFAM_TS_ADAMS_NOOP &&
+                     prefs->local_adams_method == BFAM_TS_LOCAL_ADAMS_NOOP
+                    )
+                    ||
+                    (
+                     prefs->lsrk_method        == BFAM_TS_LSRK_NOOP  &&
+                     prefs->adams_method       == BFAM_TS_ADAMS_NOOP &&
+                     prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP
+                    )
+                    ,"must have either LSRK, ADAMS, or LOCAL time stepper");
+
+  /* get the connectivity type */
+  prefs->brick_args     = bfam_malloc(sizeof(brick_args_t));
+
+  prefs->brick_args->nx = lua_get_table_int(prefs->L, "brick", "nx",1);
+  prefs->brick_args->ny = lua_get_table_int(prefs->L, "brick", "ny",1);
+
+  prefs->brick_args->periodic_x = lua_get_table_int(prefs->L, "brick",
+      "periodic_x",1);
+  prefs->brick_args->periodic_y = lua_get_table_int(prefs->L, "brick",
+      "periodic_y",1);
+
+#if   DIM==2
+#elif DIM==3
+  prefs->brick_args->nz = lua_get_table_int(prefs->L, "brick", "nz",1);
+  prefs->brick_args->periodic_z =
+    lua_get_table_int(prefs->L, "brick", "periodic_z",1);
+#else
+#error "Bad dimension"
+#endif
+
+  return prefs;
+}
+
+
+static void
+print_prefs(prefs_t *prefs)
+{
+  BFAM_ROOT_INFO("----------Preferences----------");
+  BFAM_ROOT_INFO(" blade Dimension          = %d",prefs->dimension);
+  BFAM_ROOT_INFO(" Output prefix            = %s",prefs->output_prefix);
+  if(prefs->lsrk_method != BFAM_TS_LSRK_NOOP)
+    BFAM_ROOT_INFO(" Low Storage Time Stepper = %s",prefs->lsrk_name);
+  if(prefs->adams_method != BFAM_TS_ADAMS_NOOP)
+    BFAM_ROOT_INFO(" Adams-Bashforth Scheme   = %s",prefs->adams_name);
+  if(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
+    BFAM_ROOT_INFO(" Local Adams-Bashforth Scheme   = %s",
+        prefs->local_adams_name);
+  if(prefs->brick_args != NULL)
+  {
+    BFAM_ROOT_INFO(" brick arguments");
+    BFAM_ROOT_INFO("  nx         = %d", prefs->brick_args->nx);
+    BFAM_ROOT_INFO("  ny         = %d", prefs->brick_args->ny);
+#if   DIM==2
+#elif DIM==3
+    BFAM_ROOT_INFO("  nz         = %d", prefs->brick_args->nz);
+#else
+#error "Bad dimension"
+#endif
+    BFAM_ROOT_INFO("  periodic_x = %d", prefs->brick_args->periodic_x);
+    BFAM_ROOT_INFO("  periodic_y = %d", prefs->brick_args->periodic_y);
+#if   DIM==2
+#elif DIM==3
+    BFAM_ROOT_INFO("  periodic_z = %d", prefs->brick_args->periodic_z);
+#else
+#error "Bad dimension"
+#endif
+  }
+  BFAM_ROOT_INFO("-------------------------------");
+}
+
+
+static void
+free_prefs(prefs_t *prefs)
+{
+  if(prefs->brick_args != NULL) bfam_free(prefs->brick_args);
+  lua_close(prefs->L);
+}
+
+
 
 /*
  * run the blade
@@ -397,13 +666,13 @@ main(int argc, char *argv[])
   sc_init(comm, 0, 0, NULL, sc_log_priorities);
   p4est_init(NULL, sc_log_priorities);
 
-  // prefs_t *prefs = new_prefs(argv[1]);
-  // print_prefs(prefs);
+  prefs_t *prefs = new_prefs(argv[1]);
+  print_prefs(prefs);
 
   // run(comm, prefs);
 
-  // free_prefs(prefs);
-  // bfam_free(prefs);
+  free_prefs(prefs);
+  bfam_free(prefs);
 
   sc_finalize();
   BFAM_MPI_CHECK(MPI_Finalize());
