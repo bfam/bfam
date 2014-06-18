@@ -2913,43 +2913,58 @@ init_fault_stations(beard_t *beard, prefs_t *prefs)
             bfam_subdomain_dgx_point_interp_t* point =
               BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_new_,FDIM)(
                   s, k, r, filename, BFAM_BUFSIZ, FDIM);
-
-#ifdef BFAM_DEBUG
-            bfam_real_t xp =
-              BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,FDIM)(
-                  point,"","_grid_x0",FDIM);
-            BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(xp,xyz[i*DIM+0],10),
-                "problem with the station %s interpolation in x."
-                 "got: %"BFAM_REAL_FMTe
-                " expected: %"BFAM_REAL_FMTe,
-                station_names[i],
-                xp,xyz[i*DIM+0]);
-
-            bfam_real_t yp =
+#if DIM == 2
+            bfam_real_t chk =
               BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,FDIM)(
                   point,"","_grid_x1",FDIM);
-            BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(yp,xyz[i*DIM+1],10),
-                "problem with the station %s interpolation in y."
-                " got: %"BFAM_REAL_FMTe
-                " expected: %"BFAM_REAL_FMTe,
-                station_names[i],
-                yp,xyz[i*DIM+1]);
-
-            BEARD_D3_OP(
-            bfam_real_t zp =
+#elif DIM == 3
+            bfam_real_t chk =
               BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,FDIM)(
                   point,"","_grid_x2",FDIM);
-            BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(zp,xyz[i*DIM+2],100),
-                "problem with the station %s interpolation in z."
-                 "got: %"BFAM_REAL_FMTe
-                " expected: %"BFAM_REAL_FMTe,
-                station_names[i],
-                zp,xyz[i*DIM+2])
-            );
+#else
+#error "Bad Dimension"
+#endif
+            if(BFAM_REAL_APPROX_EQ(chk,xyz[(i+1)*DIM-1],10))
+            {
+#ifdef BFAM_DEBUG
+              bfam_real_t xp =
+                BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,FDIM)(
+                    point,"","_grid_x0",FDIM);
+              BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(xp,xyz[i*DIM+0],10),
+                  "problem with the station %s interpolation in x."
+                  "got: %"BFAM_REAL_FMTe
+                  " expected: %"BFAM_REAL_FMTe,
+                  station_names[i],
+                  xp,xyz[i*DIM+0]);
+
+              bfam_real_t yp =
+                BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,FDIM)(
+                    point,"","_grid_x1",FDIM);
+              BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(yp,xyz[i*DIM+1],10),
+                  "problem with the station %s interpolation in y."
+                  " got: %"BFAM_REAL_FMTe
+                  " expected: %"BFAM_REAL_FMTe,
+                  station_names[i],
+                  yp,xyz[i*DIM+1]);
+
+              BEARD_D3_OP(
+                  bfam_real_t zp =
+                  BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,FDIM)(
+                    point,"","_grid_x2",FDIM);
+                  BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(zp,xyz[i*DIM+2],100),
+                    "problem with the station %s interpolation in z."
+                    "got: %"BFAM_REAL_FMTe
+                    " expected: %"BFAM_REAL_FMTe,
+                    station_names[i],
+                    zp,xyz[i*DIM+2])
+                  );
 #endif
 
-            bfam_dictionary_insert_ptr(beard->fault_stations, filename,
-                point);
+              bfam_dictionary_insert_ptr(beard->fault_stations, filename,
+                  point);
+            }
+            else
+              beard_free_stations(NULL,point,NULL);
           }
         }
       }
