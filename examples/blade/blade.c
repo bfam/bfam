@@ -1069,6 +1069,195 @@ stop_blade(blade_t *blade,prefs_t *prefs)
   p4est_connectivity_destroy(blade->conn);
 }
 
+static void
+run_simulation(blade_t *blade,prefs_t *prefs)
+{
+//JK   const char *volume[] = {"_volume",NULL};
+//JK   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
+//JK   const char *slip_weakening[] = {"slip weakening",NULL};
+//JK 
+//JK   int nsteps  = 0;
+//JK   int ndisp   = 0;
+//JK   int noutput = 0;
+//JK   int nfoutput = 0;
+//JK   int nstations = 0;
+//JK   int nerr = 0;
+//JK 
+//JK   bfam_real_t dt = compute_domain_dt(blade, prefs, volume, glue,
+//JK       &nsteps, &ndisp, &noutput, &nfoutput, &nstations, &nerr);
+//JK 
+//JK   BFAM_ROOT_INFO("dt        = %"BFAM_REAL_FMTe,dt);
+//JK   BFAM_ROOT_INFO("nsteps    = %d",nsteps);
+//JK   BFAM_ROOT_INFO("ndisp     = %d",ndisp);
+//JK   BFAM_ROOT_INFO("noutput   = %d",noutput);
+//JK   BFAM_ROOT_INFO("nfoutput  = %d",nfoutput);
+//JK   BFAM_ROOT_INFO("nstations = %d",nstations);
+//JK   BFAM_ROOT_INFO("nerr      = %d",nerr);
+//JK 
+//JK   if(nstations >= 0)
+//JK   {
+//JK     const char *volume_station_fields[] = {"v1", "v2", "v3", NULL};
+//JK     station_args_t volume_args;
+//JK     volume_args.prefs  = prefs;
+//JK     volume_args.fields = volume_station_fields;
+//JK     volume_args.time   = 0;
+//JK     bfam_dictionary_allprefixed_ptr(blade->volume_stations, "",
+//JK         &blade_open_stations, &volume_args);
+//JK 
+//JK     const char *fault_station_fields[] = {"V",   "Dp",
+//JK                                           "Tp1", "Tp2", "Tp3", "Tn",NULL};
+//JK     station_args_t fault_args;
+//JK     fault_args.prefs  = prefs;
+//JK     fault_args.fields = fault_station_fields;
+//JK     fault_args.time   = 0;
+//JK     bfam_dictionary_allprefixed_ptr(blade->fault_stations, "",
+//JK         &blade_open_stations, &fault_args);
+//JK   }
+//JK 
+//JK   if(nfoutput >= 0)
+//JK   {
+//JK     char output[BFAM_BUFSIZ];
+//JK     snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,0);
+//JK     bfam_vtk_write_file((bfam_domain_t*) blade->domain, BFAM_DOMAIN_OR,
+//JK         slip_weakening, prefs->data_directory, output, (0)*dt, sw_fields,
+//JK         NULL, NULL, prefs->vtk_binary, prefs->vtk_compress, 0);
+//JK   }
+//JK 
+//JK   /* compute the initial energy */
+//JK   bfam_real_t initial_energy = compute_energy(blade,prefs,0,"");
+//JK   bfam_real_t energy = initial_energy;
+//JK   if(initial_energy < BFAM_REAL_EPS) initial_energy = -1;
+//JK   BFAM_ROOT_INFO("\x1B[%dm"
+//JK       "time: %10.5"BFAM_REAL_PRIe
+//JK       " energy: %10.5"BFAM_REAL_PRIe
+//JK       "\x1B[0m",
+//JK       34,
+//JK       0*dt,
+//JK       energy);
+//JK 
+//JK   if(noutput >= 0)
+//JK   {
+   char output[BFAM_BUFSIZ];
+
+   /* dump the pxest mesh */
+   snprintf(output,BFAM_BUFSIZ,"%s/%s_pxest_mesh",
+       prefs->data_directory,prefs->output_prefix);
+   p4est_vtk_write_all(blade->domain->pxest, NULL,
+                       1, 1, 1, 0, 0, 0, output);
+
+//JK     const char *fields[] = {"rho", "lam", "mu", "v1", "v2", "v3", "S11", "S22",
+//JK       "S33", "S12", "S13", "S23",NULL};
+//JK     snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,0);
+//JK     bfam_vtk_write_file((bfam_domain_t*) blade->domain, BFAM_DOMAIN_OR,
+//JK         volume, prefs->data_directory, output, (0)*dt, fields, NULL, NULL,
+//JK         prefs->vtk_binary, prefs->vtk_compress, 0);
+//JK   }
+//JK 
+//JK   BFAM_ASSERT(blade->blade_ts);
+//JK   for(int s = 1; s <= nsteps; s++)
+//JK   {
+//JK     blade->blade_ts->step(blade->blade_ts,dt);
+//JK     if(s%ndisp == 0)
+//JK     {
+//JK       bfam_real_t new_energy = compute_energy(blade,prefs,s*dt,"");
+//JK       if(initial_energy < 0)
+//JK       {
+//JK         BFAM_ROOT_INFO("\x1B[%dm"
+//JK             "time: %10.5"BFAM_REAL_PRIe
+//JK             "\x1B[0m",
+//JK             34,
+//JK             s*dt);
+//JK       }
+//JK       else
+//JK       {
+//JK         int color = 32;
+//JK         if(new_energy > energy) color = 31;
+//JK         BFAM_ROOT_INFO("\x1B[%dm"
+//JK             "time: %"BFAM_REAL_FMTe"\n"
+//JK             " init energy: %"BFAM_REAL_FMTe
+//JK             " energy: %"BFAM_REAL_FMTe
+//JK             " norm energy: %"BFAM_REAL_FMTe"\n"
+//JK             " current delta energy: %+"BFAM_REAL_FMTe
+//JK             " initial delta energy: %+"BFAM_REAL_FMTe"\n"
+//JK             "\x1B[0m",
+//JK             color,
+//JK             s*dt,
+//JK             initial_energy,
+//JK             new_energy,
+//JK             new_energy/initial_energy,
+//JK             (new_energy-energy)/initial_energy,
+//JK             energy/initial_energy-1);
+//JK       }
+//JK       energy = new_energy;
+//JK     }
+//JK     if(nstations > 0 && s%nstations == 0)
+//JK     {
+//JK       const char *volume_station_fields[] = {"v1", "v2", "v3", NULL};
+//JK       station_args_t volume_args;
+//JK       volume_args.prefs  = prefs;
+//JK       volume_args.fields = volume_station_fields;
+//JK       volume_args.time   = (s)*dt;
+//JK       bfam_dictionary_allprefixed_ptr(blade->volume_stations, "",
+//JK           &blade_output_stations, &volume_args);
+//JK 
+//JK       const char *fault_station_fields[] = {"V",   "Dp",
+//JK                                             "Tp1", "Tp2", "Tp3", "Tn",NULL};
+//JK       station_args_t fault_args;
+//JK       fault_args.prefs  = prefs;
+//JK       fault_args.fields = fault_station_fields;
+//JK       fault_args.time   = (s)*dt;
+//JK       bfam_dictionary_allprefixed_ptr(blade->fault_stations, "",
+//JK           &blade_output_stations, &fault_args);
+//JK     }
+//JK     if(nfoutput > 0 && s%nfoutput == 0)
+//JK     {
+//JK       char output[BFAM_BUFSIZ];
+//JK       snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,s);
+//JK       bfam_vtk_write_file((bfam_domain_t*) blade->domain, BFAM_DOMAIN_OR,
+//JK           slip_weakening, prefs->data_directory, output, (s)*dt, sw_fields,
+//JK           NULL, NULL, prefs->vtk_binary, prefs->vtk_compress, 0);
+//JK     }
+//JK     if(noutput > 0 && s%noutput == 0)
+//JK     {
+//JK       const char *fields[] = {"v1", "v2", "v3",
+//JK         "S11", "S22", "S33", "S12", "S13", "S23",NULL};
+//JK       char output[BFAM_BUFSIZ];
+//JK       snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,s);
+//JK       bfam_vtk_write_file((bfam_domain_t*) blade->domain, BFAM_DOMAIN_OR,
+//JK           volume, prefs->data_directory, output, (s)*dt, fields, NULL, NULL,
+//JK           prefs->vtk_binary, prefs->vtk_compress, 0);
+//JK     }
+//JK     if(nerr > 0 && s%nerr == 0)
+//JK     {
+//JK       check_error_args_t err_args;
+//JK       err_args.L = prefs->L;
+//JK       char prefix[] = "";
+//JK       err_args.field_prefix = prefix;
+//JK       const char *err_flds[] = { "error_v1",  "error_v2",  "error_v3",
+//JK                                 "error_S11", "error_S22", "error_S33",
+//JK                                 "error_S12", "error_S13", "error_S23", NULL};
+//JK       for(int f = 0; err_flds[f] != NULL; f++)
+//JK         bfam_domain_init_field((bfam_domain_t*)blade->domain, BFAM_DOMAIN_OR,
+//JK             volume, err_flds[f], s*dt, check_error, &err_args);
+//JK       bfam_real_t error = compute_energy(blade,prefs,s*dt,"error_");
+//JK       bfam_real_t new_energy = compute_energy(blade,prefs,s*dt,"");
+//JK       BFAM_ROOT_INFO(
+//JK           "time: %"BFAM_REAL_FMTe" error: %"BFAM_REAL_FMTe
+//JK           " d_energy: %"BFAM_REAL_FMTe,
+//JK           s*dt, error,(new_energy-energy)/initial_energy);
+//JK       if(noutput > 0)
+//JK       {
+//JK         char err_output[BFAM_BUFSIZ];
+//JK         snprintf(err_output,BFAM_BUFSIZ,"%s_error_%05d",prefs->output_prefix,s);
+//JK         bfam_vtk_write_file((bfam_domain_t*) blade->domain, BFAM_DOMAIN_OR,
+//JK             volume, prefs->data_directory, err_output, (s)*dt, err_flds, NULL,
+//JK             NULL, prefs->vtk_binary, prefs->vtk_compress, 0);
+//JK         energy = new_energy;
+//JK       }
+//JK     }
+//JK   }
+}
+
 /*
  * run the blade
  */
@@ -1085,7 +1274,7 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
 
   init_domain(&blade, prefs);
 
-  //JK run_simulation(&blade, prefs);
+  run_simulation(&blade, prefs);
 
   stop_blade(&blade,prefs);
 }
