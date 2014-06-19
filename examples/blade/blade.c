@@ -530,7 +530,6 @@ new_prefs(const char *prefs_filename)
   return prefs;
 }
 
-
 static void
 print_prefs(prefs_t *prefs)
 {
@@ -576,6 +575,92 @@ free_prefs(prefs_t *prefs)
 }
 
 
+/*
+ * This function initializes the domain in bfam
+ */
+static void
+init_domain(blade_t *blade, prefs_t *prefs)
+{
+  /* Set up the connectivity */
+  if(prefs->brick_args != NULL)
+    blade->conn = p4est_connectivity_new_brick(
+        prefs->brick_args->nx,
+        prefs->brick_args->ny,
+#if DIM==3
+        prefs->brick_args->nz,
+#endif
+        prefs->brick_args->periodic_x,
+        prefs->brick_args->periodic_y
+#if DIM==3
+        ,prefs->brick_args->periodic_z
+#endif
+        );
+  else BFAM_ABORT("no connectivity");
+
+  /* let the user modify the connectivity vertices */
+  for(int i = 0; i < blade->conn->num_vertices; i++)
+  {
+    bfam_real_t x = blade->conn->vertices[i*3+0];
+    bfam_real_t y = blade->conn->vertices[i*3+1];
+    bfam_real_t z = blade->conn->vertices[i*3+2];
+    int result = lua_global_function_call(prefs->L,"connectivity_vertices",
+        "rrr>rrr",x,y,z,&x,&y,&z);
+    if(result != 0) break;
+    blade->conn->vertices[i*3+0] = x;
+    blade->conn->vertices[i*3+1] = y;
+    blade->conn->vertices[i*3+2] = z;
+  }
+  /* create the domain */
+  blade->domain = bfam_domain_pxest_new(blade->mpicomm, blade->conn);
+
+  /* call user refinement function */
+  //JK lua_getglobal(prefs->L,"refinement_function");
+  //JK if(lua_isfunction(prefs->L,-1))
+  //JK {
+  //JK   lua_pop(prefs->L, 1);
+  //JK   void *current_user_pointer = blade->domain->pxest->user_pointer;
+  //JK   blade->domain->pxest->user_pointer = prefs->L;
+  //JK   p4est_refine(blade->domain->pxest, 1, refine_fn, NULL);
+
+  //JK   blade->domain->pxest->user_pointer = current_user_pointer;
+  //JK }
+  //JK else BFAM_ROOT_WARNING("function `%s' not found in lua file",
+  //JK     "refinement_function");
+
+  p4est_balance(blade->domain->pxest, P4EST_CONNECT_CORNER, NULL);
+
+  /*
+   * This is to statically refine all cells of a balanced mesh, since it's
+   * already balanced it will remain balanced
+   */
+  //JK int stat_ref = lua_get_global_int(prefs->L, "static_refinement", 0);
+  //JK for(int i = 0; i < stat_ref; i++)
+  //JK   p4est_refine(blade->domain->pxest, 0, static_refine_fn, NULL);
+
+  p4est_partition(blade->domain->pxest, NULL);
+
+  /* split the domain */
+  //JK split_domain(blade,prefs);
+
+  /* add fields to the domnain */
+  //JK domain_add_fields(blade,prefs);
+}
+
+static void
+stop_blade(blade_t *blade,prefs_t *prefs)
+{
+  //JK bfam_free(blade->comm_args);
+  //JK if(prefs->lsrk_method != BFAM_TS_LSRK_NOOP)
+  //JK   bfam_ts_lsrk_free((bfam_ts_lsrk_t*) blade->blade_ts);
+  //JK if(prefs->adams_method != BFAM_TS_ADAMS_NOOP)
+  //JK   bfam_ts_adams_free((bfam_ts_adams_t*) blade->blade_ts);
+  //JK if(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
+  //JK   bfam_ts_local_adams_free((bfam_ts_local_adams_t*) blade->blade_ts);
+  //JK bfam_free(blade->blade_ts);
+  bfam_domain_pxest_free(blade->domain);
+  bfam_free(blade->domain);
+  p4est_connectivity_destroy(blade->conn);
+}
 
 /*
  * run the blade
@@ -591,11 +676,11 @@ run(MPI_Comm mpicomm, prefs_t *prefs)
 
   init_mpi(&blade, mpicomm);
 
-  // init_domain(&blade, prefs);
+  init_domain(&blade, prefs);
 
-  // run_simulation(&blade, prefs);
+  //JK run_simulation(&blade, prefs);
 
-  // shave_blade(&blade,prefs);
+  stop_blade(&blade,prefs);
 }
 
 int
@@ -669,7 +754,7 @@ main(int argc, char *argv[])
   prefs_t *prefs = new_prefs(argv[1]);
   print_prefs(prefs);
 
-  // run(comm, prefs);
+  run(comm, prefs);
 
   free_prefs(prefs);
   bfam_free(prefs);
