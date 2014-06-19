@@ -1334,9 +1334,7 @@ compute_domain_dt(blade_t *blade, prefs_t *prefs, const char *volume[],
   result = lua_global_function_call(prefs->L,"nerr","r>i",dt,nerr_ptr);
   if(*nerr_ptr > 0)
   {
-      const char *err_flds[] = { "error_v1",  "error_v2",  "error_v3",
-                                "error_S11", "error_S22", "error_S33",
-                                "error_S12", "error_S13", "error_S23", NULL};
+      const char *err_flds[] = { "error_q",NULL};
       for(int f = 0; err_flds[f] != NULL; f++)
         bfam_domain_add_field ((bfam_domain_t*)blade->domain, BFAM_DOMAIN_OR,
             volume, err_flds[f]);
@@ -1476,6 +1474,50 @@ compute_energy(blade_t *blade, prefs_t *prefs, bfam_real_t t,
   return energy;
 }
 
+typedef struct check_error_args
+{
+  char *field_prefix;
+  lua_State *L;
+} check_error_args_t;
+
+
+static void
+check_error(bfam_locidx_t npoints, const char *name, bfam_real_t t,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict err)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(err, 32);
+
+  check_error_args_t* err_args = (check_error_args_t*)arg;
+  lua_State *L = err_args->L;
+  lua_getglobal(L,name+6);
+  BFAM_ABORT_IF_NOT(lua_isfunction(L,-1),
+      "no callback function for initial condition and error: %s",name+6);
+  lua_pop(L,1);
+  char fname[BFAM_BUFSIZ];
+  snprintf(fname,BFAM_BUFSIZ,"%s%s",err_args->field_prefix,name+6);
+  bfam_real_t *restrict fld = bfam_dictionary_get_value_ptr(&s->fields, fname);
+  BFAM_ABORT_IF(fld == NULL, "field '%s' not in fields for %s",fname,s->name);
+
+#if DIM==2
+  bfam_real_t tmpz = 0;
+#endif
+  for(bfam_locidx_t n=0; n < npoints; ++n)
+  {
+#if   DIM==2
+    lua_global_function_call(L, name+6, "rrrr>r", x[n],y[n],tmpz,t,&err[n]);
+#elif DIM==3
+    lua_global_function_call(L, name+6, "rrrr>r", x[n],y[n],z[n],t,&err[n]);
+#else
+#error "Bad Dimension"
+#endif
+    err[n] -= fld[n];
+  }
+}
+
 static void
 run_simulation(blade_t *blade,prefs_t *prefs)
 {
@@ -1529,82 +1571,79 @@ run_simulation(blade_t *blade,prefs_t *prefs)
         prefs->vtk_binary, prefs->vtk_compress, 0);
   }
 
-//JK   BFAM_ASSERT(blade->blade_ts);
-//JK   for(int s = 1; s <= nsteps; s++)
-//JK   {
-//JK     blade->blade_ts->step(blade->blade_ts,dt);
-//JK     if(s%ndisp == 0)
-//JK     {
-//JK       bfam_real_t new_energy = compute_energy(blade,prefs,s*dt,"");
-//JK       if(initial_energy < 0)
-//JK       {
-//JK         BFAM_ROOT_INFO("\x1B[%dm"
-//JK             "time: %10.5"BFAM_REAL_PRIe
-//JK             "\x1B[0m",
-//JK             34,
-//JK             s*dt);
-//JK       }
-//JK       else
-//JK       {
-//JK         int color = 32;
-//JK         if(new_energy > energy) color = 31;
-//JK         BFAM_ROOT_INFO("\x1B[%dm"
-//JK             "time: %"BFAM_REAL_FMTe"\n"
-//JK             " init energy: %"BFAM_REAL_FMTe
-//JK             " energy: %"BFAM_REAL_FMTe
-//JK             " norm energy: %"BFAM_REAL_FMTe"\n"
-//JK             " current delta energy: %+"BFAM_REAL_FMTe
-//JK             " initial delta energy: %+"BFAM_REAL_FMTe"\n"
-//JK             "\x1B[0m",
-//JK             color,
-//JK             s*dt,
-//JK             initial_energy,
-//JK             new_energy,
-//JK             new_energy/initial_energy,
-//JK             (new_energy-energy)/initial_energy,
-//JK             energy/initial_energy-1);
-//JK       }
-//JK       energy = new_energy;
-//JK     }
-//JK     if(noutput > 0 && s%noutput == 0)
-//JK     {
-//JK       const char *fields[] = {"v1", "v2", "v3",
-//JK         "S11", "S22", "S33", "S12", "S13", "S23",NULL};
-//JK       char output[BFAM_BUFSIZ];
-//JK       snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,s);
-//JK       bfam_vtk_write_file((bfam_domain_t*) blade->domain, BFAM_DOMAIN_OR,
-//JK           volume, prefs->data_directory, output, (s)*dt, fields, NULL, NULL,
-//JK           prefs->vtk_binary, prefs->vtk_compress, 0);
-//JK     }
-//JK     if(nerr > 0 && s%nerr == 0)
-//JK     {
-//JK       check_error_args_t err_args;
-//JK       err_args.L = prefs->L;
-//JK       char prefix[] = "";
-//JK       err_args.field_prefix = prefix;
-//JK       const char *err_flds[] = { "error_v1",  "error_v2",  "error_v3",
-//JK                                 "error_S11", "error_S22", "error_S33",
-//JK                                 "error_S12", "error_S13", "error_S23", NULL};
-//JK       for(int f = 0; err_flds[f] != NULL; f++)
-//JK         bfam_domain_init_field((bfam_domain_t*)blade->domain, BFAM_DOMAIN_OR,
-//JK             volume, err_flds[f], s*dt, check_error, &err_args);
-//JK       bfam_real_t error = compute_energy(blade,prefs,s*dt,"error_");
-//JK       bfam_real_t new_energy = compute_energy(blade,prefs,s*dt,"");
-//JK       BFAM_ROOT_INFO(
-//JK           "time: %"BFAM_REAL_FMTe" error: %"BFAM_REAL_FMTe
-//JK           " d_energy: %"BFAM_REAL_FMTe,
-//JK           s*dt, error,(new_energy-energy)/initial_energy);
-//JK       if(noutput > 0)
-//JK       {
-//JK         char err_output[BFAM_BUFSIZ];
-//JK         snprintf(err_output,BFAM_BUFSIZ,"%s_error_%05d",prefs->output_prefix,s);
-//JK         bfam_vtk_write_file((bfam_domain_t*) blade->domain, BFAM_DOMAIN_OR,
-//JK             volume, prefs->data_directory, err_output, (s)*dt, err_flds, NULL,
-//JK             NULL, prefs->vtk_binary, prefs->vtk_compress, 0);
-//JK         energy = new_energy;
-//JK       }
-//JK     }
-//JK   }
+  //JK BFAM_ASSERT(blade->blade_ts);
+  for(int s = 1; s <= nsteps; s++)
+  {
+    //JK blade->blade_ts->step(blade->blade_ts,dt);
+    if(s%ndisp == 0)
+    {
+      bfam_real_t new_energy = compute_energy(blade,prefs,s*dt,"");
+      if(initial_energy < 0)
+      {
+        BFAM_ROOT_INFO("\x1B[%dm"
+            "time: %10.5"BFAM_REAL_PRIe
+            "\x1B[0m",
+            34,
+            s*dt);
+      }
+      else
+      {
+        int color = 32;
+        if(new_energy > energy) color = 31;
+        BFAM_ROOT_INFO("\x1B[%dm"
+            "time: %"BFAM_REAL_FMTe"\n"
+            " init energy: %"BFAM_REAL_FMTe
+            " energy: %"BFAM_REAL_FMTe
+            " norm energy: %"BFAM_REAL_FMTe"\n"
+            " current delta energy: %+"BFAM_REAL_FMTe
+            " initial delta energy: %+"BFAM_REAL_FMTe"\n"
+            "\x1B[0m",
+            color,
+            s*dt,
+            initial_energy,
+            new_energy,
+            new_energy/initial_energy,
+            (new_energy-energy)/initial_energy,
+            energy/initial_energy-1);
+      }
+      energy = new_energy;
+    }
+    if(noutput > 0 && s%noutput == 0)
+    {
+      const char *fields[] = {"q",NULL};
+      char output[BFAM_BUFSIZ];
+      snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,s);
+      bfam_vtk_write_file((bfam_domain_t*) blade->domain, BFAM_DOMAIN_OR,
+          volume, prefs->data_directory, output, (s)*dt, fields, NULL, NULL,
+          prefs->vtk_binary, prefs->vtk_compress, 0);
+    }
+    if(nerr > 0 && s%nerr == 0)
+    {
+      check_error_args_t err_args;
+      err_args.L = prefs->L;
+      char prefix[] = "";
+      err_args.field_prefix = prefix;
+      const char *err_flds[] = { "error_q", NULL};
+      for(int f = 0; err_flds[f] != NULL; f++)
+        bfam_domain_init_field((bfam_domain_t*)blade->domain, BFAM_DOMAIN_OR,
+            volume, err_flds[f], s*dt, check_error, &err_args);
+      bfam_real_t error = compute_energy(blade,prefs,s*dt,"error_");
+      bfam_real_t new_energy = compute_energy(blade,prefs,s*dt,"");
+      BFAM_ROOT_INFO(
+          "time: %"BFAM_REAL_FMTe" error: %"BFAM_REAL_FMTe
+          " d_energy: %"BFAM_REAL_FMTe,
+          s*dt, error,(new_energy-energy)/initial_energy);
+      if(noutput > 0)
+      {
+        char err_output[BFAM_BUFSIZ];
+        snprintf(err_output,BFAM_BUFSIZ,"%s_error_%05d",prefs->output_prefix,s);
+        bfam_vtk_write_file((bfam_domain_t*) blade->domain, BFAM_DOMAIN_OR,
+            volume, prefs->data_directory, err_output, (s)*dt, err_flds, NULL,
+            NULL, prefs->vtk_binary, prefs->vtk_compress, 0);
+        energy = new_energy;
+      }
+    }
+  }
 }
 
 /*

@@ -84,15 +84,15 @@ end
 lsrk_method  = "KC54"
 
 tend  = 4*Lx
-tout  = 2*tend
-tdisp = 2*tend
-terr  = tend
+tout  = tend/10
+tdisp = tend/10
+terr  = tend/10
 dt_fudge = 0.5
 function time_step_parameters(dt)
   dt      = dt_fudge*dt
   nsteps = math.ceil(tend / dt)
   dt      = tend / nsteps
   ndisp   = tdisp / dt
-  noutput  = 1
+  noutput = tout / dt
   return dt,nsteps, ndisp, noutput
 end
