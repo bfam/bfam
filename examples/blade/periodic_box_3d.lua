@@ -47,6 +47,19 @@ function connectivity_vertices(x, y, z)
   return xout,yout,zout
 end
 
+k1 = 2*math.pi
+k2 = 4*math.pi
+k3 = 6*math.pi
+function q(x, y, z, t)
+  r1 = x/Lx/brick.nx
+  r2 = y/Ly/brick.ny
+  r3 = z/Lz/brick.nz
+  val = math.sin(k1*r1)
+  val = val + math.sin(k2*r2)
+  val = val + math.sin(k3*r3)
+  return val
+end
+
 function refinement_function(
   x0,y0,z0,x1,y1,z1,
   x2,y2,z2,x3,y3,z3,

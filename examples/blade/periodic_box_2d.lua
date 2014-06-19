@@ -9,8 +9,6 @@ ux = 1
 uy = 2
 uz = 3
 
-q = 1
-
 -- store random seed
 math.randomseed(0)
 
@@ -44,6 +42,17 @@ function connectivity_vertices(x, y, z)
   zout = 0
   return xout,yout,zout
 end
+
+k1 = 2*math.pi
+k2 = 4*math.pi
+function q(x, y, z, t)
+  r1 = x/Lx/brick.nx
+  r2 = y/Ly/brick.ny
+  val = math.sin(k1*r1)
+  val = val + math.sin(k2*r2)
+  return val
+end
+
 
 function refinement_function(
   x0,y0,z0,x1,y1,z1,
