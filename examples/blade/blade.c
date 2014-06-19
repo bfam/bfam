@@ -5,11 +5,11 @@
 /* Handle the header files */
 #if   BLADE_DGX_DIMENSION==2
 #include <bfam_domain_pxest_2.h>
-// #include "blade_dgx_rhs_2.h"
+#include "blade_dgx_rhs_2.h"
 #include <p4est_iterate.h>
 #elif BLADE_DGX_DIMENSION==3
 #include <bfam_domain_pxest_3.h>
-// #include "blade_dgx_rhs_3.h"
+#include "blade_dgx_rhs_3.h"
 #include <p8est_iterate.h>
 #define P4EST_CONNECT_CORNER P8EST_CONNECT_CORNER
 #else
@@ -1261,11 +1261,12 @@ init_time_stepper(blade_t *blade, prefs_t *prefs, bfam_locidx_t num_lvl)
   args->user_prefix_function = NULL;
 
 
+  /*
   const char *timestep_tags[] = {"_volume","_glue_parallel","_glue_local",
     "_glue_boundary", NULL};
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
 
-  /*if(prefs->lsrk_method != BFAM_TS_LSRK_NOOP)
+  if(prefs->lsrk_method != BFAM_TS_LSRK_NOOP)
     blade->blade_ts = (bfam_ts_t*)bfam_ts_lsrk_new(
         (bfam_domain_t*) blade->domain, prefs->lsrk_method,
         BFAM_DOMAIN_OR,timestep_tags, BFAM_DOMAIN_OR,glue, blade->mpicomm, 10,
@@ -1426,6 +1427,55 @@ compute_domain_dt(blade_t *blade, prefs_t *prefs, const char *volume[],
   return dt;
 }
 
+static bfam_real_t
+compute_energy(blade_t *blade, prefs_t *prefs, bfam_real_t t,
+    const char *prefix)
+{
+  const char *tags[] = {"_volume",NULL};
+  bfam_subdomain_t *subs[blade->domain->base.numSubdomains];
+  bfam_locidx_t num_subs = 0;
+  bfam_domain_get_subdomains((bfam_domain_t*) blade->domain,
+      BFAM_DOMAIN_OR,tags,blade->domain->base.numSubdomains,
+      subs,&num_subs);
+  bfam_real_t energy = 0;
+  bfam_real_t energy_local = 0;
+  for(bfam_locidx_t s = 0; s<num_subs; s++)
+  {
+    bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*) subs[s];
+#if   DIM==2
+#define X(order) \
+    case order: blade_dgx_energy_2_##order(sub->N,&energy_local, \
+                    sub,prefix); break;
+#elif DIM==3
+#define X(order) \
+    case order: blade_dgx_energy_3_##order(sub->N,&energy_local, \
+                    sub,prefix); break;
+#else
+#error "Bad Dimension"
+#endif
+
+    switch(sub->N)
+    {
+      BFAM_LIST_OF_DGX_NORDERS
+      default:
+#if   DIM==2
+        blade_dgx_energy_2_(sub->N,&energy_local,sub,prefix);
+#elif DIM==3
+        blade_dgx_energy_3_(sub->N,&energy_local,sub,prefix);
+#else
+#error "Bad Dimension"
+#endif
+        break;
+    }
+#undef X
+  }
+  BFAM_MPI_CHECK(MPI_Reduce(&energy_local,&energy,1,BFAM_REAL_MPI,
+         MPI_SUM,0,blade->mpicomm));
+  if(blade->mpirank == 0)
+    energy = BFAM_REAL_SQRT(energy);
+  return energy;
+}
+
 static void
 run_simulation(blade_t *blade,prefs_t *prefs)
 {
@@ -1446,17 +1496,17 @@ run_simulation(blade_t *blade,prefs_t *prefs)
   BFAM_ROOT_INFO("noutput   = %d",noutput);
   BFAM_ROOT_INFO("nerr      = %d",nerr);
 
-//JK   /* compute the initial energy */
-//JK   bfam_real_t initial_energy = compute_energy(blade,prefs,0,"");
-//JK   bfam_real_t energy = initial_energy;
-//JK   if(initial_energy < BFAM_REAL_EPS) initial_energy = -1;
-//JK   BFAM_ROOT_INFO("\x1B[%dm"
-//JK       "time: %10.5"BFAM_REAL_PRIe
-//JK       " energy: %10.5"BFAM_REAL_PRIe
-//JK       "\x1B[0m",
-//JK       34,
-//JK       0*dt,
-//JK       energy);
+  /* compute the initial energy */
+  bfam_real_t initial_energy = compute_energy(blade,prefs,0,"");
+  bfam_real_t energy = initial_energy;
+  if(initial_energy < BFAM_REAL_EPS) initial_energy = -1;
+  BFAM_ROOT_INFO("\x1B[%dm"
+      "time: %10.5"BFAM_REAL_PRIe
+      " energy: %10.5"BFAM_REAL_PRIe
+      "\x1B[0m",
+      34,
+      0*dt,
+      energy);
 
   if(noutput >= 0)
   {

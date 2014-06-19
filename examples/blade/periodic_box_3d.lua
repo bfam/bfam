@@ -9,6 +9,8 @@ ux = 1
 uy = 2
 uz = 3
 
+q = 1
+
 -- store random seed
 math.randomseed(0)
 

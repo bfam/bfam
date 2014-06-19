@@ -99,4 +99,73 @@
 #endif
 /* END BAD DIMENSION */
 
+/* Some useful field macros */
+#define BFAM_LOAD_FIELD_RESTRICT_ALIGNED(field,prefix,base,dictionary)         \
+bfam_real_t *restrict field;                                                   \
+{                                                                              \
+  char bfam_load_field_name[BFAM_BUFSIZ];                                      \
+  snprintf(bfam_load_field_name,BFAM_BUFSIZ,"%s%s",(prefix),(base));           \
+  field = bfam_dictionary_get_value_ptr(dictionary, bfam_load_field_name);     \
+  BFAM_ASSERT(field != NULL);                                                  \
+}                                                                              \
+BFAM_ASSUME_ALIGNED(field,32);
+
+#define BFAM_LOAD_FIELD_ALIGNED(field,prefix,base,dictionary)                  \
+bfam_real_t *field;                                                            \
+{                                                                              \
+  char bfam_load_field_name[BFAM_BUFSIZ];                                      \
+  snprintf(bfam_load_field_name,BFAM_BUFSIZ,"%s%s",(prefix),(base));           \
+  field = bfam_dictionary_get_value_ptr(dictionary, bfam_load_field_name);     \
+  BFAM_ASSERT(field != NULL);                                                  \
+}                                                                              \
+BFAM_ASSUME_ALIGNED(field,32);
+
+
+/* Function macros */
+#define BLADE_APPEND_4(a,b,c,d) a ## b ## c ##d
+#define BLADE_APPEND_EXPAND_4(a,b,c,d) BLADE_APPEND_4(a,b,c,d)
+#define blade_dgx_energy \
+  BLADE_APPEND_EXPAND_4(blade_dgx_energy_,DIM,_,NORDER)
+
+void blade_dgx_energy(
+    int inN, bfam_real_t *energy_sq,
+    bfam_subdomain_dgx_t *sub, const char *field_prefix)
+{
+  GENERIC_INIT(inN,blade_dgx_energy);
+
+  /* get the fields we will need */
+  bfam_dictionary_t *fields = &sub->base.fields;
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(q ,field_prefix,"q" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(J  ,"","_grid_J",fields);
+
+  bfam_locidx_t K  = sub->K;
+
+  bfam_real_t *w  = sub->w;
+  BFAM_ASSUME_ALIGNED(w ,32);
+
+  /* loop through all the elements */
+  for(bfam_locidx_t e = 0; e < K;e++)
+  {
+    bfam_locidx_t n = e*Np;
+#if DIM==3
+    for(bfam_locidx_t k = 0; k < N+1; k++)
+    {
+      const bfam_real_t wk = w[k];
+#endif
+      for(bfam_locidx_t j = 0; j < N+1; j++)
+      {
+        const bfam_real_t wj = w[j];
+        for(bfam_locidx_t i = 0; i < N+1; i++,n++)
+        {
+          const bfam_real_t wi = w[i];
+
+          energy_sq[0] += BLADE_D3_AP(wi*wj,*wk)*J[n]*q[n]*q[n];
+        }
+      }
+#if DIM==3
+    }
+#endif
+  }
+}
+
 #endif
