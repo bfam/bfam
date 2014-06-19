@@ -9,7 +9,7 @@ max_level = 2
 math.randomseed(0)
 
 -- refinement parameters
-output_prefix = "solution"
+output_prefix = "solution_2d"
 
 -- connectivity info
 connectivity = "brick"
