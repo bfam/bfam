@@ -71,7 +71,7 @@ BFAM_ASSUME_ALIGNED(field,32);
 
 /* The communicator arguments */
 const char *comm_args_face_scalars[]      = {NULL};
-const char *comm_args_scalars[]           = {NULL};
+const char *comm_args_scalars[]           = {"q",NULL};
 const char *comm_args_vectors[]           = {NULL};
 const char *comm_args_vector_components[] = {NULL};
 const char *comm_args_tensors[]           = {NULL};
@@ -706,67 +706,6 @@ get_element_order(p4est_iter_volume_info_t *info, void *arg)
 }
 
 /*
- * Figure out
- */
-static void
-init_tree_to_glueid(blade_t *blade, prefs_t *prefs,
-    bfam_locidx_t *tree_to_glueid)
-{
-  lua_State *L = prefs->L;
-#ifdef BFAM_DEBUG
-  int top = lua_gettop(L);
-#endif
-
-  bfam_locidx_t num_tree_ids =
-    P4EST_FACES*blade->domain->pxest->connectivity->num_trees;
-  for(int k = 0; k < num_tree_ids;k++)
-    tree_to_glueid[k] = -1;
-
-  lua_getglobal(L,"glueid_treeid_faceid");
-
-  if(!lua_istable(L, -1))
-    BFAM_ROOT_WARNING("table `%s' not found", "glueid_treeid_faceid");
-  else
-  {
-
-    int n = luaL_getn(L, -1);
-    BFAM_LDEBUG("glueid_treeid_faceid  #elem: %3d", n);
-
-    BFAM_ABORT_IF_NOT(n%3 == 0,
-        "length of glueid_treeid_faceid should be a multiple of three");
-
-    luaL_checktype(L, -1, LUA_TTABLE);
-
-    for(int i=1; i<=n; i+=3)
-    {
-      lua_rawgeti(L, -1, i+0);
-      int glueid = (int)lua_tointeger(L, -1);
-      lua_pop(L, 1);
-
-      lua_rawgeti(L, -1, i+1);
-      int treeid = (int)lua_tointeger(L, -1);
-      lua_pop(L, 1);
-
-      lua_rawgeti(L, -1, i+2);
-      int faceid = (int)lua_tointeger(L, -1);
-      lua_pop(L, 1);
-
-      BFAM_ABORT_IF(treeid < 0 ||
-          treeid > blade->domain->pxest->connectivity->num_trees,
-          "glueid_treeid_faceid: invalid tree id %d", treeid);
-
-      BFAM_ABORT_IF(faceid < 0 || faceid > P4EST_FACES,
-          "glueid_treeid_faceid: invalid face id %d", faceid);
-
-      tree_to_glueid[P4EST_FACES*treeid + faceid] = glueid;
-    }
-  }
-
-  lua_pop(L, 1);
-  BFAM_ASSERT(top == lua_gettop(L));
-}
-
-/*
  * function to figure out what the order of that is on this processor is.
  */
 static void
@@ -792,6 +731,255 @@ split_domain(blade_t *blade, prefs_t *prefs)
 
   bfam_free(sub_ids);
   bfam_free(N);
+}
+
+static void
+field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t t,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(field, 32);
+  bfam_real_t val = 0;
+
+  lua_State *L = (lua_State*) arg;
+  lua_getglobal(L,name);
+
+  if(lua_isfunction(L,-1))
+  {
+    BFAM_ROOT_INFO("field_set_val: using '%s' as lua callback function",name);
+    lua_pop(L,1);
+#if   DIM==2
+    bfam_real_t tmpz = 0;
+#endif
+    for(bfam_locidx_t n=0; n < npoints; ++n)
+#if   DIM==2
+      lua_global_function_call(L, name, "rrrr>r", x[n],y[n],tmpz,t,&field[n]);
+#elif DIM==3
+      lua_global_function_call(L, name, "rrrr>r", x[n],y[n],z[n],t,&field[n]);
+#else
+#error "Bad Dimension"
+#endif
+    return;
+  }
+  else if(lua_isnumber(L,-1)) val = (bfam_real_t)lua_tonumber(L,-1);
+  else BFAM_WARNING("Did not find '%s' in lua as a function or number using 0: "
+                    "lua message: '%s'", name,lua_tostring(L,-1));
+  lua_pop(L,1);
+
+  BFAM_ROOT_INFO("field_set_val: using '%s' with value %"BFAM_REAL_FMTe,
+      name,val);
+
+  for(bfam_locidx_t n=0; n < npoints; ++n)
+    field[n] = val;
+}
+
+static void
+domain_add_fields(blade_t *blade, prefs_t *prefs)
+{
+  const char *volume[] = {"_volume",NULL};
+  const char *fields[] = {"u", "q", NULL};
+  bfam_domain_t *domain = (bfam_domain_t*)blade->domain;
+  for(int f = 0; fields[f] != NULL; f++)
+  {
+    bfam_domain_add_field (domain, BFAM_DOMAIN_OR, volume, fields[f]);
+    bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, fields[f], 0,
+        field_set_val, prefs->L);
+  }
+
+  /* add glue fields */
+  const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
+  for(int f = 0 ; comm_args_scalars[f] != NULL; f++)
+  {
+    bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue,
+        comm_args_scalars[f]);
+    bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue,
+        comm_args_scalars[f]);
+  }
+
+//JK   /* exchange material properties to glue */
+//JK   const char *glue_mat[] = {"u","_grid_x0","_grid_x1",
+//JK #if DIM==3
+//JK     "_grid_x2",
+//JK #endif
+//JK     NULL};
+//JK   for(bfam_locidx_t g = 0; glue_mat[g] != NULL; g++)
+//JK   {
+//JK     bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue, glue_mat[g]);
+//JK     bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue, glue_mat[g]);
+//JK   }
+//JK   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x0");
+//JK   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x1");
+//JK #if DIM==3
+//JK   bfam_domain_add_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x2");
+//JK #endif
+//JK 
+//JK   const char *glue_face_scalar[] = {"_grid_nx0","_grid_nx1",
+//JK #if DIM==3
+//JK     "_grid_nx2",
+//JK #endif
+//JK     NULL};
+//JK   for(bfam_locidx_t g = 0; glue_face_scalar[g] != NULL; g++)
+//JK   {
+//JK     bfam_domain_add_minus_field(domain, BFAM_DOMAIN_OR, glue,
+//JK         glue_face_scalar[g]);
+//JK     bfam_domain_add_plus_field( domain, BFAM_DOMAIN_OR, glue,
+//JK         glue_face_scalar[g]);
+//JK   }
+//JK 
+//JK   bfam_communicator_t material_comm;
+//JK 
+//JK   bfam_subdomain_comm_args_t mat_args;
+//JK   const char * mat_NULL[]      = {NULL};
+//JK   mat_args.scalars_m           = glue_mat;
+//JK   mat_args.vectors_m           = mat_NULL;
+//JK   mat_args.vector_components_m = mat_NULL;
+//JK   mat_args.tensors_m           = mat_NULL;
+//JK   mat_args.tensor_components_m = mat_NULL;
+//JK   mat_args.face_scalars_m      = glue_face_scalar;
+//JK 
+//JK   mat_args.scalars_p           = glue_mat;
+//JK   mat_args.vectors_p           = mat_NULL;
+//JK   mat_args.vector_components_p = mat_NULL;
+//JK   mat_args.tensors_p           = mat_NULL;
+//JK   mat_args.tensor_components_p = mat_NULL;
+//JK   mat_args.face_scalars_p      = glue_face_scalar;
+//JK 
+//JK   mat_args.user_comm_info       = NULL;
+//JK   mat_args.user_put_send_buffer = NULL;
+//JK   mat_args.user_get_recv_buffer = NULL;
+//JK   mat_args.user_data            = NULL;
+//JK 
+//JK   mat_args.user_prefix_function = NULL;
+//JK 
+//JK 
+//JK   bfam_communicator_init(&material_comm,domain,BFAM_DOMAIN_OR,glue,
+//JK       blade->mpicomm,10,&mat_args);
+//JK   bfam_communicator_start( &material_comm);
+//JK   bfam_communicator_finish(&material_comm);
+//JK   bfam_communicator_free(  &material_comm);
+//JK 
+//JK 
+//JK   /* we can trick init fields into handling locations to glue */
+//JK   bfam_domain_init_field(domain, BFAM_DOMAIN_OR, glue, "_grid_x0", 0,
+//JK       blade_grid_glue, NULL);
+//JK 
+//JK   const char *boundary[] = {"_glue_boundary",NULL};
+//JK   const char *boundary_fields[] = {"_grid_x0","_grid_x1",
+//JK #if DIM==3
+//JK     "_grid_x2",
+//JK #endif
+//JK     NULL};
+//JK   for(bfam_locidx_t g = 0; boundary_fields[g] != NULL; g++)
+//JK     bfam_domain_add_field(domain, BFAM_DOMAIN_OR, boundary, boundary_fields[g]);
+//JK 
+//JK   bfam_domain_init_field(domain, BFAM_DOMAIN_OR, boundary, "_grid_x1", 0,
+//JK       blade_grid_boundary, NULL);
+//JK 
+//JK   /*
+//JK    * Loop through glue info
+//JK    */
+//JK 
+//JK   lua_State *L = prefs->L;
+//JK #ifdef BFAM_DEBUG
+//JK   int top = lua_gettop(L);
+//JK #endif
+//JK 
+//JK   lua_getglobal(L,"glue_info");
+//JK   if(!lua_istable(L, -1))
+//JK     BFAM_ROOT_WARNING("table `%s' not found", "glue_info");
+//JK   else
+//JK   {
+//JK     luaL_checktype(L, -1, LUA_TTABLE);
+//JK 
+//JK     int N_glueids = luaL_getn(L, -1);
+//JK     BFAM_LDEBUG("N_glueids: %3d", N_glueids);
+//JK 
+//JK     BFAM_ROOT_VERBOSE("Reading glue info from lua");
+//JK     for(int i = 1; i <= N_glueids; ++i)
+//JK     {
+//JK       BFAM_ROOT_VERBOSE("glue ID: %d", i);
+//JK       /*
+//JK        * get glue_id tag
+//JK        */
+//JK       const char *this_glue[2];
+//JK       char this_glue_tag[BFAM_BUFSIZ];
+//JK       this_glue[0] = this_glue_tag;
+//JK       this_glue[1] = NULL;
+//JK       snprintf(this_glue_tag,BFAM_BUFSIZ,"_glue_id_%jd",(intmax_t)i);
+//JK 
+//JK       lua_rawgeti(L, -1, i);
+//JK       luaL_checktype(L, -1, LUA_TTABLE);
+//JK 
+//JK       lua_pushstring(L, "type");
+//JK       lua_gettable(L, -2);
+//JK       luaL_checktype(L, -1, LUA_TSTRING);
+//JK 
+//JK       size_t match_len = BFAM_MIN(lua_strlen(L, -1),8);
+//JK 
+//JK       glue_info_type_t type = UNKNOWN;
+//JK       if(0==strncmp(lua_tostring(L, -1), "friction", match_len))
+//JK         type = FRICTION;
+//JK       else if(0==strncmp(lua_tostring(L, -1), "boundary", match_len))
+//JK         type = BOUNDARY;
+//JK 
+//JK       BFAM_ROOT_VERBOSE("  type: %d", type);
+//JK       lua_pop(L, 1);
+//JK 
+//JK       lua_pushstring(L, "tag");
+//JK       lua_gettable(L, -2);
+//JK       if(lua_isstring(L, -1))
+//JK       {
+//JK         const char * tag = lua_tostring(L, -1);
+//JK 
+//JK         bfam_domain_add_tag((bfam_domain_t*)blade->domain, BFAM_DOMAIN_OR,
+//JK             this_glue, tag);
+//JK       }
+//JK       else
+//JK         BFAM_WARNING("No tag for glue_id %d", i);
+//JK       lua_pop(L, 1);
+//JK 
+//JK       if(type==FRICTION)
+//JK       {
+//JK         for(int f = 0; sw_fields[f] != NULL; ++f)
+//JK         {
+//JK           bfam_real_t value = 0;
+//JK 
+//JK           lua_pushstring(L,sw_fields[f]);
+//JK           lua_gettable(L,-2);
+//JK           if(!lua_isnumber(L,-1))
+//JK             BFAM_ROOT_WARNING(
+//JK                 " glue %d does not contain `%s', using default %"BFAM_REAL_PRIe,
+//JK                 i, sw_fields[f], value);
+//JK           else
+//JK             value = (bfam_real_t)lua_tonumber(L, -1);
+//JK           lua_pop(L, 1);
+//JK 
+//JK           bfam_domain_add_field(domain, BFAM_DOMAIN_OR, this_glue, sw_fields[f]);
+//JK           bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue, sw_fields[f],
+//JK               0, field_set_const, &value);
+//JK         }
+//JK         bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue, "Tp1_0",
+//JK             0, field_set_friction_init_stress, NULL);
+//JK       }
+//JK 
+//JK 
+//JK       lua_pop(L, 1);
+//JK     }
+//JK   }
+//JK 
+//JK   /*
+//JK    * Set default boundary condition
+//JK    */
+//JK   const char *default_boundary_glue[] = {"_glue_boundary","_glue_id_-1", NULL};
+//JK   bfam_domain_add_tag((bfam_domain_t*)blade->domain, BFAM_DOMAIN_AND,
+//JK       default_boundary_glue, prefs->default_boundary_tag);
+//JK 
+//JK 
+//JK   lua_pop(L,-1);
+//JK   BFAM_ASSERT(top == lua_gettop(L));
 }
 
 /*
@@ -862,7 +1050,7 @@ init_domain(blade_t *blade, prefs_t *prefs)
   split_domain(blade,prefs);
 
   /* add fields to the domnain */
-  //JK domain_add_fields(blade,prefs);
+  domain_add_fields(blade,prefs);
 }
 
 static void
