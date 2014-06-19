@@ -636,6 +636,163 @@ refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
   return val;
 }
 
+/*
+ * data structure used to split the domain into subdomains. Namely we loop
+ * through all the local elements and assign a subdomain ID. Right now the
+ * subdomain IDs correspond to the element orders. This could be further split
+ * in the future to allow for further splitting.
+ */
+typedef struct split_iter_data
+{
+  lua_State *L; /* Lua file */
+  int loc;      /* counter for which element I am processing */
+  bfam_locidx_t *subdomain_id; /*array to state the subdomain ID of each cell */
+  bfam_locidx_t  max_N;        /* largest polynomial order found */
+} split_iter_data_t;
+
+static void
+get_element_order(p4est_iter_volume_info_t *info, void *arg)
+{
+  split_iter_data_t *data = (split_iter_data_t*) arg;
+
+  double vxyz[P4EST_CHILDREN*3];
+
+#if   DIM==2
+  for(int ix = 0; ix < 2; ix++)
+    for(int iy = 0; iy < 2; iy++)
+    {
+      int ox = ix*(1 << (P4EST_MAXLEVEL-info->quad->level));
+      int oy = iy*(1 << (P4EST_MAXLEVEL-info->quad->level));
+      p4est_qcoord_to_vertex (info->p4est->connectivity, info->treeid,
+          info->quad->x+ox, info->quad->y+oy,&vxyz[3*(ix + 2*iy)]);
+    }
+
+  int N = 0;
+  int result = lua_global_function_call(data->L,"element_order",
+      "ddd" "ddd" "ddd" "ddd" "ii" ">" "i",
+      vxyz[0], vxyz[1], vxyz[2], vxyz[3], vxyz[ 4], vxyz[ 5],
+      vxyz[6], vxyz[7], vxyz[8], vxyz[9], vxyz[10], vxyz[11],
+      info->quad->level, info->treeid, &N);
+#elif DIM==3
+  for(int iz = 0; iz < 2; iz++)
+    for(int iy = 0; iy < 2; iy++)
+      for(int ix = 0; ix < 2; ix++)
+    {
+      int ox = ix*(1 << (P4EST_MAXLEVEL-info->quad->level));
+      int oy = iy*(1 << (P4EST_MAXLEVEL-info->quad->level));
+      int oz = iz*(1 << (P4EST_MAXLEVEL-info->quad->level));
+      p4est_qcoord_to_vertex (info->p4est->connectivity, info->treeid,
+          info->quad->x+ox, info->quad->y+oy, info->quad->z+oz,
+          &vxyz[3*(ix + 2*(iy + 2*iz))]);
+    }
+
+  int N = 0;
+  int result = lua_global_function_call(data->L,"element_order",
+      "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ii" ">" "i",
+      vxyz[ 0], vxyz[ 1], vxyz[ 2], vxyz[ 3], vxyz[ 4], vxyz[ 5],
+      vxyz[ 6], vxyz[ 7], vxyz[ 8], vxyz[ 9], vxyz[10], vxyz[11],
+      vxyz[12], vxyz[13], vxyz[14], vxyz[15], vxyz[16], vxyz[17],
+      vxyz[18], vxyz[19], vxyz[20], vxyz[21], vxyz[22], vxyz[23],
+      info->quad->level, info->treeid, &N);
+#else
+#error "Bad Dimension"
+#endif
+
+  BFAM_ABORT_IF_NOT(result == 0, "no 'element_order' function");
+  BFAM_ABORT_IF_NOT(N > 0, "N must be greater than 0");
+  data->subdomain_id[data->loc] = N-1;
+  data->max_N = BFAM_MAX(N,data->max_N);
+  data->loc++;
+}
+
+/*
+ * Figure out
+ */
+static void
+init_tree_to_glueid(blade_t *blade, prefs_t *prefs,
+    bfam_locidx_t *tree_to_glueid)
+{
+  lua_State *L = prefs->L;
+#ifdef BFAM_DEBUG
+  int top = lua_gettop(L);
+#endif
+
+  bfam_locidx_t num_tree_ids =
+    P4EST_FACES*blade->domain->pxest->connectivity->num_trees;
+  for(int k = 0; k < num_tree_ids;k++)
+    tree_to_glueid[k] = -1;
+
+  lua_getglobal(L,"glueid_treeid_faceid");
+
+  if(!lua_istable(L, -1))
+    BFAM_ROOT_WARNING("table `%s' not found", "glueid_treeid_faceid");
+  else
+  {
+
+    int n = luaL_getn(L, -1);
+    BFAM_LDEBUG("glueid_treeid_faceid  #elem: %3d", n);
+
+    BFAM_ABORT_IF_NOT(n%3 == 0,
+        "length of glueid_treeid_faceid should be a multiple of three");
+
+    luaL_checktype(L, -1, LUA_TTABLE);
+
+    for(int i=1; i<=n; i+=3)
+    {
+      lua_rawgeti(L, -1, i+0);
+      int glueid = (int)lua_tointeger(L, -1);
+      lua_pop(L, 1);
+
+      lua_rawgeti(L, -1, i+1);
+      int treeid = (int)lua_tointeger(L, -1);
+      lua_pop(L, 1);
+
+      lua_rawgeti(L, -1, i+2);
+      int faceid = (int)lua_tointeger(L, -1);
+      lua_pop(L, 1);
+
+      BFAM_ABORT_IF(treeid < 0 ||
+          treeid > blade->domain->pxest->connectivity->num_trees,
+          "glueid_treeid_faceid: invalid tree id %d", treeid);
+
+      BFAM_ABORT_IF(faceid < 0 || faceid > P4EST_FACES,
+          "glueid_treeid_faceid: invalid face id %d", faceid);
+
+      tree_to_glueid[P4EST_FACES*treeid + faceid] = glueid;
+    }
+  }
+
+  lua_pop(L, 1);
+  BFAM_ASSERT(top == lua_gettop(L));
+}
+
+/*
+ * function to figure out what the order of that is on this processor is.
+ */
+static void
+split_domain(blade_t *blade, prefs_t *prefs)
+{
+  bfam_domain_pxest_t *domain = blade->domain;
+  if(domain->pxest->local_num_quadrants == 0) BFAM_ABORT("No quadrants");
+  bfam_locidx_t *sub_ids =
+    bfam_malloc(domain->pxest->local_num_quadrants*sizeof(bfam_locidx_t));
+
+  split_iter_data_t data = {prefs->L,0,sub_ids,0};
+  p4est_iterate (domain->pxest, NULL, &data, get_element_order, NULL, NULL
+#if DIM==3
+      ,NULL
+#endif
+      );
+
+  bfam_locidx_t *N = bfam_malloc(data.max_N*sizeof(bfam_locidx_t));
+  for(int n = 0; n < data.max_N;n++) N[n] = n+1;
+
+  /* Last argument is NULL since we don't need user specified glues for blade */
+  bfam_domain_pxest_split_dgx_subdomains(domain, data.max_N, sub_ids, N, NULL);
+
+  bfam_free(sub_ids);
+  bfam_free(N);
+}
 
 /*
  * This function initializes the domain in bfam
@@ -702,7 +859,7 @@ init_domain(blade_t *blade, prefs_t *prefs)
   p4est_partition(blade->domain->pxest, NULL);
 
   /* split the domain */
-  //JK split_domain(blade,prefs);
+  split_domain(blade,prefs);
 
   /* add fields to the domnain */
   //JK domain_add_fields(blade,prefs);
