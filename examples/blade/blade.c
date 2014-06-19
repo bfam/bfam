@@ -695,9 +695,9 @@ init_domain(blade_t *blade, prefs_t *prefs)
    * This is to statically refine all cells of a balanced mesh, since it's
    * already balanced it will remain balanced
    */
-  //JK int stat_ref = lua_get_global_int(prefs->L, "static_refinement", 0);
-  //JK for(int i = 0; i < stat_ref; i++)
-  //JK   p4est_refine(blade->domain->pxest, 0, static_refine_fn, NULL);
+  int stat_ref = lua_get_global_int(prefs->L, "static_refinement", 0);
+  for(int i = 0; i < stat_ref; i++)
+    p4est_refine(blade->domain->pxest, 0, static_refine_fn, NULL);
 
   p4est_partition(blade->domain->pxest, NULL);
 
