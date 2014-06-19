@@ -1063,7 +1063,6 @@ static void
 stop_blade(blade_t *blade,prefs_t *prefs)
 {
   bfam_free(blade->comm_args);
-  /*
   if(prefs->lsrk_method != BFAM_TS_LSRK_NOOP)
     bfam_ts_lsrk_free((bfam_ts_lsrk_t*) blade->blade_ts);
   if(prefs->adams_method != BFAM_TS_ADAMS_NOOP)
@@ -1071,7 +1070,6 @@ stop_blade(blade_t *blade,prefs_t *prefs)
   if(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
     bfam_ts_local_adams_free((bfam_ts_local_adams_t*) blade->blade_ts);
   bfam_free(blade->blade_ts);
-  */
   bfam_domain_pxest_free(blade->domain);
   bfam_free(blade->domain);
   p4est_connectivity_destroy(blade->conn);
@@ -1234,6 +1232,210 @@ time_level_get_recv_buffer(bfam_subdomain_t *thisSubdomain, void *buffer,
   bfam_subdomain_plus_add_tag(thisSubdomain,tag);
 }
 
+/* These are the functions required by the time steppers */
+static void
+field_zero(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(field, 32);
+
+  for(bfam_locidx_t n=0; n < npoints; ++n) field[n] = 0;
+}
+
+void aux_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
+{
+  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+  {
+    const char *fields[] =
+      {"q",NULL};
+
+    char field[BFAM_BUFSIZ];
+    for(int f = 0; fields[f]!=NULL; ++f)
+    {
+      snprintf(field,BFAM_BUFSIZ,"%s%s",prefix,fields[f]);
+      thisSubdomain->field_add(thisSubdomain,field);
+      bfam_subdomain_field_init(thisSubdomain, field, 0, field_zero, NULL);
+    }
+  }
+}
+
+void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
+    const bfam_long_real_t a)
+{
+  BFAM_ASSERT(rate_prefix);
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
+  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+  {
+    //JK bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
+    //JK scale_rates_elastic(sub,rate_prefix,a);
+  }
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"));
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel"));
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_local"));
+  else
+    BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
+}
+
+void intra_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
+    const char *minus_rate_prefix, const char *field_prefix,
+    const bfam_long_real_t t)
+{
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
+
+  //JK bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*) thisSubdomain;
+  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+  {
+    //JK intra_rhs_elastic(sub->N,sub,rate_prefix,field_prefix,t);
+  }
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"   ));
+  else
+    BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
+}
+
+void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
+    const char *minus_rate_prefix, const char *field_prefix,
+    const bfam_long_real_t t)
+{
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
+
+//JK  bfam_subdomain_dgx_t *sub =
+//JK    (bfam_subdomain_dgx_t*) thisSubdomain;
+//JK  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"));
+//JK  else if(bfam_subdomain_has_tag(thisSubdomain,"slip weakening"))
+//JK  {
+//JK    BFAM_ASSERT(rate_prefix);
+//JK    inter_rhs_slip_weakening_interface(
+//JK        ((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
+//JK        sub,rate_prefix,minus_rate_prefix,field_prefix,t);
+//JK  }
+//JK  else if(bfam_subdomain_has_tag(thisSubdomain,"non-reflecting"))
+//JK  {
+//JK    BFAM_ASSERT(minus_rate_prefix);
+//JK    inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
+//JK        sub,minus_rate_prefix,field_prefix,t,0);
+//JK  }
+//JK  else if(bfam_subdomain_has_tag(thisSubdomain,"free surface"))
+//JK  {
+//JK    BFAM_ASSERT(minus_rate_prefix);
+//JK    inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
+//JK        sub,minus_rate_prefix,field_prefix,t,1);
+//JK  }
+//JK  else if(bfam_subdomain_has_tag(thisSubdomain,"rigid"))
+//JK  {
+//JK    BFAM_ASSERT(minus_rate_prefix);
+//JK    inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
+//JK        sub,minus_rate_prefix,field_prefix,t,-1);
+//JK  }
+//JK  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"))
+//JK  {
+//JK    BFAM_ASSERT(minus_rate_prefix);
+//JK    inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
+//JK        sub,minus_rate_prefix,field_prefix,t,0);
+//JK  }
+//JK  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
+//JK      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"))
+//JK  {
+//JK    BFAM_ASSERT(minus_rate_prefix);
+//JK    inter_rhs_interface(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
+//JK        sub,minus_rate_prefix,field_prefix,t);
+//JK  }
+//JK  else
+//JK    BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
+}
+
+void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
+    const char *field_prefix_rhs, const char *rate_prefix,
+    const bfam_long_real_t a)
+{
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
+  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+  {
+    //JK bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
+    //JK add_rates_elastic(sub,field_prefix_lhs,field_prefix_rhs,rate_prefix,a);
+  }
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"   ));
+  else
+    BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
+}
+
+void glue_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
+{
+  if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel") ||
+     bfam_subdomain_has_tag(thisSubdomain,"_glue_local"   ))
+  {
+    BFAM_LDEBUG("Adding glue rate to %s",thisSubdomain->name);
+    for(int f = 0 ; comm_args_scalars[f] != NULL; f++)
+    {
+      char field[BFAM_BUFSIZ];
+      snprintf(field,BFAM_BUFSIZ,"%s%s",prefix,comm_args_scalars[f]);
+      thisSubdomain->field_minus_add(thisSubdomain,field);
+      thisSubdomain->field_plus_add(thisSubdomain,field);
+    }
+    for(int f = 0 ; comm_args_vectors[f] != NULL; f++)
+    {
+      char field[BFAM_BUFSIZ];
+      snprintf(field,BFAM_BUFSIZ, "%s%sn",prefix,comm_args_vectors[f]);
+      thisSubdomain->field_minus_add(thisSubdomain,field);
+      thisSubdomain->field_plus_add(thisSubdomain,field);
+
+      snprintf(field,BFAM_BUFSIZ, "%s%sp1",prefix,comm_args_vectors[f]);
+      thisSubdomain->field_minus_add(thisSubdomain,field);
+      thisSubdomain->field_plus_add(thisSubdomain,field);
+
+      snprintf(field,BFAM_BUFSIZ, "%s%sp2",prefix,comm_args_vectors[f]);
+      thisSubdomain->field_minus_add(thisSubdomain,field);
+      thisSubdomain->field_plus_add(thisSubdomain,field);
+
+      snprintf(field,BFAM_BUFSIZ, "%s%sp3",prefix,comm_args_vectors[f]);
+      thisSubdomain->field_minus_add(thisSubdomain,field);
+      thisSubdomain->field_plus_add(thisSubdomain,field);
+    }
+    for(int f = 0 ; comm_args_tensors[f] != NULL; f++)
+    {
+      char field[BFAM_BUFSIZ];
+      snprintf(field,BFAM_BUFSIZ, "%s%sn",prefix,comm_args_tensors[f]);
+      thisSubdomain->field_minus_add(thisSubdomain,field);
+      thisSubdomain->field_plus_add(thisSubdomain,field);
+
+      snprintf(field,BFAM_BUFSIZ, "%s%sp1",prefix,comm_args_tensors[f]);
+      thisSubdomain->field_minus_add(thisSubdomain,field);
+      thisSubdomain->field_plus_add(thisSubdomain,field);
+
+      snprintf(field,BFAM_BUFSIZ, "%s%sp2",prefix,comm_args_tensors[f]);
+      thisSubdomain->field_minus_add(thisSubdomain,field);
+      thisSubdomain->field_plus_add(thisSubdomain,field);
+
+      snprintf(field,BFAM_BUFSIZ, "%s%sp3",prefix,comm_args_tensors[f]);
+      thisSubdomain->field_minus_add(thisSubdomain,field);
+      thisSubdomain->field_plus_add(thisSubdomain,field);
+    }
+  }
+}
+
+void add_rates_glue_p (bfam_subdomain_t *thisSubdomain,
+    const char *field_prefix_lhs, const char *field_prefix_rhs,
+    const char *rate_prefix, const bfam_long_real_t a)
+{
+  BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
+  if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"   ))
+  {
+    //JK bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
+    //JK add_rates_elastic_glue_p(sub,field_prefix_lhs,field_prefix_rhs,
+    //JK                          rate_prefix,a);
+  }
+  else
+    BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
+}
+
 static void
 init_time_stepper(blade_t *blade, prefs_t *prefs, bfam_locidx_t num_lvl)
 {
@@ -1261,7 +1463,6 @@ init_time_stepper(blade_t *blade, prefs_t *prefs, bfam_locidx_t num_lvl)
   args->user_prefix_function = NULL;
 
 
-  /*
   const char *timestep_tags[] = {"_volume","_glue_parallel","_glue_local",
     "_glue_boundary", NULL};
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
@@ -1285,7 +1486,6 @@ init_time_stepper(blade_t *blade, prefs_t *prefs, bfam_locidx_t num_lvl)
         blade->comm_args, &aux_rates, &glue_rates, &scale_rates,&intra_rhs,
         &inter_rhs, &add_rates, &add_rates_glue_p,
         lua_get_global_int(prefs->L, "RK_init", 1));
-        */
 }
 
 static bfam_real_t
@@ -1571,10 +1771,10 @@ run_simulation(blade_t *blade,prefs_t *prefs)
         prefs->vtk_binary, prefs->vtk_compress, 0);
   }
 
-  //JK BFAM_ASSERT(blade->blade_ts);
+  BFAM_ASSERT(blade->blade_ts);
   for(int s = 1; s <= nsteps; s++)
   {
-    //JK blade->blade_ts->step(blade->blade_ts,dt);
+    blade->blade_ts->step(blade->blade_ts,dt);
     if(s%ndisp == 0)
     {
       bfam_real_t new_energy = compute_energy(blade,prefs,s*dt,"");
