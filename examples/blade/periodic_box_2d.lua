@@ -5,6 +5,10 @@ N3 = 2
 min_level = 1
 max_level = 2
 
+ux = 1
+uy = 2
+uz = 3
+
 -- store random seed
 math.randomseed(0)
 
@@ -72,3 +76,12 @@ tend  = 4*Lx
 tout  = 2*tend
 tdisp = 2*tend
 terr  = tend
+dt_fudge = 0.5
+function time_step_parameters(dt)
+  dt      = dt_fudge*dt
+  nsteps = math.ceil(tend / dt)
+  dt      = tend / nsteps
+  ndisp   = tdisp / dt
+  noutput  = 1
+  return dt,nsteps, ndisp, noutput
+end

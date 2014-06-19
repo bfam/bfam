@@ -780,7 +780,13 @@ static void
 domain_add_fields(blade_t *blade, prefs_t *prefs)
 {
   const char *volume[] = {"_volume",NULL};
-  const char *fields[] = {"u", "q", NULL};
+#if DIM==2
+  const char *fields[] = {"ux", "uy", "q", NULL};
+#elif DIM==3
+  const char *fields[] = {"ux", "uy", "uz", "q", NULL};
+#else
+#error "Bad Dimension"
+#endif
   bfam_domain_t *domain = (bfam_domain_t*)blade->domain;
   for(int f = 0; fields[f] != NULL; f++)
   {
@@ -1056,73 +1062,390 @@ init_domain(blade_t *blade, prefs_t *prefs)
 static void
 stop_blade(blade_t *blade,prefs_t *prefs)
 {
-  //JK bfam_free(blade->comm_args);
-  //JK if(prefs->lsrk_method != BFAM_TS_LSRK_NOOP)
-  //JK   bfam_ts_lsrk_free((bfam_ts_lsrk_t*) blade->blade_ts);
-  //JK if(prefs->adams_method != BFAM_TS_ADAMS_NOOP)
-  //JK   bfam_ts_adams_free((bfam_ts_adams_t*) blade->blade_ts);
-  //JK if(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
-  //JK   bfam_ts_local_adams_free((bfam_ts_local_adams_t*) blade->blade_ts);
-  //JK bfam_free(blade->blade_ts);
+  bfam_free(blade->comm_args);
+  /*
+  if(prefs->lsrk_method != BFAM_TS_LSRK_NOOP)
+    bfam_ts_lsrk_free((bfam_ts_lsrk_t*) blade->blade_ts);
+  if(prefs->adams_method != BFAM_TS_ADAMS_NOOP)
+    bfam_ts_adams_free((bfam_ts_adams_t*) blade->blade_ts);
+  if(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
+    bfam_ts_local_adams_free((bfam_ts_local_adams_t*) blade->blade_ts);
+  bfam_free(blade->blade_ts);
+  */
   bfam_domain_pxest_free(blade->domain);
   bfam_free(blade->domain);
   p4est_connectivity_destroy(blade->conn);
 }
 
 static void
+compute_subdomain_dt(bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict JI)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(JI, 32);
+  bfam_real_t *dt = (bfam_real_t*)arg;
+
+  bfam_real_t *restrict Jr0x0 =
+    bfam_dictionary_get_value_ptr(&s->fields, "_grid_Jr0x0");
+  BFAM_ASSUME_ALIGNED(Jr0x0, 32);
+
+  bfam_real_t *restrict Jr0x1 =
+    bfam_dictionary_get_value_ptr(&s->fields, "_grid_Jr0x1");
+  BFAM_ASSUME_ALIGNED(Jr0x1, 32);
+
+#if DIM==3
+  bfam_real_t *restrict Jr0x2 =
+    bfam_dictionary_get_value_ptr(&s->fields, "_grid_Jr0x2");
+  BFAM_ASSUME_ALIGNED(Jr0x2, 32);
+#endif
+
+  bfam_real_t *restrict Jr1x0 =
+    bfam_dictionary_get_value_ptr(&s->fields, "_grid_Jr1x0");
+  BFAM_ASSUME_ALIGNED(Jr1x0, 32);
+
+  bfam_real_t *restrict Jr1x1 =
+    bfam_dictionary_get_value_ptr(&s->fields, "_grid_Jr1x1");
+  BFAM_ASSUME_ALIGNED(Jr1x1, 32);
+
+#if DIM==3
+  bfam_real_t *restrict Jr1x2 =
+    bfam_dictionary_get_value_ptr(&s->fields, "_grid_Jr1x2");
+  BFAM_ASSUME_ALIGNED(Jr1x2, 32);
+#endif
+
+#if DIM==3
+  bfam_real_t *restrict Jr2x0 =
+    bfam_dictionary_get_value_ptr(&s->fields, "_grid_Jr2x0");
+  BFAM_ASSUME_ALIGNED(Jr2x0, 32);
+
+  bfam_real_t *restrict Jr2x1 =
+    bfam_dictionary_get_value_ptr(&s->fields, "_grid_Jr2x1");
+  BFAM_ASSUME_ALIGNED(Jr2x1, 32);
+
+  bfam_real_t *restrict Jr2x2 =
+    bfam_dictionary_get_value_ptr(&s->fields, "_grid_Jr2x2");
+  BFAM_ASSUME_ALIGNED(Jr2x2, 32);
+#endif
+
+  bfam_real_t *restrict ux =
+    bfam_dictionary_get_value_ptr(&s->fields, "ux");
+  BFAM_ASSUME_ALIGNED(ux, 32);
+
+  bfam_real_t *restrict uy =
+    bfam_dictionary_get_value_ptr(&s->fields, "uy");
+  BFAM_ASSUME_ALIGNED(uy, 32);
+
+#if DIM==3
+  bfam_real_t *restrict uz =
+    bfam_dictionary_get_value_ptr(&s->fields, "uz");
+  BFAM_ASSUME_ALIGNED(uz, 32);
+#endif
+
+  bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t *) s;
+  bfam_real_t p2 = sub->N*sub->N;
+
+  for(int n = 0; n < npoints; n++)
+  {
+#if   DIM==2
+    bfam_real_t u = BFAM_REAL_SQRT(ux[n]*ux[n] + uy[n]*uy[n]);
+    bfam_real_t hr1 =
+      BFAM_REAL(1.0)/BFAM_REAL_SQRT(JI[n]*JI[n]*(Jr1x1[n]*Jr1x1[n]
+                                                +Jr1x0[n]*Jr1x0[n]));
+    bfam_real_t hr0 =
+      BFAM_REAL(1.0)/BFAM_REAL_SQRT(JI[n]*JI[n]*(Jr0x1[n]*Jr0x1[n]
+                                                +Jr0x0[n]*Jr0x0[n]));
+    dt[0] = BFAM_MIN(dt[0], BFAM_MIN(hr1,hr0)/u/p2);
+#elif DIM==3
+    bfam_real_t u = BFAM_REAL_SQRT(ux[n]*ux[n] + uy[n]*uy[n] + uz[n]*uz[n]);
+    bfam_real_t hr2 =
+      BFAM_REAL(1.0)/BFAM_REAL_SQRT(JI[n]*JI[n]*(Jr2x2[n]*Jr2x2[n]
+                                                +Jr2x1[n]*Jr2x1[n]
+                                                +Jr2x0[n]*Jr2x0[n]));
+    bfam_real_t hr1 =
+      BFAM_REAL(1.0)/BFAM_REAL_SQRT(JI[n]*JI[n]*(Jr1x2[n]*Jr1x2[n]
+                                                +Jr1x1[n]*Jr1x1[n]
+                                                +Jr1x0[n]*Jr1x0[n]));
+    bfam_real_t hr0 =
+      BFAM_REAL(1.0)/BFAM_REAL_SQRT(JI[n]*JI[n]*(Jr0x2[n]*Jr0x2[n]
+                                                +Jr0x1[n]*Jr0x1[n]
+                                                +Jr0x0[n]*Jr0x0[n]));
+    dt[0] = BFAM_MIN(dt[0], BFAM_MIN(BFAM_MIN(hr2,hr1),hr0)/u/p2);
+#else
+#error "bad dimension"
+#endif
+  }
+}
+
+static void
+time_level_comm_info(bfam_subdomain_t* thisSubdomain, size_t *send_sz,
+    size_t *recv_sz, void *comm_args)
+{
+  BFAM_ASSERT(comm_args);
+  *send_sz += sizeof(int);
+  *recv_sz += sizeof(int);
+}
+
+static void
+time_level_put_send_buffer(bfam_subdomain_t* thisSubdomain, void *buffer,
+    size_t send_sz, void *comm_args)
+{
+  /* just some sanity check */
+  BFAM_ASSERT(send_sz == sizeof(int));
+  BFAM_ASSERT(comm_args);
+  BFAM_ASSERT(thisSubdomain->glue_m);
+  BFAM_ASSERT(thisSubdomain->glue_m->sub_m);
+
+  /* determine the level of the minus side and add tag to minus side */
+  bfam_subdomain_comm_args_t *args =
+    (bfam_subdomain_comm_args_t*) comm_args;
+  BFAM_ASSERT(args->user_data);
+  int max_lvl = *(int*)args->user_data;
+
+  int lvl = 0;
+  char tag[BFAM_BUFSIZ];
+  for(; lvl <= max_lvl;lvl++)
+  {
+    bfam_ts_local_adams_fill_level_tag(tag,BFAM_BUFSIZ,lvl);
+    if(bfam_subdomain_has_tag(thisSubdomain->glue_m->sub_m,tag)) break;
+  }
+  BFAM_ABORT_IF(lvl > max_lvl,"glue %s: "
+      "max number of levels searched in minus side %s "
+      "and no level tag found",
+      thisSubdomain->name,thisSubdomain->glue_m->sub_m->name);
+
+  bfam_subdomain_minus_add_tag(thisSubdomain,tag);
+
+  /* store the level */
+  *(int*)buffer = lvl;
+}
+
+static void
+time_level_get_recv_buffer(bfam_subdomain_t *thisSubdomain, void *buffer,
+    size_t recv_sz, void *comm_args)
+{
+  BFAM_ASSERT(comm_args);
+  BFAM_ASSERT(recv_sz == sizeof(int));
+  int lvl = *(int*)buffer;
+  char tag[BFAM_BUFSIZ];
+  bfam_ts_local_adams_fill_level_tag(tag,BFAM_BUFSIZ,lvl);
+  bfam_subdomain_plus_add_tag(thisSubdomain,tag);
+}
+
+static void
+init_time_stepper(blade_t *blade, prefs_t *prefs, bfam_locidx_t num_lvl)
+{
+  blade->comm_args = bfam_malloc(sizeof(bfam_subdomain_comm_args_t));
+  bfam_subdomain_comm_args_t *args = blade->comm_args;
+
+  args->scalars_m           = comm_args_scalars;
+  args->vectors_m           = comm_args_vectors;
+  args->vector_components_m = comm_args_vector_components;
+  args->tensors_m           = comm_args_tensors;
+  args->tensor_components_m = comm_args_tensor_components;
+  args->face_scalars_m      = comm_args_face_scalars;
+
+  args->scalars_p           = comm_args_scalars;
+  args->vectors_p           = comm_args_vectors;
+  args->vector_components_p = comm_args_vector_components;
+  args->tensors_p           = comm_args_tensors;
+  args->tensor_components_p = comm_args_tensor_components;
+  args->face_scalars_p      = comm_args_face_scalars;
+
+  args->user_comm_info       = NULL;
+  args->user_put_send_buffer = NULL;
+  args->user_get_recv_buffer = NULL;
+  args->user_data            = NULL;
+  args->user_prefix_function = NULL;
+
+
+  const char *timestep_tags[] = {"_volume","_glue_parallel","_glue_local",
+    "_glue_boundary", NULL};
+  const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
+
+  /*if(prefs->lsrk_method != BFAM_TS_LSRK_NOOP)
+    blade->blade_ts = (bfam_ts_t*)bfam_ts_lsrk_new(
+        (bfam_domain_t*) blade->domain, prefs->lsrk_method,
+        BFAM_DOMAIN_OR,timestep_tags, BFAM_DOMAIN_OR,glue, blade->mpicomm, 10,
+        blade->comm_args, &aux_rates,&scale_rates,&intra_rhs,&inter_rhs,
+        &add_rates);
+  else if(prefs->adams_method != BFAM_TS_ADAMS_NOOP)
+    blade->blade_ts = (bfam_ts_t*)bfam_ts_adams_new(
+        (bfam_domain_t*) blade->domain, prefs->adams_method, BFAM_DOMAIN_OR,
+        timestep_tags, BFAM_DOMAIN_OR,glue, blade->mpicomm, 10,
+        blade->comm_args, &aux_rates,&scale_rates,&intra_rhs,&inter_rhs,
+        &add_rates, lua_get_global_int(prefs->L, "RK_init", 1));
+  else if(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
+    blade->blade_ts = (bfam_ts_t*)bfam_ts_local_adams_new(
+        (bfam_domain_t*) blade->domain, prefs->local_adams_method, num_lvl,
+        BFAM_DOMAIN_OR, timestep_tags, BFAM_DOMAIN_OR,glue, blade->mpicomm, 10,
+        blade->comm_args, &aux_rates, &glue_rates, &scale_rates,&intra_rhs,
+        &inter_rhs, &add_rates, &add_rates_glue_p,
+        lua_get_global_int(prefs->L, "RK_init", 1));
+        */
+}
+
+static bfam_real_t
+compute_domain_dt(blade_t *blade, prefs_t *prefs, const char *volume[],
+    const char *glue[], int *nsteps_ptr, int *ndisp_ptr, int *noutput_ptr,
+    int *nerr_ptr)
+{
+
+  /* first we get all the volume subdomains */
+  bfam_subdomain_t **subdomains =
+    bfam_malloc(((bfam_domain_t*)blade->domain)->numSubdomains
+        *sizeof(bfam_subdomain_t**));
+
+  bfam_locidx_t numSubdomains = 0;
+
+  bfam_domain_get_subdomains(((bfam_domain_t*)blade->domain), BFAM_DOMAIN_OR,
+      volume, ((bfam_domain_t*)blade->domain)->numSubdomains,
+      subdomains, &numSubdomains);
+
+  bfam_real_t ldt[numSubdomains];
+  bfam_real_t min_ldt = INFINITY;
+
+  for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
+  {
+    ldt[s] = INFINITY;
+    bfam_subdomain_field_init(subdomains[s], "_grid_JI", 0,
+        compute_subdomain_dt, &ldt[s]);
+    BFAM_INFO("local dt for %s is %"BFAM_REAL_FMTe,
+        subdomains[s]->name, ldt[s]);
+    min_ldt = BFAM_MIN(min_ldt,ldt[s]);
+  }
+
+  BFAM_INFO("min local dt is %"BFAM_REAL_FMTe, min_ldt);
+
+  bfam_real_t min_global_dt = 0;
+  BFAM_MPI_CHECK(MPI_Allreduce(&min_ldt,&min_global_dt,1,BFAM_REAL_MPI, MPI_MIN,
+        blade->mpicomm));
+
+  bfam_real_t dt = 0;
+  int result = lua_global_function_call(prefs->L, "time_step_parameters",
+      "r>riii", min_global_dt, &dt, nsteps_ptr, ndisp_ptr, noutput_ptr);
+  BFAM_ABORT_IF_NOT(result == 0,
+      "problem with lua call to 'time_step_parameters': "
+      "should be a function that takes dt "
+      "and returns dt, nsteps, ndisp, noutput");
+  result = lua_global_function_call(prefs->L,"nerr","r>i",dt,nerr_ptr);
+  if(*nerr_ptr > 0)
+  {
+      const char *err_flds[] = { "error_v1",  "error_v2",  "error_v3",
+                                "error_S11", "error_S22", "error_S33",
+                                "error_S12", "error_S13", "error_S23", NULL};
+      for(int f = 0; err_flds[f] != NULL; f++)
+        bfam_domain_add_field ((bfam_domain_t*)blade->domain, BFAM_DOMAIN_OR,
+            volume, err_flds[f]);
+  }
+
+  bfam_locidx_t num_time_lvl = 0;
+  if(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
+  {
+    bfam_real_t max_ldt = dt;
+
+    bfam_long_real_t dt_fudge = (bfam_long_real_t)dt /
+                                (bfam_long_real_t)min_global_dt;
+
+    int max_time_level = lua_get_global_int(prefs->L, "max_time_level", 32);
+    for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
+    {
+      ldt[s] = dt_fudge*ldt[s];
+
+      /* keep double time_step until the level is big enough */
+      bfam_locidx_t time_level = 0;
+      if(ldt[s] != INFINITY) for(;(1<<(time_level+1))*dt < ldt[s];time_level++);
+      time_level = BFAM_MIN(time_level,max_time_level);
+      BFAM_ASSERT(time_level >= 0);
+
+      char tag[BFAM_BUFSIZ];
+      bfam_ts_local_adams_fill_level_tag(tag,BFAM_BUFSIZ,time_level);
+      bfam_subdomain_add_tag(subdomains[s],tag);
+
+      /* set this guys real dt */
+      ldt[s] = dt*(1<<time_level);
+
+      BFAM_INFO("For %s is time level %d with local dt %"BFAM_REAL_FMTe,
+          subdomains[s]->name, time_level, ldt[s]);
+
+      max_ldt = BFAM_MAX(max_ldt,ldt[s]);
+
+      num_time_lvl = BFAM_MAX(num_time_lvl, time_level+1);
+    }
+    BFAM_INFO("local number of time levels %"BFAM_LOCIDX_PRId,num_time_lvl);
+
+    BFAM_INFO("max local dt is %"BFAM_REAL_FMTe, max_ldt);
+
+    BFAM_MPI_CHECK(MPI_Allreduce(MPI_IN_PLACE,&num_time_lvl,1,BFAM_LOCIDX_MPI,
+          MPI_MAX, blade->mpicomm));
+
+    dt = (1<<(num_time_lvl-1))*dt;
+
+    BFAM_INFO("number of time levels %"BFAM_LOCIDX_PRId
+        " for global dt %"BFAM_REAL_FMTe, num_time_lvl, dt);
+
+    bfam_communicator_t level_comm;
+
+    bfam_subdomain_comm_args_t level_args;
+    const char * level_NULL[]      = {NULL};
+    level_args.scalars_m           = level_NULL;
+    level_args.vectors_m           = level_NULL;
+    level_args.vector_components_m = level_NULL;
+    level_args.tensors_m           = level_NULL;
+    level_args.tensor_components_m = level_NULL;
+    level_args.face_scalars_m      = level_NULL;
+
+    level_args.scalars_p           = level_NULL;
+    level_args.vectors_p           = level_NULL;
+    level_args.vector_components_p = level_NULL;
+    level_args.tensors_p           = level_NULL;
+    level_args.tensor_components_p = level_NULL;
+    level_args.face_scalars_p      = level_NULL;
+
+    level_args.user_comm_info       = time_level_comm_info;
+    level_args.user_put_send_buffer = time_level_put_send_buffer;
+    level_args.user_get_recv_buffer = time_level_get_recv_buffer;
+    level_args.user_data            = &num_time_lvl;
+
+    level_args.user_prefix_function = NULL;
+
+
+    bfam_communicator_init(&level_comm,(bfam_domain_t*)blade->domain,
+        BFAM_DOMAIN_OR,glue, blade->mpicomm,10,&level_args);
+    bfam_communicator_start( &level_comm);
+    bfam_communicator_finish(&level_comm);
+    bfam_communicator_free(  &level_comm);
+  }
+
+  bfam_free(subdomains);
+
+  init_time_stepper(blade, prefs, num_time_lvl);
+
+  return dt;
+}
+
+static void
 run_simulation(blade_t *blade,prefs_t *prefs)
 {
-//JK   const char *volume[] = {"_volume",NULL};
-//JK   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
-//JK   const char *slip_weakening[] = {"slip weakening",NULL};
-//JK 
-//JK   int nsteps  = 0;
-//JK   int ndisp   = 0;
-//JK   int noutput = 0;
-//JK   int nfoutput = 0;
-//JK   int nstations = 0;
-//JK   int nerr = 0;
-//JK 
-//JK   bfam_real_t dt = compute_domain_dt(blade, prefs, volume, glue,
-//JK       &nsteps, &ndisp, &noutput, &nfoutput, &nstations, &nerr);
-//JK 
-//JK   BFAM_ROOT_INFO("dt        = %"BFAM_REAL_FMTe,dt);
-//JK   BFAM_ROOT_INFO("nsteps    = %d",nsteps);
-//JK   BFAM_ROOT_INFO("ndisp     = %d",ndisp);
-//JK   BFAM_ROOT_INFO("noutput   = %d",noutput);
-//JK   BFAM_ROOT_INFO("nfoutput  = %d",nfoutput);
-//JK   BFAM_ROOT_INFO("nstations = %d",nstations);
-//JK   BFAM_ROOT_INFO("nerr      = %d",nerr);
-//JK 
-//JK   if(nstations >= 0)
-//JK   {
-//JK     const char *volume_station_fields[] = {"v1", "v2", "v3", NULL};
-//JK     station_args_t volume_args;
-//JK     volume_args.prefs  = prefs;
-//JK     volume_args.fields = volume_station_fields;
-//JK     volume_args.time   = 0;
-//JK     bfam_dictionary_allprefixed_ptr(blade->volume_stations, "",
-//JK         &blade_open_stations, &volume_args);
-//JK 
-//JK     const char *fault_station_fields[] = {"V",   "Dp",
-//JK                                           "Tp1", "Tp2", "Tp3", "Tn",NULL};
-//JK     station_args_t fault_args;
-//JK     fault_args.prefs  = prefs;
-//JK     fault_args.fields = fault_station_fields;
-//JK     fault_args.time   = 0;
-//JK     bfam_dictionary_allprefixed_ptr(blade->fault_stations, "",
-//JK         &blade_open_stations, &fault_args);
-//JK   }
-//JK 
-//JK   if(nfoutput >= 0)
-//JK   {
-//JK     char output[BFAM_BUFSIZ];
-//JK     snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,0);
-//JK     bfam_vtk_write_file((bfam_domain_t*) blade->domain, BFAM_DOMAIN_OR,
-//JK         slip_weakening, prefs->data_directory, output, (0)*dt, sw_fields,
-//JK         NULL, NULL, prefs->vtk_binary, prefs->vtk_compress, 0);
-//JK   }
-//JK 
+  const char *volume[] = {"_volume",NULL};
+  const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
+
+  int nsteps  = 0;
+  int ndisp   = 0;
+  int noutput = 0;
+  int nerr = 0;
+
+  bfam_real_t dt = compute_domain_dt(blade, prefs, volume, glue,
+      &nsteps, &ndisp, &noutput, &nerr);
+
+  BFAM_ROOT_INFO("dt        = %"BFAM_REAL_FMTe,dt);
+  BFAM_ROOT_INFO("nsteps    = %d",nsteps);
+  BFAM_ROOT_INFO("ndisp     = %d",ndisp);
+  BFAM_ROOT_INFO("noutput   = %d",noutput);
+  BFAM_ROOT_INFO("nerr      = %d",nerr);
+
 //JK   /* compute the initial energy */
 //JK   bfam_real_t initial_energy = compute_energy(blade,prefs,0,"");
 //JK   bfam_real_t energy = initial_energy;
@@ -1134,9 +1457,9 @@ run_simulation(blade_t *blade,prefs_t *prefs)
 //JK       34,
 //JK       0*dt,
 //JK       energy);
-//JK 
-//JK   if(noutput >= 0)
-//JK   {
+
+  if(noutput >= 0)
+  {
    char output[BFAM_BUFSIZ];
 
    /* dump the pxest mesh */
@@ -1145,14 +1468,17 @@ run_simulation(blade_t *blade,prefs_t *prefs)
    p4est_vtk_write_all(blade->domain->pxest, NULL,
                        1, 1, 1, 0, 0, 0, output);
 
-//JK     const char *fields[] = {"rho", "lam", "mu", "v1", "v2", "v3", "S11", "S22",
-//JK       "S33", "S12", "S13", "S23",NULL};
-//JK     snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,0);
-//JK     bfam_vtk_write_file((bfam_domain_t*) blade->domain, BFAM_DOMAIN_OR,
-//JK         volume, prefs->data_directory, output, (0)*dt, fields, NULL, NULL,
-//JK         prefs->vtk_binary, prefs->vtk_compress, 0);
-//JK   }
-//JK 
+    const char *fields[] = {"q","ux","uy",
+#if DIM==3
+      "uz",
+#endif
+      NULL};
+    snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,0);
+    bfam_vtk_write_file((bfam_domain_t*) blade->domain, BFAM_DOMAIN_OR,
+        volume, prefs->data_directory, output, (0)*dt, fields, NULL, NULL,
+        prefs->vtk_binary, prefs->vtk_compress, 0);
+  }
+
 //JK   BFAM_ASSERT(blade->blade_ts);
 //JK   for(int s = 1; s <= nsteps; s++)
 //JK   {
@@ -1189,33 +1515,6 @@ run_simulation(blade_t *blade,prefs_t *prefs)
 //JK             energy/initial_energy-1);
 //JK       }
 //JK       energy = new_energy;
-//JK     }
-//JK     if(nstations > 0 && s%nstations == 0)
-//JK     {
-//JK       const char *volume_station_fields[] = {"v1", "v2", "v3", NULL};
-//JK       station_args_t volume_args;
-//JK       volume_args.prefs  = prefs;
-//JK       volume_args.fields = volume_station_fields;
-//JK       volume_args.time   = (s)*dt;
-//JK       bfam_dictionary_allprefixed_ptr(blade->volume_stations, "",
-//JK           &blade_output_stations, &volume_args);
-//JK 
-//JK       const char *fault_station_fields[] = {"V",   "Dp",
-//JK                                             "Tp1", "Tp2", "Tp3", "Tn",NULL};
-//JK       station_args_t fault_args;
-//JK       fault_args.prefs  = prefs;
-//JK       fault_args.fields = fault_station_fields;
-//JK       fault_args.time   = (s)*dt;
-//JK       bfam_dictionary_allprefixed_ptr(blade->fault_stations, "",
-//JK           &blade_output_stations, &fault_args);
-//JK     }
-//JK     if(nfoutput > 0 && s%nfoutput == 0)
-//JK     {
-//JK       char output[BFAM_BUFSIZ];
-//JK       snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,s);
-//JK       bfam_vtk_write_file((bfam_domain_t*) blade->domain, BFAM_DOMAIN_OR,
-//JK           slip_weakening, prefs->data_directory, output, (s)*dt, sw_fields,
-//JK           NULL, NULL, prefs->vtk_binary, prefs->vtk_compress, 0);
 //JK     }
 //JK     if(noutput > 0 && s%noutput == 0)
 //JK     {
