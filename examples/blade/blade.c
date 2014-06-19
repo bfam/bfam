@@ -575,6 +575,68 @@ free_prefs(prefs_t *prefs)
 }
 
 
+static int
+static_refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
+    p4est_quadrant_t * quadrant)
+{
+  return 1;
+}
+
+static int
+refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
+    p4est_quadrant_t * quadrant)
+{
+  lua_State *L = (lua_State*)p4est->user_pointer;
+
+  double vxyz[P4EST_CHILDREN*3];
+
+#if DIM==2
+  for(int iy = 0; iy < 2; iy++)
+    for(int ix = 0; ix < 2; ix++)
+    {
+      int ox = ix*(1 << (P4EST_MAXLEVEL-quadrant->level));
+      int oy = iy*(1 << (P4EST_MAXLEVEL-quadrant->level));
+      p4est_qcoord_to_vertex (p4est->connectivity, which_tree,
+          quadrant->x+ox, quadrant->y+oy,&vxyz[3*(ix + iy*2)]);
+    }
+
+  int val = 0;
+  int result = lua_global_function_call(L,"refinement_function",
+      "ddd" "ddd" "ddd" "ddd" "ii" ">" "i",
+      vxyz[0], vxyz[1], vxyz[2], vxyz[3], vxyz[ 4], vxyz[ 5],
+      vxyz[6], vxyz[7], vxyz[8], vxyz[9], vxyz[10], vxyz[11],
+      quadrant->level, which_tree, &val);
+  BFAM_ABORT_IF_NOT(result == 0, "Expected 0 got %d", result);
+#elif DIM==3
+  for(int iz = 0; iz < 2; iz++)
+    for(int iy = 0; iy < 2; iy++)
+      for(int ix = 0; ix < 2; ix++)
+    {
+      int ox = ix*(1 << (P4EST_MAXLEVEL-quadrant->level));
+      int oy = iy*(1 << (P4EST_MAXLEVEL-quadrant->level));
+      int oz = iz*(1 << (P4EST_MAXLEVEL-quadrant->level));
+      p4est_qcoord_to_vertex (p4est->connectivity, which_tree,
+          quadrant->x+ox, quadrant->y+oy, quadrant->z+oz,
+          &vxyz[3*(ix + 2*(iy + 2*iz))]);
+    }
+
+  int val = 0;
+  int result = lua_global_function_call(L,"refinement_function",
+      "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ii" ">" "i",
+      vxyz[ 0], vxyz[ 1], vxyz[ 2], vxyz[ 3], vxyz[ 4], vxyz[ 5],
+      vxyz[ 6], vxyz[ 7], vxyz[ 8], vxyz[ 9], vxyz[10], vxyz[11],
+      vxyz[12], vxyz[13], vxyz[14], vxyz[15], vxyz[16], vxyz[17],
+      vxyz[18], vxyz[19], vxyz[20], vxyz[21], vxyz[22], vxyz[23],
+      quadrant->level, which_tree, &val);
+  BFAM_ABORT_IF_NOT(result == 0, "Expected 0 got %d", result);
+#else
+#error "Bad Dimension"
+#endif
+
+  return val;
+}
+
+
 /*
  * This function initializes the domain in bfam
  */
@@ -614,18 +676,18 @@ init_domain(blade_t *blade, prefs_t *prefs)
   blade->domain = bfam_domain_pxest_new(blade->mpicomm, blade->conn);
 
   /* call user refinement function */
-  //JK lua_getglobal(prefs->L,"refinement_function");
-  //JK if(lua_isfunction(prefs->L,-1))
-  //JK {
-  //JK   lua_pop(prefs->L, 1);
-  //JK   void *current_user_pointer = blade->domain->pxest->user_pointer;
-  //JK   blade->domain->pxest->user_pointer = prefs->L;
-  //JK   p4est_refine(blade->domain->pxest, 1, refine_fn, NULL);
+  lua_getglobal(prefs->L,"refinement_function");
+  if(lua_isfunction(prefs->L,-1))
+  {
+    lua_pop(prefs->L, 1);
+    void *current_user_pointer = blade->domain->pxest->user_pointer;
+    blade->domain->pxest->user_pointer = prefs->L;
+    p4est_refine(blade->domain->pxest, 1, refine_fn, NULL);
 
-  //JK   blade->domain->pxest->user_pointer = current_user_pointer;
-  //JK }
-  //JK else BFAM_ROOT_WARNING("function `%s' not found in lua file",
-  //JK     "refinement_function");
+    blade->domain->pxest->user_pointer = current_user_pointer;
+  }
+  else BFAM_ROOT_WARNING("function `%s' not found in lua file",
+      "refinement_function");
 
   p4est_balance(blade->domain->pxest, P4EST_CONNECT_CORNER, NULL);
 
