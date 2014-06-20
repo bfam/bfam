@@ -1366,52 +1366,21 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     const char *minus_rate_prefix, const char *field_prefix,
     const bfam_long_real_t t)
 {
-  BFAM_ABORT("inter_rhs: not implemented");
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
 
-//JK  bfam_subdomain_dgx_t *sub =
-//JK    (bfam_subdomain_dgx_t*) thisSubdomain;
-//JK  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"));
-//JK  else if(bfam_subdomain_has_tag(thisSubdomain,"slip weakening"))
-//JK  {
-//JK    BFAM_ASSERT(rate_prefix);
-//JK    inter_rhs_slip_weakening_interface(
-//JK        ((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
-//JK        sub,rate_prefix,minus_rate_prefix,field_prefix,t);
-//JK  }
-//JK  else if(bfam_subdomain_has_tag(thisSubdomain,"non-reflecting"))
-//JK  {
-//JK    BFAM_ASSERT(minus_rate_prefix);
-//JK    inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
-//JK        sub,minus_rate_prefix,field_prefix,t,0);
-//JK  }
-//JK  else if(bfam_subdomain_has_tag(thisSubdomain,"free surface"))
-//JK  {
-//JK    BFAM_ASSERT(minus_rate_prefix);
-//JK    inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
-//JK        sub,minus_rate_prefix,field_prefix,t,1);
-//JK  }
-//JK  else if(bfam_subdomain_has_tag(thisSubdomain,"rigid"))
-//JK  {
-//JK    BFAM_ASSERT(minus_rate_prefix);
-//JK    inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
-//JK        sub,minus_rate_prefix,field_prefix,t,-1);
-//JK  }
-//JK  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"))
-//JK  {
-//JK    BFAM_ASSERT(minus_rate_prefix);
-//JK    inter_rhs_boundary(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
-//JK        sub,minus_rate_prefix,field_prefix,t,0);
-//JK  }
-//JK  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
-//JK      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"))
-//JK  {
-//JK    BFAM_ASSERT(minus_rate_prefix);
-//JK    inter_rhs_interface(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
-//JK        sub,minus_rate_prefix,field_prefix,t);
-//JK  }
-//JK  else
-//JK    BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
+  bfam_subdomain_dgx_t *sub =
+    (bfam_subdomain_dgx_t*) thisSubdomain;
+  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"));
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"))
+  {
+    BFAM_ABORT("inter_rhs: not implemented");
+    BFAM_ASSERT(minus_rate_prefix);
+    //JK inter_rhs_interface(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
+    //JK     sub,minus_rate_prefix,field_prefix,t);
+  }
+  else
+    BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
 }
 
 void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,

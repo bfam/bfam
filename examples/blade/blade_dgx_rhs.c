@@ -193,6 +193,19 @@ void blade_dgx_energy(
   }
 }
 
+#define GAM (BFAM_REAL(0.5))
+static inline void
+blade_dgx_add_flux(const bfam_real_t scale,
+          bfam_real_t *dq, const bfam_locidx_t iM,
+    const bfam_real_t   u, const bfam_real_t   qM, const bfam_real_t qP,
+    const bfam_real_t  sJ, const bfam_real_t   JI, const bfam_real_t wi)
+{
+  /* compute the state u*q */
+  const bfam_real_t uqS = BFAM_REAL(0.5)*((1-GAM)*              u *(qM+qP)
+                                           + GAM *BFAM_REAL_ABS(u)*(qM+qP));
+  dq[iM] += scale*wi*JI*sJ*(BFAM_REAL(0.5)*u*qM-uqS);
+}
+
 void blade_dgx_intra_rhs_advection(
     int inN, bfam_subdomain_dgx_t *sub, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t)
@@ -234,24 +247,8 @@ void blade_dgx_intra_rhs_advection(
   BFAM_ALIGN(32) bfam_real_t aux0[Np];
   BFAM_ALIGN(32) bfam_real_t aux1[Np];
   BFAM_ALIGN(32) bfam_real_t aux2[Np];
-  BFAM_ALIGN(32) bfam_real_t aux3[Np];
-//JK  BFAM_ALIGN(32) bfam_real_t aux2[Np];
-//JK  BLADE_D3_OP(BFAM_ALIGN(32) bfam_real_t aux3[Np]);
-//JK
-//JK  BFAM_ALIGN(32) bfam_real_t Dr1Tv1[Np];
-//JK  BFAM_ALIGN(32) bfam_real_t Dr2Tv1[Np];
-//JK  BLADE_D3_OP(BFAM_ALIGN(32) bfam_real_t Dr3Tv1[Np]);
-//JK  BFAM_ALIGN(32) bfam_real_t Dr1Tv2[Np];
-//JK  BFAM_ALIGN(32) bfam_real_t Dr2Tv2[Np];
-//JK  BLADE_D3_OP(BFAM_ALIGN(32) bfam_real_t Dr3Tv2[Np]);
-//JK  BFAM_ALIGN(32) bfam_real_t Dr1Tv3[Np];
-//JK  BFAM_ALIGN(32) bfam_real_t Dr2Tv3[Np];
-//JK  BLADE_D3_OP(BFAM_ALIGN(32) bfam_real_t Dr3Tv3[Np]);
-//JK
-//JK  BFAM_ALIGN(32) bfam_real_t Mv1[Np];
-//JK  BFAM_ALIGN(32) bfam_real_t Mv2[Np];
-//JK  BFAM_ALIGN(32) bfam_real_t Mv3[Np];
-//JK
+  BLADE_D3_OP(BFAM_ALIGN(32) bfam_real_t aux3[Np]);
+
   bfam_real_t *Dr = sub->Dr;
   bfam_real_t *w  = sub->w;
   bfam_real_t *wi  = sub->wi;
@@ -383,90 +380,31 @@ void blade_dgx_intra_rhs_advection(
         for(bfam_locidx_t i = 0; i < N+1; i++,n++)
         {
           const bfam_real_t wi_ijk = BLADE_D3_AP(wi[i]*wi[j],*wi[k]);
-          dq[off+n] -= BFAM_REAL(0.5)*wi_ijk*JI[off+n]*uz[off+n]*aux0[n];
+          dq[off+n] += BFAM_REAL(0.5)*wi_ijk*JI[off+n]*uz[off+n]*aux0[n];
         }
 #endif
 
-//JK    /* loop over faces */
-//JK    for(bfam_locidx_t face = 0; face < Nfaces; face++)
-//JK    {
-//JK      for(bfam_locidx_t pnt = 0; pnt < Nfp; pnt++)
-//JK      {
-//JK        const bfam_locidx_t f = pnt + Nfp*(face + Nfaces*e);
-//JK        const bfam_locidx_t iM = vmapM[f];
-//JK        const bfam_locidx_t iP = vmapP[f];
-//JK
-//JK        /* Setup stuff for the minus side */
-//JK        const bfam_real_t ZsM = Zs[iM];
-//JK        const bfam_real_t ZpM = Zp[iM];
-//JK
-//JK        const bfam_real_t nM[] = {n1[f],n2[f],BLADE_D3_AP(0,+n3[f])};
-//JK
-//JK        bfam_real_t TpM[] = {
-//JK          BLADE_D3_AP(nM[0]*S11[iM] + nM[1]*S12[iM], + nM[2]*S13[iM]),
-//JK          BLADE_D3_AP(nM[0]*S12[iM] + nM[1]*S22[iM], + nM[2]*S23[iM]),
-//JK          BLADE_D3_AP(nM[0]*S13[iM] + nM[1]*S23[iM], + nM[2]*S33[iM]),
-//JK        };
-//JK        const bfam_real_t TnM = BLADE_D3_AP(TpM[0]*nM[0]
-//JK                                           +TpM[1]*nM[1],
-//JK                                           +TpM[2]*nM[2]);
-//JK        TpM[0] = TpM[0]-TnM*nM[0];
-//JK        TpM[1] = TpM[1]-TnM*nM[1];
-//JK        BLADE_D3_OP(TpM[2] = TpM[2]-TnM*nM[2]);
-//JK
-//JK        bfam_real_t vpM[] = {v1[iM],v2[iM],v3[iM]};
-//JK        const bfam_real_t vnM = BLADE_D3_AP(nM[0]*vpM[0]
-//JK                                           +nM[1]*vpM[1],
-//JK                                           +nM[2]*vpM[2]);
-//JK        vpM[0] = vpM[0]-vnM*nM[0];
-//JK        vpM[1] = vpM[1]-vnM*nM[1];
-//JK        BLADE_D3_OP(vpM[2] = vpM[2]-vnM*nM[2]);
-//JK
-//JK        /* Setup stuff for the plus side */
-//JK        bfam_real_t ZsP = Zs[iP];
-//JK        bfam_real_t ZpP = Zp[iP];
-//JK
-//JK        bfam_real_t nP[] = {-nM[0],-nM[1],-nM[2]};
-//JK
-//JK        bfam_real_t TpP[] = {
-//JK          BLADE_D3_AP(nP[0]*S11[iP] + nP[1]*S12[iP], + nP[2]*S13[iP]),
-//JK          BLADE_D3_AP(nP[0]*S12[iP] + nP[1]*S22[iP], + nP[2]*S23[iP]),
-//JK          BLADE_D3_AP(nP[0]*S13[iP] + nP[1]*S23[iP], + nP[2]*S33[iP]),
-//JK        };
-//JK        const bfam_real_t TnP = BLADE_D3_AP(TpP[0]*nP[0]
-//JK                                           +TpP[1]*nP[1],
-//JK                                           +TpP[2]*nP[2]);
-//JK        TpP[0] = TpP[0]-TnP*nP[0];
-//JK        TpP[1] = TpP[1]-TnP*nP[1];
-//JK        BLADE_D3_OP(TpP[2] = TpP[2]-TnP*nP[2]);
-//JK
-//JK        bfam_real_t vpP[] = {v1[iP],v2[iP],v3[iP]};
-//JK        const bfam_real_t vnP = BLADE_D3_AP(nP[0]*vpP[0]
-//JK                                           +nP[1]*vpP[1],
-//JK                                           +nP[2]*vpP[2]);
-//JK        vpP[0] = vpP[0]-vnP*nP[0];
-//JK        vpP[1] = vpP[1]-vnP*nP[1];
-//JK        BLADE_D3_OP(vpP[2] = vpP[2]-vnP*nP[2]);
-//JK
-//JK        bfam_real_t TnS;
-//JK        bfam_real_t TpS[3];
-//JK        bfam_real_t vnS;
-//JK        bfam_real_t vpS[3];
-//JK
-//JK        BLADE_STATE(&TnS,TpS,&vnS,vpS,
-//JK            TnM, TnP, TpM, TpP, vnM, vnP, vpM, vpP, ZpM, ZpP, ZsM, ZsP);
-//JK
-//JK        TnS    -= TnM;
-//JK        TpS[0] -= TpM[0];
-//JK        TpS[1] -= TpM[1];
-//JK        TpS[2] -= TpM[2];
-//JK
-//JK        /* intra */
-//JK        blade_dgx_add_flux(1, TnS,TpS,vnS,vpS,iM,
-//JK            dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
-//JK            lam[iM],mu[iM],rhoi[iM],nM,sJ[f],JI[iM],wi[0]);
-//JK      }
-//JK    }
+    /* loop over faces */
+    for(bfam_locidx_t face = 0; face < Nfaces; face++)
+    {
+      for(bfam_locidx_t pnt = 0; pnt < Nfp; pnt++)
+      {
+        const bfam_locidx_t f = pnt + Nfp*(face + Nfaces*e);
+        const bfam_locidx_t iM = vmapM[f];
+        const bfam_locidx_t iP = vmapP[f];
+
+        /* we use the average here in case there is a slight miss-match in the
+         * velocities (they should be the same value though)
+         */
+        const bfam_real_t u = BFAM_REAL(0.5)*BLADE_D3_AP(
+                                           (ux[iM] + ux[iP]) * n1[f]
+                                         + (uy[iM] + uy[iP]) * n2[f],
+                                         + (uz[iM] + uz[iP]) * n3[f]);
+
+        /* intra */
+        blade_dgx_add_flux(1, dq, iM, u, q[iM], q[iP],sJ[f],JI[iM],wi[0]);
+      }
+    }
   }
 }
 
