@@ -134,6 +134,9 @@ BFAM_ASSUME_ALIGNED(field,32);
 #define blade_dgx_energy \
   BLADE_APPEND_EXPAND_4(blade_dgx_energy_,DIM,_,NORDER)
 
+#define blade_dgx_add_rates_advection \
+  BLADE_APPEND_EXPAND_4(blade_dgx_add_rates_advection_,DIM,_,NORDER)
+
 void blade_dgx_scale_rates_advection(
     int inN, bfam_subdomain_dgx_t *sub, const char *rate_prefix,
     const bfam_long_real_t a)
@@ -405,6 +408,29 @@ void blade_dgx_intra_rhs_advection(
         blade_dgx_add_flux(1, dq, iM, u, q[iM], q[iP],sJ[f],JI[iM],wi[0]);
       }
     }
+  }
+}
+
+void blade_dgx_add_rates_advection(
+    int inN, bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
+    const char *field_prefix_rhs, const char *rate_prefix,
+    const bfam_long_real_t a)
+{
+  GENERIC_INIT(inN,blade_dgx_add_rates_advection);
+
+  const char *f_names[] = {"q", NULL};
+
+  const bfam_locidx_t num_pts = sub->K * Np;
+
+  /* get the fields we will need */
+  bfam_dictionary_t *fields = &sub->base.fields;
+
+  for(bfam_locidx_t f = 0; f_names[f] != NULL; f++)
+  {
+    BFAM_LOAD_FIELD_ALIGNED(         lhs ,field_prefix_lhs,f_names[f],fields);
+    BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,f_names[f],fields);
+    BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,f_names[f],fields);
+    for(bfam_locidx_t n = 0; n < num_pts; n++) lhs[n] = rhs[n] + a*rate[n];
   }
 }
 

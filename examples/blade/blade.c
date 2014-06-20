@@ -1368,14 +1368,14 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
 {
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
 
-  bfam_subdomain_dgx_t *sub =
-    (bfam_subdomain_dgx_t*) thisSubdomain;
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"));
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"))
   {
     BFAM_ABORT("inter_rhs: not implemented");
     BFAM_ASSERT(minus_rate_prefix);
+    //JK bfam_subdomain_dgx_t *sub =
+    //JK   (bfam_subdomain_dgx_t*) thisSubdomain;
     //JK inter_rhs_interface(((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
     //JK     sub,minus_rate_prefix,field_prefix,t);
   }
@@ -1383,16 +1383,49 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
 }
 
+void add_rates_advection (bfam_subdomain_dgx_t *sub,
+    const char *field_prefix_lhs, const char *field_prefix_rhs,
+    const char *rate_prefix, const bfam_long_real_t a)
+{
+#if   DIM==2
+#define X(order) \
+  case order: blade_dgx_add_rates_advection_2_##order(sub->N,sub, \
+                  field_prefix_lhs,field_prefix_rhs,rate_prefix,a); break;
+#elif DIM==3
+#define X(order) \
+  case order: blade_dgx_add_rates_advection_3_##order(sub->N,sub, \
+                  field_prefix_lhs,field_prefix_rhs,rate_prefix,a); break;
+#else
+#error "bad dimension"
+#endif
+
+  switch(sub->N)
+  {
+    BFAM_LIST_OF_DGX_NORDERS
+    default:
+#if   DIM==2
+      blade_dgx_add_rates_advection_2_(sub->N,sub,field_prefix_lhs,
+          field_prefix_rhs,rate_prefix,a);
+#elif DIM==3
+      blade_dgx_add_rates_advection_3_(sub->N,sub,field_prefix_lhs,
+          field_prefix_rhs,rate_prefix,a);
+#else
+#error "bad dimension"
+#endif
+      break;
+  }
+#undef X
+}
+
 void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
     const bfam_long_real_t a)
 {
-  BFAM_ABORT("add_rates: not implemented");
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
   {
-    //JK bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
-    //JK add_rates_advection(sub,field_prefix_lhs,field_prefix_rhs,rate_prefix,a);
+    bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
+    add_rates_advection(sub,field_prefix_lhs,field_prefix_rhs,rate_prefix,a);
   }
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
