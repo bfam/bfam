@@ -1263,6 +1263,38 @@ void aux_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
   }
 }
 
+void scale_rates_advection (bfam_subdomain_dgx_t *sub, const char *rate_prefix,
+    const bfam_long_real_t a)
+{
+#if  DIM==2
+#define X(order) \
+  case order: blade_dgx_scale_rates_advection_2_##order(sub->N,sub, \
+                  rate_prefix,a); break;
+#elif  DIM==3
+#define X(order) \
+  case order: blade_dgx_scale_rates_advection_3_##order(sub->N,sub, \
+                  rate_prefix,a); break;
+#else
+#error "Bad Dimension"
+#endif
+
+  switch(sub->N)
+  {
+    BFAM_LIST_OF_DGX_NORDERS
+    default:
+#if   DIM==2
+      blade_dgx_scale_rates_advection_2_(sub->N,sub,rate_prefix,a);
+#elif DIM==3
+      blade_dgx_scale_rates_advection_3_(sub->N,sub,rate_prefix,a);
+#else
+#error "Bad Dimension"
+#endif
+
+      break;
+  }
+#undef X
+}
+
 void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     const bfam_long_real_t a)
 {
@@ -1270,14 +1302,46 @@ void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
   {
-    //JK bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
-    //JK scale_rates_elastic(sub,rate_prefix,a);
+    bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
+    scale_rates_advection(sub,rate_prefix,a);
   }
-  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"));
-  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel"));
-  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_local"));
+  else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
+      ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"   ));
   else
     BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
+}
+
+static void
+intra_rhs_advection(int N, bfam_subdomain_dgx_t *sub,
+    const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t)
+{
+#if  DIM==2
+#define X(order) \
+  case order: blade_dgx_intra_rhs_advection_2_##order(N,sub, \
+                  rate_prefix,field_prefix,t); break;
+#elif  DIM==3
+#define X(order) \
+  case order: blade_dgx_intra_rhs_advection_3_##order(N,sub, \
+                  rate_prefix,field_prefix,t); break;
+#else
+#error "Bad Dimension"
+#endif
+
+  switch(N)
+  {
+    BFAM_LIST_OF_DGX_NORDERS
+    default:
+#if   DIM==2
+      blade_dgx_intra_rhs_advection_2_(N,sub,rate_prefix, field_prefix,t);
+#elif DIM==3
+      blade_dgx_intra_rhs_advection_3_(N,sub,rate_prefix, field_prefix,t);
+#else
+#error "Bad Dimension"
+#endif
+      break;
+  }
+#undef X
 }
 
 void intra_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
@@ -1286,10 +1350,10 @@ void intra_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
 {
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
 
-  //JK bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*) thisSubdomain;
+  bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*) thisSubdomain;
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
   {
-    //JK intra_rhs_elastic(sub->N,sub,rate_prefix,field_prefix,t);
+    intra_rhs_advection(sub->N,sub,rate_prefix,field_prefix,t);
   }
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
@@ -1302,6 +1366,7 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     const char *minus_rate_prefix, const char *field_prefix,
     const bfam_long_real_t t)
 {
+  BFAM_ABORT("inter_rhs: not implemented");
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
 
 //JK  bfam_subdomain_dgx_t *sub =
@@ -1353,11 +1418,12 @@ void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
     const bfam_long_real_t a)
 {
+  BFAM_ABORT("add_rates: not implemented");
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
   {
     //JK bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
-    //JK add_rates_elastic(sub,field_prefix_lhs,field_prefix_rhs,rate_prefix,a);
+    //JK add_rates_advection(sub,field_prefix_lhs,field_prefix_rhs,rate_prefix,a);
   }
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
@@ -1424,12 +1490,13 @@ void add_rates_glue_p (bfam_subdomain_t *thisSubdomain,
     const char *field_prefix_lhs, const char *field_prefix_rhs,
     const char *rate_prefix, const bfam_long_real_t a)
 {
+  BFAM_ABORT("add_rates_glue_p: not implemented");
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
   if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"   ))
   {
     //JK bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
-    //JK add_rates_elastic_glue_p(sub,field_prefix_lhs,field_prefix_rhs,
+    //JK add_rates_advection_glue_p(sub,field_prefix_lhs,field_prefix_rhs,
     //JK                          rate_prefix,a);
   }
   else
