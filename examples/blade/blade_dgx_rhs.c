@@ -272,13 +272,13 @@ void blade_dgx_intra_rhs_advection(
     /* Note: Matrices on the LHS will be handled in add rates routine */
 
     /****** X-DERIVATIVE ******/
-    /* q += JI*(Jrx*Dr*(ux*q) + Jsx*Ds*(ux*q) + Jtx*Dt*(ux*q)) */
+    /* q -= JI*(Jrx*Dr*(ux*q) + Jsx*Ds*(ux*q) + Jtx*Dt*(ux*q)) */
     for(bfam_locidx_t i = 0; i < Np; i++) aux0[i] = ux[off+i] * q[off+i];
     BLADE_DR1(aux0, aux1); /* Dr */
     BLADE_DR2(aux0, aux2); /* Ds */
     BLADE_DR3(aux0, aux3); /* Dt */
     for(bfam_locidx_t i = 0; i < Np; i++)
-          dq[off+i] += BFAM_REAL(0.5)*JI[off+i]
+          dq[off+i] -= BFAM_REAL(0.5)*JI[off+i]
                         *BLADE_D3_AP( Jr1x1[off+i]*aux1[i]
                                     + Jr2x1[off+i]*aux2[i],
                                     + Jr3x1[off+i]*aux3[i]);
@@ -307,18 +307,18 @@ void blade_dgx_intra_rhs_advection(
         for(bfam_locidx_t i = 0; i < N+1; i++,n++)
         {
           const bfam_real_t wi_ijk = BLADE_D3_AP(wi[i]*wi[j],*wi[k]);
-          dq[off+n] -= BFAM_REAL(0.5)*wi_ijk*JI[off+n]*ux[off+n]*aux0[n];
+          dq[off+n] += BFAM_REAL(0.5)*wi_ijk*JI[off+n]*ux[off+n]*aux0[n];
         }
 
 
     /****** Y-DERIVATIVE ******/
-    /* q += JI*(Jry*Dr*(uy*q) + Jsy*Ds*(uy*q) + Jty*Dt*(uy*q)) */
+    /* q -= JI*(Jry*Dr*(uy*q) + Jsy*Ds*(uy*q) + Jty*Dt*(uy*q)) */
     for(bfam_locidx_t i = 0; i < Np; i++) aux0[i] = uy[off+i] * q[off+i];
     BLADE_DR1(aux0, aux1); /* Dr */
     BLADE_DR2(aux0, aux2); /* Ds */
     BLADE_DR3(aux0, aux3); /* Dt */
     for(bfam_locidx_t i = 0; i < Np; i++)
-          dq[off+i] += BFAM_REAL(0.5)*JI[off+i]
+          dq[off+i] -= BFAM_REAL(0.5)*JI[off+i]
                         *BLADE_D3_AP( Jr1x2[off+i]*aux1[i]
                                     + Jr2x2[off+i]*aux2[i],
                                     + Jr3x2[off+i]*aux3[i]);
@@ -347,18 +347,18 @@ void blade_dgx_intra_rhs_advection(
         for(bfam_locidx_t i = 0; i < N+1; i++,n++)
         {
           const bfam_real_t wi_ijk = BLADE_D3_AP(wi[i]*wi[j],*wi[k]);
-          dq[off+n] -= BFAM_REAL(0.5)*wi_ijk*JI[off+n]*uy[off+n]*aux0[n];
+          dq[off+n] += BFAM_REAL(0.5)*wi_ijk*JI[off+n]*uy[off+n]*aux0[n];
         }
 
     /****** Z-DERIVATIVE ******/
 #if DIM==3
-    /* q += JI*(Jrz*Dr*(uz*q) + Jsz*Ds*(uz*q) + Jtz*Dt*(uz*q)) */
+    /* q -= JI*(Jrz*Dr*(uz*q) + Jsz*Ds*(uz*q) + Jtz*Dt*(uz*q)) */
     for(bfam_locidx_t i = 0; i < Np; i++) aux0[i] = uz[off+i] * q[off+i];
     BLADE_DR1(aux0, aux1); /* Dr */
     BLADE_DR2(aux0, aux2); /* Ds */
     BLADE_DR3(aux0, aux3); /* Dt */
     for(bfam_locidx_t i = 0; i < Np; i++)
-          dq[off+i] += BFAM_REAL(0.5)*JI[off+i]
+          dq[off+i] -= BFAM_REAL(0.5)*JI[off+i]
                         *BLADE_D3_AP( Jr1x3[off+i]*aux1[i]
                                     + Jr2x3[off+i]*aux2[i],
                                     + Jr3x3[off+i]*aux3[i]);
