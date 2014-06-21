@@ -3,11 +3,11 @@ N1 = 2
 N2 = 2
 N3 = 2
 min_level = 1
-max_level = 2
+max_level = 1
 
-ux = 1
-uy = 2
-uz = 3
+ux = 0
+uy = 1
+uz = 0
 
 -- store random seed
 math.randomseed(0)
@@ -34,8 +34,8 @@ Lz = 25
 function connectivity_vertices(x, y, z)
   if x > 0 and x < brick.nx and
      y > 0 and y < brick.ny then
-    x = x + 0.5*(math.random()-0.5)
-    y = y + 0.5*(math.random()-0.5)
+    -- x = x + 0.5*(math.random()-0.5)
+    -- y = y + 0.5*(math.random()-0.5)
   end
   xout = Lx*x
   yout = Ly*y
@@ -93,6 +93,10 @@ function time_step_parameters(dt)
   nsteps = math.ceil(tend / dt)
   dt      = tend / nsteps
   ndisp   = tdisp / dt
-  noutput = tout / dt
+  noutput = 1
   return dt,nsteps, ndisp, noutput
+end
+
+function nerr(dt)
+  return terr/dt
 end

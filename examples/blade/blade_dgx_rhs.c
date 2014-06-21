@@ -137,6 +137,8 @@ BFAM_ASSUME_ALIGNED(field,32);
 #define blade_dgx_add_rates_advection \
   BLADE_APPEND_EXPAND_4(blade_dgx_add_rates_advection_,DIM,_,NORDER)
 
+#define HALF BFAM_REAL(0.5)
+
 void blade_dgx_scale_rates_advection(
     int inN, bfam_subdomain_dgx_t *sub, const char *rate_prefix,
     const bfam_long_real_t a)
@@ -196,7 +198,7 @@ void blade_dgx_energy(
   }
 }
 
-#define GAM (BFAM_REAL(0.5))
+#define GAM (BFAM_REAL(0))
 static inline void
 blade_dgx_add_flux(const bfam_real_t scale,
           bfam_real_t *dq, const bfam_locidx_t iM,
@@ -204,9 +206,8 @@ blade_dgx_add_flux(const bfam_real_t scale,
     const bfam_real_t  sJ, const bfam_real_t   JI, const bfam_real_t wi)
 {
   /* compute the state u*q */
-  const bfam_real_t uqS = BFAM_REAL(0.5)*((1-GAM)*              u *(qM+qP)
-                                           + GAM *BFAM_REAL_ABS(u)*(qM+qP));
-  dq[iM] += scale*wi*JI*sJ*(BFAM_REAL(0.5)*u*qM-uqS);
+  const bfam_real_t uqS = HALF*u*(qM+qP);
+  dq[iM] += scale*wi*JI*sJ*(HALF*u*qM-uqS);
 }
 
 void blade_dgx_intra_rhs_advection(
@@ -229,9 +230,11 @@ void blade_dgx_intra_rhs_advection(
 
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(J    ,"","_grid_J"    ,fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(JI   ,"","_grid_JI"   ,fields);
+
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Jr1x1,"","_grid_Jr0x0",fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Jr1x2,"","_grid_Jr0x1",fields);
   BLADE_D3_OP(BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Jr1x3,"","_grid_Jr0x2",fields));
+
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Jr2x1,"","_grid_Jr1x0",fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Jr2x2,"","_grid_Jr1x1",fields);
   BLADE_D3_OP(BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Jr2x3,"","_grid_Jr1x2",fields));
@@ -278,7 +281,7 @@ void blade_dgx_intra_rhs_advection(
     BLADE_DR2(aux0, aux2); /* Ds */
     BLADE_DR3(aux0, aux3); /* Dt */
     for(bfam_locidx_t i = 0; i < Np; i++)
-          dq[off+i] -= BFAM_REAL(0.5)*JI[off+i]
+          dq[off+i] -= HALF*JI[off+i]
                         *BLADE_D3_AP( Jr1x1[off+i]*aux1[i]
                                     + Jr2x1[off+i]*aux2[i],
                                     + Jr3x1[off+i]*aux3[i]);
@@ -291,9 +294,9 @@ void blade_dgx_intra_rhs_advection(
       for(bfam_locidx_t j = 0; j < N+1; j++)
         for(bfam_locidx_t i = 0; i < N+1; i++,n++)
         {
-          aux1[n] = BLADE_D3_AP(w[i]*w[j],*w[k])*Jr1x1[off+i]*q[off+i];
-          aux2[n] = BLADE_D3_AP(w[i]*w[j],*w[k])*Jr2x1[off+i]*q[off+i];
-          BLADE_D3_OP(aux3[n] = w[i]*w[j] *w[k] *Jr3x1[off+i]*q[off+i]);
+          aux1[n] = BLADE_D3_AP(w[i]*w[j],*w[k])*Jr1x1[off+n]*q[off+n];
+          aux2[n] = BLADE_D3_AP(w[i]*w[j],*w[k])*Jr2x1[off+n]*q[off+n];
+          BLADE_D3_OP(aux3[n] = w[i]*w[j] *w[k] *Jr3x1[off+n]*q[off+n]);
         }
     BLADE_DR1T   (aux1, aux0);
     BLADE_DR2T_PE(aux2, aux0);
@@ -307,7 +310,7 @@ void blade_dgx_intra_rhs_advection(
         for(bfam_locidx_t i = 0; i < N+1; i++,n++)
         {
           const bfam_real_t wi_ijk = BLADE_D3_AP(wi[i]*wi[j],*wi[k]);
-          dq[off+n] += BFAM_REAL(0.5)*wi_ijk*JI[off+n]*ux[off+n]*aux0[n];
+          dq[off+n] += HALF*wi_ijk*JI[off+n]*ux[off+n]*aux0[n];
         }
 
 
@@ -318,7 +321,7 @@ void blade_dgx_intra_rhs_advection(
     BLADE_DR2(aux0, aux2); /* Ds */
     BLADE_DR3(aux0, aux3); /* Dt */
     for(bfam_locidx_t i = 0; i < Np; i++)
-          dq[off+i] -= BFAM_REAL(0.5)*JI[off+i]
+          dq[off+i] -= HALF*JI[off+i]
                         *BLADE_D3_AP( Jr1x2[off+i]*aux1[i]
                                     + Jr2x2[off+i]*aux2[i],
                                     + Jr3x2[off+i]*aux3[i]);
@@ -331,9 +334,9 @@ void blade_dgx_intra_rhs_advection(
       for(bfam_locidx_t j = 0; j < N+1; j++)
         for(bfam_locidx_t i = 0; i < N+1; i++,n++)
         {
-          aux1[n] = BLADE_D3_AP(w[i]*w[j],*w[k])*Jr1x2[off+i]*q[off+i];
-          aux2[n] = BLADE_D3_AP(w[i]*w[j],*w[k])*Jr2x2[off+i]*q[off+i];
-          BLADE_D3_OP(aux3[n] = w[i]*w[j] *w[k] *Jr3x2[off+i]*q[off+i]);
+          aux1[n] = BLADE_D3_AP(w[i]*w[j],*w[k])*Jr1x2[off+n]*q[off+n];
+          aux2[n] = BLADE_D3_AP(w[i]*w[j],*w[k])*Jr2x2[off+n]*q[off+n];
+          BLADE_D3_OP(aux3[n] = w[i]*w[j] *w[k] *Jr3x2[off+n]*q[off+n]);
         }
     BLADE_DR1T   (aux1, aux0);
     BLADE_DR2T_PE(aux2, aux0);
@@ -347,44 +350,11 @@ void blade_dgx_intra_rhs_advection(
         for(bfam_locidx_t i = 0; i < N+1; i++,n++)
         {
           const bfam_real_t wi_ijk = BLADE_D3_AP(wi[i]*wi[j],*wi[k]);
-          dq[off+n] += BFAM_REAL(0.5)*wi_ijk*JI[off+n]*uy[off+n]*aux0[n];
+          dq[off+n] += HALF*wi_ijk*JI[off+n]*uy[off+n]*aux0[n];
         }
 
     /****** Z-DERIVATIVE ******/
 #if DIM==3
-    /* q -= JI*(Jrz*Dr*(uz*q) + Jsz*Ds*(uz*q) + Jtz*Dt*(uz*q)) */
-    for(bfam_locidx_t i = 0; i < Np; i++) aux0[i] = uz[off+i] * q[off+i];
-    BLADE_DR1(aux0, aux1); /* Dr */
-    BLADE_DR2(aux0, aux2); /* Ds */
-    BLADE_DR3(aux0, aux3); /* Dt */
-    for(bfam_locidx_t i = 0; i < Np; i++)
-          dq[off+i] -= BFAM_REAL(0.5)*JI[off+i]
-                        *BLADE_D3_AP( Jr1x3[off+i]*aux1[i]
-                                    + Jr2x3[off+i]*aux2[i],
-                                    + Jr3x3[off+i]*aux3[i]);
-
-    /* q += MI*JI*uz*(Dr'*M*Jrz*q + Ds'*M*Jsz*q + Dt'*M*Jtz*q) */
-    n = 0;
-    for(bfam_locidx_t k = 0; k < N+1; k++)
-      for(bfam_locidx_t j = 0; j < N+1; j++)
-        for(bfam_locidx_t i = 0; i < N+1; i++,n++)
-        {
-          aux1[n] = BLADE_D3_AP(w[i]*w[j],*w[k])*Jr1x3[off+i]*q[off+i];
-          aux2[n] = BLADE_D3_AP(w[i]*w[j],*w[k])*Jr2x3[off+i]*q[off+i];
-          BLADE_D3_OP(aux3[n] = w[i]*w[j] *w[k] *Jr3x3[off+i]*q[off+i]);
-        }
-    BLADE_DR1T   (aux1, aux0);
-    BLADE_DR2T_PE(aux2, aux0);
-    BLADE_DR3T_PE(aux3, aux0);
-
-    n = 0;
-    for(bfam_locidx_t k = 0; k < N+1; k++)
-      for(bfam_locidx_t j = 0; j < N+1; j++)
-        for(bfam_locidx_t i = 0; i < N+1; i++,n++)
-        {
-          const bfam_real_t wi_ijk = BLADE_D3_AP(wi[i]*wi[j],*wi[k]);
-          dq[off+n] += BFAM_REAL(0.5)*wi_ijk*JI[off+n]*uz[off+n]*aux0[n];
-        }
 #endif
 
     /* loop over faces */
@@ -399,10 +369,9 @@ void blade_dgx_intra_rhs_advection(
         /* we use the average here in case there is a slight miss-match in the
          * velocities (they should be the same value though)
          */
-        const bfam_real_t u = BFAM_REAL(0.5)*BLADE_D3_AP(
-                                           (ux[iM] + ux[iP]) * n1[f]
-                                         + (uy[iM] + uy[iP]) * n2[f],
-                                         + (uz[iM] + uz[iP]) * n3[f]);
+        const bfam_real_t u = HALF*BLADE_D3_AP( (ux[iM] + ux[iP]) * n1[f]
+                                              + (uy[iM] + uy[iP]) * n2[f],
+                                              + (uz[iM] + uz[iP]) * n3[f]);
 
         /* intra */
         blade_dgx_add_flux(1, dq, iM, u, q[iM], q[iP],sJ[f],JI[iM],wi[0]);
