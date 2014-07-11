@@ -102,8 +102,8 @@ macro(p4est_build)
 
   ExternalProject_Add(p4est
     PREFIX    ${CMAKE_BINARY_DIR}/third_party/p4est
-    URL       ${CMAKE_SOURCE_DIR}/third_party/p4est-0.3.4.1.143-e573.tar.gz
-    URL_MD5   d4cee11cc7c8957e29ee9a5f698b2a42
+    URL       ${CMAKE_SOURCE_DIR}/third_party/p4est-1.1.tar.gz
+    URL_MD5   37ba7f4410958cfb38a2140339dbf64f
     CONFIGURE_COMMAND ${CMAKE_BINARY_DIR}/third_party/p4est/src/p4est/configure
       "CC=${MPI_C_COMPILER}"
       "F77=${MPI_Fortran_COMPILER}"
