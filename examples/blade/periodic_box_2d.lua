@@ -5,7 +5,7 @@ N3 = 2
 min_level = 1
 max_level = 1
 
-ux = 0
+ux = 1
 uy = 1
 uz = 0
 
@@ -20,7 +20,7 @@ connectivity = "brick"
 brick =
 {
   nx = 4,
-  ny = 3,
+  ny = 4,
   nz = 2,
   periodic_x = 1,
   periodic_y = 1,
@@ -34,8 +34,8 @@ Lz = 25
 function connectivity_vertices(x, y, z)
   if x > 0 and x < brick.nx and
      y > 0 and y < brick.ny then
-    -- x = x + 0.5*(math.random()-0.5)
-    -- y = y + 0.5*(math.random()-0.5)
+     x = x + 0.5*(math.random()-0.5)
+     y = y + 0.5*(math.random()-0.5)
   end
   xout = Lx*x
   yout = Ly*y
@@ -44,11 +44,12 @@ function connectivity_vertices(x, y, z)
 end
 
 k1 = 2*math.pi
-k2 = 4*math.pi
+k2 = 2*math.pi
 function q(x, y, z, t)
-  r1 = x/Lx/brick.nx
-  r2 = y/Ly/brick.ny
-  val = math.sin(k1*r1)
+  r1 = (x-ux*t)/Lx/brick.nx
+  r2 = (y-uy*t)/Ly/brick.ny
+  val = 0
+  val = val + math.sin(k1*r1)
   val = val + math.sin(k2*r2)
   return val
 end
@@ -84,7 +85,7 @@ end
 lsrk_method  = "KC54"
 
 tend  = 4*Lx
-tout  = tend/10
+tout  = tend/100
 tdisp = tend/10
 terr  = tend/10
 dt_fudge = 0.5
@@ -93,7 +94,7 @@ function time_step_parameters(dt)
   nsteps = math.ceil(tend / dt)
   dt      = tend / nsteps
   ndisp   = tdisp / dt
-  noutput = 1
+  noutput = tout / dt
   return dt,nsteps, ndisp, noutput
 end
 
