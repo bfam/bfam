@@ -900,7 +900,7 @@ domain_add_fields(blade_t *blade, prefs_t *prefs)
 //JK   {
 //JK     luaL_checktype(L, -1, LUA_TTABLE);
 //JK 
-//JK     int N_glueids = luaL_getn(L, -1);
+//JK     int N_glueids = lua_objlen(L, -1);
 //JK     BFAM_LDEBUG("N_glueids: %3d", N_glueids);
 //JK 
 //JK     BFAM_ROOT_VERBOSE("Reading glue info from lua");

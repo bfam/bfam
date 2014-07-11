@@ -941,7 +941,7 @@ init_tree_to_glueid(beard_t *beard, prefs_t *prefs,
   else
   {
 
-    int n = luaL_getn(L, -1);
+    int n = lua_objlen(L, -1);
     BFAM_LDEBUG("glueid_treeid_faceid  #elem: %3d", n);
 
     BFAM_ABORT_IF_NOT(n%3 == 0,
@@ -1385,7 +1385,7 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
   {
     luaL_checktype(L, -1, LUA_TTABLE);
 
-    int N_glueids = luaL_getn(L, -1);
+    int N_glueids = lua_objlen(L, -1);
     BFAM_LDEBUG("N_glueids: %3d", N_glueids);
 
     BFAM_ROOT_VERBOSE("Reading glue info from lua");
@@ -2818,7 +2818,7 @@ init_fault_stations(beard_t *beard, prefs_t *prefs)
   else
   {
 
-    const int length_stations = luaL_getn(L, -1);
+    const int length_stations = lua_objlen(L, -1);
     BFAM_LDEBUG("fault_stations  #elem: %3d", length_stations);
 
     BFAM_ABORT_IF_NOT(length_stations%(DIM+1)== 0,
@@ -2995,7 +2995,7 @@ init_volume_stations(beard_t *beard, prefs_t *prefs)
   else
   {
 
-    const int length_stations = luaL_getn(L, -1);
+    const int length_stations = lua_objlen(L, -1);
     BFAM_LDEBUG("volume_stations  #elem: %3d", length_stations);
 
     BFAM_ABORT_IF_NOT(length_stations%(DIM+1)== 0,
