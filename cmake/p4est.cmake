@@ -111,7 +111,7 @@ macro(p4est_build)
       "LIBS=${lua_lib} ${zlib_lib}"
       ${p4est_config_args}
       --enable-mpi --disable-vtk-binary --without-blas
-      --without-zlib --without-lua --enable-debug
+      --without-zlib --without-lua
       --prefix=${P4EST_BUNDLED_PREFIX}
     BUILD_COMMAND       make
     INSTALL_COMMAND     make install
