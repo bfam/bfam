@@ -96,6 +96,9 @@ macro(p4est_build)
     set(zlib_lib "${zlib_lib} ${lib}")
   endforeach()
 
+  foreach(lib ${LUA_LIBRARIES})
+    set(lua_lib "${lua_lib} ${lib}")
+  endforeach()
 
   ExternalProject_Add(p4est
     PREFIX    ${CMAKE_BINARY_DIR}/third_party/p4est
@@ -104,9 +107,8 @@ macro(p4est_build)
     CONFIGURE_COMMAND ${CMAKE_BINARY_DIR}/third_party/p4est/src/p4est/configure
       "CC=${MPI_C_COMPILER}"
       "F77=${MPI_Fortran_COMPILER}"
-      "CPPFLAGS=-I${LUAJIT_INCLUDE} ${zlib_include}"
-      "LDFLAGS=${LUAJIT_LINK_FLAGS}"
-      "LIBS=${LUAJIT_LIB} ${zlib_lib}"
+      "CPPFLAGS=-I${LUA_INCLUDE_DIR} ${zlib_include}"
+      "LIBS=${lua_lib} ${zlib_lib}"
       ${p4est_config_args}
       --enable-mpi --disable-vtk-binary --without-blas
       --without-zlib --without-lua --enable-debug

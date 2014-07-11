@@ -59,21 +59,34 @@ files.
     TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
     SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-### LuaJIT
-Mike Pall's LuaJIT is included in BFAM.  See the file
-`third_party/luajit/COPYRIGHT` for license information.
-It is added to the repository using:
+### Lua
+We include a CMaked version of Lua from LuaDist by Peter Drahoš and Peter Kapec
+redistribution and use of the included files are allowed according to the terms
+of the MIT license. Lua was written by Roberto Ierusalimschy, Waldemar Celes, and Luiz
+Henrique de Figueiredo.
 
-    git subtree add --prefix=third_party/luajit --squash \
-        http://luajit.org/git/luajit-2.0.git master
+See the copyright statement below for license information of the included
+Lua files.
 
-and can be updated to the latest upstream version using:
+    Copyright (C) 1994-2012 Lua.org, PUC-Rio.
 
-    git subtree merge --prefix=third_party/luajit --squash \
-        http://luajit.org/git/luajit-2.0.git master
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
 
-We also use the CMake build script for LuaJIT from Tarantool, see
-`cmake/luajit.cmake` for more details.
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    THE SOFTWARE.
 
 ### ispc
 We have included support in the CMake file to build ispc based kernels.  A

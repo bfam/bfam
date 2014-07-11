@@ -322,10 +322,8 @@ FortranCInterface_HEADER(bfam_f2c.h MACRO_NAMESPACE "BFAM_" SYMBOL_NAMESPACE "BF
 add_custom_target(build_bundled_libs)
 add_custom_target(p4est_bundled_libs)
 
-##
-## LuaJIT
-##
-include(luajit)
+include(lua)
+include_directories(${LUA_INCLUDE_DIR})
 
 include(zlib)
 include_directories(${ZLIB_INCLUDE_DIRS})
@@ -373,7 +371,6 @@ add_library(bfam
            )
 add_dependencies(bfam build_bundled_libs version)
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LUAJIT_LINK_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_C_LINK_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_Fortran_LINK_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LAPACK_LINKER_FLAGS}")
@@ -383,7 +380,7 @@ find_library(MATH_LIB m)
 target_link_libraries(bfam ${MPI_C_LIBRARIES}
                            ${MPI_Fortran_LIBRARIES}
                            ${P4EST_LIBRARIES}
-                           ${LUAJIT_LIB}
+                           ${LUA_LIBRARIES}
                            ${ZLIB_LIBRARIES}
                            ${LAPACK_LIBRARIES}
                            ${BLAS_LIBRARIES}
@@ -710,6 +707,8 @@ set(BFAM_COMPILE_LIST
   "             CMAKE_Fortran_FLAGS:         ${CMAKE_Fortran_FLAGS}\\\\n"
   "             CMAKE_Fortran_FLAGS_DEBUG:   ${CMAKE_Fortran_FLAGS_DEBUG}\\\\n"
   "             CMAKE_Fortran_FLAGS_RELEASE: ${CMAKE_Fortran_FLAGS_RELEASE}\\\\n"
+  "             LUA_LIBRARIES:               ${LUA_LIBRARIES}\\\\n"
+  "             LUA_INCLUDE_DIR:             ${LUA_INCLUDE_DIR}\\\\n"
   "             LUAJIT_INCLUDE:              ${LUAJIT_INCLUDE}\\\\n"
   "             LUAJIT_LIB:                  ${LUAJIT_LIB}\\\\n"
   "             LUAJIT_LINK_FLAGS:           ${LUAJIT_LINK_FLAGS}\\\\n"
