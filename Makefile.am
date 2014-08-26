@@ -1,3 +1,7 @@
+## Makefile.am in the toplevel directory
+##
+## This file is ignored when building with cmake.
+## It is used only when building with the autotools.
 
 ACLOCAL_AMFLAGS = -I autotools
 

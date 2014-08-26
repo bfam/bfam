@@ -1,6 +1,15 @@
+## Makefile.am in the src subdirectory
+##
+## This file is ignored when building with cmake.
+## It is used only when building with the autotools.
+##
+## It is included by the toplevel Makefile.am.
+## We do not use recursive make.
 
 libbfam_generated_files = src/bfam_config.h
-libbfam_source_files = src/bfam_util.c
+libbfam_source_files = \
+src/bfam_jacobi.c \
+src/bfam_util.c
 libbfam_include_files = \
 src/bfam_base.h \
 src/bfam_clock.h \
