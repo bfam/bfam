@@ -37,3 +37,18 @@ can be added onto cmake with the '-D' option:
     MPI_C_COMPILER
     MPI_Fortran_COMPILER
     MPIEXEC
+
+### Using autotools to build bfam
+
+There is initial support for an autotools build.  It should work like this:
+
+    git clone some/repo/bfam.git
+    cd bfam
+    autotools/bootstrap
+    mkdir build
+    cd build
+    ../configure CFLAGS="-std=c99 -Wall"
+    make
+
+Calling bootstrap is generally not required every time.
+Typing make (or make install or make dist ...) should take care of everything.

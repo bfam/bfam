@@ -65,6 +65,10 @@ dnl This macro prints messages at the end of the configure run.
 dnl
 AC_DEFUN([BFAM_FINAL_MESSAGES],
 [
+AC_MSG_NOTICE([- $1 -------------------------------------------------
+The current version of bfam's autotools support just builds a library
+from selected sources.  As of yet, there are no examples or tests.
+])
 if test "x$$1_HAVE_LUA" = x ; then
 AC_MSG_ERROR([- $1 -------------------------------------------------
 We did not find a recent lua containing the function lua_createtable.
