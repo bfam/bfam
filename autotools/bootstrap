@@ -1,11 +1,11 @@
 #! /bin/sh
 
-## This is from p4est and likely not going to survive
+## This is copied from p4est and likely not going to survive
 # Call this without arguments if bfam is the toplevel package.
 # Call this with one argument if bfam is itself a subdirectory:
 # ./bootstrap <sc config directory>
 
-# Currently we do not assume the sc source, we just copy some files
+# Currently we do not assume the sc source.  We just copy some macro files
 
 bdie () {
 	echo "bootstrap aborting: $1"
