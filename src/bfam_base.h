@@ -7,7 +7,18 @@
 #define _XOPEN_SOURCE 600
 #endif
 
+/* this file is created by both cmake and configure */
 #include <bfam_config.h>
+
+/* the restrict keyword gets mangled by ax_prefix_config_h.m4 */
+#if defined BFAM_AUTOTOOLS
+#define restrict _bfam_restrict
+#endif
+
+/* to allow for C++ compilers mpi.h must be included before stdio.h */
+#if !defined BFAM_AUTOTOOLS || defined BFAM_ENABLE_MPI
+#include <mpi.h>
+#endif
 
 #include <float.h>
 #include <math.h>
@@ -63,11 +74,21 @@
 #  endif
 #endif
 
-#include <mpi.h>
-
+#ifdef BFAM_HAVE_LUA5_2_LUA_H
+#include <lua5.2/lua.h>
+#include <lua5.2/lualib.h>
+#include <lua5.2/lauxlib.h>
+#else
+#ifdef BFAM_HAVE_LUA5_1_LUA_H
+#include <lua5.1/lua.h>
+#include <lua5.1/lualib.h>
+#include <lua5.1/lauxlib.h>
+#else
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+#endif
+#endif
 
 #if defined __GNUC__ && !defined __GNUC_PREREQ
 # ifndef __GNUC_MINOR__
