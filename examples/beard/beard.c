@@ -1009,7 +1009,7 @@ split_domain(beard_t *beard, prefs_t *prefs)
   bfam_domain_pxest_quad_to_glueid(domain->pxest, tree_ids, glue_ids);
 
   bfam_domain_pxest_split_dgx_subdomains(domain, data.max_N, sub_ids, N,
-      glue_ids);
+      glue_ids,NULL);
 
   bfam_free(tree_ids);
   bfam_free(glue_ids);

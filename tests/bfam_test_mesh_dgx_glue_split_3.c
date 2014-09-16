@@ -121,7 +121,7 @@ build_state(MPI_Comm mpicomm, state_t* state)
 
 
   bfam_domain_pxest_split_dgx_subdomains_3(domain, numSubdomains,
-      subdomainID, N, glueID);
+      subdomainID, N, glueID, NULL);
 
   const char *volume[] = {"_volume", NULL};
   const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};

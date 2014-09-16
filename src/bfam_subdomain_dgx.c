@@ -1302,7 +1302,7 @@ bfam_subdomain_dgx_comm_info(bfam_subdomain_t *thisSubdomain,
     (bfam_subdomain_dgx_t*) thisSubdomain;
 
 #ifdef USE_GENERIC_DGX_DIMENSION
-  BFAM_WARNING("Using generic bfam_subdomain_dgx_geo");
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_comm_info");
   /* const int DIM = sub->dim; */
 #endif
 
@@ -2666,6 +2666,10 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
                         const bfam_locidx_t        *EToV,
                         const bfam_locidx_t        *EToE,
                         const int8_t               *EToF,
+                        void (*nodes_transform)(
+                          const bfam_locidx_t num_Vi,
+                          const bfam_locidx_t num_pnts,
+                          bfam_long_real_t** lxi),
                         const int                   inDIM)
 {
 #ifdef USE_GENERIC_DGX_DIMENSION
@@ -2755,8 +2759,9 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
               }
             }
       else BFAM_ABORT("not setup of dim = %d",DIM);
-
     }
+
+    if(nodes_transform) nodes_transform(num_Vi,K*Np,lxi);
 
     bfam_long_real_t *restrict V = subdomain->V;
 
@@ -2927,6 +2932,10 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_new_,BFAM_DGX_DIMENSION)(
                        const bfam_locidx_t     *EToV,
                        const bfam_locidx_t     *EToE,
                        const int8_t            *EToF,
+                       void (*nodes_transform)(
+                         const bfam_locidx_t num_Vi,
+                         const bfam_locidx_t num_pnts,
+                         bfam_long_real_t** lxi),
                        const int                inDIM)
 {
 #ifdef USE_GENERIC_DGX_DIMENSION
@@ -2940,7 +2949,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_new_,BFAM_DGX_DIMENSION)(
 
   BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
                          newSubdomain, id, uid, name, N, Nv, num_Vi, Vi, K,
-                         EToV, EToE, EToF,DIM);
+                         EToV, EToE, EToF, nodes_transform, DIM);
   return newSubdomain;
 }
 

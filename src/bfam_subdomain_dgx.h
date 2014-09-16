@@ -155,6 +155,9 @@ typedef struct bfam_subdomain_dgx_point_interp
  * \param [in] EToF   Mapping such that \c EToF[k*4+f] gives the
  *                    face+orientation number connected to face \c f of element
  *                    \c k.
+ * \param [in] nodes_transform
+ *                    user callback function to allow the user to further
+ *                    transform the nodal locations
  * \param [in] dim    number of (computational) dimensions
  *
  * \return Initialized dgx subdomain
@@ -173,6 +176,10 @@ bfam_subdomain_dgx_new_(const bfam_locidx_t      id,
                        const bfam_locidx_t     *EToV,
                        const bfam_locidx_t     *EToE,
                        const int8_t            *EToF,
+                       void (*nodes_transform)(
+                         const bfam_locidx_t num_Vi,
+                         const bfam_locidx_t num_pnts,
+                         bfam_long_real_t** lxi),
                        const int                dim);
 
 /** initializes a dgx subdomain
@@ -193,6 +200,9 @@ bfam_subdomain_dgx_new_(const bfam_locidx_t      id,
  * \param [in]     EToF      Mapping such that \c EToF[k*4+f] gives the
  *                           face+orientation number connected to face \c f of
  *                           element \c k.
+ * \param [in] nodes_transform
+ *                    user callback function to allow the user to further
+ *                    transform the nodal locations
  * \param [in]     dim       number of (computational) dimensions
  */
 void
@@ -208,6 +218,10 @@ bfam_subdomain_dgx_init_(bfam_subdomain_dgx_t *subdomain,
                         const bfam_locidx_t       *EToV,
                         const bfam_locidx_t       *EToE,
                         const int8_t              *EToF,
+                        void (*nodes_transform)(
+                          const bfam_locidx_t num_Vi,
+                          const bfam_locidx_t num_pnts,
+                          bfam_long_real_t** lxi),
                         const int                  dim);
 
 /** create a dgx glue subdomain.
@@ -419,6 +433,10 @@ bfam_subdomain_dgx_new_##dg_dim(const bfam_locidx_t      id,  \
                              const bfam_locidx_t     *EToV,   \
                              const bfam_locidx_t     *EToE,   \
                              const int8_t            *EToF,   \
+                             void (*nodes_transform)(         \
+                               const bfam_locidx_t num_Vi,    \
+                               const bfam_locidx_t num_pnts,  \
+                               bfam_long_real_t** lxi),       \
                              const int                dim);   \
 void                                                              \
 bfam_subdomain_dgx_init_##dg_dim(bfam_subdomain_dgx_t *subdomain, \
@@ -433,6 +451,10 @@ bfam_subdomain_dgx_init_##dg_dim(bfam_subdomain_dgx_t *subdomain, \
                         const bfam_locidx_t       *EToV,          \
                         const bfam_locidx_t       *EToE,          \
                         const int8_t              *EToF,          \
+                        void (*nodes_transform)(                  \
+                          const bfam_locidx_t num_Vi,             \
+                          const bfam_locidx_t num_pnts,           \
+                          bfam_long_real_t** lxi),                \
                         const int                  dim);          \
 void                                                           \
 bfam_subdomain_dgx_free_##dg_dim(bfam_subdomain_t *subdomain); \
