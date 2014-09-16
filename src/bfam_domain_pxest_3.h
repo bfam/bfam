@@ -98,15 +98,16 @@ bfam_domain_pxest_quad_to_glueid_3(p4est_t *pxest,
  *                               This is of length \c
  *                               pxest->local_num_quadrants*NumberOfFaces
  *                               if \c NULL it will be ignored.
- * \param [in] nodes_transform
- *                    user callback function to allow the user to further
- *                    transform the nodal locations
+ * \param [in] nodes_transform   user callback function to allow the user to
+ *                               further transform the nodal locations
+ * \param [in] user_args         user argument for nodes_transform
  */
 void
 bfam_domain_pxest_split_dgx_subdomains_3(bfam_domain_pxest_t_3 *domain,
     bfam_locidx_t numSubdomains, bfam_locidx_t *subdomainID, int *N,
     bfam_locidx_t *glueID,
     void (*nodes_transform)(const bfam_locidx_t num_Vi,
-      const bfam_locidx_t num_pnts, bfam_long_real_t** lxi));
+      const bfam_locidx_t num_pnts, bfam_long_real_t** lxi, void* user_args),
+    void* user_args);
 
 #endif

@@ -179,7 +179,9 @@ bfam_subdomain_dgx_new_(const bfam_locidx_t      id,
                        void (*nodes_transform)(
                          const bfam_locidx_t num_Vi,
                          const bfam_locidx_t num_pnts,
-                         bfam_long_real_t** lxi),
+                         bfam_long_real_t** lxi,
+                         void* user_args),
+                       void* user_args,
                        const int                dim);
 
 /** initializes a dgx subdomain
@@ -221,7 +223,9 @@ bfam_subdomain_dgx_init_(bfam_subdomain_dgx_t *subdomain,
                         void (*nodes_transform)(
                           const bfam_locidx_t num_Vi,
                           const bfam_locidx_t num_pnts,
-                          bfam_long_real_t** lxi),
+                          bfam_long_real_t** lxi,
+                          void* user_args),
+                        void* user_args,
                         const int                  dim);
 
 /** create a dgx glue subdomain.
@@ -436,7 +440,9 @@ bfam_subdomain_dgx_new_##dg_dim(const bfam_locidx_t      id,  \
                              void (*nodes_transform)(         \
                                const bfam_locidx_t num_Vi,    \
                                const bfam_locidx_t num_pnts,  \
-                               bfam_long_real_t** lxi),       \
+                               bfam_long_real_t** lxi,        \
+                               void* user_args),              \
+                            void* user_args,                  \
                              const int                dim);   \
 void                                                              \
 bfam_subdomain_dgx_init_##dg_dim(bfam_subdomain_dgx_t *subdomain, \
@@ -454,7 +460,9 @@ bfam_subdomain_dgx_init_##dg_dim(bfam_subdomain_dgx_t *subdomain, \
                         void (*nodes_transform)(                  \
                           const bfam_locidx_t num_Vi,             \
                           const bfam_locidx_t num_pnts,           \
-                          bfam_long_real_t** lxi),                \
+                          bfam_long_real_t** lxi,                 \
+                          void* user_args),                       \
+                        void* user_args,                          \
                         const int                  dim);          \
 void                                                           \
 bfam_subdomain_dgx_free_##dg_dim(bfam_subdomain_t *subdomain); \

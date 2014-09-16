@@ -979,6 +979,36 @@ init_tree_to_glueid(beard_t *beard, prefs_t *prefs,
 }
 
 static void
+transform_nodes(const bfam_locidx_t num_Vi, const bfam_locidx_t num_pnts,
+    bfam_long_real_t** lxi, void* args)
+{
+  prefs_t *prefs = (prefs_t*) args;
+  BFAM_ASSERT(num_Vi == prefs->dimension);
+
+  lua_State *L = prefs->L;
+  for(bfam_locidx_t k = 0; k < num_pnts; k++)
+  {
+    bfam_real_t x = lxi[0][k];
+    bfam_real_t y = lxi[1][k];
+#if DIM==2
+    lua_global_function_call(L, "transform_nodes", "rr>rr", x, y, &x, &y);
+#elif DIM==3
+    bfam_real_t z = lxi[2][k];
+    lua_global_function_call(L, "transform_nodes", "rrr>rrr",
+                             x, y, z, &x, &y, &z);
+    lxi[2][k] = z;
+#else
+#error "Bad Dimension"
+#endif
+
+
+    lxi[0][k] = x;
+    lxi[1][k] = y;
+  }
+
+}
+
+static void
 split_domain(beard_t *beard, prefs_t *prefs)
 {
   bfam_domain_pxest_t *domain = beard->domain;
@@ -1008,8 +1038,23 @@ split_domain(beard_t *beard, prefs_t *prefs)
 
   bfam_domain_pxest_quad_to_glueid(domain->pxest, tree_ids, glue_ids);
 
-  bfam_domain_pxest_split_dgx_subdomains(domain, data.max_N, sub_ids, N,
-      glue_ids,NULL);
+  BFAM_ASSERT(lua_gettop(prefs->L)==0);
+  lua_getglobal(prefs->L,"transform_nodes");
+  if(lua_isfunction(prefs->L,-1))
+  {
+    bfam_domain_pxest_split_dgx_subdomains(domain, data.max_N, sub_ids, N,
+        glue_ids,&transform_nodes,prefs);
+  }
+  else
+  {
+    BFAM_ROOT_WARNING("function `%s' not found in lua file",
+        "transform_nodes");
+    bfam_domain_pxest_split_dgx_subdomains(domain, data.max_N, sub_ids, N,
+        glue_ids,NULL,NULL);
+  }
+  lua_pop(prefs->L,1);
+  BFAM_ASSERT(lua_gettop(prefs->L)==0);
+
 
   bfam_free(tree_ids);
   bfam_free(glue_ids);

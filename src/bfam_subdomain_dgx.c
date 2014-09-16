@@ -2669,7 +2669,9 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
                         void (*nodes_transform)(
                           const bfam_locidx_t num_Vi,
                           const bfam_locidx_t num_pnts,
-                          bfam_long_real_t** lxi),
+                          bfam_long_real_t** lxi,
+                          void* user_args),
+                        void* user_args,
                         const int                   inDIM)
 {
 #ifdef USE_GENERIC_DGX_DIMENSION
@@ -2761,7 +2763,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
       else BFAM_ABORT("not setup of dim = %d",DIM);
     }
 
-    if(nodes_transform) nodes_transform(num_Vi,K*Np,lxi);
+    if(nodes_transform) nodes_transform(num_Vi,K*Np,lxi, user_args);
 
     bfam_long_real_t *restrict V = subdomain->V;
 
@@ -2935,7 +2937,9 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_new_,BFAM_DGX_DIMENSION)(
                        void (*nodes_transform)(
                          const bfam_locidx_t num_Vi,
                          const bfam_locidx_t num_pnts,
-                         bfam_long_real_t** lxi),
+                         bfam_long_real_t** lxi,
+                         void* user_args),
+                       void* user_args,
                        const int                inDIM)
 {
 #ifdef USE_GENERIC_DGX_DIMENSION
@@ -2949,7 +2953,7 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_new_,BFAM_DGX_DIMENSION)(
 
   BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_,BFAM_DGX_DIMENSION)(
                          newSubdomain, id, uid, name, N, Nv, num_Vi, Vi, K,
-                         EToV, EToE, EToF, nodes_transform, DIM);
+                         EToV, EToE, EToF, nodes_transform, user_args, DIM);
   return newSubdomain;
 }
 

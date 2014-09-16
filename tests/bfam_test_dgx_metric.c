@@ -114,7 +114,7 @@ test_1d()
   {
     bfam_subdomain_dgx_t *d1 =
       bfam_subdomain_dgx_new_1(0, -1, "1d", 2, 2, d+1, Vi, 1, EToV, EToE, EToF,
-          NULL,1);
+          NULL, NULL,1);
     for(int v = 0;v < d+1;v++)
     {
       char name[BFAM_BUFSIZ];
@@ -217,7 +217,7 @@ test_2d()
   {
     bfam_subdomain_dgx_t *d2 =
       bfam_subdomain_dgx_new_2(0, -1, "2d", N, nV, d+1, Vi, K, EToV, EToE, EToF,
-          NULL, 2);
+          NULL, NULL, 2);
     for(int v = 0;v < d+1;v++)
     {
       char name[BFAM_BUFSIZ];
@@ -551,7 +551,7 @@ test_3d()
   {
     bfam_subdomain_dgx_t *d3 =
       bfam_subdomain_dgx_new_3(0, -1, "3d", N, nV, d+1, Vi, K, EToV, EToE, EToF,
-          NULL, 3);
+          NULL, NULL, 3);
     for(int v = 0;v < d+1;v++)
     {
       char name[BFAM_BUFSIZ];
