@@ -2448,7 +2448,6 @@ beard_open_stations(const char * key, void *val, void *in_args)
   station_args_t *args = (station_args_t*) in_args;
   BFAM_ASSERT(args);
 
-  /*
   prefs_t *prefs      = args->prefs;
   const char **fields = args->fields;
   FILE *file = point->file;
@@ -2462,7 +2461,6 @@ beard_open_stations(const char * key, void *val, void *in_args)
   fprintf(file,"t");
   for(int n = 0; fields[n]; n++) fprintf(file," %s",fields[n]);
   fprintf(file,"\n");
-  */
 
   return beard_output_stations(key, val, args);
 }
