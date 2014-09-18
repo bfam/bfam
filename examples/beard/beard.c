@@ -2994,7 +2994,7 @@ init_fault_stations(beard_t *beard, prefs_t *prefs)
       for(int k = 0; k < num_cells; k++)
       {
         const bfam_real_t *x_e = x+k*s->Np;
-        BEARD_D3_OP(const bfam_real_t *y_e = y+k*s->Np);
+        BEARD_D3_OP(const bfam_real_t *z_e = z+k*s->Np);
         for(int i = 0; i < num_stations; i++)
         {
 #if DIM == 2
@@ -3002,9 +3002,9 @@ init_fault_stations(beard_t *beard, prefs_t *prefs)
           inverse_linear(r, xyz[i*DIM+0], x_e[msk[0][0]], x_e[msk[1][0]]);
 #elif DIM == 3
           bfam_real_t r[2];
-          inverse_bilinear(r, xyz[i*DIM+0], xyz[i*DIM+1],
+          inverse_bilinear(r, xyz[i*DIM+0], xyz[i*DIM+2],
               x_e[msk[0][0]], x_e[msk[1][0]], x_e[msk[2][0]], x_e[msk[3][0]],
-              y_e[msk[0][0]], y_e[msk[1][0]], y_e[msk[2][0]], y_e[msk[3][0]]);
+              z_e[msk[0][0]], z_e[msk[1][0]], z_e[msk[2][0]], z_e[msk[3][0]]);
 #else
 #error "Bad Dimension"
 #endif
