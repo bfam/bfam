@@ -2405,6 +2405,17 @@ typedef struct station_args
 } station_args_t;
 
 static int
+beard_output_stations_flush(const char * key, void *val, void *in_args)
+{
+  bfam_subdomain_dgx_point_interp_t *point =
+    (bfam_subdomain_dgx_point_interp_t*)val;
+
+  fflush(point->file);
+
+  return 0;
+}
+
+static int
 beard_output_stations(const char * key, void *val, void *in_args)
 {
   bfam_subdomain_dgx_point_interp_t *point =
@@ -2737,6 +2748,8 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   }
 
   BFAM_ASSERT(beard->beard_ts);
+  const int NFLUSH = 10;
+  int nflush = 0;
   for(int s = 1; s <= nsteps; s++)
   {
     beard->beard_ts->step(beard->beard_ts,dt);
@@ -2782,6 +2795,9 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       volume_args.time   = (s)*dt;
       bfam_dictionary_allprefixed_ptr(beard->volume_stations, "",
           &beard_output_stations, &volume_args);
+      if(nflush%NFLUSH == 0)
+        bfam_dictionary_allprefixed_ptr(beard->volume_stations, "",
+            &beard_output_stations_flush, &volume_args);
 
       const char *fault_station_fields[] = {"V",   "Dp",
                                             "Tp1", "Tp2", "Tp3", "Tn",NULL};
@@ -2791,6 +2807,12 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       fault_args.time   = (s)*dt;
       bfam_dictionary_allprefixed_ptr(beard->fault_stations, "",
           &beard_output_stations, &fault_args);
+
+      if(nflush%NFLUSH == 0)
+        bfam_dictionary_allprefixed_ptr(beard->fault_stations, "",
+            &beard_output_stations_flush, &fault_args);
+
+      nflush++;
     }
     if(nfoutput > 0 && s%nfoutput == 0)
     {
