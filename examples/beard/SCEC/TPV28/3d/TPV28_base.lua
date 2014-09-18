@@ -3,7 +3,7 @@ cos  = math.cos
 pi   = math.pi
 abs  = math.abs
 -- refinement parameters
-min_level = 1
+min_level = 0
 max_level = min_level
 output_prefix = "TPV28"
 data_directory = "output"
@@ -89,7 +89,7 @@ function element_order(
   x6,y6,z6,x7,y7,z7,
   level, treeid)
 
-  N = 5
+  N = 4
 
   return N
 end
@@ -115,7 +115,7 @@ v3  = 0
 -- time stepper to use
 lsrk_method  = "KC54"
 
-tend   = 0
+tend   = 13
 tout   = 1
 tfout  = 0.1
 tdisp  = 0.01
@@ -137,18 +137,34 @@ end
 
 
 -- friction stuff
+-- NOTE: That our cooridinate system is rotated from SCEC,
+--       X -> Same
+--       Y -> SCEC:  Z
+--       Z -> SCEC: -Y
+function S12_nucleation(x,y,z,t)
+  S12_0 = 29.38
+  r = sqrt(x^2 + (z+7.5)^2)
+  if r < 1.4 then
+    S12_0 = S12_0 + 11.6
+  elseif r < 2 then
+    S12_0 = S12_0 + 5.8*(1+cos(pi*(r-1.4)/0.6))
+  end
+
+  return S12_0
+end
+
 fault_1 = {
   type   = "friction",
   tag    = "slip weakening",
-  fs     =    0.677,
-  fd     =    0.525,
-  Dc     =    0.4,
-  S11_0  =    -60,
-  S22_0  =    -60,
-  S33_0  =      0,
-  S12_0  =  29.38,
-  S13_0  =      0,
-  S23_0  =      0,
+  fs     =              0.677,
+  fd     =              0.525,
+  Dc     =              0.4,
+  S11_0  =            -60, --SCEC:  S11
+  S22_0  =            -60, --SCEC:  S33
+  S33_0  =              0, --SCEC:  S22
+  S12_0  = "S12_nucleation", --SCEC:  S13
+  S13_0  =              0, --SCEC: -S12
+  S23_0  =              0, --SCEC: -S23
 }
 
 bc_free = {

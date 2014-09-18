@@ -1062,8 +1062,15 @@ split_domain(beard_t *beard, prefs_t *prefs)
   bfam_free(N);
 }
 
+typedef struct set_val_extended_args
+{
+  const char *fname;
+  lua_State *L;
+} set_val_extended_args_t;
+
+
 static void
-field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t t,
+field_set_val_extend(bfam_locidx_t npoints, const char *name, bfam_real_t t,
     bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
     struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
 {
@@ -1073,21 +1080,25 @@ field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t t,
   BFAM_ASSUME_ALIGNED(field, 32);
   bfam_real_t val = 0;
 
-  lua_State *L = (lua_State*) arg;
-  lua_getglobal(L,name);
+  set_val_extended_args_t *val_args = (set_val_extended_args_t*)arg;
+  lua_State *L = val_args->L;
+  lua_getglobal(L,val_args->fname);
 
   if(lua_isfunction(L,-1))
   {
-    BFAM_ROOT_INFO("field_set_val: using '%s' as lua callback function",name);
+    BFAM_ROOT_INFO("field_set_val: using '%s' as lua callback function",
+                   val_args->fname);
     lua_pop(L,1);
 #if   DIM==2
     bfam_real_t tmpz = 0;
 #endif
     for(bfam_locidx_t n=0; n < npoints; ++n)
 #if   DIM==2
-      lua_global_function_call(L, name, "rrrr>r", x[n],y[n],tmpz,t,&field[n]);
+      lua_global_function_call(L, val_args->fname, "rrrr>r", x[n],y[n],tmpz,t,
+                               &field[n]);
 #elif DIM==3
-      lua_global_function_call(L, name, "rrrr>r", x[n],y[n],z[n],t,&field[n]);
+      lua_global_function_call(L, val_args->fname, "rrrr>r", x[n],y[n],z[n],t,
+                               &field[n]);
 #else
 #error "Bad Dimension"
 #endif
@@ -1095,14 +1106,25 @@ field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t t,
   }
   else if(lua_isnumber(L,-1)) val = (bfam_real_t)lua_tonumber(L,-1);
   else BFAM_WARNING("Did not find '%s' in lua as a function or number using 0: "
-                    "lua message: '%s'", name,lua_tostring(L,-1));
+                    "lua message: '%s'", val_args->fname,lua_tostring(L,-1));
   lua_pop(L,1);
 
   BFAM_ROOT_INFO("field_set_val: using '%s' with value %"BFAM_REAL_FMTe,
-      name,val);
+      val_args->fname,val);
 
   for(bfam_locidx_t n=0; n < npoints; ++n)
     field[n] = val;
+}
+
+static void
+field_set_val(bfam_locidx_t npoints, const char *name, bfam_real_t t,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field)
+{
+  set_val_extended_args_t val_args;
+  val_args.L = (lua_State*) arg;
+  val_args.fname = name;
+  field_set_val_extend(npoints,name,t,x,y,z,s,&val_args,field);
 }
 
 static void
@@ -1481,26 +1503,44 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
       {
         for(int f = 0; sw_fields[f] != NULL; ++f)
         {
-          bfam_real_t value = 0;
+          bfam_domain_add_field (domain, BFAM_DOMAIN_OR, this_glue, sw_fields[f]);
 
+          bfam_real_t value = 0;
           lua_pushstring(L,sw_fields[f]);
           lua_gettable(L,-2);
-          if(!lua_isnumber(L,-1))
-            BFAM_ROOT_WARNING(
-                " glue %d does not contain `%s', using default %"BFAM_REAL_PRIe,
-                i, sw_fields[f], value);
-          else
-            value = (bfam_real_t)lua_tonumber(L, -1);
-          lua_pop(L, 1);
+          if(lua_isstring(L,-1) && !lua_isnumber(L,-1))
+          {
+            char fname[BFAM_BUFSIZ];
+            strncpy(fname,lua_tostring(L,-1),BFAM_BUFSIZ);
+            lua_pop(L, 1);
 
-          bfam_domain_add_field(domain, BFAM_DOMAIN_OR, this_glue, sw_fields[f]);
-          bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue, sw_fields[f],
-              0, field_set_const, &value);
+            set_val_extended_args_t args;
+            args.fname = fname;
+            args.L     = L;
+            bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue,
+                sw_fields[f], 0, field_set_val_extend, &args);
+          }
+          else
+          {
+            if(lua_isnumber(L,-1))
+            {
+              value = (bfam_real_t)lua_tonumber(L, -1);
+            }
+            else
+            {
+              BFAM_ROOT_WARNING(
+                  " glue %d does not contain `%s', using default %"BFAM_REAL_PRIe,
+                  i, sw_fields[f], value);
+            }
+            bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue, sw_fields[f],
+                0, field_set_const, &value);
+            lua_pop(L, 1);
+          }
         }
+
         bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue, "Tp1_0",
             0, field_set_friction_init_stress, NULL);
       }
-
 
       lua_pop(L, 1);
     }
