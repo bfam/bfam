@@ -190,6 +190,10 @@ fault_1 = {
   S23_0  =              0, --SCEC: -S23
 }
 
+fault_stations = {
+  "faultst000dp075", 0.0, 0.0, -7.5,
+}
+
 bc_free = {
   type = "boundary",
   tag  = "free surface",
