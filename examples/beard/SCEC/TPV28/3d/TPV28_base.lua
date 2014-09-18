@@ -2,9 +2,10 @@ sqrt = math.sqrt
 cos  = math.cos
 pi   = math.pi
 abs  = math.abs
+min  = math.min
 -- refinement parameters
 min_level = 0
-max_level = min_level
+max_level = min_level+3
 output_prefix = "TPV28"
 data_directory = "output"
 
@@ -75,7 +76,29 @@ function refinement_function(
   x6,y6,z6,x7,y7,z7,
   level, treeid)
 
+  xa0 = abs(x0)
+  xa1 = abs(x1)
+  xa2 = abs(x2)
+  xa3 = abs(x3)
+  xmin = min( xa0,xa1)
+  xmin = min(xmin,xa2)
+  xmin = min(xmin,xa2)
+
+  ya0 = abs(y0)
+  ya1 = abs(y1)
+  ya2 = abs(y2)
+  ya3 = abs(y3)
+  ymin = min( ya0,ya1)
+  ymin = min(ymin,ya2)
+  ymin = min(ymin,ya3)
+
+  zmin = min(z0,z1,z2,z3)
+
   if level < min_level then
+    return 1
+  elseif level >= max_level then
+    return 0
+  elseif xmin <= 6*Lx and zmin >= -5*Lz and ymin <= Ly then
     return 1
   else
     return 0
@@ -127,7 +150,7 @@ function time_step_parameters(dt)
   nfoutput = math.ceil(tfout / dt)
   dt       = tfout / nfoutput
 
-  noutput    = -1
+  noutput    = 1000000
   ndisp      = tdisp / dt
   nsteps     = tend / dt
   nstations  = tstations / dt
