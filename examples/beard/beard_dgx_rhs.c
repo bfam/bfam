@@ -931,9 +931,10 @@ void beard_dgx_intra_rhs_elastic(
 
 void beard_dgx_scale_rates_slip_weakening(
     int inN, bfam_subdomain_dgx_t *sub, const char *rate_prefix,
-    const bfam_long_real_t a)
+    const bfam_long_real_t in_a)
 {
   GENERIC_INIT(inN,beard_dgx_scale_rates_slip_weakening);
+  const bfam_real_t a = (bfam_real_t) in_a;
 
   const bfam_locidx_t num_pts = sub->K * Nfp;
   bfam_dictionary_t *fields = &sub->base.fields;
@@ -949,9 +950,11 @@ void beard_dgx_scale_rates_slip_weakening(
 
 void beard_dgx_scale_rates_elastic(
     int inN, bfam_subdomain_dgx_t *sub, const char *rate_prefix,
-    const bfam_long_real_t a)
+    const bfam_long_real_t in_a)
 {
   GENERIC_INIT(inN,beard_dgx_scale_rates_elastic);
+
+  const bfam_real_t a = (bfam_real_t) in_a;
 
   const bfam_locidx_t num_pts = sub->K * Np;
   bfam_dictionary_t *fields = &sub->base.fields;
@@ -969,9 +972,10 @@ void beard_dgx_scale_rates_elastic(
 void beard_dgx_add_rates_slip_weakening(
     int inN, bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
-    const bfam_long_real_t a)
+    const bfam_long_real_t in_a)
 {
   GENERIC_INIT(inN,beard_dgx_add_rates_slip_weakening);
+  const bfam_real_t a = (bfam_real_t) in_a;
 
   const char *f_names[] = {"Dp","Dp1","Dp2","Dp3","Dn",NULL};
 
@@ -992,10 +996,11 @@ void beard_dgx_add_rates_slip_weakening(
 void beard_dgx_add_rates_glue_p(
     int inN, bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
-    const bfam_long_real_t a,
+    const bfam_long_real_t in_a,
     const char** scalars, const char** vectors, const char** tensors)
 {
   GENERIC_INIT(inN,beard_dgx_glue_p);
+  const bfam_real_t a = (bfam_real_t) in_a;
 
   const bfam_locidx_t num_pts = sub->K * Nfp;
 
@@ -1043,9 +1048,10 @@ void beard_dgx_add_rates_glue_p(
 void beard_dgx_add_rates_elastic(
     int inN, bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
-    const bfam_long_real_t a)
+    const bfam_long_real_t in_a)
 {
   GENERIC_INIT(inN,beard_dgx_add_rates_elastic);
+  const bfam_real_t a = (bfam_real_t) in_a;
 
   const char *f_names[] = {"v1", "v2", "v3",
     "S11", "S22", "S33", "S12", "S13", "S23", NULL};
