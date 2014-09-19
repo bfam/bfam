@@ -360,6 +360,13 @@ bfam_subdomain_dgx_point_interp_free_(
                              bfam_subdomain_dgx_point_interp_t* point);
 
 bfam_real_t
+bfam_subdomain_dgx_point_interp_field_m_(
+                       bfam_subdomain_dgx_point_interp_t* point,
+                       const char*                        prefix,
+                       const char*                        field,
+                       const int                          inDIM);
+
+bfam_real_t
 bfam_subdomain_dgx_point_interp_field_(
                        bfam_subdomain_dgx_point_interp_t* point,
                        const char*                        prefix,
@@ -398,6 +405,12 @@ bfam_subdomain_dgx_point_interp_fields_##dg_dim(                         \
                        const int                          inDIM);        \
 bfam_real_t                                                              \
 bfam_subdomain_dgx_point_interp_field_##dg_dim(                          \
+                       bfam_subdomain_dgx_point_interp_t* point,         \
+                       const char*                        prefix,        \
+                       const char*                        field,         \
+                       const int                          inDIM);        \
+bfam_real_t                                                              \
+bfam_subdomain_dgx_point_interp_field_m_##dg_dim(                        \
                        bfam_subdomain_dgx_point_interp_t* point,         \
                        const char*                        prefix,        \
                        const char*                        field,         \

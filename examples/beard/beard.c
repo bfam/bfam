@@ -2510,6 +2510,34 @@ beard_open_stations(const char * key, void *val, void *in_args)
   fprintf(file,"# version = %s\n",bfam_version_get());
   fprintf(file,"# station = %s\n",key);
   fprintf(file,"# The line below lists the names of the data fields:\n");
+  fprintf(file,"# The line below lists the names of the data fields:\n");
+
+  /* Print the interpolated point */
+  fprintf(file,"# interpolated point:\n#    (");
+  for(int k = 0; k < DIM; k++)
+  {
+    char fld_name[BFAM_BUFSIZ];
+    snprintf(fld_name,BFAM_BUFSIZ,"_grid_x%d",k);
+    fprintf(file,"%"BFAM_REAL_PRIe,
+        BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,FDIM)(
+          point,"",fld_name,FDIM));
+    if(k+1 < DIM) fprintf(file,", ");
+  }
+  fprintf(file,")\n");
+
+  /* Print the interpolated point */
+  fprintf(file,"# interpolated normal:\n#    (");
+  for(int k = 0; k < DIM; k++)
+  {
+    char fld_name[BFAM_BUFSIZ];
+    snprintf(fld_name,BFAM_BUFSIZ,"_grid_nx%d",k);
+    fprintf(file,"%"BFAM_REAL_PRIe,
+        BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_m_,FDIM)(
+          point,"",fld_name,FDIM));
+    if(k+1 < DIM) fprintf(file,", ");
+  }
+  fprintf(file,")\n");
+
   fprintf(file,"t");
   for(int n = 0; fields[n]; n++) fprintf(file," %s",fields[n]);
   fprintf(file,"\n");
@@ -2748,8 +2776,8 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     bfam_dictionary_allprefixed_ptr(beard->volume_stations, "",
         &beard_open_stations, &volume_args);
 
-    const char *fault_station_fields[] = {"V",   "Dp",
-                                          "Tp1", "Tp2", "Tp3", "Tn",NULL};
+    const char *fault_station_fields[] = { "Tp1", "Tp2", "Tp3", "Tn", "V",
+      "Vp1", "Vp2", "Vp3", "Dp", "Dp1","Dp2","Dp3","Dn",NULL};
     station_args_t fault_args;
     fault_args.prefs  = prefs;
     fault_args.fields = fault_station_fields;

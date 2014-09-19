@@ -51,15 +51,14 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_free_,BFAM_DGX_DIMENSION)(
   point->num_interp = 0;
 }
 
-bfam_real_t
-BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,BFAM_DGX_DIMENSION)(
+static bfam_real_t
+BFAM_APPEND_EXPAND(point_interp_,BFAM_DGX_DIMENSION)(
                        bfam_subdomain_dgx_point_interp_t* point,
-                       const char*                        prefix,
-                       const char*                        field,
+                       bfam_real_t *source,
                        const int                          inDIM)
 {
 #ifdef USE_GENERIC_DGX_DIMENSION
-  BFAM_WARNING("Using generic bfam_subdomain_dgx_point_interp_field");
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_point_interp_field_m");
   const int DIM = inDIM;
 #endif
   const bfam_locidx_t elem = point->elem;
@@ -67,7 +66,6 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,BFAM_DGX_DIMENSION)(
   bfam_real_t d = 0;
 
   bfam_subdomain_dgx_t *sub = point->sub;
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(source,prefix,field,&sub->base.fields);
 
   const bfam_real_t *s = source + elem * sub->Np;
   bfam_real_t **interp = point->interp;
@@ -89,6 +87,42 @@ BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,BFAM_DGX_DIMENSION)(
     BFAM_ABORT("Cannot handle dim = %d",DIM);
 
   return d;
+}
+
+
+bfam_real_t
+BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_m_,BFAM_DGX_DIMENSION)(
+                       bfam_subdomain_dgx_point_interp_t* point,
+                       const char*                        prefix,
+                       const char*                        field,
+                       const int                          inDIM)
+{
+#ifdef USE_GENERIC_DGX_DIMENSION
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_point_interp_field_m");
+  const int DIM = inDIM;
+#endif
+
+  bfam_subdomain_dgx_t *sub = point->sub;
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(source,prefix,field,&sub->base.glue_m->fields);
+
+  return BFAM_APPEND_EXPAND(point_interp_,BFAM_DGX_DIMENSION)(point,source,inDIM);
+}
+
+bfam_real_t
+BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,BFAM_DGX_DIMENSION)(
+                       bfam_subdomain_dgx_point_interp_t* point,
+                       const char*                        prefix,
+                       const char*                        field,
+                       const int                          inDIM)
+{
+#ifdef USE_GENERIC_DGX_DIMENSION
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_point_interp_field");
+  const int DIM = inDIM;
+#endif
+
+  bfam_subdomain_dgx_t *sub = point->sub;
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(source,prefix,field,&sub->base.fields);
+  return BFAM_APPEND_EXPAND(point_interp_,BFAM_DGX_DIMENSION)(point,source,inDIM);
 }
 
 void
