@@ -116,6 +116,58 @@ inverse_linear(bfam_real_t *r,
 }
 
 static void
+inverse_bilinear_normal(bfam_real_t *interp_coeff,
+    const bfam_real_t  x, const bfam_real_t  y, const bfam_real_t  z,
+    const bfam_real_t nx, const bfam_real_t ny, const bfam_real_t nz,
+    const bfam_real_t x0, const bfam_real_t x1,
+    const bfam_real_t x2, const bfam_real_t x3,
+    const bfam_real_t y0, const bfam_real_t y1,
+    const bfam_real_t y2, const bfam_real_t y3,
+    const bfam_real_t z0, const bfam_real_t z1,
+    const bfam_real_t z2, const bfam_real_t z3)
+{
+  bfam_real_t r = 0;
+  bfam_real_t s = 0;
+  bfam_real_t t = 0;
+
+  /* until we are curved this should converge in one iteration */
+  {
+    bfam_long_real_t f[] = {
+               -x + t*nx + BFAM_REAL(0.25)*(   (1-r)*(1-s)*x0 + (1+r)*(1-s)*x1
+                                             + (1-r)*(1+s)*x2 + (1+r)*(1+s)*x3),
+               -y + t*ny + BFAM_REAL(0.25)*(   (1-r)*(1-s)*y0 + (1+r)*(1-s)*y1
+                                             + (1-r)*(1+s)*y2 + (1+r)*(1+s)*y3),
+               -z + t*nz + BFAM_REAL(0.25)*(   (1-r)*(1-s)*z0 + (1+r)*(1-s)*z1
+                                             + (1-r)*(1+s)*z2 + (1+r)*(1+s)*z3)
+    };
+
+    bfam_long_real_t J[] = {
+      /* first column: df/dr */
+               BFAM_REAL(0.25)*(   -(1-s)*x0 + (1-s)*x1 + -(1+s)*x2 + (1+s)*x3),
+               BFAM_REAL(0.25)*(   -(1-s)*y0 + (1-s)*y1 + -(1+s)*y2 + (1+s)*y3),
+               BFAM_REAL(0.25)*(   -(1-s)*z0 + (1-s)*z1 + -(1+s)*z2 + (1+s)*z3),
+      /* second column: df/ds */
+               BFAM_REAL(0.25)*(   -(1-r)*x0 - (1+r)*x1 + (1-r)*x2 + (1+r)*x3),
+               BFAM_REAL(0.25)*(   -(1-r)*y0 - (1+r)*y1 + (1-r)*y2 + (1+r)*y3),
+               BFAM_REAL(0.25)*(   -(1-r)*z0 - (1+r)*z1 + (1-r)*z2 + (1+r)*z3),
+      /* third column: df/dt */
+               nx, ny, nz,
+    };
+    bfam_long_real_t delta[3];
+    bfam_util_backslash(3, 1, J, f, delta);
+
+    r = (bfam_real_t)(r - delta[0]);
+    s = (bfam_real_t)(s - delta[1]);
+    t = (bfam_real_t)(t - delta[2]);
+  }
+
+  interp_coeff[0] = r;
+  interp_coeff[1] = s;
+  interp_coeff[2] = t;
+
+}
+
+static void
 inverse_bilinear(bfam_real_t *r,
     const bfam_real_t x,  const bfam_real_t y,
     const bfam_real_t x0, const bfam_real_t x1,
@@ -2923,46 +2975,89 @@ init_fault_stations(beard_t *beard, prefs_t *prefs)
   else
   {
 
+
+    bfam_locidx_t nStationArgs = 1+DIM+DIM+1;
+
     const int length_stations = lua_objlen(L, -1);
     BFAM_LDEBUG("fault_stations  #elem: %3d", length_stations);
 
-    BFAM_ABORT_IF_NOT(length_stations%(DIM+1)== 0,
-        "length of fault_stations should be a multiple of %d",(DIM+1));
+    BFAM_ABORT_IF_NOT(length_stations%nStationArgs== 0,
+        "length of fault_stations should be a multiple of %"BFAM_LOCIDX_PRId,
+        nStationArgs);
 
-    const int num_stations = length_stations/(DIM+1);
+    const bfam_locidx_t num_stations = length_stations/nStationArgs;
 
     bfam_real_t xyz[DIM*num_stations];
+    bfam_real_t nxf[DIM*num_stations];
+    bfam_real_t tol[    num_stations];
+
     char station_names[num_stations][BFAM_BUFSIZ];
 
     luaL_checktype(L, -1, LUA_TTABLE);
 
-    for(int i=0; i<num_stations; i++)
+    for(bfam_locidx_t i=0; i<num_stations; i++)
     {
-      lua_rawgeti(L, -1, (DIM+1)*i+1);
+      bfam_locidx_t offset = 1;
+
+      /* Get the station name */
+      lua_rawgeti(L, -1, nStationArgs*i+offset);
       BFAM_ABORT_IF_NOT(lua_isstring(L,-1),
           "stations %d field 1 is not a string",i);
       strncpy(station_names[i],lua_tostring(L,-1),BFAM_BUFSIZ);
       lua_pop(L, 1);
-      for(int j=0; j < DIM; j++)
+
+      /* Get the station coordinates */
+      for(bfam_locidx_t j=0; j < DIM; j++)
       {
-        lua_rawgeti(L, -1, (DIM+1)*i+j+2);
+        offset++;
+        lua_rawgeti(L, -1, nStationArgs*i+offset);
         BFAM_ABORT_IF_NOT(lua_isnumber(L,-1),
-            "stations %d field %d is not a number",i,j+1);
+            "stations %d field %d is not a number",i,offset);
         xyz[DIM*i+j] = (bfam_real_t)lua_tonumber(L, -1);
         lua_pop(L, 1);
       }
 
+      /* Get the station normal projection direction */
+      for(bfam_locidx_t j=0; j < DIM; j++)
+      {
+        offset++;
+        lua_rawgeti(L, -1, nStationArgs*i+offset);
+        BFAM_ABORT_IF_NOT(lua_isnumber(L,-1),
+            "stations %d field %d is not a number",i,offset);
+        nxf[DIM*i+j] = (bfam_real_t)lua_tonumber(L, -1);
+        lua_pop(L, 1);
+      }
+
+      /* Get the station tolerance */
+      offset++;
+      lua_rawgeti(L, -1, nStationArgs*i+offset);
+      BFAM_ABORT_IF_NOT(lua_isnumber(L,-1),
+          "stations %d field %d is not a number",i,offset);
+      tol[i] = (bfam_real_t)lua_tonumber(L, -1);
+      lua_pop(L, 1);
+
+      BFAM_ASSERT(offset == nStationArgs);
+
 #if DIM==2
       BFAM_ROOT_LDEBUG("Station %04d (%s):"
           " %"BFAM_REAL_FMTe
+          " %"BFAM_REAL_FMTe
+          " %"BFAM_REAL_FMTe
           " %"BFAM_REAL_FMTe,
-          i, station_names[i], xyz[DIM*i+0], xyz[DIM*i+1]);
+          i, station_names[i],
+          xyz[DIM*i+0], xyz[DIM*i+1],
+          nxf[DIM*i+0], nxf[DIM*i+1]);
 #elif DIM==3
       BFAM_ROOT_LDEBUG("Station %04d (%s):"
           " %"BFAM_REAL_FMTe
           " %"BFAM_REAL_FMTe
+          " %"BFAM_REAL_FMTe
+          " %"BFAM_REAL_FMTe
+          " %"BFAM_REAL_FMTe
           " %"BFAM_REAL_FMTe,
-          i, station_names[i], xyz[DIM*i+0], xyz[DIM*i+1], xyz[DIM*i+2]);
+          i, station_names[i],
+          xyz[DIM*i+0], xyz[DIM*i+1], xyz[DIM*i+2],
+          nxf[DIM*i+0], nxf[DIM*i+1], nxf[DIM*i+2]);
 #endif
     }
 
@@ -2976,10 +3071,10 @@ init_fault_stations(beard_t *beard, prefs_t *prefs)
         BFAM_DOMAIN_OR,fault,beard->domain->base.numSubdomains,
         subs,&num_subs);
 
-    for(int n = 0; n < num_subs; n++)
+    for(bfam_locidx_t n = 0; n < num_subs; n++)
     {
       bfam_subdomain_dgx_t *s = (bfam_subdomain_dgx_t*) subs[n];
-      const int num_cells = s->K;
+      const bfam_locidx_t num_cells = s->K;
 
       BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x,"","_grid_x0",&s->base.fields);
       BFAM_LOAD_FIELD_RESTRICT_ALIGNED(y,"","_grid_x1",&s->base.fields);
@@ -2989,87 +3084,47 @@ init_fault_stations(beard_t *beard, prefs_t *prefs)
 
       int** msk       = s->gmask[s->numg-1];
 
-      for(int k = 0; k < num_cells; k++)
+      for(bfam_locidx_t k = 0; k < num_cells; k++)
       {
         const bfam_real_t *x_e = x+k*s->Np;
+        const bfam_real_t *y_e = y+k*s->Np;
         BEARD_D3_OP(const bfam_real_t *z_e = z+k*s->Np);
-        for(int i = 0; i < num_stations; i++)
+        for(bfam_locidx_t i = 0; i < num_stations; i++)
         {
 #if DIM == 2
+          BFAM_ABORT("NEED TO HANDLE THE NORMAL");
           bfam_real_t r[1];
           inverse_linear(r, xyz[i*DIM+0], x_e[msk[0][0]], x_e[msk[1][0]]);
 #elif DIM == 3
-          bfam_real_t r[2];
-          inverse_bilinear(r, xyz[i*DIM+0], xyz[i*DIM+2],
-              x_e[msk[0][0]], x_e[msk[1][0]], x_e[msk[2][0]], x_e[msk[3][0]],
-              z_e[msk[0][0]], z_e[msk[1][0]], z_e[msk[2][0]], z_e[msk[3][0]]);
+          bfam_real_t r[3];
+
+          inverse_bilinear_normal(r,
+              xyz[i*DIM+0],   xyz[i*DIM+1],   xyz[i*DIM+2],
+              nxf[i*DIM+0],   nxf[i*DIM+1],   nxf[i*DIM+2],
+            x_e[msk[0][0]], x_e[msk[1][0]], x_e[msk[2][0]], x_e[msk[3][0]],
+            y_e[msk[0][0]], y_e[msk[1][0]], y_e[msk[2][0]], y_e[msk[3][0]],
+            z_e[msk[0][0]], z_e[msk[1][0]], z_e[msk[2][0]], z_e[msk[3][0]]);
 #else
 #error "Bad Dimension"
 #endif
 
           /* if we are in the area, build the interpolant */
-          if(BEARD_D3_AP(BFAM_REAL_ABS(r[0]) <= 1+BFAM_REAL_EPS,
-                      && BFAM_REAL_ABS(r[1]) <= 1+BFAM_REAL_EPS))
+          if(BEARD_D3_AP(BFAM_REAL_ABS(r[0     ]) <= 1+BFAM_REAL_EPS,
+                      && BFAM_REAL_ABS(r[1     ]) <= 1+BFAM_REAL_EPS)
+                      && BFAM_REAL_ABS(r[FDIM-1]) <= tol[i])
           {
+            /* Determine the station name */
             char filename[BFAM_BUFSIZ];
             snprintf(filename, BFAM_BUFSIZ,"%s/%s_%s_%s_%010d.dat",
                 prefs->data_directory, prefs->output_prefix, station_names[i],
                 s->base.name,k);
+
+            /* Create the point and store it */
             bfam_subdomain_dgx_point_interp_t* point =
               BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_new_,FDIM)(
                   s, k, r, filename, BFAM_BUFSIZ, FDIM);
-#if DIM == 2
-            bfam_real_t chk =
-              BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,FDIM)(
-                  point,"","_grid_x1",FDIM);
-#elif DIM == 3
-            bfam_real_t chk =
-              BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,FDIM)(
-                  point,"","_grid_x2",FDIM);
-#else
-#error "Bad Dimension"
-#endif
-            if(BFAM_REAL_APPROX_EQ(chk,xyz[(i+1)*DIM-1],10))
-            {
-#ifdef BFAM_DEBUG
-              bfam_real_t xp =
-                BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,FDIM)(
-                    point,"","_grid_x0",FDIM);
-              BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(xp,xyz[i*DIM+0],10),
-                  "problem with the station %s interpolation in x."
-                  "got: %"BFAM_REAL_FMTe
-                  " expected: %"BFAM_REAL_FMTe,
-                  station_names[i],
-                  xp,xyz[i*DIM+0]);
-
-              bfam_real_t yp =
-                BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,FDIM)(
-                    point,"","_grid_x1",FDIM);
-              BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(yp,xyz[i*DIM+1],10),
-                  "problem with the station %s interpolation in y."
-                  " got: %"BFAM_REAL_FMTe
-                  " expected: %"BFAM_REAL_FMTe,
-                  station_names[i],
-                  yp,xyz[i*DIM+1]);
-
-              BEARD_D3_OP(
-                  bfam_real_t zp =
-                  BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,FDIM)(
-                    point,"","_grid_x2",FDIM);
-                  BFAM_ABORT_IF_NOT(BFAM_REAL_APPROX_EQ(zp,xyz[i*DIM+2],100),
-                    "problem with the station %s interpolation in z."
-                    "got: %"BFAM_REAL_FMTe
-                    " expected: %"BFAM_REAL_FMTe,
-                    station_names[i],
-                    zp,xyz[i*DIM+2])
-                  );
-#endif
-
-              bfam_dictionary_insert_ptr(beard->fault_stations, filename,
-                  point);
-            }
-            else
-              beard_free_stations(NULL,point,NULL);
+            bfam_dictionary_insert_ptr(beard->fault_stations, filename,
+                point);
           }
         }
       }

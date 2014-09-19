@@ -191,7 +191,7 @@ fault_1 = {
 }
 
 fault_stations = {
-  "faultst000dp075", 0.0, 0.0, -7.5,
+  "faultst000dp075", 0.0, 0.0, -7.5, 0.0, 1.0, 0.0, -Ly,
 }
 
 bc_free = {
