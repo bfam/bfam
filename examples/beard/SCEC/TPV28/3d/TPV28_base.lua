@@ -213,6 +213,15 @@ fault_stations = {
   "fault_st__000_dp_120",   0.0, 0.0,-12.0, 0.0, 1.0, 0.0, Ly,
 }
 
+volume_stations = {
+  "body_m15_p3__0", -15.0,  3.0, 0.0,
+  "body_m15_m3__0", -15.0, -3.0, 0.0,
+  "body___0_p3__0",   0.0,  3.0, 0.0,
+  "body___0_m3__0",   0.0, -3.0, 0.0,
+  "body_p15_p3__0",  15.0,  3.0, 0.0,
+  "body_p15_m3__0",  15.0, -3.0, 0.0,
+}
+
 bc_free = {
   type = "boundary",
   tag  = "free surface",

@@ -282,7 +282,7 @@ inverse_trilinear(bfam_real_t *r,
                         + a*b*g4 + a*c*g5 + b*c*g6 + a*b*c*g7;
     const bfam_real_t h =     h0 +   a*h1 +   b*h2 +     c*h3
                         + a*b*h4 + a*c*h5 + b*c*h6 + a*b*c*h7;
-    diff = !BFAM_REAL_APPROX_EQ(BFAM_REAL(0), f, 10);
+    diff  = !BFAM_REAL_APPROX_EQ(BFAM_REAL(0), f, 10);
     diff += !BFAM_REAL_APPROX_EQ(BFAM_REAL(0), g, 10);
     diff += !BFAM_REAL_APPROX_EQ(BFAM_REAL(0), h, 10);
     if(!diff) break;
@@ -308,7 +308,12 @@ inverse_trilinear(bfam_real_t *r,
     c += dc;
   }
 
-  BFAM_ABORT_IF(diff > 0, "inverse_trilinear did not converge");
+  if(diff>0)
+  {
+    a = a/0.0;
+    b = a/0.0;
+    c = a/0.0;
+  }
 
   r[0] = a;
   r[1] = b;
@@ -2491,7 +2496,49 @@ beard_output_stations(const char * key, void *val, void *in_args)
 }
 
 static int
-beard_open_stations(const char * key, void *val, void *in_args)
+beard_open_body_stations(const char * key, void *val, void *in_args)
+{
+  bfam_subdomain_dgx_point_interp_t *point =
+    (bfam_subdomain_dgx_point_interp_t*)val;
+  bfam_subdomain_dgx_point_interp_open_(point);
+
+  station_args_t *args = (station_args_t*) in_args;
+  BFAM_ASSERT(args);
+
+  prefs_t *prefs      = args->prefs;
+  const char **fields = args->fields;
+  FILE *file = point->file;
+  BFAM_ABORT_IF_NOT(file, "problem with opening file %s",point->filename);
+  fprintf(file,"# problem = %s\n",prefs->output_prefix);
+  fprintf(file,"# date    = XXX\n");
+  fprintf(file,"# code    = beard %dd\n",DIM);
+  fprintf(file,"# version = %s\n",bfam_version_get());
+  fprintf(file,"# station = %s\n",key);
+  fprintf(file,"# The line below lists the names of the data fields:\n");
+  fprintf(file,"# The line below lists the names of the data fields:\n");
+
+  /* Print the interpolated point */
+  fprintf(file,"# interpolated point:\n#    (");
+  for(int k = 0; k < DIM; k++)
+  {
+    char fld_name[BFAM_BUFSIZ];
+    snprintf(fld_name,BFAM_BUFSIZ,"_grid_x%d",k);
+    fprintf(file,"%"BFAM_REAL_PRIe,
+        BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,DIM)(
+          point,"",fld_name,FDIM));
+    if(k+1 < DIM) fprintf(file,", ");
+  }
+  fprintf(file,")\n");
+
+  fprintf(file,"t");
+  for(int n = 0; fields[n]; n++) fprintf(file," %s",fields[n]);
+  fprintf(file,"\n");
+
+  return beard_output_stations(key, val, args);
+}
+
+static int
+beard_open_fault_stations(const char * key, void *val, void *in_args)
 {
   bfam_subdomain_dgx_point_interp_t *point =
     (bfam_subdomain_dgx_point_interp_t*)val;
@@ -2774,7 +2821,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     volume_args.fields = volume_station_fields;
     volume_args.time   = 0;
     bfam_dictionary_allprefixed_ptr(beard->volume_stations, "",
-        &beard_open_stations, &volume_args);
+        &beard_open_body_stations, &volume_args);
 
     const char *fault_station_fields[] = { "Tp1", "Tp2", "Tp3", "Tn", "V",
       "Vp1", "Vp2", "Vp3", "Dp", "Dp1","Dp2","Dp3","Dn",NULL};
@@ -2783,7 +2830,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     fault_args.fields = fault_station_fields;
     fault_args.time   = 0;
     bfam_dictionary_allprefixed_ptr(beard->fault_stations, "",
-        &beard_open_stations, &fault_args);
+        &beard_open_fault_stations, &fault_args);
   }
 
   if(nfoutput >= 0)
