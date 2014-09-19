@@ -2513,7 +2513,7 @@ beard_open_body_stations(const char * key, void *val, void *in_args)
   fprintf(file,"# date    = XXX\n");
   fprintf(file,"# code    = beard %dd\n",DIM);
   fprintf(file,"# version = %s\n",bfam_version_get());
-  fprintf(file,"# station = %s\n",key);
+  fprintf(file,"# body station = %s\n",key);
   fprintf(file,"# The line below lists the names of the data fields:\n");
   fprintf(file,"# The line below lists the names of the data fields:\n");
 
@@ -2555,7 +2555,7 @@ beard_open_fault_stations(const char * key, void *val, void *in_args)
   fprintf(file,"# date    = XXX\n");
   fprintf(file,"# code    = beard %dd\n",DIM);
   fprintf(file,"# version = %s\n",bfam_version_get());
-  fprintf(file,"# station = %s\n",key);
+  fprintf(file,"# fault station = %s\n",key);
   fprintf(file,"# The line below lists the names of the data fields:\n");
   fprintf(file,"# The line below lists the names of the data fields:\n");
 
