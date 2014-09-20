@@ -7,7 +7,7 @@ min  = math.min
 min_level = 0
 max_level = min_level+3
 output_prefix = "TPV28"
-data_directory = "output"
+data_directory = "output_lowres"
 
 -- connectivity info
 connectivity = "brick"
@@ -146,13 +146,15 @@ tstations  = 0.01
 nerr   = 0
 
 function time_step_parameters(dt)
-  dt      = 0.5*dt
-  nfoutput = math.ceil(tfout / dt)
-  dt       = tfout / nfoutput
+  dt        = 0.5*dt
 
-  noutput    = 1000000
+  nstations = math.ceil(tstations / dt)
+  dt        = tstations / nstations
+
   ndisp      = tdisp / dt
   nsteps     = tend / dt
+  noutput    = tout / dt
+  nfoutput   = tfout / dt
   nstations  = tstations / dt
 
   return dt,nsteps, ndisp, noutput, nfoutput, nstations
