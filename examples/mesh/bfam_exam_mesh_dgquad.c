@@ -81,7 +81,7 @@ z2_field(bfam_locidx_t npoints, const char *name, bfam_real_t time,
   BFAM_ASSUME_ALIGNED(field, 32);
 
   for(bfam_locidx_t n=0; n < npoints; ++n)
-    field[n] = z[n]*z[n];
+    field[n] = x[n]*y[n];
 }
 
 static void
