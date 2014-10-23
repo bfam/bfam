@@ -1532,7 +1532,7 @@ init_domain(beard_t *beard, prefs_t *prefs)
   for(int i = 0; i < stat_ref; i++)
     p4est_refine(beard->domain->pxest, 0, static_refine_fn, NULL);
 
-  p4est_partition(beard->domain->pxest, NULL);
+  p4est_partition(beard->domain->pxest, 1, NULL);
 
   /* split the domain */
   split_domain(beard,prefs);
@@ -2641,7 +2641,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     snprintf(output,BFAM_BUFSIZ,"%s/%s_pxest_mesh",
         prefs->data_directory,prefs->output_prefix);
     p4est_vtk_write_all(beard->domain->pxest, NULL,
-                        1, 1, 1, 0, 0, 0, output);
+                        1, 1, 1, 1, 0, 0, 0, output);
 
     const char *fields[] = {"rho", "lam", "mu", "v1", "v2", "v3", "S11", "S22",
       "S33", "S12", "S13", "S23",NULL};

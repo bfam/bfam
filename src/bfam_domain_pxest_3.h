@@ -12,6 +12,7 @@
 #include <p8est_extended.h>
 #include <p8est_ghost.h>
 #include <p8est_iterate.h>
+#include <p8est_nodes.h>
 #include <p8est_lnodes.h>
 #include <p8est_mesh.h>
 #include <p8est_vtk.h>

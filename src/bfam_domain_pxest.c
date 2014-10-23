@@ -291,7 +291,7 @@ bfam_domain_pxest_num_parallel_faces(p4est_mesh_t *mesh)
  *
  */
 static void
-bfam_domain_pxest_parallel_face_mapping(p4est_mesh_t *mesh,
+bfam_domain_pxest_parallel_face_mapping(p4est_ghost_t *ghost, p4est_mesh_t *mesh,
     bfam_locidx_t *glueID,
     bfam_locidx_t numParallelFaces, bfam_subdomain_face_map_entry_t *mapping)
 {
@@ -314,8 +314,9 @@ bfam_domain_pxest_parallel_face_mapping(p4est_mesh_t *mesh,
         if(ck >= mesh->local_num_quadrants)
         {
           p4est_locidx_t ghostid = ck-mesh->local_num_quadrants;
+          p4est_quadrant_t *ghostquad = p4est_quadrant_array_index (&ghost->ghosts, (size_t) ghostid);
           p4est_locidx_t ghostp  = mesh->ghost_to_proc[ghostid];
-          p4est_locidx_t ghostk  = mesh->ghost_to_index[ghostid];
+          p4est_locidx_t ghostk  = ghostquad->p.piggy3.local_num;
           int8_t         ghostf = cf;
           int8_t         ghosth = 0;
 
@@ -366,8 +367,9 @@ bfam_domain_pxest_parallel_face_mapping(p4est_mesh_t *mesh,
           if(cks[h] >= mesh->local_num_quadrants)
           {
             p4est_locidx_t ghostid = cks[h]-mesh->local_num_quadrants;
+            p4est_quadrant_t *ghostquad = p4est_quadrant_array_index (&ghost->ghosts, (size_t) ghostid);
             p4est_locidx_t ghostp  = mesh->ghost_to_proc[ghostid];
-            p4est_locidx_t ghostk  = mesh->ghost_to_index[ghostid];
+            p4est_locidx_t ghostk  = ghostquad->p.piggy3.local_num;
             int8_t         ghostf  =
               ((BFAM_PXEST_RELATIVE_ORIENTATIONS*P4EST_FACES) + cf)%
               P4EST_FACES;
@@ -1068,8 +1070,9 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
   p4est_t       *pxest = domain->pxest;
   p4est_ghost_t *ghost = p4est_ghost_new(pxest, BFAM_PXEST_CONNECT);
   p4est_mesh_t  *mesh  = p4est_mesh_new(pxest, ghost, BFAM_PXEST_CONNECT);
+  p4est_nodes_t *nodes = p4est_nodes_new(pxest, NULL);
 
-  const p4est_locidx_t Nv = mesh->local_num_vertices;
+  const p4est_locidx_t Nv = (p4est_locidx_t) nodes->indep_nodes.elem_count;
 
   bfam_long_real_t *VX = bfam_malloc_aligned(Nv * sizeof(bfam_long_real_t));
   bfam_long_real_t *VY = bfam_malloc_aligned(Nv * sizeof(bfam_long_real_t));
@@ -1096,7 +1099,7 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
     = bfam_malloc_aligned(numParallelFaces*
         sizeof(bfam_subdomain_face_map_entry_t));
 
-  bfam_domain_pxest_parallel_face_mapping(mesh, glueID, numParallelFaces,
+  bfam_domain_pxest_parallel_face_mapping(ghost, mesh, glueID, numParallelFaces,
       pfmapping);
 
   bfam_locidx_t numNeighbors =
@@ -1150,14 +1153,19 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
   bfam_domain_pxest_boundary_subdomain_face_mapping(mesh, subdomainID,
       glueID, numBoundaryFaces, bfmapping);
 
-  /*
-   * Get vertex coordinates
-   */
-  for(p4est_locidx_t v = 0; v < mesh->local_num_vertices; ++v)
-  {
-    VX[v] = (bfam_long_real_t) mesh->vertices[3*v + 0];
-    VY[v] = (bfam_long_real_t) mesh->vertices[3*v + 1];
-    VZ[v] = (bfam_long_real_t) mesh->vertices[3*v + 2];
+  for(p4est_locidx_t v = 0; v < Nv; ++v) {
+    double xyz[3];
+    p4est_quadrant_t *quad = p4est_quadrant_array_index (&nodes->indep_nodes, v);
+    p4est_qcoord_to_vertex(pxest->connectivity,
+                           quad->p.which_tree, quad->x, quad->y,
+#if DIM==3
+                           quad->z,
+#endif
+                           xyz);
+
+    VX[v] = xyz[0];
+    VY[v] = xyz[1];
+    VZ[v] = xyz[2];
   }
 
   /*
@@ -1219,7 +1227,7 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
     for (int v = 0; v < P4EST_CHILDREN; ++v)
     {
       EToV[idk][P4EST_CHILDREN * subk[idk] + v] =
-        mesh->quad_to_vertex[P4EST_CHILDREN * k + v];
+        nodes->local_nodes[P4EST_CHILDREN * k + v];
     }
 
     for (int f = 0; f < P4EST_FACES; ++f)
@@ -1543,6 +1551,7 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
   bfam_free_aligned(VY);
   bfam_free_aligned(VZ);
 
+  p4est_nodes_destroy(nodes);
   p4est_mesh_destroy(mesh);
   p4est_ghost_destroy(ghost);
 

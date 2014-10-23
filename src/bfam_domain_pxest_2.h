@@ -11,6 +11,7 @@
 #include <p4est_extended.h>
 #include <p4est_ghost.h>
 #include <p4est_iterate.h>
+#include <p4est_nodes.h>
 #include <p4est_lnodes.h>
 #include <p4est_mesh.h>
 #include <p4est_vtk.h>
