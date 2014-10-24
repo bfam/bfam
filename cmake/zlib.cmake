@@ -52,6 +52,7 @@ macro(zlib_build)
     CMAKE_ARGS
       -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_BINARY_DIR}/third_party/zlib/install
       -DBUILD_SHARED_LIBS:BOOL=OFF
+      -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
   )
   set_target_properties(zlib PROPERTIES EXCLUDE_FROM_ALL ON)
   add_dependencies(build_bundled_libs zlib)

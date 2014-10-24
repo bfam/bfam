@@ -6,6 +6,8 @@ include(InstallRequiredSystemLibraries)
 include(FortranCInterface)
 include(CMakePushCheckState)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 ##
 ## ispc stuff
 ##
