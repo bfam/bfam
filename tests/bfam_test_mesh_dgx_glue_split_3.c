@@ -41,7 +41,7 @@ build_state(MPI_Comm mpicomm, state_t* state)
   refine_level = 1;
   p8est_refine(domain->pxest, 2, refine_fn, NULL);
   p8est_balance(domain->pxest, P8EST_CONNECT_CORNER, NULL);
-  p8est_partition(domain->pxest, NULL);
+  p8est_partition(domain->pxest, 0, NULL);
 
   p8est_vtk_write_file(domain->pxest, NULL, "p8est_mesh");
 

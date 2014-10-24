@@ -97,7 +97,7 @@ build_mesh(MPI_Comm mpicomm)
   refine_level = 2;
   p4est_refine(domain->pxest, 1, refine_fn, NULL);
   p4est_balance(domain->pxest, P4EST_CONNECT_FACE, NULL);
-  p4est_partition(domain->pxest, NULL);
+  p4est_partition(domain->pxest, 1, NULL);
 
   p4est_vtk_write_file(domain->pxest, NULL, "p4est_mesh");
 

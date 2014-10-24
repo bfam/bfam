@@ -438,7 +438,7 @@ test_geo_dgx(MPI_Comm mpicomm)
   bfam_domain_pxest_t* domain = bfam_domain_pxest_new(mpicomm, conn);
 
   p4est_balance(domain->pxest, P4EST_CONNECT_CORNER, NULL);
-  p4est_partition(domain->pxest, NULL);
+  p4est_partition(domain->pxest, 1, NULL);
 
   bfam_locidx_t numSubdomains = 1;
   int N = 1;

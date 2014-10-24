@@ -64,7 +64,7 @@ main (int argc, char *argv[])
   refine_level = 1;
   p4est_refine(p4est, 1, refine_fn, NULL);
   p4est_balance(p4est, P4EST_CONNECT_FACE, NULL);
-  p4est_partition(p4est, NULL);
+  p4est_partition(p4est, 1, NULL);
 
   p4est_vtk_write_file(p4est, NULL, "mesh");
 

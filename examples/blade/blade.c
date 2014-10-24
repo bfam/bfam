@@ -1050,7 +1050,7 @@ init_domain(blade_t *blade, prefs_t *prefs)
   for(int i = 0; i < stat_ref; i++)
     p4est_refine(blade->domain->pxest, 0, static_refine_fn, NULL);
 
-  p4est_partition(blade->domain->pxest, NULL);
+  p4est_partition(blade->domain->pxest, 1, NULL);
 
   /* split the domain */
   split_domain(blade,prefs);
@@ -1827,7 +1827,7 @@ run_simulation(blade_t *blade,prefs_t *prefs)
    snprintf(output,BFAM_BUFSIZ,"%s/%s_pxest_mesh",
        prefs->data_directory,prefs->output_prefix);
    p4est_vtk_write_all(blade->domain->pxest, NULL,
-                       1, 1, 1, 0, 0, 0, output);
+                       1, 1, 1, 1, 0, 0, 0, output);
 
     const char *fields[] = {"q","ux","uy",
 #if DIM==3
