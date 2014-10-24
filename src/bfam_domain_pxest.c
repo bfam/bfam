@@ -20,7 +20,7 @@
 #if   DIM==2
 #define BFAM_PXEST_RELATIVE_ORIENTATIONS 2
 #define BDIM 1
-#define BFAM_PXEST_CONNECT P4EST_CONNECT_FACE
+#define BFAM_PXEST_CONNECT P4EST_CONNECT_FULL
 #define BFAM_PXEST_ORIENTATION(n,nf,o) (o)
 #define BFAM_PXEST_BOHTONH(bo,h) (((bo)+(h))%(2))
 #define BFAM_PXEST_BOHTONH_INV(bo,h) BFAM_PXEST_BOHTONH(bo,h)
@@ -28,7 +28,7 @@
 #define BFAM_PXEST_RELATIVE_ORIENTATIONS 4
 #define BFAM_PXEST_ORIENTATION(n,nf,o) BFAM_P8EST_ORIENTATION(n,nf,o)
 #define BDIM 2
-#define BFAM_PXEST_CONNECT P8EST_CONNECT_FACE
+#define BFAM_PXEST_CONNECT P8EST_CONNECT_FULL
 #define BFAM_PXEST_BOHTONH(bo,h) (bfam_p8est_perm_to_order[(bo)][(h)])
 #define BFAM_PXEST_BOHTONH_INV(bo,h) (bfam_p8est_perm_to_order_inv[(bo)][(h)])
 #else
