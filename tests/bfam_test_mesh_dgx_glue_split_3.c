@@ -588,7 +588,7 @@ test_conn(MPI_Comm mpicomm, state_t *state)
   const char *ps[] = {"p1", "p2", "p3", "p4", "p5", "p6", NULL};
 
   bfam_vtk_write_file((bfam_domain_t*)domain, BFAM_DOMAIN_OR, glue_id_0,
-                      "","glue_id",0, ps, NULL, NULL, 0, 0, 0);
+                      NULL,"glue_id",0, ps, NULL, NULL, 0, 0, 0);
 
   /*
    * Check local subdomain vmaps
