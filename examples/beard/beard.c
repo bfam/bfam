@@ -2924,8 +2924,8 @@ run_simulation(beard_t *beard,prefs_t *prefs)
         bfam_dictionary_allprefixed_ptr(beard->volume_stations, "",
             &beard_output_stations_flush, &volume_args);
 
-      const char *fault_station_fields[] = {"V",   "Dp",
-                                            "Tp1", "Tp2", "Tp3", "Tn",NULL};
+      const char *fault_station_fields[] = { "Tp1", "Tp2", "Tp3", "Tn", "V",
+        "Vp1", "Vp2", "Vp3", "Dp", "Dp1","Dp2","Dp3","Dn",NULL};
       station_args_t fault_args;
       fault_args.prefs  = prefs;
       fault_args.fields = fault_station_fields;
