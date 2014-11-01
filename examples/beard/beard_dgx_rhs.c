@@ -1504,7 +1504,7 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDn ,rate_prefix,"Dn", fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDp1,rate_prefix,"Dp1",fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDp2,rate_prefix,"Dp2",fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDp3,rate_prefix,"Dp2",fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDp3,rate_prefix,"Dp3",fields_g);
 
   bfam_real_t *wi  = sub_m->wi;
   BFAM_ASSUME_ALIGNED(wi ,32);
