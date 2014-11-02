@@ -45,9 +45,13 @@ for k = 1:length(A)
   end
 end
 
-[t,Tp1,~,Tp3,Tn,~,Vp1,~,Vp3,~,Dp1,~,Dp3,~] = deal(1,2,3,4,5,6,7,8,9,10,11,12,13,14);
+[t,Tp1,Tp2,Tp3,Tn,V,Vp1,Vp2,Vp3,Dp,Dp1,Dp2,Dp3,Dn] = deal(1,2,3,4,5,6,7,8,9,10,11,12,13,14);
 if cnt > 0
-  t = data(1).dat(:,t);
+  M = length(data(1).dat(:,t));
+  for k = 2:cnt
+    M = min(M,length(data(k).dat(:,t)));
+  end
+  t = data(1).dat(1:M,t);
   hslip        = zeros(size(t));
   hsliprate    = zeros(size(t));
   hshearstress = zeros(size(t));
@@ -56,15 +60,15 @@ if cnt > 0
   vshearstress = zeros(size(t));
   nstress      = zeros(size(t));
   for k = 1:cnt
-    vshearstress = vshearstress + data(cnt).n(2) * data(cnt).dat(:,Tp3)/cnt;
-    vsliprate    = vsliprate    +                  data(cnt).dat(:,Vp3)/cnt;
-    vslip        = vslip        +                  data(cnt).dat(:,Dp3)/cnt;
+    vshearstress = vshearstress - data(cnt).dat(1:M,Tp3)/cnt/data(cnt).n(2);
+    vsliprate    = vsliprate    + data(cnt).dat(1:M,Vp3)/cnt;
+    vslip        = vslip        - data(cnt).dat(1:M,Dp3)/cnt;
 
-    hshearstress = hshearstress + data(cnt).n(2) * data(cnt).dat(:,Tp1)/cnt;
-    hsliprate    = hsliprate    -                  data(cnt).dat(:,Vp1)/cnt;
-    hslip        = hslip        -                  data(cnt).dat(:,Dp1)/cnt;
+    hshearstress = hshearstress + data(cnt).dat(1:M,Tp1)/cnt/data(cnt).n(2);;
+    hsliprate    = hsliprate    - data(cnt).dat(1:M,Vp1)/cnt;
+    hslip        = hslip        - data(cnt).dat(1:M,Dp1)/cnt;
 
-    nstress      = nstress      +                  data(cnt).dat(:,Tn )/cnt;
+    nstress      = nstress      + data(cnt).dat(1:M,Tn )/cnt;
   end
 
   oid = fopen(outputname,'w');
