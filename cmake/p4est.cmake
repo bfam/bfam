@@ -106,6 +106,7 @@ macro(p4est_build)
     URL_MD5   37ba7f4410958cfb38a2140339dbf64f
     CONFIGURE_COMMAND ${CMAKE_BINARY_DIR}/third_party/p4est/src/p4est/configure
       "CC=${MPI_C_COMPILER}"
+      "CXX=${MPI_CXX_COMPILER}"
       "F77=${MPI_Fortran_COMPILER}"
       "CPPFLAGS=-I${LUA_INCLUDE_DIR} ${zlib_include}"
       "LIBS=${lua_lib} ${zlib_lib}"

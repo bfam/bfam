@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.7)
 
-project(bfam C Fortran)
+project(bfam C Fortran CXX)
 
 include(InstallRequiredSystemLibraries)
 include(FortranCInterface)
