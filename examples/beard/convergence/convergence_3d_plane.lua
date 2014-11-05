@@ -21,6 +21,7 @@ brick =
   periodic_x = 1,
   periodic_y = 1,
   periodic_z = 1,
+  p4est_brick = 1,
 }
 
 -- set up the domain

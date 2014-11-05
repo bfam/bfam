@@ -30,6 +30,7 @@ brick =
   periodic_x = 1,
   periodic_y = 0,
   periodic_z = 1,
+  p4est_brick = 1,
 }
 
 default_boundary_tag = "free surface"

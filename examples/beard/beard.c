@@ -395,12 +395,13 @@ struct local_adams_table {
 
 typedef struct brick_args
 {
-  int nx;
-  int ny;
-  int nz;
-  int periodic_x;
-  int periodic_y;
-  int periodic_z;
+  bfam_locidx_t nx;
+  bfam_locidx_t ny;
+  bfam_locidx_t nz;
+  bfam_locidx_t periodic_x;
+  bfam_locidx_t periodic_y;
+  bfam_locidx_t periodic_z;
+  bfam_locidx_t p4est_brick;
 } brick_args_t;
 
 typedef struct prefs
@@ -784,15 +785,18 @@ new_prefs(const char *prefs_filename)
   prefs->brick_args->ny = lua_get_table_int(prefs->L, "brick", "ny",1);
 
   prefs->brick_args->periodic_x = lua_get_table_int(prefs->L, "brick",
-      "periodic_x",1);
+      "periodic_x",0);
   prefs->brick_args->periodic_y = lua_get_table_int(prefs->L, "brick",
-      "periodic_y",1);
+      "periodic_y",0);
+
+  prefs->brick_args->p4est_brick = lua_get_table_int(prefs->L, "brick",
+                                                     "p4est_brick",0);
 
 #if   DIM==2
 #elif DIM==3
   prefs->brick_args->nz = lua_get_table_int(prefs->L, "brick", "nz",1);
   prefs->brick_args->periodic_z =
-    lua_get_table_int(prefs->L, "brick", "periodic_z",1);
+    lua_get_table_int(prefs->L, "brick", "periodic_z",0);
 #else
 #error "Bad dimension"
 #endif
@@ -833,6 +837,7 @@ print_prefs(prefs_t *prefs)
 #else
 #error "Bad dimension"
 #endif
+    BFAM_ROOT_INFO("  p4est_brick = %d", prefs->brick_args->p4est_brick);
   }
   BFAM_ROOT_INFO("-------------------------------");
 }
@@ -1620,18 +1625,39 @@ init_domain(beard_t *beard, prefs_t *prefs)
 {
   /* Set up the connectivity */
   if(prefs->brick_args != NULL)
-    beard->conn = p4est_connectivity_new_brick(
-        prefs->brick_args->nx,
-        prefs->brick_args->ny,
+    if(prefs->brick_args->p4est_brick)
+      beard->conn = p4est_connectivity_new_brick(
+          prefs->brick_args->nx,
+          prefs->brick_args->ny,
 #if DIM==3
-        prefs->brick_args->nz,
+          prefs->brick_args->nz,
 #endif
-        prefs->brick_args->periodic_x,
-        prefs->brick_args->periodic_y
+          prefs->brick_args->periodic_x,
+          prefs->brick_args->periodic_y
 #if DIM==3
-        ,prefs->brick_args->periodic_z
+          ,prefs->brick_args->periodic_z
 #endif
-        );
+          );
+    else
+    {
+#if DIM==2
+      BFAM_ASSERT(brick_args->periodic_x == 0 && brick_args->periodic_y == 0);
+      beard->conn = bfam_domain_pxest_brick_2(
+          prefs->brick_args->nx,
+          prefs->brick_args->ny
+          );
+#elif DIM==3
+      BFAM_ASSERT(brick_args->periodic_x == 0 && brick_args->periodic_y == 0
+                  brick_args->periodic_z == 0);
+      beard->conn = bfam_domain_pxest_brick_3(
+          prefs->brick_args->nx,
+          prefs->brick_args->ny,
+          prefs->brick_args->nz
+          );
+#else
+#error "Bad Dimension"
+#endif
+    }
   else BFAM_ABORT("no connectivity");
 
   /* let the user modify the connectivity vertices */
