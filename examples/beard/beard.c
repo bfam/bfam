@@ -402,6 +402,8 @@ typedef struct brick_args
   bfam_locidx_t periodic_y;
   bfam_locidx_t periodic_z;
   bfam_locidx_t p4est_brick;
+  bfam_locidx_t* brick_to_tree;
+  bfam_locidx_t* bc;
 } brick_args_t;
 
 typedef struct prefs
@@ -792,6 +794,17 @@ new_prefs(const char *prefs_filename)
   prefs->brick_args->p4est_brick = lua_get_table_int(prefs->L, "brick",
                                                      "p4est_brick",0);
 
+  /* Get the boundary conditions */
+  prefs->brick_args->bc = bfam_malloc(sizeof(bfam_locidx_t)*6);
+  prefs->brick_args->bc[0] = lua_get_table_int(prefs->L, "brick","bc0",-1);
+  prefs->brick_args->bc[1] = lua_get_table_int(prefs->L, "brick","bc1",-1);
+  prefs->brick_args->bc[2] = lua_get_table_int(prefs->L, "brick","bc2",-1);
+  prefs->brick_args->bc[3] = lua_get_table_int(prefs->L, "brick","bc3",-1);
+  prefs->brick_args->bc[4] = lua_get_table_int(prefs->L, "brick","bc4",-1);
+  prefs->brick_args->bc[5] = lua_get_table_int(prefs->L, "brick","bc5",-1);
+
+  prefs->brick_args->periodic_z = 0;
+
 #if   DIM==2
 #elif DIM==3
   prefs->brick_args->nz = lua_get_table_int(prefs->L, "brick", "nz",1);
@@ -985,6 +998,124 @@ static void
 init_tree_to_glueid(beard_t *beard, prefs_t *prefs,
     bfam_locidx_t *tree_to_glueid)
 {
+  /* First we set the brick boundary conditions (if they exist) */
+  brick_args_t *brick_args = prefs->brick_args;
+  if(brick_args)
+  {
+    bfam_locidx_t faceid = 0;
+    if(brick_args->bc[faceid] > 0)
+    {
+      BFAM_ABORT_IF_NOT(brick_args->brick_to_tree, "brick to tree not defined"
+          " (this is likely due to 'p4est_brick' being set)");
+
+      const bfam_locidx_t ix = 0;
+#if DIM==3
+      for(bfam_locidx_t iz = 0; iz < brick_args->nz; iz++)
+#endif
+        for(bfam_locidx_t iy = 0; iy < brick_args->ny; iy++)
+        {
+          const bfam_locidx_t treeid =
+            brick_args->brick_to_tree[BEARD_D3_AP(ix + brick_args->nx*iy,
+                                       + brick_args->nx*brick_args->ny*iz)];
+          tree_to_glueid[P4EST_FACES*treeid + faceid] = brick_args->bc[faceid];
+        }
+    }
+
+    faceid = 1;
+    if(brick_args->bc[faceid] > 0)
+    {
+      BFAM_ABORT_IF_NOT(brick_args->brick_to_tree, "brick to tree not defined"
+          " (this is likely due to 'p4est_brick' being set)");
+
+      const bfam_locidx_t ix = brick_args->nx-1;
+#if DIM==3
+      for(bfam_locidx_t iz = 0; iz < brick_args->nz; iz++)
+#endif
+        for(bfam_locidx_t iy = 0; iy < brick_args->ny; iy++)
+        {
+          const bfam_locidx_t treeid =
+            brick_args->brick_to_tree[BEARD_D3_AP(ix + brick_args->nx*iy,
+                                       + brick_args->nx*brick_args->ny*iz)];
+          tree_to_glueid[P4EST_FACES*treeid + faceid] = brick_args->bc[faceid];
+        }
+    }
+
+    faceid = 2;
+    if(brick_args->bc[faceid] > 0)
+    {
+      BFAM_ABORT_IF_NOT(brick_args->brick_to_tree, "brick to tree not defined"
+          " (this is likely due to 'p4est_brick' being set)");
+
+      const bfam_locidx_t iy = 0;
+#if DIM==3
+      for(bfam_locidx_t iz = 0; iz < brick_args->nz; iz++)
+#endif
+        for(bfam_locidx_t ix = 0; ix < brick_args->nx; ix++)
+        {
+          const bfam_locidx_t treeid =
+            brick_args->brick_to_tree[BEARD_D3_AP(ix + brick_args->nx*iy,
+                                       + brick_args->nx*brick_args->ny*iz)];
+          tree_to_glueid[P4EST_FACES*treeid + faceid] = brick_args->bc[faceid];
+        }
+    }
+
+    faceid = 3;
+    if(brick_args->bc[faceid] > 0)
+    {
+      BFAM_ABORT_IF_NOT(brick_args->brick_to_tree, "brick to tree not defined"
+          " (this is likely due to 'p4est_brick' being set)");
+
+      const bfam_locidx_t iy = brick_args->ny-1;
+#if DIM==3
+      for(bfam_locidx_t iz = 0; iz < brick_args->nz; iz++)
+#endif
+        for(bfam_locidx_t ix = 0; ix < brick_args->nx; ix++)
+        {
+          const bfam_locidx_t treeid =
+            brick_args->brick_to_tree[BEARD_D3_AP(ix + brick_args->nx*iy,
+                                       + brick_args->nx*brick_args->ny*iz)];
+          tree_to_glueid[P4EST_FACES*treeid + faceid] = brick_args->bc[faceid];
+        }
+    }
+
+#if DIM==3
+    faceid = 4;
+    if(brick_args->bc[faceid] > 0)
+    {
+      BFAM_ABORT_IF_NOT(brick_args->brick_to_tree, "brick to tree not defined"
+          " (this is likely due to 'p4est_brick' being set)");
+
+      const bfam_locidx_t iz = 0;
+      for(bfam_locidx_t iy = 0; iy < brick_args->ny; iy++)
+        for(bfam_locidx_t ix = 0; ix < brick_args->nx; ix++)
+        {
+          const bfam_locidx_t treeid =
+            brick_args->brick_to_tree[BEARD_D3_AP(ix + brick_args->nx*iy,
+                                       + brick_args->nx*brick_args->ny*iz)];
+          tree_to_glueid[P4EST_FACES*treeid + faceid] = brick_args->bc[faceid];
+        }
+    }
+
+    faceid = 5;
+    if(brick_args->bc[faceid] > 0)
+    {
+      BFAM_ABORT_IF_NOT(brick_args->brick_to_tree, "brick to tree not defined"
+          " (this is likely due to 'p4est_brick' being set)");
+
+      const bfam_locidx_t iz = brick_args->nz-1;
+      for(bfam_locidx_t iy = 0; iy < brick_args->ny; iy++)
+        for(bfam_locidx_t ix = 0; ix < brick_args->nx; ix++)
+        {
+          const bfam_locidx_t treeid =
+            brick_args->brick_to_tree[BEARD_D3_AP(ix + brick_args->nx*iy,
+                                       + brick_args->nx*brick_args->ny*iz)];
+          tree_to_glueid[P4EST_FACES*treeid + faceid] = brick_args->bc[faceid];
+        }
+    }
+#endif
+  }
+
+  /* Now we read the table from the Lua */
   lua_State *L = prefs->L;
 #ifdef BFAM_DEBUG
   int top = lua_gettop(L);
@@ -1002,7 +1133,6 @@ init_tree_to_glueid(beard_t *beard, prefs_t *prefs,
     BFAM_ROOT_WARNING("table `%s' not found", "glueid_treeid_faceid");
   else
   {
-
     int n = lua_objlen(L, -1);
     BFAM_LDEBUG("glueid_treeid_faceid  #elem: %3d", n);
 
@@ -1031,6 +1161,12 @@ init_tree_to_glueid(beard_t *beard, prefs_t *prefs,
 
       BFAM_ABORT_IF(faceid < 0 || faceid > P4EST_FACES,
           "glueid_treeid_faceid: invalid face id %d", faceid);
+      if(prefs->brick_args && prefs->brick_args->brick_to_tree)
+      {
+        BFAM_LDEBUG("brick %04"BFAM_LOCIDX_PRId" <--> tree %04"BFAM_LOCIDX_PRId,
+            treeid,prefs->brick_args->brick_to_tree[treeid]);
+        treeid = prefs->brick_args->brick_to_tree[treeid];
+      }
 
       tree_to_glueid[P4EST_FACES*treeid + faceid] = glueid;
     }
@@ -1624,40 +1760,49 @@ static void
 init_domain(beard_t *beard, prefs_t *prefs)
 {
   /* Set up the connectivity */
-  if(prefs->brick_args != NULL)
-    if(prefs->brick_args->p4est_brick)
-      beard->conn = p4est_connectivity_new_brick(
-          prefs->brick_args->nx,
-          prefs->brick_args->ny,
+  brick_args_t *brick_args = prefs->brick_args;
+  if(brick_args != NULL)
+  {
+    beard->conn = p4est_connectivity_new_brick(
+        brick_args->nx,
+        brick_args->ny,
 #if DIM==3
-          prefs->brick_args->nz,
+        brick_args->nz,
 #endif
-          prefs->brick_args->periodic_x,
-          prefs->brick_args->periodic_y
+        brick_args->periodic_x,
+        brick_args->periodic_y
 #if DIM==3
-          ,prefs->brick_args->periodic_z
+        ,brick_args->periodic_z
 #endif
-          );
-    else
+        );
+
+    brick_args->brick_to_tree = NULL;
+    if(!brick_args->p4est_brick)
     {
+      const bfam_locidx_t num_trees = beard->conn->num_trees;
+      brick_args->brick_to_tree = bfam_malloc(sizeof(bfam_locidx_t)*
+                                                     num_trees);
+      const double *verts = beard->conn->vertices;
+      const p4est_topidx_t *tree_to_verts = beard->conn->tree_to_vertex;
+      for(bfam_locidx_t treeid = 0; treeid < num_trees; treeid++)
+      {
 #if DIM==2
-      BFAM_ASSERT(brick_args->periodic_x == 0 && brick_args->periodic_y == 0);
-      beard->conn = bfam_domain_pxest_brick_2(
-          prefs->brick_args->nx,
-          prefs->brick_args->ny
-          );
+        bfam_locidx_t brick =
+                          (bfam_locidx_t)verts[3*tree_to_verts[4*treeid]+0] +
+          brick_args->nx*((bfam_locidx_t)verts[3*tree_to_verts[4*treeid]+1]);
 #elif DIM==3
-      BFAM_ASSERT(brick_args->periodic_x == 0 && brick_args->periodic_y == 0
-                  brick_args->periodic_z == 0);
-      beard->conn = bfam_domain_pxest_brick_3(
-          prefs->brick_args->nx,
-          prefs->brick_args->ny,
-          prefs->brick_args->nz
-          );
-#else
-#error "Bad Dimension"
+        bfam_locidx_t brick =
+                          (bfam_locidx_t)verts[3*tree_to_verts[8*treeid]+0] +
+          brick_args->nx*((bfam_locidx_t)verts[3*tree_to_verts[8*treeid]+1] +
+          brick_args->ny*((bfam_locidx_t)verts[3*tree_to_verts[8*treeid]+2]));
 #endif
+        brick_args->brick_to_tree[brick] = treeid;
+        BFAM_LDEBUG("brick %04"BFAM_LOCIDX_PRId" <--> tree %04"BFAM_LOCIDX_PRId,
+            brick,brick_args->brick_to_tree[brick]);
+        BFAM_ASSERT(0 <= brick && brick < num_trees);
+      }
     }
+  }
   else BFAM_ABORT("no connectivity");
 
   /* let the user modify the connectivity vertices */
