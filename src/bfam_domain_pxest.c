@@ -53,8 +53,6 @@
   BFAM_APPEND_EXPAND(bfam_domain_pxest_quad_to_glueid_,DIM)
 #define              bfam_domain_pxest_split_dgx_subdomains \
   BFAM_APPEND_EXPAND(bfam_domain_pxest_split_dgx_subdomains_,DIM)
-#define              bfam_domain_pxest_brick \
-  BFAM_APPEND_EXPAND(bfam_domain_pxest_brick_,DIM)
 
 bfam_domain_pxest_t*
 bfam_domain_pxest_new(MPI_Comm domComm, p4est_connectivity_t *conn)
@@ -1566,77 +1564,6 @@ bfam_domain_pxest_split_dgx_subdomains(bfam_domain_pxest_t *domain,
 
   BFAM_ROOT_LDEBUG("End splitting pxest domain into subdomains.");
   bfam_domain_pxest_dgx_print_stats(domain);
-}
-
-
-p4est_connectivity_t*
-#if DIM==3
-bfam_domain_pxest_brick(bfam_locidx_t nx, bfam_locidx_t ny ,bfam_locidx_t nz)
-#else
-bfam_domain_pxest_brick(bfam_locidx_t nx, bfam_locidx_t ny)
-#endif
-{
-
-  p4est_connectivity_t *conn = p4est_connectivity_new(
-      BFAM_D3_AP((nx+1)*(ny+1),*(nz+1)), BFAM_D3_AP(nx*ny,*nz),
-#if DIM==3
-      0,0,
-#endif
-      0,0);
-
-
-  /* Loop through and fill the vertex list */
-  bfam_locidx_t k = 0;
-  bfam_locidx_t vid = 0;
-#if DIM==3
-  for (; k < nz+1; k++)
-#endif
-    for (bfam_locidx_t j = 0; j < ny+1; j++)
-      for (bfam_locidx_t i = 0; i < nx+1; i++)
-      {
-        conn->vertices[3*vid+0] = i;
-        conn->vertices[3*vid+1] = j;
-        conn->vertices[3*vid+2] = k;
-        vid++;
-      }
-
-  k = 0;
-  bfam_locidx_t tid = 0;
-#if DIM==3
-  for (; k < nz; k++)
-#endif
-    for (bfam_locidx_t j = 0; j < ny; j++)
-      for (bfam_locidx_t i = 0; i < nx; i++)
-      {
-        const bfam_locidx_t off = tid*(1<<DIM);
-
-        conn->tree_to_vertex[off+0] = BFAM_D3_AP((i+0) + ny*(j+0),+ny*nz*(k+0));
-        conn->tree_to_vertex[off+1] = BFAM_D3_AP((i+1) + ny*(j+0),+ny*nz*(k+0));
-        conn->tree_to_vertex[off+2] = BFAM_D3_AP((i+0) + ny*(j+1),+ny*nz*(k+0));
-        conn->tree_to_vertex[off+3] = BFAM_D3_AP((i+1) + ny*(j+1),+ny*nz*(k+0));
-#if DIM == 3
-        conn->tree_to_vertex[off+4] = BFAM_D3_AP((i+0) + ny*(j+0),+ny*nz*(k+1));
-        conn->tree_to_vertex[off+5] = BFAM_D3_AP((i+1) + ny*(j+0),+ny*nz*(k+1));
-        conn->tree_to_vertex[off+6] = BFAM_D3_AP((i+0) + ny*(j+1),+ny*nz*(k+1));
-        conn->tree_to_vertex[off+7] = BFAM_D3_AP((i+1) + ny*(j+1),+ny*nz*(k+1));
-#endif
-      }
-
-
-  /* following is taken from p4est_connectivity.c function
-   * p4est_connectivity_read_inp
-   */
-  for (bfam_locidx_t tree = 0; tree < conn->num_trees; ++tree) {
-    for (bfam_locidx_t face = 0; face < P4EST_FACES; ++face) {
-      conn->tree_to_tree[P4EST_FACES * tree + face] = tree;
-      conn->tree_to_face[P4EST_FACES * tree + face] = face;
-    }
-  }
-  BFAM_ASSERT (p4est_connectivity_is_valid (conn));
-  /* Compute real tree_to_* fields and complete (edge and) corner fields. */
-  p4est_connectivity_complete (conn);
-
-  return conn;
 }
 
 #else

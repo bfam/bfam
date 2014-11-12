@@ -110,12 +110,4 @@ bfam_domain_pxest_split_dgx_subdomains_2(bfam_domain_pxest_t_2 *domain,
       void* user_args),
     void* user_args);
 
-/** Create a p4est connectivity with a brick connectivity where trees are
- *  in Column-Major order -> (i,j) -> treeid = i + ny*j
- * \param[in]      nx  number of cells in x direction
- * \param[in]      ny  number of cells in y direction
- */
-p4est_connectivity_t *
-bfam_domain_pxest_brick_2(bfam_locidx_t nx, bfam_locidx_t ny);
-
 #endif

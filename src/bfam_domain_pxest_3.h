@@ -110,13 +110,4 @@ bfam_domain_pxest_split_dgx_subdomains_3(bfam_domain_pxest_t_3 *domain,
       const bfam_locidx_t num_pnts, bfam_long_real_t** lxi, void* user_args),
     void* user_args);
 
-/** Create a p8est connectivity with a brick connectivity where trees are
- *  in Column-Major order -> (i,j,k) -> treeid = i + ny*(j+nz*k)
- * \param[in]      nx  number of cells in x direction
- * \param[in]      ny  number of cells in y direction
- * \param[in]      nz  number of cells in z direction
- */
-p8est_connectivity_t *
-bfam_domain_pxest_brick_3(bfam_locidx_t nx, bfam_locidx_t ny, bfam_locidx_t nz);
-
 #endif
