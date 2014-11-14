@@ -160,37 +160,59 @@ BFAM_ASSUME_ALIGNED(field,32);
 
 static inline void
 beard_dgx_upwind_state_friction_m(
-          bfam_real_t *Tps,       bfam_real_t *vpsm,        bfam_real_t *Vps,
+          bfam_real_t *TpS,       bfam_real_t *vpSm,        bfam_real_t *VpS,
     const bfam_real_t    T,
     const bfam_real_t *Tpm, const bfam_real_t *Tpp  , const bfam_real_t *Tp0,
     const bfam_real_t *vpm, const bfam_real_t *vpp  ,
     const bfam_real_t  Zsm, const bfam_real_t  Zsp  )
 {
-  /* upwind perpendicular velocities and tractions */
-  /* wpm = Tpm - Zsm*vpm = TpS - Zsm*vpS */
-  /* wpp = Tpp - Zsp*vpp =-TpS - Zsp*vpS */
+  /* upwind perpendicular velocities and tractions
+  * LHS are the volume values and RHS are the upwind states
+  * and we find them by forcing these characteristics to remain unchanged which
+  * satisfying the constraint that
+  *    T = | TpS[i] |
+  * and that TpS points in the same direciton as VpS
+  *
+  * The following characteristics must remain unchanges
+  *   wpm = Tpm - Zsm*vpm = TpS - Zsm*vpSm
+  *   wpp = Tpp - Zsp*vpp =-TpS - Zsp*vpSp
+  *
+  * scaling and adding gives the relationship
+  *   phi[i] = (wpm[i]*Zsp-wpp[i]*Zsm)/(Zsp+Zsm)
+  *          = Tps[i] - ((Zsm*Zsp)/(Zsm+Zsp))*VpS[i]
+  * which since TpS and VpS must be parallel gives the directions of TpS and
+  * Vps. Thus we have that TpS[i] = A phi[i] / |phi|, but since the magnitude of
+  * TpS[i] is T, we have that
+  *    TpS[i] = T phi[i]/|phi|
+  *
+  * Note: that this TpS[i] includes the load / background stress, so that must
+  * be subtracted off to get the actual upwind state
+  */
   bfam_real_t phi[3];
   bfam_real_t mag = 0;
   for(bfam_locidx_t i = 0; i < 3; i++)
   {
     bfam_real_t wpm = Tpm[i] + Tp0[i] - Zsm*vpm[i];
     bfam_real_t wpp = Tpp[i] - Tp0[i] - Zsp*vpp[i];
+
+    /* phi[i] = Tps[i] - ((Zsm*Zsp)/(Zsm+Zsp))*VpS[i] */
     phi[i] = (wpm*Zsp-wpp*Zsm)/(Zsp+Zsm);
+
+    /* mag = | phi[i] | */
     mag += phi[i]*phi[i];
   }
   mag = BFAM_REAL_SQRT(mag);
   for(bfam_locidx_t i = 0; i < 3; i++)
   {
-    Tps[i]           = T*phi[i]/mag - Tp0[i];
-    vpsm[i]          = (Tps[i]-Tpm[i])/Zsm + vpm[i];
-    bfam_real_t vpsp =-(Tps[i]+Tpp[i])/Zsp + vpp[i];
-    Vps[i]           = vpsm[i]-vpsp;
+    TpS[i]  = T*phi[i]/mag - Tp0[i];
+    vpSm[i] = (TpS[i]-Tpm[i])/Zsm + vpm[i];
+    VpS[i]  = (TpS[i] + Tp0[i] - phi[i])/((Zsp*Zsm)/(Zsm+Zsp));
   }
 }
 
 static inline void
 beard_dgx_upwind_state_m(
-          bfam_real_t *Tns,       bfam_real_t *Tps,
+          bfam_real_t *Tns,       bfam_real_t *TpS,
           bfam_real_t *vns,       bfam_real_t *vps,
           bfam_real_t  Tnm,       bfam_real_t  Tnp,
     const bfam_real_t *Tpm, const bfam_real_t *Tpp,
@@ -215,13 +237,13 @@ beard_dgx_upwind_state_m(
     bfam_real_t wpm = Tpm[i] - Zsm*vpm[i];
     bfam_real_t wpp = Tpp[i] - Zsp*vpp[i];
     vps[i] =-(wpm    +wpp    )/(Zsp+Zsm);
-    Tps[i] = (wpm*Zsp-wpp*Zsm)/(Zsp+Zsm);
+    TpS[i] = (wpm*Zsp-wpp*Zsm)/(Zsp+Zsm);
   }
 }
 
 static inline void
 beard_dgx_central_state_m(
-          bfam_real_t *Tns,       bfam_real_t *Tps,
+          bfam_real_t *Tns,       bfam_real_t *TpS,
           bfam_real_t *vns,       bfam_real_t *vps,
     const bfam_real_t  Tnm, const bfam_real_t  Tnp,
     const bfam_real_t *Tpm, const bfam_real_t *Tpp,
@@ -236,7 +258,7 @@ beard_dgx_central_state_m(
   for(bfam_locidx_t i = 0; i < 3; i++)
   {
     vps[i] = BFAM_REAL(0.5)*(vpm[i]+vpp[i]);
-    Tps[i] = BFAM_REAL(0.5)*(Tpm[i]-Tpp[i]);
+    TpS[i] = BFAM_REAL(0.5)*(Tpm[i]-Tpp[i]);
   }
 }
 
@@ -441,7 +463,7 @@ beard_dgx_add_boundary_flux( const int inN,
 }
 
 static inline void
-beard_project_flux(bfam_real_t *Tns,       bfam_real_t *Tps,
+beard_project_flux(bfam_real_t *Tns,       bfam_real_t *TpS,
                  bfam_real_t *vns,       bfam_real_t *vps,
                bfam_locidx_t  inN,     bfam_locidx_t  Nrpg,
            const bfam_real_t *Tng, const bfam_real_t *Tpg,
@@ -459,7 +481,7 @@ beard_project_flux(bfam_real_t *Tns,       bfam_real_t *Tps,
   {
     for(int n = 0; n < 3; n++)
     {
-      Tps[3*i+n] = 0;
+      TpS[3*i+n] = 0;
       vps[3*i+n] = 0;
     }
     Tns[i] = 0;
@@ -480,7 +502,7 @@ beard_project_flux(bfam_real_t *Tns,       bfam_real_t *Tps,
                                             *P2[i+l*(N+1)]);
           for(int k = 0; k < 3; k++)
           {
-            Tps[3*n+k] += PR*Tpg[3*p+k];
+            TpS[3*n+k] += PR*Tpg[3*p+k];
             vps[3*n+k] += PR*vpg[3*p+k];
           }
           Tns[n] += PR*Tng[p];
@@ -492,7 +514,7 @@ beard_project_flux(bfam_real_t *Tns,       bfam_real_t *Tps,
 }
 
 static inline void
-beard_massproject_flux(bfam_real_t *Tns,       bfam_real_t *Tps,
+beard_massproject_flux(bfam_real_t *Tns,       bfam_real_t *TpS,
                  bfam_real_t *vns,       bfam_real_t *vps,
                bfam_locidx_t  inN,     bfam_locidx_t  Nrpg,
            const bfam_real_t *Tng, const bfam_real_t *Tpg,
@@ -510,7 +532,7 @@ beard_massproject_flux(bfam_real_t *Tns,       bfam_real_t *Tps,
   {
     for(int n = 0; n < 3; n++)
     {
-      Tps[3*i+n] = 0;
+      TpS[3*i+n] = 0;
       vps[3*i+n] = 0;
     }
     Tns[i] = 0;
@@ -531,7 +553,7 @@ beard_massproject_flux(bfam_real_t *Tns,       bfam_real_t *Tps,
                                                *wi[i]*MP2[i+l*(N+1)]);
           for(int k = 0; k < 3; k++)
           {
-            Tps[3*n+k] += wi_MP*Tpg[3*p+k];
+            TpS[3*n+k] += wi_MP*Tpg[3*p+k];
             vps[3*n+k] += wi_MP*vpg[3*p+k];
           }
           Tns[n] += wi_MP*Tng[p];
@@ -1607,19 +1629,19 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
       fc[iG] = fs[iG]-(fs[iG]-fd[iG])*BFAM_MIN(Dp[iG],Dc[iG])/Dc[iG];
       const bfam_real_t Sfric = -Tn[iG]*fc[iG];
 
-
       if(Sfric*Sfric < Slock2)
       {
-        bfam_real_t Vps[3];
+        bfam_real_t VpS[3];
         const bfam_real_t Tp0[] =
             {Tp1_0[iG], Tp2_0[iG], Tp3_0[iG]};
-        beard_dgx_upwind_state_friction_m(&TpS_g[3*pnt], &vpS_g[3*pnt], Vps,
+
+        beard_dgx_upwind_state_friction_m(&TpS_g[3*pnt], &vpS_g[3*pnt], VpS,
             Sfric, TpM, TpP, Tp0, vpM, vpP, ZsM, ZsP);
 
-        Vp1[iG] = Vps[0];
-        Vp2[iG] = Vps[1];
-        Vp3[iG] = Vps[2];
-        V[iG]   = BFAM_REAL_SQRT(Vps[0]*Vps[0] + Vps[1]*Vps[1] + Vps[2]*Vps[2]);
+        Vp1[iG] = VpS[0];
+        Vp2[iG] = VpS[1];
+        Vp3[iG] = VpS[2];
+        V[iG]   = BFAM_REAL_SQRT(VpS[0]*VpS[0] + VpS[1]*VpS[1] + VpS[2]*VpS[2]);
       }
       else
       {
