@@ -416,6 +416,7 @@ typedef struct prefs
   char data_directory[BFAM_BUFSIZ];
   int  vtk_binary;
   int  vtk_compress;
+  int  vtk_num_pnts;
   char default_boundary_tag[BFAM_BUFSIZ];
 
   brick_args_t* brick_args;
@@ -642,6 +643,19 @@ new_prefs(const char *prefs_filename)
   }
   lua_pop(L, 1);
 
+  /* get vtk_num_pnts */
+  lua_getglobal(L,"vtk_num_pnts");
+  if(lua_isnumber(L, -1))
+  {
+    prefs->vtk_num_pnts = lua_tointeger(L, -1);
+  }
+  else
+  {
+    prefs->vtk_num_pnts = 0;
+    BFAM_ROOT_WARNING("using default 'vtk_num_pnts': %d",
+        prefs->vtk_num_pnts);
+  }
+  lua_pop(L, 1);
 
   /* get default boundary tag */
   lua_getglobal(L,"default_boundary_tag");
@@ -3010,7 +3024,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,0);
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
         slip_weakening, prefs->data_directory, output, (0)*dt, sw_fields,
-        NULL, NULL, prefs->vtk_binary, prefs->vtk_compress, 0);
+        NULL, NULL, prefs->vtk_binary, prefs->vtk_compress, prefs->vtk_num_pnts);
   }
 
   /* compute the initial energy */
@@ -3040,7 +3054,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,0);
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
         volume, prefs->data_directory, output, (0)*dt, fields, NULL, NULL,
-        prefs->vtk_binary, prefs->vtk_compress, 0);
+        prefs->vtk_binary, prefs->vtk_compress, prefs->vtk_num_pnts);
   }
 
   BFAM_ASSERT(beard->beard_ts);
@@ -3116,7 +3130,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
           slip_weakening, prefs->data_directory, output, (s)*dt, sw_fields,
-          NULL, NULL, prefs->vtk_binary, prefs->vtk_compress, 0);
+          NULL, NULL, prefs->vtk_binary, prefs->vtk_compress, prefs->vtk_num_pnts);
     }
     if(noutput > 0 && s%noutput == 0)
     {
@@ -3126,7 +3140,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
           volume, prefs->data_directory, output, (s)*dt, fields, NULL, NULL,
-          prefs->vtk_binary, prefs->vtk_compress, 0);
+          prefs->vtk_binary, prefs->vtk_compress, prefs->vtk_num_pnts);
     }
     if(nerr > 0 && s%nerr == 0)
     {
@@ -3152,7 +3166,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
         snprintf(err_output,BFAM_BUFSIZ,"%s_error_%05d",prefs->output_prefix,s);
         bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
             volume, prefs->data_directory, err_output, (s)*dt, err_flds, NULL,
-            NULL, prefs->vtk_binary, prefs->vtk_compress, 0);
+            NULL, prefs->vtk_binary, prefs->vtk_compress, prefs->vtk_num_pnts);
         energy = new_energy;
       }
     }
