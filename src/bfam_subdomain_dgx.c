@@ -1836,8 +1836,7 @@ bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
   {
     bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor1,sub->N,x,interp,sub->dim);
     bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor2,sub->N,y,interp,sub->dim);
-    if(sub->dim > 2)
-      bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor3,sub->N,z,interp,sub->dim);
+    bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor3,sub->N,z,interp,sub->dim);
   }
 
   fprintf(file,
