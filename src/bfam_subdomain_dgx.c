@@ -1836,7 +1836,10 @@ bfam_subdomain_dgx_vtk_write_vtu_piece(bfam_subdomain_t *subdomain,
   {
     bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor1,sub->N,x,interp,sub->dim);
     bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor2,sub->N,y,interp,sub->dim);
-    bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor3,sub->N,z,interp,sub->dim);
+    if(z != NULL)
+      bfam_subdomain_dgx_vtk_interp(K,N_vtk,stor3,sub->N,z,interp,sub->dim);
+    else
+      for(bfam_locidx_t k = 0; k < Np_vtk*K;k++) stor3[k] = 0;
   }
 
   fprintf(file,
