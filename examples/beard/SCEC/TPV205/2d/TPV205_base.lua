@@ -1,21 +1,23 @@
 -- refinement parameters
 min_level = 0
-max_level = 0
+max_level = 2
 output_prefix = "TPV205"
 data_directory = "data"
-elem_order = 2
+elem_order = 4
 
 -- connectivity info
 connectivity = "brick"
 brick =
 {
-  nx = 96,
-  ny = 96,
-  nz = 48,
-  periodic_x = 0,
-  periodic_y = 0,
-  periodic_z = 0,
-  p4est_brick = 1,
+  nx = 2*(10+3),
+  ny = 2*(10+3),
+  nz = 10+3,
+  bc0 = 1,
+  bc1 = 1,
+  bc2 = 1,
+  bc3 = 1,
+  bc4 = 2,
+  bc5 = 1,
 }
 
 -- set up the domain
@@ -66,14 +68,6 @@ function refinement_function(
   else
     return 0
   end
-
-  -- if level < min_level then
-  --   return 1
-  -- elseif level >= max_level then
-  --   return 0
-  -- else
-  --   return 0
-  -- end
 end
 
 function element_order(
@@ -105,10 +99,10 @@ v3  = 0
 -- time stepper to use
 lsrk_method  = "KC54"
 
-tend   = 12
+tend   = 13
 tout   = 1
 tfout  = 0.1
-tdisp  = 0.01
+tdisp  = 0.1
 tstations  = 0.01
 nerr   = 0
 
@@ -125,19 +119,20 @@ function time_step_parameters(dt)
   return dt,nsteps, ndisp, noutput, nfoutput, nstations
 end
 
+
 volume_stations = {
   "p12_p3", 12.0, 3.0,
   "m12_p3",-12.0, 3.0,
 }
 
 fault_stations = {
-  "m4.5_0",  -4.5, 0.0,
-  "m7.5_0",  -7.5, 0.0,
-  "m12_0" , -12.0, 0.0,
-  "0_0"   ,   0.0, 0.0,
-  "p4.5_0",   4.5, 0.0,
-  "p7.5_0",   7.5, 0.0,
-  "p12_0" ,  12.0, 0.0,
+  "m4.5_0",  -4.5, 0.0, 0.0, 1.0, Ly,
+  "m7.5_0",  -7.5, 0.0, 0.0, 1.0, Ly,
+  "m12_0" , -12.0, 0.0, 0.0, 1.0, Ly,
+  "0_0"   ,   0.0, 0.0, 0.0, 1.0, Ly,
+  "p4.5_0",   4.5, 0.0, 0.0, 1.0, Ly,
+  "p7.5_0",   7.5, 0.0, 0.0, 1.0, Ly,
+  "p12_0" ,  12.0, 0.0, 0.0, 1.0, Ly,
 }
 
 -- faults
@@ -181,7 +176,25 @@ fault_4 = {
   S22_0 = -120.0,
 }
 
+bc_free = {
+  type = "boundary",
+  tag  = "free surface",
+}
+
+bc_nonreflect = {
+  type = "boundary",
+  tag  = "non-reflecting",
+}
+
+bc_rigid = {
+  type = "boundary",
+  tag  = "rigid wall",
+}
+
 glue_info = {
+  bc_nonreflect,
+  bc_free,
+  bc_rigid,
   fault_1,
   fault_2,
   fault_3,
@@ -189,44 +202,45 @@ glue_info = {
 }
 
 glueid_treeid_faceid = {
-1, 3604, 2,
-1, 3605, 2,
-1, 3648, 2,
-1, 3649, 2,
-4, 3652, 2,
-4, 3653, 2,
-1, 3664, 2,
-1, 3665, 2,
-1, 3668, 2,
-3, 3669, 2,
-3, 3840, 2,
-1, 3841, 2,
-1, 3844, 2,
-1, 3845, 2,
-2, 3856, 2,
-2, 3857, 2,
-1, 3860, 2,
-1, 3861, 2,
-1, 3904, 2,
-1, 3905, 2,
-1, 3262, 3,
-1, 3263, 3,
-1, 3306, 3,
-1, 3307, 3,
-4, 3310, 3,
-4, 3311, 3,
-1, 3322, 3,
-1, 3323, 3,
-1, 3326, 3,
-3, 3327, 3,
-3, 3498, 3,
-1, 3499, 3,
-1, 3502, 3,
-1, 3503, 3,
-2, 3514, 3,
-2, 3515, 3,
-1, 3518, 3,
-1, 3519, 3,
-1, 3562, 3,
-1, 3563, 3,
+  4, (Cx-10) + (Cy-1)*brick.nx, 3,
+  4, (Cx- 9) + (Cy-1)*brick.nx, 3,
+  4, (Cx- 8) + (Cy-1)*brick.nx, 3,
+  4, (Cx- 7) + (Cy-1)*brick.nx, 3,
+  5, (Cx- 6) + (Cy-1)*brick.nx, 3,
+  5, (Cx- 5) + (Cy-1)*brick.nx, 3,
+  4, (Cx- 4) + (Cy-1)*brick.nx, 3,
+  4, (Cx- 3) + (Cy-1)*brick.nx, 3,
+  4, (Cx- 2) + (Cy-1)*brick.nx, 3,
+  6, (Cx- 1) + (Cy-1)*brick.nx, 3,
+  6, (Cx+ 0) + (Cy-1)*brick.nx, 3,
+  4, (Cx+ 1) + (Cy-1)*brick.nx, 3,
+  4, (Cx+ 2) + (Cy-1)*brick.nx, 3,
+  4, (Cx+ 3) + (Cy-1)*brick.nx, 3,
+  7, (Cx+ 4) + (Cy-1)*brick.nx, 3,
+  7, (Cx+ 5) + (Cy-1)*brick.nx, 3,
+  4, (Cx+ 6) + (Cy-1)*brick.nx, 3,
+  4, (Cx+ 7) + (Cy-1)*brick.nx, 3,
+  4, (Cx+ 8) + (Cy-1)*brick.nx, 3,
+  4, (Cx+ 9) + (Cy-1)*brick.nx, 3,
+  --
+  4, (Cx-10) + (Cy+0)*brick.nx, 2,
+  4, (Cx- 9) + (Cy+0)*brick.nx, 2,
+  4, (Cx- 8) + (Cy+0)*brick.nx, 2,
+  4, (Cx- 7) + (Cy+0)*brick.nx, 2,
+  5, (Cx- 6) + (Cy+0)*brick.nx, 2,
+  5, (Cx- 5) + (Cy+0)*brick.nx, 2,
+  4, (Cx- 4) + (Cy+0)*brick.nx, 2,
+  4, (Cx- 3) + (Cy+0)*brick.nx, 2,
+  4, (Cx- 2) + (Cy+0)*brick.nx, 2,
+  6, (Cx- 1) + (Cy+0)*brick.nx, 2,
+  6, (Cx+ 0) + (Cy+0)*brick.nx, 2,
+  4, (Cx+ 1) + (Cy+0)*brick.nx, 2,
+  4, (Cx+ 2) + (Cy+0)*brick.nx, 2,
+  4, (Cx+ 3) + (Cy+0)*brick.nx, 2,
+  7, (Cx+ 4) + (Cy+0)*brick.nx, 2,
+  7, (Cx+ 5) + (Cy+0)*brick.nx, 2,
+  4, (Cx+ 6) + (Cy+0)*brick.nx, 2,
+  4, (Cx+ 7) + (Cy+0)*brick.nx, 2,
+  4, (Cx+ 8) + (Cy+0)*brick.nx, 2,
+  4, (Cx+ 9) + (Cy+0)*brick.nx, 2,
 }
