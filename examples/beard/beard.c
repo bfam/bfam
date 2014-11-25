@@ -3352,9 +3352,14 @@ init_fault_stations(beard_t *beard, prefs_t *prefs)
         for(bfam_locidx_t i = 0; i < num_stations; i++)
         {
 #if DIM == 2
-          BFAM_ABORT("NEED TO HANDLE THE NORMAL");
-          bfam_real_t r[1];
-          inverse_linear(r, xyz[i*DIM+0], x_e[msk[0][0]], x_e[msk[1][0]]);
+          bfam_real_t r[3];
+          /* inverse_linear(r, xyz[i*DIM+0], x_e[msk[0][0]], x_e[msk[1][0]]);*/
+          inverse_bilinear_normal(r,
+              xyz[i*DIM+0],   xyz[i*DIM+1],   0,
+              nxf[i*DIM+0],   nxf[i*DIM+1],   0,
+            x_e[msk[0][0]], x_e[msk[1][0]], x_e[msk[0][0]], x_e[msk[1][0]],
+            y_e[msk[0][0]], y_e[msk[1][0]], y_e[msk[0][0]], y_e[msk[1][0]],
+                         0,              0,              1,              1);
 #elif DIM == 3
           bfam_real_t r[3];
 
