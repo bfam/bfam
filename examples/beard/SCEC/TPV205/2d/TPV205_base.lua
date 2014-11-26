@@ -1,6 +1,6 @@
 -- refinement parameters
 min_level = 0
-max_level = 2
+max_level = 1
 output_prefix = "TPV205"
 data_directory = "data"
 elem_order = 4
@@ -9,9 +9,9 @@ elem_order = 4
 connectivity = "brick"
 brick =
 {
-  nx = 2*(10+3),
-  ny = 2*(10+3),
-  nz = 10+3,
+  nx = 2*(10+20),
+  ny = 2*(10+20),
+  nz = 10+10,
   bc0 = 1,
   bc1 = 1,
   bc2 = 1,
