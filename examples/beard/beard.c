@@ -1012,6 +1012,11 @@ static void
 init_tree_to_glueid(beard_t *beard, prefs_t *prefs,
     bfam_locidx_t *tree_to_glueid)
 {
+  bfam_locidx_t num_tree_ids =
+    P4EST_FACES*beard->domain->pxest->connectivity->num_trees;
+  for(int k = 0; k < num_tree_ids;k++)
+    tree_to_glueid[k] = -1;
+
   /* First we set the brick boundary conditions (if they exist) */
   brick_args_t *brick_args = prefs->brick_args;
   if(brick_args)
@@ -1135,11 +1140,6 @@ init_tree_to_glueid(beard_t *beard, prefs_t *prefs,
   int top = lua_gettop(L);
 #endif
 
-
-  bfam_locidx_t num_tree_ids =
-    P4EST_FACES*beard->domain->pxest->connectivity->num_trees;
-  for(int k = 0; k < num_tree_ids;k++)
-    tree_to_glueid[k] = -1;
 
   lua_getglobal(L,"glueid_treeid_faceid");
 
