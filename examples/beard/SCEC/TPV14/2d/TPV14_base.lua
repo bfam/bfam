@@ -1,57 +1,43 @@
 -- refinement parameters
 min_level = 0
-max_level = 3
+max_level = 2
 output_prefix = "TPV14"
 data_directory = "data"
 elem_order = 2
 
 -- connectivity info
 connectivity = "brick"
+buffer = 40
 brick =
 {
-  nx = 48,
-  ny = 48,
-  nz = 48,
+  nx = 32+24+buffer,
+  ny = 24+buffer,
+  nz = 1,
   periodic_x = 0,
   periodic_y = 0,
   periodic_z = 0,
-  p4est_brick = 1,
+  bc0 = 1,
+  bc1 = 1,
+  bc2 = 1,
+  bc3 = 1,
 }
 
 -- set up the domain
-Lx = 3.0
-Ly = 3.0
-Lz = 3.0
+L = 0.5
 
-Cx = brick.nx/2
-Cy = brick.ny/2
+Cx = (brick.nx-(32+24))/2+32
+Cy = (brick.ny-( 0+24))/2 +24
 Cz = brick.nz
 
 q_branch = math.pi/6
 
 function connectivity_vertices(x, y, z)
-  x = Lx*(x-Cx)
-  y = Ly*(y-Cy)
-  z = Lz*(z-Cz)
-
-  if x < 0 then
-    x = x - 0.25
-  end
-  if x < -3.25 then
-    x = x - 0.25
-  end
-  if x < -9.5 then
-    x = x - 0.25
-  end
-  if x < -12.75 then
-    x = x - 0.25
-  end
-  if x < -16 then
-    x = x - 0.25
-  end
+  x = L*(x-Cx)
+  y = L*(y-Cy)
+  z = L*(z-Cz)
 
   if y < 0 then
-    H = math.max(y,-4*Ly)
+    H = math.max(y,-12)
     x = x-H*math.cos(q_branch)
     y = y-H*math.sin(q_branch)
   end
@@ -64,26 +50,32 @@ function refinement_function(
   x2,y2,z2,x3,y3,z3,
   level, treeid)
 
-  xa0 = math.abs(x0)
-  xa1 = math.abs(x1)
-  xa2 = math.abs(x2)
-  xa3 = math.abs(x3)
-  xmin = math.min( xa0,xa1)
-  xmin = math.min(xmin,xa2)
-  xmin = math.min(xmin,xa2)
+  x = (x0+x1+x2+x3)/4
+  y = (y0+y1+y2+y3)/4
 
-  ya0 = math.abs(y0+3)
-  ya1 = math.abs(y1+3)
-  ya2 = math.abs(y2+3)
-  ya3 = math.abs(y3+3)
-  ymin = math.min( ya0,ya1)
-  ymin = math.min(ymin,ya2)
-  ymin = math.min(ymin,ya3)
+  -- distance to the main fault
+  xf = math.max(0,math.abs(x+2)-14)
+  yf = math.abs(y)
+  r  = math.sqrt(xf^2+yf^2)
 
-  x = math.max(xmin-15,0) / (Cx*Lx-15)
-  y = math.max(ymin- 3,0) / (Cy*Ly- 3)
-  r = math.sqrt((x^2+y^2)/2)
-  l = (max_level+1) + (min_level-(max_level+1))*math.sqrt(r)
+  if y < 0 then
+    if x*math.cos(q_branch) - y*math.sin(q_branch) < 12 then
+      -- distance to the branch fault
+      rb = math.abs(math.sin(q_branch)*x + math.cos(q_branch)*y)
+      r  = math.min(rb,r)
+    else
+      -- distance to the end of the fault
+      xe =  12*math.cos(q_branch)
+      ye = -12*math.sin(q_branch)
+      re = math.sqrt((x-xe)^2 + (y-ye)^2)
+      r  = math.min(re,r)
+    end
+  end
+
+  r = r/4
+
+
+  l = max_level + (min_level-max_level)*math.sqrt(r)
 
   if level < l then
     return 1
@@ -143,21 +135,6 @@ function time_step_parameters(dt)
   return dt,nsteps, ndisp, noutput, nfoutput, nstations
 end
 
-volume_stations = {
-  "p12_p3", 12.0, 3.0,
-  "m12_p3",-12.0, 3.0,
-}
-
-fault_stations = {
-  "m4.5_0",  -4.5, 0.0,
-  "m7.5_0",  -7.5, 0.0,
-  "m12_0" , -12.0, 0.0,
-  "0_0"   ,   0.0, 0.0,
-  "p4.5_0",   4.5, 0.0,
-  "p7.5_0",   7.5, 0.0,
-  "p12_0" ,  12.0, 0.0,
-}
-
 -- faults
 main_fault = {
   type   = "friction",
@@ -179,7 +156,6 @@ nucleation_patch  = {
   S22_0  = -120.0,
 }
 
-
 snn    =  -120
 snm    =    70
 smm    =     0
@@ -199,37 +175,196 @@ branch_fault  = {
   S11_0  = n1*snn*n1 + n1*snm*m1 + m1*snm*n1 + m1*smm*m1,
 }
 
+bc_free = {
+  type = "boundary",
+  tag  = "free surface",
+}
+
+bc_nonreflect = {
+  type = "boundary",
+  tag  = "non-reflecting",
+}
+
+bc_rigid = {
+  type = "boundary",
+  tag  = "rigid wall",
+}
+
 glue_info = {
+  bc_nonreflect,
+  bc_free,
+  bc_rigid,
   main_fault,
   nucleation_patch,
   branch_fault,
 }
 
 glueid_treeid_faceid = {
-  1, 901, 2,
-  1, 912, 2,
-  1, 916, 2,
-  1, 917, 2,
-  1, 960, 2,
-  1, 961, 2,
-  1, 964, 2,
-  1, 965, 2,
-  1, 815, 3,
-  1, 826, 3,
-  1, 830, 3,
-  1, 831, 3,
-  1, 874, 3,
-  1, 875, 3,
-  1, 878, 3,
-  1, 879, 3,
-  2, 913, 2,
-  2, 827, 3,
-  3, 831, 1,
-  3, 829, 1,
-  3, 823, 1,
-  3, 821, 1,
-  3, 874, 0,
-  3, 872, 0,
-  3, 866, 0,
-  3, 864, 0,
+  4, (Cx-32) + (Cy-1)*brick.nx, 3,
+  4, (Cx-31) + (Cy-1)*brick.nx, 3,
+  4, (Cx-30) + (Cy-1)*brick.nx, 3,
+  4, (Cx-29) + (Cy-1)*brick.nx, 3,
+  4, (Cx-28) + (Cy-1)*brick.nx, 3,
+  4, (Cx-27) + (Cy-1)*brick.nx, 3,
+  4, (Cx-26) + (Cy-1)*brick.nx, 3,
+  4, (Cx-25) + (Cy-1)*brick.nx, 3,
+  4, (Cx-24) + (Cy-1)*brick.nx, 3,
+  4, (Cx-23) + (Cy-1)*brick.nx, 3,
+  4, (Cx-22) + (Cy-1)*brick.nx, 3,
+  4, (Cx-21) + (Cy-1)*brick.nx, 3,
+  4, (Cx-20) + (Cy-1)*brick.nx, 3,
+  --
+  5, (Cx-19) + (Cy-1)*brick.nx, 3,
+  5, (Cx-18) + (Cy-1)*brick.nx, 3,
+  5, (Cx-17) + (Cy-1)*brick.nx, 3,
+  5, (Cx-16) + (Cy-1)*brick.nx, 3,
+  5, (Cx-15) + (Cy-1)*brick.nx, 3,
+  5, (Cx-14) + (Cy-1)*brick.nx, 3,
+  --
+  4, (Cx-13) + (Cy-1)*brick.nx, 3,
+  4, (Cx-12) + (Cy-1)*brick.nx, 3,
+  4, (Cx-11) + (Cy-1)*brick.nx, 3,
+  4, (Cx-10) + (Cy-1)*brick.nx, 3,
+  4, (Cx- 9) + (Cy-1)*brick.nx, 3,
+  4, (Cx- 8) + (Cy-1)*brick.nx, 3,
+  4, (Cx- 7) + (Cy-1)*brick.nx, 3,
+  4, (Cx- 6) + (Cy-1)*brick.nx, 3,
+  4, (Cx- 5) + (Cy-1)*brick.nx, 3,
+  4, (Cx- 4) + (Cy-1)*brick.nx, 3,
+  4, (Cx- 3) + (Cy-1)*brick.nx, 3,
+  4, (Cx- 2) + (Cy-1)*brick.nx, 3,
+  4, (Cx- 1) + (Cy-1)*brick.nx, 3,
+  4, (Cx+ 0) + (Cy-1)*brick.nx, 3,
+  4, (Cx+ 1) + (Cy-1)*brick.nx, 3,
+  4, (Cx+ 2) + (Cy-1)*brick.nx, 3,
+  4, (Cx+ 3) + (Cy-1)*brick.nx, 3,
+  4, (Cx+ 4) + (Cy-1)*brick.nx, 3,
+  4, (Cx+ 5) + (Cy-1)*brick.nx, 3,
+  4, (Cx+ 6) + (Cy-1)*brick.nx, 3,
+  4, (Cx+ 7) + (Cy-1)*brick.nx, 3,
+  4, (Cx+ 8) + (Cy-1)*brick.nx, 3,
+  4, (Cx+ 9) + (Cy-1)*brick.nx, 3,
+  4, (Cx+10) + (Cy-1)*brick.nx, 3,
+  4, (Cx+11) + (Cy-1)*brick.nx, 3,
+  4, (Cx+12) + (Cy-1)*brick.nx, 3,
+  4, (Cx+13) + (Cy-1)*brick.nx, 3,
+  4, (Cx+14) + (Cy-1)*brick.nx, 3,
+  4, (Cx+15) + (Cy-1)*brick.nx, 3,
+  4, (Cx+16) + (Cy-1)*brick.nx, 3,
+  4, (Cx+17) + (Cy-1)*brick.nx, 3,
+  4, (Cx+18) + (Cy-1)*brick.nx, 3,
+  4, (Cx+19) + (Cy-1)*brick.nx, 3,
+  4, (Cx+20) + (Cy-1)*brick.nx, 3,
+  4, (Cx+21) + (Cy-1)*brick.nx, 3,
+  4, (Cx+22) + (Cy-1)*brick.nx, 3,
+  4, (Cx+23) + (Cy-1)*brick.nx, 3,
+  --
+  4, (Cx-32) + (Cy+0)*brick.nx, 2,
+  4, (Cx-31) + (Cy+0)*brick.nx, 2,
+  4, (Cx-30) + (Cy+0)*brick.nx, 2,
+  4, (Cx-29) + (Cy+0)*brick.nx, 2,
+  4, (Cx-28) + (Cy+0)*brick.nx, 2,
+  4, (Cx-27) + (Cy+0)*brick.nx, 2,
+  4, (Cx-26) + (Cy+0)*brick.nx, 2,
+  4, (Cx-25) + (Cy+0)*brick.nx, 2,
+  4, (Cx-24) + (Cy+0)*brick.nx, 2,
+  4, (Cx-23) + (Cy+0)*brick.nx, 2,
+  4, (Cx-22) + (Cy+0)*brick.nx, 2,
+  4, (Cx-21) + (Cy+0)*brick.nx, 2,
+  4, (Cx-20) + (Cy+0)*brick.nx, 2,
+  --
+  5, (Cx-19) + (Cy+0)*brick.nx, 2,
+  5, (Cx-18) + (Cy+0)*brick.nx, 2,
+  5, (Cx-17) + (Cy+0)*brick.nx, 2,
+  5, (Cx-16) + (Cy+0)*brick.nx, 2,
+  5, (Cx-15) + (Cy+0)*brick.nx, 2,
+  5, (Cx-14) + (Cy+0)*brick.nx, 2,
+  --
+  4, (Cx-13) + (Cy+0)*brick.nx, 2,
+  4, (Cx-12) + (Cy+0)*brick.nx, 2,
+  4, (Cx-11) + (Cy+0)*brick.nx, 2,
+  4, (Cx-10) + (Cy+0)*brick.nx, 2,
+  4, (Cx- 9) + (Cy+0)*brick.nx, 2,
+  4, (Cx- 8) + (Cy+0)*brick.nx, 2,
+  4, (Cx- 7) + (Cy+0)*brick.nx, 2,
+  4, (Cx- 6) + (Cy+0)*brick.nx, 2,
+  4, (Cx- 5) + (Cy+0)*brick.nx, 2,
+  4, (Cx- 4) + (Cy+0)*brick.nx, 2,
+  4, (Cx- 3) + (Cy+0)*brick.nx, 2,
+  4, (Cx- 2) + (Cy+0)*brick.nx, 2,
+  4, (Cx- 1) + (Cy+0)*brick.nx, 2,
+  4, (Cx+ 0) + (Cy+0)*brick.nx, 2,
+  4, (Cx+ 1) + (Cy+0)*brick.nx, 2,
+  4, (Cx+ 2) + (Cy+0)*brick.nx, 2,
+  4, (Cx+ 3) + (Cy+0)*brick.nx, 2,
+  4, (Cx+ 4) + (Cy+0)*brick.nx, 2,
+  4, (Cx+ 5) + (Cy+0)*brick.nx, 2,
+  4, (Cx+ 6) + (Cy+0)*brick.nx, 2,
+  4, (Cx+ 7) + (Cy+0)*brick.nx, 2,
+  4, (Cx+ 8) + (Cy+0)*brick.nx, 2,
+  4, (Cx+ 9) + (Cy+0)*brick.nx, 2,
+  4, (Cx+10) + (Cy+0)*brick.nx, 2,
+  4, (Cx+11) + (Cy+0)*brick.nx, 2,
+  4, (Cx+12) + (Cy+0)*brick.nx, 2,
+  4, (Cx+13) + (Cy+0)*brick.nx, 2,
+  4, (Cx+14) + (Cy+0)*brick.nx, 2,
+  4, (Cx+15) + (Cy+0)*brick.nx, 2,
+  4, (Cx+16) + (Cy+0)*brick.nx, 2,
+  4, (Cx+17) + (Cy+0)*brick.nx, 2,
+  4, (Cx+18) + (Cy+0)*brick.nx, 2,
+  4, (Cx+19) + (Cy+0)*brick.nx, 2,
+  4, (Cx+20) + (Cy+0)*brick.nx, 2,
+  4, (Cx+21) + (Cy+0)*brick.nx, 2,
+  4, (Cx+22) + (Cy+0)*brick.nx, 2,
+  4, (Cx+23) + (Cy+0)*brick.nx, 2,
+  --
+  6, (Cx-1) + (Cy- 1)*brick.nx, 1,
+  6, (Cx-1) + (Cy- 2)*brick.nx, 1,
+  6, (Cx-1) + (Cy- 3)*brick.nx, 1,
+  6, (Cx-1) + (Cy- 4)*brick.nx, 1,
+  6, (Cx-1) + (Cy- 5)*brick.nx, 1,
+  6, (Cx-1) + (Cy- 6)*brick.nx, 1,
+  6, (Cx-1) + (Cy- 7)*brick.nx, 1,
+  6, (Cx-1) + (Cy- 8)*brick.nx, 1,
+  6, (Cx-1) + (Cy- 9)*brick.nx, 1,
+  6, (Cx-1) + (Cy-10)*brick.nx, 1,
+  6, (Cx-1) + (Cy-11)*brick.nx, 1,
+  6, (Cx-1) + (Cy-12)*brick.nx, 1,
+  6, (Cx-1) + (Cy-13)*brick.nx, 1,
+  6, (Cx-1) + (Cy-14)*brick.nx, 1,
+  6, (Cx-1) + (Cy-15)*brick.nx, 1,
+  6, (Cx-1) + (Cy-16)*brick.nx, 1,
+  6, (Cx-1) + (Cy-17)*brick.nx, 1,
+  6, (Cx-1) + (Cy-18)*brick.nx, 1,
+  6, (Cx-1) + (Cy-19)*brick.nx, 1,
+  6, (Cx-1) + (Cy-20)*brick.nx, 1,
+  6, (Cx-1) + (Cy-21)*brick.nx, 1,
+  6, (Cx-1) + (Cy-22)*brick.nx, 1,
+  6, (Cx-1) + (Cy-23)*brick.nx, 1,
+  6, (Cx-1) + (Cy-24)*brick.nx, 1,
+  --
+  6, (Cx+0) + (Cy- 1)*brick.nx, 0,
+  6, (Cx+0) + (Cy- 2)*brick.nx, 0,
+  6, (Cx+0) + (Cy- 3)*brick.nx, 0,
+  6, (Cx+0) + (Cy- 4)*brick.nx, 0,
+  6, (Cx+0) + (Cy- 5)*brick.nx, 0,
+  6, (Cx+0) + (Cy- 6)*brick.nx, 0,
+  6, (Cx+0) + (Cy- 7)*brick.nx, 0,
+  6, (Cx+0) + (Cy- 8)*brick.nx, 0,
+  6, (Cx+0) + (Cy- 9)*brick.nx, 0,
+  6, (Cx+0) + (Cy-10)*brick.nx, 0,
+  6, (Cx+0) + (Cy-11)*brick.nx, 0,
+  6, (Cx+0) + (Cy-12)*brick.nx, 0,
+  6, (Cx+0) + (Cy-13)*brick.nx, 0,
+  6, (Cx+0) + (Cy-14)*brick.nx, 0,
+  6, (Cx+0) + (Cy-15)*brick.nx, 0,
+  6, (Cx+0) + (Cy-16)*brick.nx, 0,
+  6, (Cx+0) + (Cy-17)*brick.nx, 0,
+  6, (Cx+0) + (Cy-18)*brick.nx, 0,
+  6, (Cx+0) + (Cy-19)*brick.nx, 0,
+  6, (Cx+0) + (Cy-20)*brick.nx, 0,
+  6, (Cx+0) + (Cy-21)*brick.nx, 0,
+  6, (Cx+0) + (Cy-22)*brick.nx, 0,
+  6, (Cx+0) + (Cy-23)*brick.nx, 0,
+  6, (Cx+0) + (Cy-24)*brick.nx, 0,
 }
