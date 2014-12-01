@@ -2743,7 +2743,6 @@ beard_open_fault_stations(const char * key, void *val, void *in_args)
   fprintf(file,"# version = %s\n",bfam_version_get());
   fprintf(file,"# fault station = %s\n",key);
   fprintf(file,"# The line below lists the names of the data fields:\n");
-  fprintf(file,"# The line below lists the names of the data fields:\n");
 
   /* Print the interpolated point */
   fprintf(file,"# interpolated point:\n#    (");
