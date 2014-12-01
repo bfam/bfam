@@ -61,7 +61,8 @@ const char *comm_args_tensor_components[] = {"S11","S12","S13",
                                              "S22","S23","S33",NULL};
 
 const char *sw_fields[] = {"Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
-  "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3", "Dc", "Dp", "fs", "fc", "fd",
+  "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3",
+  "Dc", "Dp", "fs", "fc", "fd", "c0",
   "S11_0","S12_0","S13_0","S22_0","S23_0","S33_0",
   "Dp1","Dp2","Dp3","Dn",NULL};
 
@@ -1715,7 +1716,8 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
       {
         for(int f = 0; sw_fields[f] != NULL; ++f)
         {
-          bfam_domain_add_field (domain, BFAM_DOMAIN_OR, this_glue, sw_fields[f]);
+          bfam_domain_add_field (domain, BFAM_DOMAIN_OR, this_glue,
+              sw_fields[f]);
 
           bfam_real_t value = 0;
           lua_pushstring(L,sw_fields[f]);
@@ -1741,11 +1743,11 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
             else
             {
               BFAM_ROOT_WARNING(
-                  " glue %d does not contain `%s', using default %"BFAM_REAL_PRIe,
-                  i, sw_fields[f], value);
+                  " glue %d does not contain `%s',"
+                  " using default %"BFAM_REAL_PRIe, i, sw_fields[f], value);
             }
-            bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue, sw_fields[f],
-                0, field_set_const, &value);
+            bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue,
+                sw_fields[f], 0, field_set_const, &value);
             lua_pop(L, 1);
           }
         }
@@ -2699,7 +2701,6 @@ beard_open_body_stations(const char * key, void *val, void *in_args)
   fprintf(file,"# code    = beard %dd\n",DIM);
   fprintf(file,"# version = %s\n",bfam_version_get());
   fprintf(file,"# body station = %s\n",key);
-  fprintf(file,"# The line below lists the names of the data fields:\n");
   fprintf(file,"# The line below lists the names of the data fields:\n");
 
   /* Print the interpolated point */
