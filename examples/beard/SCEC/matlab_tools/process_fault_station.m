@@ -64,7 +64,7 @@ if cnt > 0
     vsliprate    = vsliprate    + data(cnt).dat(1:M,Vp3)/cnt;
     vslip        = vslip        - data(cnt).dat(1:M,Dp3)/cnt;
 
-    hshearstress = hshearstress + data(cnt).dat(1:M,Tp1)/cnt/data(cnt).n(2);;
+    hshearstress = hshearstress + data(cnt).dat(1:M,Tp1)/cnt/data(cnt).n(2);
     hsliprate    = hsliprate    - data(cnt).dat(1:M,Vp1)/cnt;
     hslip        = hslip        - data(cnt).dat(1:M,Dp1)/cnt;
 
