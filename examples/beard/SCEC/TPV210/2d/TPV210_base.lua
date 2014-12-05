@@ -1,6 +1,6 @@
 -- refinement parameters
 min_level = 0
-max_level = 1
+max_level = 3
 output_prefix = "TPV210_base"
 data_directory = "data"
 elem_order = 4
@@ -9,8 +9,8 @@ elem_order = 4
 connectivity = "brick"
 brick =
 {
-  nx = 20,
-  ny = 20,
+  nx = 80,
+  ny = 60,
   nz =  0,
   bc0 = 1,
   bc1 = 1,
@@ -25,16 +25,22 @@ Cx =  brick.nx/2
 Cy =  brick.ny
 Cz =  brick.nz/2
 
-fault_angle = math.pi/6
+fault_angle = math.pi/3
 cos = math.cos
 sin = math.sin
 tan = math.tan
 function connectivity_vertices(x, y, z)
-  y    = L*(y-Cy)*sin(fault_angle)
-  zout = L*(z-Cz)
 
-  xout = L*(x-Cx) - y / tan(fault_angle)
-  yout = y
+
+  a = math.min(1,x/Cx)
+  xout = L*(x-Cx) - a*math.max(-15,L*(y-Cy))*cos(fault_angle)
+
+  a = math.max(0,(x-Cx)/(brick.nx-Cx))
+  xout = xout + a*math.max(0,L*(y-Cy)+15)*cos(fault_angle)
+
+
+  yout = math.max(-15,L*(y-Cy))*sin(fault_angle) + math.min(0,L*(y-Cy)+15)
+  zout = L*(z-Cz)
 
   return xout,yout,zout
 end
@@ -44,21 +50,22 @@ function refinement_function(
   x2,y2,z2,x3,y3,z3,
   level, treeid)
 
-  xa = (x0+x1+x2+x3)/4
-  ya = (y0+y1+y2+y3)/4
+  x = (x0+x1+x2+x3)/4
+  y = (y0+y1+y2+y3)/4
 
-  yf = -15*sin(fault_angle)
-  xf = - ya / tan(fault_angle)
+  if x*cos(fault_angle) - y*sin(fault_angle) < 15 then
+    -- distance to the branch fault
+    r = math.abs(sin(fault_angle)*x + cos(fault_angle)*y)
+  else
+    -- distance to the end of the fault
+    xe =  15*cos(fault_angle)
+    ye = -15*sin(fault_angle)
+    r = math.sqrt((x-xe)^2 + (y-ye)^2)
+  end
 
-  x = math.abs(xa-xf)
-  y = math.max(0,yf-ya)
+  l = max_level + (min_level-max_level)*math.sqrt(r/10)
 
-  r = math.sqrt((x^2+y^2)/2)
-
-  -- l = (max_level+1) + (min_level-(max_level+1))*math.sqrt(r)
-
-
-  if level < max_level and r < L then
+  if level < l then
     return 1
   else
     return 0
@@ -94,9 +101,9 @@ v3  = 0
 -- time stepper to use
 lsrk_method  = "KC54"
 
-tend   = 13
+tend   = 15
 tout   = 1
-tfout  = 0.1
+tfout  = 1
 tdisp  = 0.1
 tstations  = 0.01
 nerr   = 0
@@ -115,19 +122,16 @@ function time_step_parameters(dt)
 end
 
 
-volume_stations = {
-  "p12_p3", 12.0, 3.0,
-  "m12_p3",-12.0, 3.0,
-}
+n1 = sin(fault_angle)
+n2 = cos(fault_angle)
 
 fault_stations = {
-  "m4.5_0",  -4.5, 0.0, 0.0, 1.0, L,
-  "m7.5_0",  -7.5, 0.0, 0.0, 1.0, L,
-  "m12_0" , -12.0, 0.0, 0.0, 1.0, L,
-  "0_0"   ,   0.0, 0.0, 0.0, 1.0, L,
-  "p4.5_0",   4.5, 0.0, 0.0, 1.0, L,
-  "p7.5_0",   7.5, 0.0, 0.0, 1.0, L,
-  "p12_0" ,  12.0, 0.0, 0.0, 1.0, L,
+  "faultst000dp000" ,  0.0*n2,  0.0*(-n1), n1, n2, L,
+  "faultst000dp015" ,  1.5*n2,  1.5*(-n1), n1, n2, L,
+  "faultst000dp030" ,  3.0*n2,  3.0*(-n1), n1, n2, L,
+  "faultst000dp045" ,  4.5*n2,  4.5*(-n1), n1, n2, L,
+  "faultst000dp075" ,  7.5*n2,  7.5*(-n1), n1, n2, L,
+  "faultst000dp120" , 12.0*n2, 12.0*(-n1), n1, n2, L,
 }
 
 -- faults
@@ -136,7 +140,7 @@ n2 = cos(fault_angle)
 m1 = n2
 m2 = -n1
 Snn = -7.378
-Snm = 0.55*Snn
+Snm = -0.55*Snn
 Smm = 0
 
 function S11_fault_1(x,y,z,t)
@@ -163,28 +167,34 @@ fault_1 = {
   fs     =    0.760,
   fd     =    0.448,
   Dc     =    0.5,
+  c0     =    0.2,
   S11_0  = "S11_fault_1",
   S12_0  = "S12_fault_1",
   S22_0  = "S22_fault_1",
+  open_error = false,
+  open_warn  = false,
 }
 
-Snm_2 = (0.8)*Snn
+Snm_2 = -(0.760+0.0057)*Snn
 
 function S11_fault_2(x,y,z,t)
   r = math.sqrt(x^2+y^2)
   S11_0 = (n1*Snn*n1 + n1*Snm_2*m1 + m1*Snm_2*n1 + m1*Smm*m1)*r
+  S11_0 = S11_0 + n1*0.2*m1 + m1*0.2*n1;
   return S11_0
 end
 
 function S12_fault_2(x,y,z,t)
   r = math.sqrt(x^2+y^2)
   S12_0 = (n1*Snn*n2 + n1*Snm_2*m2 + m1*Snm_2*n2 + m1*Smm*m2)*r
+  S12_0 = S12_0 + n1*0.2*m2 + m1*0.2*n2
   return S12_0
 end
 
 function S22_fault_2(x,y,z,t)
   r = math.sqrt(x^2+y^2)
   S22_0 = (n2*Snn*n2 + n2*Snm_2*m2 + m2*Snm_2*n2 + m2*Smm*m2)*r
+  S22_0 = S22_0 + n2*0.2*m2 + m2*0.2*n2
   return S22_0
 end
 
@@ -194,6 +204,7 @@ fault_2  = {
   fs     =    0.760,
   fd     =    0.448,
   Dc     =    0.5,
+  c0     =    0.2,
   S11_0  = "S11_fault_2",
   S12_0  = "S12_fault_2",
   S22_0  = "S22_fault_2",
