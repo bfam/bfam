@@ -17,7 +17,7 @@ for k = 1:length(names)
   else
     disp(['    FOUND :: ',names{k}])
     plot(pd.t,pd.V)
-    title(names{k},'interpreter','none')
     pause
   end
+  write_scec_data('tmp',pd.header)
 end
