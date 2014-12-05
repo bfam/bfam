@@ -1,13 +1,15 @@
+cos = math.cos
+sin = math.sin
 -- refinement parameters
 min_level = 0
-max_level = 2
-output_prefix = "TPV14"
+max_level = 3
+output_prefix = "TPV14_base"
 data_directory = "data"
 elem_order = 2
 
 -- connectivity info
 connectivity = "brick"
-buffer = 40
+buffer = 80
 brick =
 {
   nx = 32+24+buffer,
@@ -36,13 +38,21 @@ function connectivity_vertices(x, y, z)
   y = L*(y-Cy)
   z = L*(z-Cz)
 
+  xout = x
+  yout = y
   if y < 0 then
     H = math.max(y,-12)
-    x = x-H*math.cos(q_branch)
-    y = y-H*math.sin(q_branch)
+    alpha = 1-math.max(0,-16-x)/(Cx*L-16)
+    xout = xout-H*alpha*cos(q_branch)
+    yout = yout-H*sin(q_branch)
+  end
+  if y > -12 then
+    H = math.min(12,12+y)
+    alpha = math.max(0,(x-12)/((brick.nx-Cx)*L-12))
+    xout = xout + H*alpha*cos(q_branch)
   end
 
-  return x,y,z
+  return xout,yout,z
 end
 
 function refinement_function(
@@ -59,14 +69,14 @@ function refinement_function(
   r  = math.sqrt(xf^2+yf^2)
 
   if y < 0 then
-    if x*math.cos(q_branch) - y*math.sin(q_branch) < 12 then
+    if x*cos(q_branch) - y*sin(q_branch) < 12 then
       -- distance to the branch fault
-      rb = math.abs(math.sin(q_branch)*x + math.cos(q_branch)*y)
+      rb = math.abs(sin(q_branch)*x + cos(q_branch)*y)
       r  = math.min(rb,r)
     else
       -- distance to the end of the fault
-      xe =  12*math.cos(q_branch)
-      ye = -12*math.sin(q_branch)
+      xe =  12*cos(q_branch)
+      ye = -12*sin(q_branch)
       re = math.sqrt((x-xe)^2 + (y-ye)^2)
       r  = math.min(re,r)
     end
@@ -116,7 +126,7 @@ v3  = 0
 lsrk_method  = "KC54"
 
 tend   = 12
-tout   = 1
+tout   = 0.1
 tfout  = 0.1
 tdisp  = 0.01
 tstations  = 0.01
@@ -134,6 +144,18 @@ function time_step_parameters(dt)
 
   return dt,nsteps, ndisp, noutput, nfoutput, nstations
 end
+
+rx =  cos(q_branch)
+ry = -sin(q_branch)
+fault_stations = {
+  "faultst-020dp075", -2.0, 0.0, 0.0, 1.0, 0.1,
+  "faultst020dp075" ,  2.0, 0.0, 0.0, 1.0, 0.1,
+  "faultst050dp075" ,  5.0, 0.0, 0.0, 1.0, 0.1,
+  "faultst090dp075" ,  9.0, 0.0, 0.0, 1.0, 0.1,
+  "branchst020dp075",  2.0*rx, 2.0*ry, -ry,  rx, 0.1,
+  "branchst050dp075",  5.0*rx, 5.0*ry, -ry,  rx, 0.1,
+  "branchst090dp075",  9.0*rx, 9.0*ry, -ry,  rx, 0.1,
+}
 
 -- faults
 main_fault = {
@@ -159,8 +181,8 @@ nucleation_patch  = {
 snn    =  -120
 snm    =    70
 smm    =     0
-n1     = math.sin(q_branch)
-n2     = math.cos(q_branch)
+n1     = sin(q_branch)
+n2     = cos(q_branch)
 m1     = n2
 m2     =-n1
 
