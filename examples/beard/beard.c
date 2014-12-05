@@ -3359,7 +3359,7 @@ init_fault_stations(beard_t *beard, prefs_t *prefs)
               nxf[i*DIM+0],   nxf[i*DIM+1],   0,
             x_e[msk[0][0]], x_e[msk[1][0]], x_e[msk[0][0]], x_e[msk[1][0]],
             y_e[msk[0][0]], y_e[msk[1][0]], y_e[msk[0][0]], y_e[msk[1][0]],
-                         0,              0,              1,              1);
+                        -1,              -1,              1,              1);
 #elif DIM == 3
           bfam_real_t r[3];
 
@@ -3374,9 +3374,9 @@ init_fault_stations(beard_t *beard, prefs_t *prefs)
 #endif
 
           /* if we are in the area, build the interpolant */
-          if(BEARD_D3_AP(BFAM_REAL_ABS(r[0     ]) <= 1+BFAM_REAL_EPS,
-                      && BFAM_REAL_ABS(r[1     ]) <= 1+BFAM_REAL_EPS)
-                      && BFAM_REAL_ABS(r[FDIM-1]) <= tol[i])
+          if(BEARD_D3_AP(BFAM_REAL_ABS(r[0]) <= 1+100*BFAM_REAL_EPS,
+                      && BFAM_REAL_ABS(r[1]) <= 1+100*BFAM_REAL_EPS)
+                      && BFAM_REAL_ABS(r[2]) <= tol[i])
           {
             /* Determine the station name */
             char filename[BFAM_BUFSIZ];
