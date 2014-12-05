@@ -33,6 +33,7 @@ for k = 1:length(A)
       ln = fgetl(iid);
       if strcmp(ln,'# interpolated normal:') == 1
         header = header + 1;
+        data(N_data).header{header} = ln;
         ln = fgetl(iid);
         data(N_data).n = sscanf(ln,'#    (%e, %e, %e)' )';
       end
