@@ -206,7 +206,7 @@ beard_dgx_upwind_state_friction_m(
   {
     TpS[i]  = T*phi[i]/mag - Tp0[i];
     vpSm[i] = (TpS[i]-Tpm[i])/Zsm + vpm[i];
-    VpS[i]  = (TpS[i] + Tp0[i] - phi[i])/((Zsp*Zsm)/(Zsm+Zsp));
+    VpS[i]  = (phi[i] - TpS[i] - Tp0[i])/((Zsp*Zsm)/(Zsm+Zsp));
   }
 }
 
