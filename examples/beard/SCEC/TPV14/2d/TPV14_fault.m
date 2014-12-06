@@ -16,8 +16,17 @@ for k = 1:length(names)
     disp(['NOT FOUND :: ',names{k}])
   else
     disp(['    FOUND :: ',names{k}])
-    plot(pd.t,pd.V)
-    pause
+    m = [pd.n(2);-pd.n(1)];
+    t       = pd.t;
+    hslip   = pd.Dp1*m(1)+pd.Dp2*m(2);
+    hrate   = pd.Vp1*m(1)+pd.Vp2*m(2);
+    hshear  = pd.Tp1*m(1)+pd.Tp2*m(2);
+    vslip   = zeros(size(hslip));
+    vrate   = zeros(size(hrate));
+    vshear  = zeros(size(hshear));
+    nstress = pd.Tn;
+    write_scec_data(['scec/',names{k},'.scec'],pd.header,...
+       't h-slip h-slip-rate h-shear-stress v-slip v-slip-rate v-shear-stress n-stress',...
+       [t, hslip, hrate, hshear, vslip, vrate, vshear, nstress]);
   end
-  write_scec_data('tmp',pd.header)
 end
