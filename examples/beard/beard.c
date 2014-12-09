@@ -3060,6 +3060,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   BFAM_ASSERT(beard->beard_ts);
   const int NFLUSH = 10;
   int nflush = 0;
+  const bfam_real_t first_step = bfam_clock();
   for(int s = 1; s <= nsteps; s++)
   {
     beard->beard_ts->step(beard->beard_ts,dt);
@@ -3070,9 +3071,12 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       {
         BFAM_ROOT_INFO("\x1B[%dm"
             "time: %10.5"BFAM_REAL_PRIe
+            " (step %8d of %8d with %10.5"BFAM_REAL_PRIe" sec/step)"
             "\x1B[0m",
             34,
-            s*dt);
+            s*dt,
+            s, nsteps,
+            (bfam_clock()-first_step)/s);
       }
       else
       {
@@ -3085,6 +3089,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
             " norm energy: %"BFAM_REAL_FMTe"\n"
             " current delta energy: %+"BFAM_REAL_FMTe
             " initial delta energy: %+"BFAM_REAL_FMTe"\n"
+             "(%10.5"BFAM_REAL_PRIe"sec/step)\n"
             "\x1B[0m",
             color,
             s*dt,
@@ -3092,7 +3097,8 @@ run_simulation(beard_t *beard,prefs_t *prefs)
             new_energy,
             new_energy/initial_energy,
             (new_energy-energy)/initial_energy,
-            energy/initial_energy-1);
+            energy/initial_energy-1,
+            (bfam_clock()-first_step)/s);
       }
       energy = new_energy;
     }
