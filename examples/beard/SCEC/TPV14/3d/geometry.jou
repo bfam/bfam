@@ -1,0 +1,70 @@
+# Set units to SI.
+# ${Units('si')}
+
+#---------------
+reset
+
+# Create and move blocks
+# ----------------------------------------------------------------------
+${block_x=100}
+${block_y=100}
+${block_z=100}
+
+brick x {block_x} y {block_y} z {block_z}
+${idVol=Id("volume")}
+
+${moveX= 0}
+${moveY= 0}
+${moveZ=-block_z/2}
+volume {idVol} move x {moveX} y {moveY} z {moveZ}
+
+create planar surface with plane zplane
+${bplane=Id("volume")}
+${s_bplane=Id("surface")}
+volume {bplane} move x 0 y 0 z -15
+
+create planar surface with plane yplane
+${mfault=Id("volume")}
+${s_mfault=Id("surface")}
+
+create planar surface with plane yplane
+${bfault=Id("volume")}
+${s_bfault=Id("surface")}
+rotate volume {bfault} angle -30 about z include_merged
+
+create planar surface with plane yplane
+${mfault_end_p=Id("volume")}
+${s_mfault_end_p=Id("surface")}
+rotate volume {mfault_end_p} angle -30 about z include_merged
+volume {mfault_end_p} move x 12 y 0 z 0
+
+create planar surface with plane yplane
+${mfault_end_m=Id("volume")}
+${s_mfault_end_m=Id("surface")}
+rotate volume {mfault_end_m} angle -30 about z include_merged
+volume {mfault_end_m} move x -16 y 0 z 0
+
+create planar surface with plane yplane
+${bfault_end=Id("volume")}
+${s_bfault_end=Id("surface")}
+${bend=-12*sin(d2r(30))}
+volume {bfault_end} move x 0 y {bend} z 0
+
+
+webcut volume {idVol}  with plane surface {s_bplane}
+${bottom=Id("volume")}
+
+webcut volume {idVol}  with plane surface {s_mfault_end_m}
+${west=Id("volume")}
+
+webcut volume {idVol}  with plane surface {s_bfault_end}
+${south=Id("volume")}
+
+webcut volume {idVol}  with plane surface {s_mfault}
+${east=Id("volume")}
+
+webcut volume {east}  with plane surface {s_mfault_end_p}
+${mid=Id("volume")}
+
+webcut volume {mid}  with plane surface {s_bfault}
+${mb=Id("volume")}
