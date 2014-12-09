@@ -97,21 +97,27 @@ if N_data > 0
     end
 
     pdata.Dp  = pdata.Dp  +        data(n).Dp /N_data;
+    disp(size(pdata.Dp1))
+    disp(size(data(n).Dp1))
     pdata.Dp1 = pdata.Dp1 + n_sign*data(n).Dp1/N_data;
     pdata.Dp2 = pdata.Dp2 + n_sign*data(n).Dp2/N_data;
+    pdata.Dp3 = pdata.Dp3 + n_sign*data(n).Dp3/N_data;
 
     pdata.V   = pdata.V   +        data(n).V  /N_data;
     pdata.Vp1 = pdata.Vp1 + n_sign*data(n).Vp1/N_data;
     pdata.Vp2 = pdata.Vp2 + n_sign*data(n).Vp2/N_data;
+    pdata.Vp3 = pdata.Vp3 + n_sign*data(n).Vp3/N_data;
 
     pdata.Tn  = pdata.Tn  +        data(n).Tn /N_data;
     pdata.Tp1 = pdata.Tp1 + n_sign*data(n).Tp1/N_data;
     pdata.Tp2 = pdata.Tp2 + n_sign*data(n).Tp2/N_data;
+    pdata.Tp3 = pdata.Tp3 + n_sign*data(n).Tp3/N_data;
 
   end
   pdata.Tn (1) = pdata.Tn (2) ;
   pdata.Tp1(1) = pdata.Tp1(2);
   pdata.Tp2(1) = pdata.Tp2(2);
+  pdata.Tp3(1) = pdata.Tp3(2);
 else
   pdata = [];
 end
