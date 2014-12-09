@@ -68,3 +68,14 @@ ${mid=Id("volume")}
 
 webcut volume {mid}  with plane surface {s_bfault}
 ${mb=Id("volume")}
+
+unite volume {idVol} {east} {west} {bottom} {south}
+
+delete volume {bplane}
+delete volume {mfault}
+delete volume {bfault}
+delete volume {mfault_end_p}
+delete volume {mfault_end_m}
+delete volume {bfault_end}
+
+# imprint all with volume all
