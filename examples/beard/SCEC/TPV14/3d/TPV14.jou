@@ -6,8 +6,8 @@ reset
 
 # Create and move blocks
 # ----------------------------------------------------------------------
-${block_x=100}
-${block_y=100}
+${block_x=200}
+${block_y=200}
 ${block_z=100}
 
 brick x {block_x} y {block_y} z {block_z}
@@ -78,4 +78,50 @@ delete volume {mfault_end_p}
 delete volume {mfault_end_m}
 delete volume {bfault_end}
 
-# imprint all with volume all
+
+# create vertex -6.5 0 -6
+# ${v1=Id("vertex")}
+# create vertex -9.5 0 -6
+# ${v2=Id("vertex")}
+# create vertex -9.5 0 -9
+# ${v3=Id("vertex")}
+# create vertex -6.5 0 -9
+# ${v4=Id("vertex")}
+# create surface vertex {v1} {v2} {v3} {v4}
+# ${nucPatch=Id("volume")}
+# ${s_nucPatch=Id("surface")}
+# imprint volume {mb}  with volume {nucPatch}
+# imprint volume {idVol}  with volume {nucPatch}
+
+imprint all with volume all
+merge all
+
+# volume {mb} scheme SubMap
+volume {mb} size 5
+mesh volume {mb}
+
+# volume {mid} scheme SubMap
+volume {mid} size 5
+mesh volume {mid}
+
+volume {idVol} size 5
+mesh volume {idVol}
+
+volume all smooth scheme equipotential free
+smooth volume all
+volume all smooth scheme laplacian free
+smooth volume all
+
+# out-flow
+sideset 1 surface 16 32 14 27 2
+
+# free surface
+Sideset 2 surface 45 66 70
+
+# main fault
+sideset 4 surface 65
+sideset 5 surface 71
+
+sideset 6 surface 63
+
+export Abaqus "TPV14.inp" overwrite cubitids
