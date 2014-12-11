@@ -139,7 +139,7 @@ bfam_domain_pxest_tree_to_glueid_check(p4est_connectivity_t *conn,
     for(int f = 0; f < P4EST_FACES; ++f)
     {
       p4est_topidx_t nt =      conn->tree_to_tree[P4EST_FACES*t + f];
-      int            nf = (int)conn->tree_to_face[P4EST_FACES*t + f];
+      int            nf = (int)conn->tree_to_face[P4EST_FACES*t + f]%P4EST_FACES;
 
       bfam_locidx_t  id = tree_to_glueid[P4EST_FACES* t+ f];
       bfam_locidx_t nid = tree_to_glueid[P4EST_FACES*nt+nf];
