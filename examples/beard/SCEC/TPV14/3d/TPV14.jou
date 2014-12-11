@@ -97,14 +97,14 @@ imprint all with volume all
 merge all
 
 # volume {mb} scheme SubMap
-volume {mb} size 5
+volume {mb} size 20
 mesh volume {mb}
 
 # volume {mid} scheme SubMap
-volume {mid} size 5
+volume {mid} size 20
 mesh volume {mid}
 
-volume {idVol} size 5
+volume {idVol} size 20
 mesh volume {idVol}
 
 volume all smooth scheme equipotential free
