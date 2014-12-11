@@ -421,6 +421,7 @@ typedef struct prefs
   char default_boundary_tag[BFAM_BUFSIZ];
 
   brick_args_t* brick_args;
+  char mesh_file[BFAM_BUFSIZ];
 
   bfam_ts_lsrk_method_t lsrk_method;
   char lsrk_name[BFAM_BUFSIZ];
@@ -796,38 +797,51 @@ new_prefs(const char *prefs_filename)
                     ,"must have either LSRK, ADAMS, or LOCAL time stepper");
 
   /* get the connectivity type */
-  prefs->brick_args     = bfam_malloc(sizeof(brick_args_t));
+  lua_getglobal(L,"mesh_file");
+  strncpy(prefs->mesh_file,"",BFAM_BUFSIZ);
+  prefs->brick_args = NULL;
+  if(lua_isstring(L, -1))
+  {
+    const char *mesh_file = lua_tostring(L, -1);
+    strncpy(prefs->mesh_file,mesh_file,BFAM_BUFSIZ);
+    BFAM_INFO("Using mesh file: %s",mesh_file);
+    lua_pop(L, 1);
+  }
+  else
+  {
+    prefs->brick_args     = bfam_malloc(sizeof(brick_args_t));
 
-  prefs->brick_args->nx = lua_get_table_int(prefs->L, "brick", "nx",1);
-  prefs->brick_args->ny = lua_get_table_int(prefs->L, "brick", "ny",1);
+    prefs->brick_args->nx = lua_get_table_int(prefs->L, "brick", "nx",1);
+    prefs->brick_args->ny = lua_get_table_int(prefs->L, "brick", "ny",1);
 
-  prefs->brick_args->periodic_x = lua_get_table_int(prefs->L, "brick",
-      "periodic_x",0);
-  prefs->brick_args->periodic_y = lua_get_table_int(prefs->L, "brick",
-      "periodic_y",0);
+    prefs->brick_args->periodic_x = lua_get_table_int(prefs->L, "brick",
+        "periodic_x",0);
+    prefs->brick_args->periodic_y = lua_get_table_int(prefs->L, "brick",
+        "periodic_y",0);
 
-  prefs->brick_args->p4est_brick = lua_get_table_int(prefs->L, "brick",
-                                                     "p4est_brick",0);
+    prefs->brick_args->p4est_brick = lua_get_table_int(prefs->L, "brick",
+        "p4est_brick",0);
 
-  /* Get the boundary conditions */
-  prefs->brick_args->bc = bfam_malloc(sizeof(bfam_locidx_t)*6);
-  prefs->brick_args->bc[0] = lua_get_table_int(prefs->L, "brick","bc0",-1);
-  prefs->brick_args->bc[1] = lua_get_table_int(prefs->L, "brick","bc1",-1);
-  prefs->brick_args->bc[2] = lua_get_table_int(prefs->L, "brick","bc2",-1);
-  prefs->brick_args->bc[3] = lua_get_table_int(prefs->L, "brick","bc3",-1);
-  prefs->brick_args->bc[4] = lua_get_table_int(prefs->L, "brick","bc4",-1);
-  prefs->brick_args->bc[5] = lua_get_table_int(prefs->L, "brick","bc5",-1);
+    /* Get the boundary conditions */
+    prefs->brick_args->bc = bfam_malloc(sizeof(bfam_locidx_t)*6);
+    prefs->brick_args->bc[0] = lua_get_table_int(prefs->L, "brick","bc0",-1);
+    prefs->brick_args->bc[1] = lua_get_table_int(prefs->L, "brick","bc1",-1);
+    prefs->brick_args->bc[2] = lua_get_table_int(prefs->L, "brick","bc2",-1);
+    prefs->brick_args->bc[3] = lua_get_table_int(prefs->L, "brick","bc3",-1);
+    prefs->brick_args->bc[4] = lua_get_table_int(prefs->L, "brick","bc4",-1);
+    prefs->brick_args->bc[5] = lua_get_table_int(prefs->L, "brick","bc5",-1);
 
-  prefs->brick_args->periodic_z = 0;
+    prefs->brick_args->periodic_z = 0;
 
 #if   DIM==2
 #elif DIM==3
-  prefs->brick_args->nz = lua_get_table_int(prefs->L, "brick", "nz",1);
-  prefs->brick_args->periodic_z =
-    lua_get_table_int(prefs->L, "brick", "periodic_z",0);
+    prefs->brick_args->nz = lua_get_table_int(prefs->L, "brick", "nz",1);
+    prefs->brick_args->periodic_z =
+      lua_get_table_int(prefs->L, "brick", "periodic_z",0);
 #else
 #error "Bad dimension"
 #endif
+  }
 
   return prefs;
 }
@@ -1013,8 +1027,8 @@ static void
 init_tree_to_glueid(beard_t *beard, prefs_t *prefs,
     bfam_locidx_t *tree_to_glueid)
 {
-  bfam_locidx_t num_tree_ids =
-    P4EST_FACES*beard->domain->pxest->connectivity->num_trees;
+  const p4est_connectivity_t *conn = beard->domain->pxest->connectivity;
+  bfam_locidx_t num_tree_ids = P4EST_FACES*conn->num_trees;
   for(int k = 0; k < num_tree_ids;k++)
     tree_to_glueid[k] = -1;
 
@@ -1170,8 +1184,7 @@ init_tree_to_glueid(beard_t *beard, prefs_t *prefs,
       int faceid = (int)lua_tointeger(L, -1);
       lua_pop(L, 1);
 
-      BFAM_ABORT_IF(treeid < 0 ||
-          treeid > beard->domain->pxest->connectivity->num_trees,
+      BFAM_ABORT_IF(treeid < 0 || treeid > conn->num_trees,
           "glueid_treeid_faceid: invalid tree id %d", treeid);
 
       BFAM_ABORT_IF(faceid < 0 || faceid > P4EST_FACES,
@@ -1183,7 +1196,26 @@ init_tree_to_glueid(beard_t *beard, prefs_t *prefs,
         treeid = prefs->brick_args->brick_to_tree[treeid];
       }
 
-      tree_to_glueid[P4EST_FACES*treeid + faceid] = glueid;
+      if(glueid > 0)
+      {
+        tree_to_glueid[P4EST_FACES*treeid + faceid] = glueid;
+      }
+      else if(glueid < 0) /* negative glueid signifies to add neighbor */
+      {
+
+        bfam_locidx_t ntreeid = conn->tree_to_tree[treeid*P4EST_FACES+faceid];
+        BFAM_INFO("%d %d",(int)treeid, (int)ntreeid);
+
+        /* tree_to_face contains the orientation as well hence mod */
+        bfam_locidx_t nfaceid =
+          conn->tree_to_face[treeid*P4EST_FACES+faceid]%P4EST_FACES;
+
+        if(ntreeid != treeid)
+        {
+          tree_to_glueid[P4EST_FACES*treeid + faceid] = -glueid;
+          tree_to_glueid[P4EST_FACES*ntreeid + nfaceid] = -glueid;
+        }
+      }
     }
   }
 
@@ -1818,6 +1850,10 @@ init_domain(beard_t *beard, prefs_t *prefs)
         BFAM_ASSERT(0 <= brick && brick < num_trees);
       }
     }
+  }
+  else if(strncmp(prefs->mesh_file,"",BFAM_BUFSIZ))
+  {
+    beard->conn = p4est_connectivity_read_inp(prefs->mesh_file);
   }
   else BFAM_ABORT("no connectivity");
 
