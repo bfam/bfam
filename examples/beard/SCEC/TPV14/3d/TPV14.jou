@@ -119,9 +119,8 @@ sideset 1 surface 16 32 14 27 2
 Sideset 2 surface 45 66 70
 
 # main fault
-sideset 4 surface 65
-sideset 5 surface 71
-
-sideset 6 surface 63
+Sideset 4 surface 71
+Sideset 4 surface 65
+Sideset 5 surface 63
 
 export Abaqus "TPV14.inp" overwrite cubitids
