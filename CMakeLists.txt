@@ -211,7 +211,7 @@ endif("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
 if("${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-common")
   set(CMAKE_C_FLAGS_DEBUG "-g3")
-  set(CMAKE_C_FLAGS_RELEASE "-g0 -O2 -DNDEBUG")
+  set(CMAKE_C_FLAGS_RELEASE "-g0 -O2 -DNDEBUG -ftz")
 endif("${CMAKE_C_COMPILER_ID}" MATCHES "Intel")
 
 ## Enhance stack trace message
