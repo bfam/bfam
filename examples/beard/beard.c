@@ -1023,6 +1023,140 @@ get_element_order(p4est_iter_volume_info_t *info, void *arg)
   data->loc++;
 }
 
+/*
+ * Read a line from a file. Obtained from:
+ * http://stackoverflow.com/questions/314401/
+ * how-to-read-a-line-from-the-console-in-c/314422#314422
+ *
+ * Using this avoids a dependence on IEEE Std 1003.1-2008 (``POSIX.1'') for the
+ * getline function.
+ */
+static char        *
+beard_getline_upper (FILE * stream)
+{
+  char               *line = bfam_malloc(sizeof(char)*1024), *linep = line;
+  size_t              lenmax = 1024, len = lenmax;
+  int                 c;
+
+  if (line == NULL)
+    return NULL;
+
+  for (;;)
+  {
+    c = fgetc (stream);
+    c = toupper (c);
+    if (c == EOF && linep == line)
+    {
+      bfam_free(linep);
+      return NULL;
+    }
+
+    if (--len == 0)
+    {
+      len = lenmax;
+      lenmax *= 2;
+      char               *linen = bfam_realloc(linep, sizeof(char)*lenmax);
+
+      if (linen == NULL)
+      {
+        bfam_free(linep);
+        return NULL;
+      }
+      line = linen + (line - linep);
+      linep = linen;
+    }
+    if ((*line++ = c) == '\n')
+      break;
+  }
+  *line = '\0';
+  return linep;
+}
+
+static int
+glueid_read_file(FILE *fid, bfam_locidx_t *tree_to_glueid,
+    const p4est_connectivity_t *conn)
+{
+  int                 lines_read = 0, lines_free=0;
+  char               *line;
+  int                 reading_side_set = 0;
+  int glueid=-1;
+  int faceid=-1;
+  int abq_to_p4est[] = {4,5,2,1,3,0};
+
+  for (;;)
+  {
+    line = beard_getline_upper (fid);
+
+    if (line == NULL)
+    {
+      break;
+    }
+
+    ++lines_read;
+    /* check for control line */
+    if (line[0] == '*')
+    {
+      reading_side_set = 0;
+      glueid = -1;
+      faceid = -1;
+
+      if (strstr (line, "*ELSET"))
+      {
+        reading_side_set = 1;
+
+        int retval = sscanf(line,"%*[^0-9]%d%*[^0-9]%d%*[^0-9]",
+            &glueid,&faceid);
+        BFAM_ABORT_IF_NOT(retval==2, "wrong retval in glueid_read_file");
+
+        /* convert to the p4est faceid */
+        faceid = abq_to_p4est[faceid-1];
+
+        ++lines_free;
+        bfam_free(line);
+        continue;
+      }
+    }
+
+    if(reading_side_set)
+    {
+      long long int treeid;
+      int retval = 1;
+
+      char *sv_ptr;
+      char *toks = strtok_r(line,", ",&sv_ptr);
+
+      while(toks != NULL)
+      {
+        retval = sscanf(toks, "%lld", &treeid);
+        if(retval <= 0) break;
+
+        /* ABQ starts at 1 we start at zero */
+        treeid--;
+        tree_to_glueid[P4EST_FACES*treeid + faceid] = glueid;
+
+        bfam_locidx_t ntreeid = conn->tree_to_tree[treeid*P4EST_FACES+faceid];
+
+        /* tree_to_face contains the orientation as well hence mod */
+        bfam_locidx_t nfaceid =
+          conn->tree_to_face[treeid*P4EST_FACES+faceid]%P4EST_FACES;
+
+        if(ntreeid != treeid)
+        {
+          tree_to_glueid[P4EST_FACES*ntreeid + nfaceid] = glueid;
+        }
+
+        toks = strtok_r(NULL,", ",&sv_ptr);
+      }
+    }
+
+    ++lines_free;
+    bfam_free(line);
+  }
+
+  BFAM_LDEBUG("glueid_read_file: read %d / freed %d lines",
+      lines_read, lines_free);
+}
+
 static void
 init_tree_to_glueid(beard_t *beard, prefs_t *prefs,
     bfam_locidx_t *tree_to_glueid)
@@ -1158,9 +1292,19 @@ init_tree_to_glueid(beard_t *beard, prefs_t *prefs,
 
   lua_getglobal(L,"glueid_treeid_faceid");
 
-  if(!lua_istable(L, -1))
-    BFAM_ROOT_WARNING("table `%s' not found", "glueid_treeid_faceid");
-  else
+  if(lua_isstring(L, -1))
+  {
+    const char * tree_file = lua_tostring(L, -1);
+    FILE *fid = fopen(tree_file,"r");
+    BFAM_ABORT_IF(fid==NULL,"unable to read glueid file %s", tree_file);
+
+    int retval = glueid_read_file(fid,tree_to_glueid,conn);
+    BFAM_ABORT_IF(retval,"'glueid_read_file' returned %d on file %s",
+        retval, tree_file);
+
+    fclose(fid);
+  }
+  else if(lua_istable(L, -1))
   {
     int n = lua_objlen(L, -1);
     BFAM_LDEBUG("glueid_treeid_faceid  #elem: %3d", n);
@@ -1204,20 +1348,21 @@ init_tree_to_glueid(beard_t *beard, prefs_t *prefs,
       {
 
         bfam_locidx_t ntreeid = conn->tree_to_tree[treeid*P4EST_FACES+faceid];
-        BFAM_INFO("%d %d",(int)treeid, (int)ntreeid);
 
         /* tree_to_face contains the orientation as well hence mod */
         bfam_locidx_t nfaceid =
           conn->tree_to_face[treeid*P4EST_FACES+faceid]%P4EST_FACES;
 
+        tree_to_glueid[P4EST_FACES*treeid + faceid] = -glueid;
         if(ntreeid != treeid)
         {
-          tree_to_glueid[P4EST_FACES*treeid + faceid] = -glueid;
           tree_to_glueid[P4EST_FACES*ntreeid + nfaceid] = -glueid;
         }
       }
     }
   }
+  else
+    BFAM_ROOT_WARNING("table or function `%s' not found", "glueid_treeid_faceid");
 
   lua_pop(L, 1);
   BFAM_ASSERT(top == lua_gettop(L));
