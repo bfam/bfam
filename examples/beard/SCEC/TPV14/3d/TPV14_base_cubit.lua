@@ -3,12 +3,20 @@ sin = math.sin
 output_prefix = "TPV14_base"
 data_directory = "data"
 elem_order = 4
-max_level = 1000
+max_level = 600
 
 -- refinement parameters
-h_targ = elem_order*0.05
-r_targ = 5
-nuc_width = h_targ/elem_order
+h1_targ = elem_order*0.1
+r1_targ = 5
+h2_targ = h1_targ*2
+
+r2_targ = r1_targ*2
+h2_targ = h1_targ*2
+
+r3_targ = r2_targ*2
+h3_targ = h2_targ*2
+
+nuc_width = h1_targ/elem_order
 
 mesh_file = "/home/jekozdon/codes/bfam/examples/beard/SCEC/TPV14/3d/TPV14.inp"
 glueid_treeid_faceid = mesh_file
@@ -31,7 +39,7 @@ function fault_distance(x,y,z)
   xf = math.max(0,math.abs(x+2)-14)
   yf = math.abs(y)
   zf = math.max(0,math.abs(z)-15)
-  r  = xf^2+yf^2+zf^2
+  r  = xf^2 + yf^2 + zf^2
 
   if y < 0 then
     if x*cos(q_branch) - y*sin(q_branch) < 12 then
@@ -120,18 +128,26 @@ function refinement_function(
     return 0
   end
 
-  x = (x0+x1+x2+x3+x4+x5+x6+x7)/8
-  y = (y0+y1+y2+y3+y4+y5+y6+y7)/8
-  z = (z0+z1+z2+z3+z4+z5+z6+z7)/8
+  -- x = (x0+x1+x2+x3+x4+x5+x6+x7)/8
+  -- y = (y0+y1+y2+y3+y4+y5+y6+y7)/8
+  -- z = (z0+z1+z2+z3+z4+z5+z6+z7)/8
+  -- r = fault_distance(x,y,z)
 
-  r = fault_distance(x,y,z)
+  r = fault_distance(x0,y0,z0)
+  r = math.min(r,fault_distance(x1,y1,z1))
+  r = math.min(r,fault_distance(x2,y2,z2))
+  r = math.min(r,fault_distance(x3,y3,z3))
+  r = math.min(r,fault_distance(x4,y4,z4))
+  r = math.min(r,fault_distance(x5,y5,z5))
+  r = math.min(r,fault_distance(x6,y6,z6))
+  r = math.min(r,fault_distance(x7,y7,z7))
 
   hmin, hmax = element_size( x0,y0,z0,x1,y1,z1,
                              x2,y2,z2,x3,y3,z3,
                              x4,y4,z4,x5,y5,z5,
                              x6,y6,z6,x7,y7,z7)
 
-  if r < r_targ and hmax > h_targ then
+  if hmax > math.max(2,r)/2*h1_targ then
     return 1
   end
 
@@ -247,4 +263,23 @@ glue_info = {
   bc_rigid,
   main_fault,
   branch_fault,
+}
+
+rx =  cos(q_branch)
+ry = -sin(q_branch)
+fault_stations = {
+  "faultst-020dp000", -2.0   , 0.0   ,  0.0,  0.0, 1.0, 0.0,  0.1,
+  "faultst020dp000" ,  2.0   , 0.0   ,  0.0,  0.0, 1.0, 0.0,  0.1,
+  "faultst050dp000" ,  5.0   , 0.0   ,  0.0,  0.0, 1.0, 0.0,  0.1,
+  "faultst090dp000" ,  9.0   , 0.0   ,  0.0,  0.0, 1.0, 0.0,  0.1,
+  "branchst020dp000",  2.0*rx, 2.0*ry,  0.0,  -ry,  rx, 0.0,  0.1,
+  "branchst050dp000",  5.0*rx, 5.0*ry,  0.0,  -ry,  rx, 0.0,  0.1,
+  "branchst090dp000",  9.0*rx, 9.0*ry,  0.0,  -ry,  rx, 0.0,  0.1,
+  "faultst-020dp075", -2.0   , 0.0   , -7.5,  0.0, 1.0, 0.0,  0.1,
+  "faultst020dp075" ,  2.0   , 0.0   , -7.5,  0.0, 1.0, 0.0,  0.1,
+  "faultst050dp075" ,  5.0   , 0.0   , -7.5,  0.0, 1.0, 0.0,  0.1,
+  "faultst090dp075" ,  9.0   , 0.0   , -7.5,  0.0, 1.0, 0.0,  0.1,
+  "branchst020dp075",  2.0*rx, 2.0*ry, -7.5,  -ry,  rx, 0.0,  0.1,
+  "branchst050dp075",  5.0*rx, 5.0*ry, -7.5,  -ry,  rx, 0.0,  0.1,
+  "branchst090dp075",  9.0*rx, 9.0*ry, -7.5,  -ry,  rx, 0.0,  0.1,
 }
