@@ -809,6 +809,7 @@ new_prefs(const char *prefs_filename)
   }
   else
   {
+    lua_pop(L, 1);
     prefs->brick_args     = bfam_malloc(sizeof(brick_args_t));
 
     prefs->brick_args->nx = lua_get_table_int(prefs->L, "brick", "nx",1);
@@ -843,6 +844,7 @@ new_prefs(const char *prefs_filename)
 #endif
   }
 
+  BFAM_ASSERT(lua_gettop(prefs->L)==0);
   return prefs;
 }
 
