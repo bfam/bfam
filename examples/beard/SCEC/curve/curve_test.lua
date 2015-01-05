@@ -2,7 +2,7 @@ abs  = math.abs
 
 -- refinement parameters
 min_level = 0
-max_level = 4
+max_level = 6
 output_prefix  = "curve"
 data_directory = "data"
 
@@ -73,7 +73,7 @@ function element_order(
   x6,y6,z6,x7,y7,z7,
   level, treeid)
 
-  N = 4
+  N = 6
 
   return N
 end
@@ -100,7 +100,7 @@ v3  = 0
 lsrk_method  = "KC54"
 
 tend   = 13
-tout   = 0.1
+tout   = 1
 tfout  = 0.1
 tdisp  = 0.1
 tstations  = 0.01
@@ -149,7 +149,7 @@ fault = {
   type   = "friction",
   tag    = "slip weakening",
   fs     =    0.677,
-  fd     =    0.525,
+  fd     =    0.373,
   Dc     =    0.4,
   S12_0  =   "S12_fault",
   S11_0  =   -60,
