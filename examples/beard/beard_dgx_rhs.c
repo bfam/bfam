@@ -110,6 +110,9 @@
 #define beard_dgx_scale_rates_slip_weakening \
   BEARD_APPEND_EXPAND_4(beard_dgx_scale_rates_slip_weakening_,DIM,_,NORDER)
 
+#define beard_dgx_scale_rates \
+  BEARD_APPEND_EXPAND_4(beard_dgx_scale_rates_,DIM,_,NORDER)
+
 #define beard_dgx_add_rates_elastic \
   BEARD_APPEND_EXPAND_4(beard_dgx_add_rates_elastic_,DIM,_,NORDER)
 
@@ -118,6 +121,9 @@
 
 #define beard_dgx_add_rates_glue_p \
   BEARD_APPEND_EXPAND_4(beard_dgx_add_rates_glue_p_,DIM,_,NORDER)
+
+#define beard_dgx_add_rates \
+  BEARD_APPEND_EXPAND_4(beard_dgx_add_rates_,DIM,_,NORDER)
 
 #define beard_dgx_inter_rhs_boundary \
   BEARD_APPEND_EXPAND_4(beard_dgx_inter_rhs_boundary_,DIM,_,NORDER)
@@ -956,18 +962,11 @@ void beard_dgx_scale_rates_slip_weakening(
     const bfam_long_real_t in_a)
 {
   GENERIC_INIT(inN,beard_dgx_scale_rates_slip_weakening);
-  const bfam_real_t a = (bfam_real_t) in_a;
-
   const bfam_locidx_t num_pts = sub->K * Nfp;
   bfam_dictionary_t *fields = &sub->base.fields;
-
   const char *f_names[] = {"Dp","Dp1","Dp2","Dp3","Dn",NULL};
-
-  for(bfam_locidx_t f = 0; f_names[f]!=NULL; ++f)
-  {
-    BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix,f_names[f],fields);
-    for(bfam_locidx_t n = 0; n < num_pts; n++) rate[n] *= a;
-  }
+  beard_dgx_scale_rates(inN, sub, rate_prefix, in_a, fields, f_names,
+                        NULL, NULL, num_pts);
 }
 
 void beard_dgx_scale_rates_elastic(
@@ -975,21 +974,64 @@ void beard_dgx_scale_rates_elastic(
     const bfam_long_real_t in_a)
 {
   GENERIC_INIT(inN,beard_dgx_scale_rates_elastic);
-
-  const bfam_real_t a = (bfam_real_t) in_a;
-
   const bfam_locidx_t num_pts = sub->K * Np;
   bfam_dictionary_t *fields = &sub->base.fields;
-
   const char *f_names[] =
     {"v1","v2","v3","S11","S22","S33","S12","S13","S23",NULL};
+  beard_dgx_scale_rates(inN, sub, rate_prefix, in_a, fields, f_names,
+                        NULL, NULL, num_pts);
 
-  for(bfam_locidx_t f = 0; f_names[f]!=NULL; ++f)
+}
+
+void beard_dgx_scale_rates(
+    int inN, bfam_subdomain_dgx_t *sub, const char *rate_prefix,
+    const bfam_long_real_t in_a, bfam_dictionary_t *fields,
+    const char** scalars, const char** vectors, const char** tensors,
+    const bfam_locidx_t num_pts)
+{
+  GENERIC_INIT(inN,beard_dgx_glue_p);
+  const bfam_real_t a = (bfam_real_t) in_a;
+
+  if(scalars)
   {
-    BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix,f_names[f],fields);
-    for(bfam_locidx_t n = 0; n < num_pts; n++) rate[n] *= a;
+    for(int s = 0; scalars[s] != NULL;s++)
+    {
+      BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix,scalars[s],fields);
+      for(bfam_locidx_t n = 0; n < num_pts; n++) rate[n] *= a;
+    }
+  }
+
+  if(vectors)
+  {
+    const char* postfix[] = {"n","p1","p2","p3",NULL};
+    for(int s = 0; vectors[s] != NULL;s++)
+    {
+      char name[BFAM_BUFSIZ];
+      for(int k = 0; postfix[k] != NULL;k++)
+      {
+        snprintf(name,BFAM_BUFSIZ,"%s%s",vectors[s],postfix[k]);
+        BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix,name,fields);
+        for(bfam_locidx_t n = 0; n < num_pts; n++) rate[n] *= a;
+      }
+    }
+  }
+
+  if(tensors)
+  {
+    const char* postfix[] = {"n","p1","p2","p3",NULL};
+    for(int s = 0; tensors[s] != NULL;s++)
+    {
+      char name[BFAM_BUFSIZ];
+      for(int k = 0; postfix[k] != NULL;k++)
+      {
+        snprintf(name,BFAM_BUFSIZ,"%s%s",tensors[s],postfix[k]);
+        BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix,name,fields);
+        for(bfam_locidx_t n = 0; n < num_pts; n++) rate[n] *= a;
+      }
+    }
   }
 }
+
 
 void beard_dgx_add_rates_slip_weakening(
     int inN, bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
@@ -997,22 +1039,25 @@ void beard_dgx_add_rates_slip_weakening(
     const bfam_long_real_t in_a)
 {
   GENERIC_INIT(inN,beard_dgx_add_rates_slip_weakening);
-  const bfam_real_t a = (bfam_real_t) in_a;
-
   const char *f_names[] = {"Dp","Dp1","Dp2","Dp3","Dn",NULL};
-
-  const bfam_locidx_t num_pts = sub->K * Nfp;
-
-  /* get the fields we will need */
   bfam_dictionary_t *fields = &sub->base.fields;
+  const bfam_locidx_t num_pts = sub->K * Nfp;
+  beard_dgx_add_rates(inN, sub, field_prefix_lhs, field_prefix_rhs, rate_prefix,
+                      in_a, fields, f_names, NULL, NULL, num_pts);
+}
 
-  for(bfam_locidx_t f = 0; f_names[f] != NULL; f++)
-  {
-    BFAM_LOAD_FIELD_ALIGNED(         lhs ,field_prefix_lhs,f_names[f],fields);
-    BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,f_names[f],fields);
-    BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,f_names[f],fields);
-    for(bfam_locidx_t n = 0; n < num_pts; n++) lhs[n] = rhs[n] + a*rate[n];
-  }
+void beard_dgx_add_rates_elastic(
+    int inN, bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
+    const char *field_prefix_rhs, const char *rate_prefix,
+    const bfam_long_real_t in_a)
+{
+  GENERIC_INIT(inN,beard_dgx_add_rates_elastic);
+  const char *f_names[] = {"v1", "v2", "v3",
+    "S11", "S22", "S33", "S12", "S13", "S23", NULL};
+  const bfam_locidx_t num_pts = sub->K * Np;
+  bfam_dictionary_t *fields = &sub->base.fields;
+  beard_dgx_add_rates(inN, sub, field_prefix_lhs, field_prefix_rhs, rate_prefix,
+                      in_a, fields, f_names, NULL, NULL, num_pts);
 }
 
 void beard_dgx_add_rates_glue_p(
@@ -1022,73 +1067,69 @@ void beard_dgx_add_rates_glue_p(
     const char** scalars, const char** vectors, const char** tensors)
 {
   GENERIC_INIT(inN,beard_dgx_glue_p);
-  const bfam_real_t a = (bfam_real_t) in_a;
-
   const bfam_locidx_t num_pts = sub->K * Nfp;
 
   /* get the fields we will need */
   BFAM_ASSERT(sub->base.glue_p);
   bfam_dictionary_t *fields = &sub->base.glue_p->fields;
 
-  for(int s = 0; scalars[s] != NULL;s++)
-  {
-    BFAM_LOAD_FIELD_ALIGNED(         lhs ,field_prefix_lhs,scalars[s],fields);
-    BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,scalars[s],fields);
-    BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,scalars[s],fields);
-    for(bfam_locidx_t n = 0; n < num_pts; n++) lhs[n] = rhs[n] + a*rate[n];
-  }
-
-  const char* postfix[] = {"n","p1","p2","p3",NULL};
-  for(int s = 0; vectors[s] != NULL;s++)
-  {
-    char name[BFAM_BUFSIZ];
-    for(int k = 0; postfix[k] != NULL;k++)
-    {
-      snprintf(name,BFAM_BUFSIZ,"%s%s",vectors[s],postfix[k]);
-      BFAM_LOAD_FIELD_ALIGNED(         lhs ,field_prefix_lhs,name,fields);
-      BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,name,fields);
-      BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,name,fields);
-      for(bfam_locidx_t n = 0; n < num_pts; n++) lhs[n] = rhs[n] + a*rate[n];
-      // for(bfam_locidx_t n = 0; n < num_pts; n++) BFAM_INFO("%d %f",n,lhs[n]);
-    }
-  }
-
-  for(int s = 0; tensors[s] != NULL;s++)
-  {
-    char name[BFAM_BUFSIZ];
-    for(int k = 0; postfix[k] != NULL;k++)
-    {
-      snprintf(name,BFAM_BUFSIZ,"%s%s",tensors[s],postfix[k]);
-      BFAM_LOAD_FIELD_ALIGNED(         lhs ,field_prefix_lhs,name,fields);
-      BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,name,fields);
-      BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,name,fields);
-      for(bfam_locidx_t n = 0; n < num_pts; n++) lhs[n] = rhs[n] + a*rate[n];
-    }
-  }
+  beard_dgx_add_rates(inN, sub, field_prefix_lhs, field_prefix_rhs, rate_prefix,
+                      in_a, fields, scalars, vectors, tensors, num_pts);
 }
 
-void beard_dgx_add_rates_elastic(
+void beard_dgx_add_rates(
     int inN, bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
-    const bfam_long_real_t in_a)
+    const bfam_long_real_t in_a, bfam_dictionary_t *fields,
+    const char** scalars, const char** vectors, const char** tensors,
+    const bfam_locidx_t num_pts)
 {
-  GENERIC_INIT(inN,beard_dgx_add_rates_elastic);
+  GENERIC_INIT(inN,beard_dgx_glue_p);
   const bfam_real_t a = (bfam_real_t) in_a;
 
-  const char *f_names[] = {"v1", "v2", "v3",
-    "S11", "S22", "S33", "S12", "S13", "S23", NULL};
-
-  const bfam_locidx_t num_pts = sub->K * Np;
-
-  /* get the fields we will need */
-  bfam_dictionary_t *fields = &sub->base.fields;
-
-  for(bfam_locidx_t f = 0; f_names[f] != NULL; f++)
+  if(scalars)
   {
-    BFAM_LOAD_FIELD_ALIGNED(         lhs ,field_prefix_lhs,f_names[f],fields);
-    BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,f_names[f],fields);
-    BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,f_names[f],fields);
-    for(bfam_locidx_t n = 0; n < num_pts; n++) lhs[n] = rhs[n] + a*rate[n];
+    for(int s = 0; scalars[s] != NULL;s++)
+    {
+      BFAM_LOAD_FIELD_ALIGNED(         lhs ,field_prefix_lhs,scalars[s],fields);
+      BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,scalars[s],fields);
+      BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,scalars[s],fields);
+      for(bfam_locidx_t n = 0; n < num_pts; n++) lhs[n] = rhs[n] + a*rate[n];
+    }
+  }
+
+  if(vectors)
+  {
+    const char* postfix[] = {"n","p1","p2","p3",NULL};
+    for(int s = 0; vectors[s] != NULL;s++)
+    {
+      char name[BFAM_BUFSIZ];
+      for(int k = 0; postfix[k] != NULL;k++)
+      {
+        snprintf(name,BFAM_BUFSIZ,"%s%s",vectors[s],postfix[k]);
+        BFAM_LOAD_FIELD_ALIGNED(         lhs ,field_prefix_lhs,name,fields);
+        BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,name,fields);
+        BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,name,fields);
+        for(bfam_locidx_t n = 0; n < num_pts; n++) lhs[n] = rhs[n] + a*rate[n];
+      }
+    }
+  }
+
+  if(tensors)
+  {
+    const char* postfix[] = {"n","p1","p2","p3",NULL};
+    for(int s = 0; tensors[s] != NULL;s++)
+    {
+      char name[BFAM_BUFSIZ];
+      for(int k = 0; postfix[k] != NULL;k++)
+      {
+        snprintf(name,BFAM_BUFSIZ,"%s%s",tensors[s],postfix[k]);
+        BFAM_LOAD_FIELD_ALIGNED(         lhs ,field_prefix_lhs,name,fields);
+        BFAM_LOAD_FIELD_ALIGNED(         rhs ,field_prefix_rhs,name,fields);
+        BFAM_LOAD_FIELD_RESTRICT_ALIGNED(rate,rate_prefix     ,name,fields);
+        for(bfam_locidx_t n = 0; n < num_pts; n++) lhs[n] = rhs[n] + a*rate[n];
+      }
+    }
   }
 }
 
