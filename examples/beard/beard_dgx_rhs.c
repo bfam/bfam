@@ -107,8 +107,8 @@
 #define beard_dgx_scale_rates_elastic \
   BEARD_APPEND_EXPAND_4(beard_dgx_scale_rates_elastic_,DIM,_,NORDER)
 
-#define beard_dgx_scale_rates_slip_weakening \
-  BEARD_APPEND_EXPAND_4(beard_dgx_scale_rates_slip_weakening_,DIM,_,NORDER)
+#define beard_dgx_scale_rates_interface \
+  BEARD_APPEND_EXPAND_4(beard_dgx_scale_rates_interface_,DIM,_,NORDER)
 
 #define beard_dgx_scale_rates \
   BEARD_APPEND_EXPAND_4(beard_dgx_scale_rates_,DIM,_,NORDER)
@@ -116,8 +116,8 @@
 #define beard_dgx_add_rates_elastic \
   BEARD_APPEND_EXPAND_4(beard_dgx_add_rates_elastic_,DIM,_,NORDER)
 
-#define beard_dgx_add_rates_slip_weakening \
-  BEARD_APPEND_EXPAND_4(beard_dgx_add_rates_slip_weakening_,DIM,_,NORDER)
+#define beard_dgx_add_rates_interface \
+  BEARD_APPEND_EXPAND_4(beard_dgx_add_rates_interface_,DIM,_,NORDER)
 
 #define beard_dgx_add_rates_glue_p \
   BEARD_APPEND_EXPAND_4(beard_dgx_add_rates_glue_p_,DIM,_,NORDER)
@@ -132,7 +132,11 @@
   BEARD_APPEND_EXPAND_4(beard_dgx_inter_rhs_interface_,DIM,_,NORDER)
 
 #define beard_dgx_inter_rhs_slip_weakening_interface \
-  BEARD_APPEND_EXPAND_4(beard_dgx_inter_rhs_slip_weakening_interface_,         \
+  BEARD_APPEND_EXPAND_4(beard_dgx_inter_rhs_slip_weakening_interface_, \
+                        DIM,_,NORDER)
+
+#define beard_dgx_inter_rhs_ageing_law_interface \
+  BEARD_APPEND_EXPAND_4(beard_dgx_inter_rhs_ageing_law_interface_, \
                         DIM,_,NORDER)
 
 #define beard_dgx_energy \
@@ -957,14 +961,13 @@ void beard_dgx_intra_rhs_elastic(
   }
 }
 
-void beard_dgx_scale_rates_slip_weakening(
+void beard_dgx_scale_rates_interface(
     int inN, bfam_subdomain_dgx_t *sub, const char *rate_prefix,
-    const bfam_long_real_t in_a)
+    const bfam_long_real_t in_a, const char **f_names)
 {
-  GENERIC_INIT(inN,beard_dgx_scale_rates_slip_weakening);
+  GENERIC_INIT(inN,beard_dgx_scale_rates_interface);
   const bfam_locidx_t num_pts = sub->K * Nfp;
   bfam_dictionary_t *fields = &sub->base.fields;
-  const char *f_names[] = {"Dp","Dp1","Dp2","Dp3","Dn",NULL};
   beard_dgx_scale_rates(inN, sub, rate_prefix, in_a, fields, f_names,
                         NULL, NULL, num_pts);
 }
@@ -1033,13 +1036,12 @@ void beard_dgx_scale_rates(
 }
 
 
-void beard_dgx_add_rates_slip_weakening(
+void beard_dgx_add_rates_interface(
     int inN, bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
-    const bfam_long_real_t in_a)
+    const bfam_long_real_t in_a, const char **f_names)
 {
-  GENERIC_INIT(inN,beard_dgx_add_rates_slip_weakening);
-  const char *f_names[] = {"Dp","Dp1","Dp2","Dp3","Dn",NULL};
+  GENERIC_INIT(inN,beard_dgx_add_rates_interface);
   bfam_dictionary_t *fields = &sub->base.fields;
   const bfam_locidx_t num_pts = sub->K * Nfp;
   beard_dgx_add_rates(inN, sub, field_prefix_lhs, field_prefix_rhs, rate_prefix,
@@ -1793,6 +1795,16 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
           lam[iM],mu[iM],rhoi[iM],nM,sJ[f],JI[iM],wi[0]);
     }
   }
+}
+
+void beard_dgx_inter_rhs_ageing_law_interface(
+    int inN, bfam_subdomain_dgx_t *sub_g, const char *rate_prefix,
+    const char *minus_rate_prefix, const char *field_prefix,
+    const bfam_long_real_t t)
+{
+  GENERIC_INIT(inN,beard_dgx_inter_rhs_ageing_law_interface);
+
+  BFAM_ABORT("ageing law not implemented");
 }
 
 void beard_dgx_energy(

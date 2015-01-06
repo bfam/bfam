@@ -60,7 +60,7 @@ const char *comm_args_tensors[]           = {"T",NULL};
 const char *comm_args_tensor_components[] = {"S11","S12","S13",
                                              "S22","S23","S33",NULL};
 
-const char **fric_fields = NULL;
+const char **friction_fields = NULL;
 const char *slip_weakening_fields[] = {
   "Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
   "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3",
@@ -74,7 +74,7 @@ const char *rate_and_state_fields[] = {
   "S11_0","S12_0","S13_0","S22_0","S23_0","S33_0",
   "Dp1","Dp2","Dp3","Dn",NULL};
 
-char *friction_rates[];
+const char **friction_rates = NULL;
 const char *slip_weakening_rates[] = {"Dp","Dp1","Dp2","Dp3","Dn",NULL};
 const char *rate_and_state_rates[] = {"Dp","Dp1","Dp2","Dp3","Dn","Psi",NULL};
 
@@ -1383,7 +1383,8 @@ init_tree_to_glueid(beard_t *beard, prefs_t *prefs,
     }
   }
   else
-    BFAM_ROOT_WARNING("table or function `%s' not found", "glueid_treeid_faceid");
+    BFAM_ROOT_WARNING("table or function `%s' not found",
+        "glueid_treeid_faceid");
 
   lua_pop(L, 1);
   BFAM_ASSERT(top == lua_gettop(L));
@@ -1907,21 +1908,25 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
             this_glue, tag);
         if(type==FRICTION)
         {
-          const char **tmp_fields = fric_fields;
+          bfam_domain_add_tag((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
+              this_glue, "friction");
+          const char **tmp_fields = friction_fields;
           size_t match_len = lua_strlen  (L, -1);
           if(0==strncmp(lua_tostring(L, -1), "slip weakening", match_len))
           {
-            fric_fields = slip_weakening_fields;
+            friction_fields = slip_weakening_fields;
+            friction_rates  = slip_weakening_rates;
           }
           else if(0==strncmp(lua_tostring(L, -1), "ageing law", match_len))
           {
-            fric_fields = rate_and_state_fields;
+            friction_fields = rate_and_state_fields;
+            friction_rates  = rate_and_state_rates;
           }
           else
             BFAM_ABORT("Uknown friction tag type: %s"
                 " (can be: 'slip weakening', 'ageing law'",
                 tag);
-          BFAM_ABORT_IF_NOT(tmp_fields == NULL || fric_fields == tmp_fields,
+          BFAM_ABORT_IF_NOT(tmp_fields == NULL || friction_fields == tmp_fields,
               "Not configured for multiple friction laws");
         }
       }
@@ -1931,13 +1936,13 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
 
       if(type==FRICTION)
       {
-        for(int f = 0; fric_fields[f] != NULL; ++f)
+        for(int f = 0; friction_fields[f] != NULL; ++f)
         {
           bfam_domain_add_field (domain, BFAM_DOMAIN_OR, this_glue,
-              fric_fields[f]);
+              friction_fields[f]);
 
           bfam_real_t value = 0;
-          lua_pushstring(L,fric_fields[f]);
+          lua_pushstring(L,friction_fields[f]);
           lua_gettable(L,-2);
           if(lua_isstring(L,-1) && !lua_isnumber(L,-1))
           {
@@ -1949,7 +1954,7 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
             args.fname = fname;
             args.L     = L;
             bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue,
-                fric_fields[f], 0, field_set_val_extend, &args);
+                friction_fields[f], 0, field_set_val_extend, &args);
           }
           else
           {
@@ -1961,10 +1966,11 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
             {
               BFAM_ROOT_WARNING(
                   " glue %d does not contain `%s',"
-                  " using default %"BFAM_REAL_PRIe, i, fric_fields[f], value);
+                  " using default %"BFAM_REAL_PRIe, i, friction_fields[f],
+                  value);
             }
             bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue,
-                fric_fields[f], 0, field_set_const, &value);
+                friction_fields[f], 0, field_set_const, &value);
             lua_pop(L, 1);
           }
         }
@@ -2119,14 +2125,12 @@ void aux_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
       bfam_subdomain_field_init(thisSubdomain, field, 0, field_zero, NULL);
     }
   }
-  else if(bfam_subdomain_has_tag(thisSubdomain,"slip weakening"))
+  else if(bfam_subdomain_has_tag(thisSubdomain,"friction"))
   {
-    const char *fields[] = {"Dp","Dp1","Dp2","Dp3","Dn",NULL};
-
     char field[BFAM_BUFSIZ];
-    for(int f = 0; fields[f]!=NULL; ++f)
+    for(int f = 0; friction_rates[f]!=NULL; ++f)
     {
-      snprintf(field,BFAM_BUFSIZ,"%s%s",prefix,fields[f]);
+      snprintf(field,BFAM_BUFSIZ,"%s%s",prefix,friction_rates[f]);
       thisSubdomain->field_add(thisSubdomain,field);
       bfam_subdomain_field_init(thisSubdomain, field, 0, field_zero, NULL);
     }
@@ -2219,17 +2223,17 @@ void scale_rates_elastic (bfam_subdomain_dgx_t *sub, const char *rate_prefix,
 #undef X
 }
 
-void scale_rates_slip_weakening (bfam_subdomain_dgx_t *sub,
+void scale_rates_friction(bfam_subdomain_dgx_t *sub,
     const char *rate_prefix, const bfam_long_real_t a)
 {
 #if  DIM==2
 #define X(order) \
-  case order: beard_dgx_scale_rates_slip_weakening_2_##order(sub->N,sub, \
-                  rate_prefix,a); break;
+  case order: beard_dgx_scale_rates_interface_2_##order(sub->N,sub, \
+                  rate_prefix,a,friction_rates); break;
 #elif  DIM==3
 #define X(order) \
-  case order: beard_dgx_scale_rates_slip_weakening_3_##order(sub->N,sub, \
-                  rate_prefix,a); break;
+  case order: beard_dgx_scale_rates_interface_3_##order(sub->N,sub, \
+                  rate_prefix,a,friction_rates); break;
 #else
 #error "Bad Dimension"
 #endif
@@ -2239,9 +2243,11 @@ void scale_rates_slip_weakening (bfam_subdomain_dgx_t *sub,
     BFAM_LIST_OF_DGX_NORDERS
     default:
 #if   DIM==2
-      beard_dgx_scale_rates_slip_weakening_2_(sub->N,sub,rate_prefix,a);
+      beard_dgx_scale_rates_interface_2_(sub->N,sub,rate_prefix,a,
+          friction_rates);
 #elif DIM==3
-      beard_dgx_scale_rates_slip_weakening_3_(sub->N,sub,rate_prefix,a);
+      beard_dgx_scale_rates_interface_3_(sub->N,sub,rate_prefix,a,
+          friction_rates);
 #else
 #error "Bad Dimension"
 #endif
@@ -2261,10 +2267,10 @@ void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
     scale_rates_elastic(sub,rate_prefix,a);
   }
-  else if(bfam_subdomain_has_tag(thisSubdomain,"slip weakening"))
+  else if(bfam_subdomain_has_tag(thisSubdomain,"friction"))
   {
     bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
-    scale_rates_slip_weakening(sub,rate_prefix,a);
+    scale_rates_friction(sub,rate_prefix,a);
   }
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary"));
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel"));
@@ -2388,6 +2394,42 @@ void inter_rhs_slip_weakening_interface(int N, bfam_subdomain_dgx_t *sub,
 #undef X
 }
 
+void inter_rhs_ageing_law_interface(int N, bfam_subdomain_dgx_t *sub,
+    const char *rate_prefix, const char* minus_rate_prefix,
+    const char *field_prefix, const bfam_long_real_t t)
+{
+#if   DIM==2
+#define X(order) \
+  case order: beard_dgx_inter_rhs_ageing_law_interface_2_##order(N,sub, \
+                  rate_prefix,minus_rate_prefix,field_prefix,t); break;
+#elif DIM==3
+#define X(order) \
+  case order: beard_dgx_inter_rhs_ageing_law_interface_3_##order(N,sub, \
+                  rate_prefix,minus_rate_prefix,field_prefix,t); break;
+#else
+#error "bad dimension"
+#endif
+
+
+  switch(N)
+  {
+    BFAM_LIST_OF_DGX_NORDERS
+    default:
+#if   DIM==2
+      beard_dgx_inter_rhs_ageing_law_interface_2_(N,sub,rate_prefix,
+          minus_rate_prefix, field_prefix,t);
+#elif DIM==3
+      beard_dgx_inter_rhs_ageing_law_interface_3_(N,sub,rate_prefix,
+          minus_rate_prefix, field_prefix,t);
+#else
+#error "bad dimension"
+#endif
+      break;
+  }
+#undef X
+}
+
+
 void inter_rhs_interface(int N, bfam_subdomain_dgx_t *sub,
     const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t)
 {
@@ -2436,6 +2478,13 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
         ((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
         sub,rate_prefix,minus_rate_prefix,field_prefix,t);
   }
+  else if(bfam_subdomain_has_tag(thisSubdomain,"ageing law"))
+  {
+    BFAM_ASSERT(rate_prefix);
+    inter_rhs_ageing_law_interface(
+        ((bfam_subdomain_dgx_t*)sub->base.glue_m->sub_m)->N,
+        sub,rate_prefix,minus_rate_prefix,field_prefix,t);
+  }
   else if(bfam_subdomain_has_tag(thisSubdomain,"non-reflecting"))
   {
     BFAM_ASSERT(minus_rate_prefix);
@@ -2471,18 +2520,20 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
 }
 
-void add_rates_slip_weakening (bfam_subdomain_dgx_t *sub,
+void add_rates_friction (bfam_subdomain_dgx_t *sub,
     const char *field_prefix_lhs, const char *field_prefix_rhs,
     const char *rate_prefix, const bfam_long_real_t a)
 {
 #if   DIM==2
 #define X(order) \
-  case order: beard_dgx_add_rates_slip_weakening_2_##order(sub->N,sub, \
-                  field_prefix_lhs,field_prefix_rhs,rate_prefix,a); break;
+  case order: beard_dgx_add_rates_interface_2_##order(sub->N,sub, \
+                  field_prefix_lhs,field_prefix_rhs,rate_prefix,a,\
+                  friction_rates); break;
 #elif DIM==3
 #define X(order) \
-  case order: beard_dgx_add_rates_slip_weakening_3_##order(sub->N,sub, \
-                  field_prefix_lhs,field_prefix_rhs,rate_prefix,a); break;
+  case order: beard_dgx_add_rates_interface_3_##order(sub->N,sub, \
+                  field_prefix_lhs,field_prefix_rhs,rate_prefix,a,\
+                  friction_rates); break;
 #else
 #error "bad dimension"
 #endif
@@ -2492,11 +2543,11 @@ void add_rates_slip_weakening (bfam_subdomain_dgx_t *sub,
     BFAM_LIST_OF_DGX_NORDERS
     default:
 #if   DIM==2
-      beard_dgx_add_rates_slip_weakening_2_(sub->N,sub,field_prefix_lhs,
-          field_prefix_rhs,rate_prefix,a);
+      beard_dgx_add_rates_interface_2_(sub->N,sub,field_prefix_lhs,
+          field_prefix_rhs,rate_prefix,a,friction_rates);
 #elif DIM==3
-      beard_dgx_add_rates_slip_weakening_3_(sub->N,sub,field_prefix_lhs,
-          field_prefix_rhs,rate_prefix,a);
+      beard_dgx_add_rates_interface_3_(sub->N,sub,field_prefix_lhs,
+          field_prefix_rhs,rate_prefix,a,friction_rates);
 #else
 #error "bad dimension"
 #endif
@@ -2606,10 +2657,10 @@ void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
     bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
     add_rates_elastic(sub,field_prefix_lhs,field_prefix_rhs,rate_prefix,a);
   }
-  else if(bfam_subdomain_has_tag(thisSubdomain,"slip weakening"))
+  else if(bfam_subdomain_has_tag(thisSubdomain,"friction"))
   {
     bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
-    add_rates_slip_weakening(sub,field_prefix_lhs,field_prefix_rhs,
+    add_rates_friction(sub,field_prefix_lhs,field_prefix_rhs,
         rate_prefix,a);
   }
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary")
@@ -3197,9 +3248,9 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *volume[],
 static void
 run_simulation(beard_t *beard,prefs_t *prefs)
 {
-  const char *volume[] = {"_volume",NULL};
-  const char *glue[]   = {"_glue_parallel", "_glue_local", NULL};
-  const char *slip_weakening[] = {"slip weakening",NULL};
+  const char *volume_tags[] = {"_volume",NULL};
+  const char *glue_tags[]   = {"_glue_parallel", "_glue_local", NULL};
+  const char *friction_tags[] = {"friction",NULL};
 
   int nsteps  = 0;
   int ndisp   = 0;
@@ -3208,7 +3259,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   int nstations = 0;
   int nerr = 0;
 
-  bfam_real_t dt = compute_domain_dt(beard, prefs, volume, glue,
+  bfam_real_t dt = compute_domain_dt(beard, prefs, volume_tags, glue_tags,
       &nsteps, &ndisp, &noutput, &nfoutput, &nstations, &nerr);
 
   BFAM_ROOT_INFO("dt        = %"BFAM_REAL_FMTe,dt);
@@ -3244,8 +3295,9 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     char output[BFAM_BUFSIZ];
     snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,0);
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        slip_weakening, prefs->data_directory, output, (0)*dt, fric_fields,
-        NULL, NULL, prefs->vtk_binary, prefs->vtk_compress, prefs->vtk_num_pnts);
+        friction_tags, prefs->data_directory, output, (0)*dt, friction_fields,
+        NULL, NULL, prefs->vtk_binary, prefs->vtk_compress,
+        prefs->vtk_num_pnts);
   }
 
   /* compute the initial energy */
@@ -3274,7 +3326,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       "S33", "S12", "S13", "S23",NULL};
     snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,0);
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        volume, prefs->data_directory, output, (0)*dt, fields, NULL, NULL,
+        volume_tags, prefs->data_directory, output, (0)*dt, fields, NULL, NULL,
         prefs->vtk_binary, prefs->vtk_compress, prefs->vtk_num_pnts);
   }
 
@@ -3356,8 +3408,9 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       char output[BFAM_BUFSIZ];
       snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-          slip_weakening, prefs->data_directory, output, (s)*dt, fric_fields,
-          NULL, NULL, prefs->vtk_binary, prefs->vtk_compress, prefs->vtk_num_pnts);
+          friction_tags, prefs->data_directory, output, (s)*dt, friction_fields,
+          NULL, NULL, prefs->vtk_binary, prefs->vtk_compress,
+          prefs->vtk_num_pnts);
     }
     if(noutput > 0 && s%noutput == 0)
     {
@@ -3366,8 +3419,8 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       char output[BFAM_BUFSIZ];
       snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-          volume, prefs->data_directory, output, (s)*dt, fields, NULL, NULL,
-          prefs->vtk_binary, prefs->vtk_compress, prefs->vtk_num_pnts);
+          volume_tags, prefs->data_directory, output, (s)*dt, fields, NULL,
+          NULL, prefs->vtk_binary, prefs->vtk_compress, prefs->vtk_num_pnts);
     }
     if(nerr > 0 && s%nerr == 0)
     {
@@ -3380,7 +3433,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
                                 "error_S12", "error_S13", "error_S23", NULL};
       for(int f = 0; err_flds[f] != NULL; f++)
         bfam_domain_init_field((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
-            volume, err_flds[f], s*dt, check_error, &err_args);
+            volume_tags, err_flds[f], s*dt, check_error, &err_args);
       bfam_real_t error = compute_energy(beard,prefs,s*dt,"error_");
       bfam_real_t new_energy = compute_energy(beard,prefs,s*dt,"");
       BFAM_ROOT_INFO(
@@ -3392,8 +3445,9 @@ run_simulation(beard_t *beard,prefs_t *prefs)
         char err_output[BFAM_BUFSIZ];
         snprintf(err_output,BFAM_BUFSIZ,"%s_error_%05d",prefs->output_prefix,s);
         bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-            volume, prefs->data_directory, err_output, (s)*dt, err_flds, NULL,
-            NULL, prefs->vtk_binary, prefs->vtk_compress, prefs->vtk_num_pnts);
+            volume_tags, prefs->data_directory, err_output, (s)*dt, err_flds,
+            NULL, NULL, prefs->vtk_binary, prefs->vtk_compress,
+            prefs->vtk_num_pnts);
         energy = new_energy;
       }
     }
@@ -3551,7 +3605,7 @@ init_fault_stations(beard_t *beard, prefs_t *prefs)
 
     /* Now we handle finding where we interp */
 
-    const char *fault[] = {"slip weakening",NULL};
+    const char *fault[] = {"friction",NULL};
     bfam_subdomain_t *subs[beard->domain->base.numSubdomains];
     bfam_locidx_t num_subs = 0;
     bfam_domain_get_subdomains((bfam_domain_t*) beard->domain,
