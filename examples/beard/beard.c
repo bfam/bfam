@@ -889,7 +889,13 @@ print_prefs(prefs_t *prefs)
 static void
 free_prefs(prefs_t *prefs)
 {
-  if(prefs->brick_args != NULL) bfam_free(prefs->brick_args);
+  if(prefs->brick_args != NULL)
+  {
+    if(prefs->brick_args->bc != NULL) bfam_free(prefs->brick_args->bc);
+    if(prefs->brick_args->brick_to_tree != NULL)
+      bfam_free(prefs->brick_args->brick_to_tree);
+    bfam_free(prefs->brick_args);
+  }
   lua_close(prefs->L);
 }
 
