@@ -60,11 +60,23 @@ const char *comm_args_tensors[]           = {"T",NULL};
 const char *comm_args_tensor_components[] = {"S11","S12","S13",
                                              "S22","S23","S33",NULL};
 
-const char *sw_fields[] = {"Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
+const char **fric_fields = NULL;
+const char *slip_weakening_fields[] = {
+  "Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
   "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3",
   "Dc", "Dp", "fs", "fc", "fd", "c0",
   "S11_0","S12_0","S13_0","S22_0","S23_0","S33_0",
   "Dp1","Dp2","Dp3","Dn",NULL};
+const char *rate_and_state_fields[] = {
+  "Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
+  "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3",
+  "f0", "V0", "a", "b", "L", "psi0",
+  "S11_0","S12_0","S13_0","S22_0","S23_0","S33_0",
+  "Dp1","Dp2","Dp3","Dn",NULL};
+
+char *friction_rates[];
+const char *slip_weakening_rates[] = {"Dp","Dp1","Dp2","Dp3","Dn",NULL};
+const char *rate_and_state_rates[] = {"Dp","Dp1","Dp2","Dp3","Dn","Psi",NULL};
 
 
 #define BFAM_LOAD_FIELD_RESTRICT_ALIGNED(field,prefix,base,dictionary)         \
@@ -1893,20 +1905,39 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
 
         bfam_domain_add_tag((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
             this_glue, tag);
+        if(type==FRICTION)
+        {
+          const char **tmp_fields = fric_fields;
+          size_t match_len = lua_strlen  (L, -1);
+          if(0==strncmp(lua_tostring(L, -1), "slip weakening", match_len))
+          {
+            fric_fields = slip_weakening_fields;
+          }
+          else if(0==strncmp(lua_tostring(L, -1), "ageing law", match_len))
+          {
+            fric_fields = rate_and_state_fields;
+          }
+          else
+            BFAM_ABORT("Uknown friction tag type: %s"
+                " (can be: 'slip weakening', 'ageing law'",
+                tag);
+          BFAM_ABORT_IF_NOT(tmp_fields == NULL || fric_fields == tmp_fields,
+              "Not configured for multiple friction laws");
+        }
       }
       else
-        BFAM_WARNING("No tag for glue_id %d", i);
+        BFAM_ABORT("No tag for glue_id %d", i);
       lua_pop(L, 1);
 
       if(type==FRICTION)
       {
-        for(int f = 0; sw_fields[f] != NULL; ++f)
+        for(int f = 0; fric_fields[f] != NULL; ++f)
         {
           bfam_domain_add_field (domain, BFAM_DOMAIN_OR, this_glue,
-              sw_fields[f]);
+              fric_fields[f]);
 
           bfam_real_t value = 0;
-          lua_pushstring(L,sw_fields[f]);
+          lua_pushstring(L,fric_fields[f]);
           lua_gettable(L,-2);
           if(lua_isstring(L,-1) && !lua_isnumber(L,-1))
           {
@@ -1918,7 +1949,7 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
             args.fname = fname;
             args.L     = L;
             bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue,
-                sw_fields[f], 0, field_set_val_extend, &args);
+                fric_fields[f], 0, field_set_val_extend, &args);
           }
           else
           {
@@ -1930,10 +1961,10 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
             {
               BFAM_ROOT_WARNING(
                   " glue %d does not contain `%s',"
-                  " using default %"BFAM_REAL_PRIe, i, sw_fields[f], value);
+                  " using default %"BFAM_REAL_PRIe, i, fric_fields[f], value);
             }
             bfam_domain_init_field(domain, BFAM_DOMAIN_OR, this_glue,
-                sw_fields[f], 0, field_set_const, &value);
+                fric_fields[f], 0, field_set_const, &value);
             lua_pop(L, 1);
           }
         }
@@ -3213,7 +3244,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     char output[BFAM_BUFSIZ];
     snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,0);
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        slip_weakening, prefs->data_directory, output, (0)*dt, sw_fields,
+        slip_weakening, prefs->data_directory, output, (0)*dt, fric_fields,
         NULL, NULL, prefs->vtk_binary, prefs->vtk_compress, prefs->vtk_num_pnts);
   }
 
@@ -3325,7 +3356,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       char output[BFAM_BUFSIZ];
       snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-          slip_weakening, prefs->data_directory, output, (s)*dt, sw_fields,
+          slip_weakening, prefs->data_directory, output, (s)*dt, fric_fields,
           NULL, NULL, prefs->vtk_binary, prefs->vtk_compress, prefs->vtk_num_pnts);
     }
     if(noutput > 0 && s%noutput == 0)
