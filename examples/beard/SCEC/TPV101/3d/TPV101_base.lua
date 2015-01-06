@@ -1,9 +1,8 @@
--- refinement parameters
+tout
 min_level = 0
-max_level = 3
-output_prefix = "TPV205"
+max_level = 0
+output_prefix = "TPV101"
 data_directory = "data"
-
 -- connectivity info
 connectivity = "brick"
 brick =
@@ -85,7 +84,7 @@ function element_order(
   level, treeid)
 
   -- N = treeid%3+1
-  N = 3
+  N = 5
 
   return N
 end
@@ -114,7 +113,7 @@ lsrk_method  = "KC54"
 tend   = 12
 tout   = 1
 tfout  = 0.1
-tdisp  = 0.01
+tdisp  = tout
 tstations  = 0.01
 nerr   = 0
 
