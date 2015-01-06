@@ -3254,7 +3254,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   for(int s = 1; s <= nsteps; s++)
   {
     beard->beard_ts->step(beard->beard_ts,dt);
-    if(s%ndisp == 0)
+    if(ndisp > 0 && s%ndisp == 0)
     {
       bfam_real_t new_energy = compute_energy(beard,prefs,s*dt,"");
       if(initial_energy < 0)
