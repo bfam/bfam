@@ -1,4 +1,4 @@
-tout
+-- refinement parameters
 min_level = 0
 max_level = 0
 output_prefix = "TPV101"
@@ -84,7 +84,7 @@ function element_order(
   level, treeid)
 
   -- N = treeid%3+1
-  N = 5
+  N = 3
 
   return N
 end
@@ -147,7 +147,7 @@ fault = {
   type   = "friction",
   tag    = "ageing law",
   f0     = 0.6,
-  v0     = 1e-6,
+  V0     = 1e-6,
   a      = "a_function",
   b      = 0.012,
   L      = 0.02,
@@ -174,17 +174,18 @@ bc_rigid = {
 glue_info = {
   bc_nonreflect,
   bc_free,
+  bc_rigid,
   fault,
 }
 
 -- friction stuff
 glueid_treeid_faceid = {
-  3, 0, 5,
-  3, 1, 5,
-  3, 2, 5,
-  3, 3, 5,
-  3, 4, 4,
-  3, 5, 4,
-  3, 6, 4,
-  3, 7, 4,
+  4, 0, 5,
+  4, 1, 5,
+  4, 2, 5,
+  4, 3, 5,
+  4, 4, 4,
+  4, 5, 4,
+  4, 6, 4,
+  4, 7, 4,
 }
