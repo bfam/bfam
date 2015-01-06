@@ -311,9 +311,9 @@ inverse_trilinear(bfam_real_t *r,
 
   if(diff>0)
   {
-    a = a/0.0;
-    b = a/0.0;
-    c = a/0.0;
+    a = bfam_real_nan("");
+    b = bfam_real_nan("");
+    c = bfam_real_nan("");
   }
 
   r[0] = a;
@@ -1073,7 +1073,7 @@ beard_getline_upper (FILE * stream)
       line = linen + (line - linep);
       linep = linen;
     }
-    if ((*line++ = c) == '\n')
+    if ((*line++ = (char)c) == '\n')
       break;
   }
   *line = '\0';
@@ -1163,6 +1163,7 @@ glueid_read_file(FILE *fid, bfam_locidx_t *tree_to_glueid,
 
   BFAM_LDEBUG("glueid_read_file: read %d / freed %d lines",
       lines_read, lines_free);
+  return lines_read-lines_free;
 }
 
 static void
@@ -1386,12 +1387,12 @@ transform_nodes(const bfam_locidx_t num_Vi, const bfam_locidx_t num_pnts,
   lua_State *L = prefs->L;
   for(bfam_locidx_t k = 0; k < num_pnts; k++)
   {
-    bfam_real_t x = lxi[0][k];
-    bfam_real_t y = lxi[1][k];
+    bfam_real_t x = (bfam_real_t)lxi[0][k];
+    bfam_real_t y = (bfam_real_t)lxi[1][k];
 #if DIM==2
     lua_global_function_call(L, "transform_nodes", "rr>rr", x, y, &x, &y);
 #elif DIM==3
-    bfam_real_t z = lxi[2][k];
+    bfam_real_t z = (bfam_real_t)lxi[2][k];
     lua_global_function_call(L, "transform_nodes", "rrr>rrr",
                              x, y, z, &x, &y, &z);
     lxi[2][k] = z;
@@ -3088,7 +3089,7 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *volume[],
     int max_time_level = lua_get_global_int(prefs->L, "max_time_level", 32);
     for(bfam_locidx_t s = 0; s < numSubdomains; ++s)
     {
-      ldt[s] = dt_fudge*ldt[s];
+      ldt[s] = (bfam_real_t)dt_fudge*ldt[s];
 
       /* keep double time_step until the level is big enough */
       bfam_locidx_t time_level = 0;
