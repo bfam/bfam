@@ -64,19 +64,19 @@ const char **friction_fields = NULL;
 const char *slip_weakening_fields[] = {
   "Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
   "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3",
-  "Dc", "Dp", "fs", "fc", "fd", "c0",
   "S11_0","S12_0","S13_0","S22_0","S23_0","S33_0",
-  "Dp1","Dp2","Dp3","Dn",NULL};
+  "Dc", "fs", "fc", "fd", "c0",
+  "Dp","Dp1","Dp2","Dp3","Dn",NULL};
 const char *rate_and_state_fields[] = {
   "Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
   "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3",
-  "f0", "V0", "a", "b", "L", "psi0",
   "S11_0","S12_0","S13_0","S22_0","S23_0","S33_0",
-  "Dp1","Dp2","Dp3","Dn",NULL};
+  "f0", "V0", "a", "b", "L", "psi",
+  "Dp","Dp1","Dp2","Dp3","Dn",NULL};
 
 const char **friction_rates = NULL;
 const char *slip_weakening_rates[] = {"Dp","Dp1","Dp2","Dp3","Dn",NULL};
-const char *rate_and_state_rates[] = {"Dp","Dp1","Dp2","Dp3","Dn","Psi",NULL};
+const char *rate_and_state_rates[] = {"Dp","Dp1","Dp2","Dp3","Dn","psi",NULL};
 
 
 #define BFAM_LOAD_FIELD_RESTRICT_ALIGNED(field,prefix,base,dictionary)         \
@@ -1517,7 +1517,7 @@ field_set_val_extend(bfam_locidx_t npoints, const char *name, bfam_real_t t,
     return;
   }
   else if(lua_isnumber(L,-1)) val = (bfam_real_t)lua_tonumber(L,-1);
-  else BFAM_WARNING("Did not find '%s' in lua as a function or number using 0: "
+  else BFAM_ABORT("Did not find '%s' in lua as a function or number: "
                     "lua message: '%s'", val_args->fname,lua_tostring(L,-1));
   lua_pop(L,1);
 
