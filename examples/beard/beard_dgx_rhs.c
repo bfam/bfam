@@ -176,28 +176,36 @@ beard_dgx_upwind_state_friction_m(
     const bfam_real_t *vpm, const bfam_real_t *vpp  ,
     const bfam_real_t  Zsm, const bfam_real_t  Zsp  )
 {
-  /* upwind perpendicular velocities and tractions
-  * LHS are the volume values and RHS are the upwind states
-  * and we find them by forcing these characteristics to remain unchanged which
-  * satisfying the constraint that
-  *    T = | TpS[i] |
-  * and that TpS points in the same direciton as VpS
-  *
-  * The following characteristics must remain unchanges
-  *   wpm = Tpm - Zsm*vpm = TpS - Zsm*vpSm
-  *   wpp = Tpp - Zsp*vpp =-TpS - Zsp*vpSp
-  *
-  * scaling and adding gives the relationship
-  *   phi[i] = (wpm[i]*Zsp-wpp[i]*Zsm)/(Zsp+Zsm)
-  *          = Tps[i] - ((Zsm*Zsp)/(Zsm+Zsp))*VpS[i]
-  * which since TpS and VpS must be parallel gives the directions of TpS and
-  * Vps. Thus we have that TpS[i] = A phi[i] / |phi|, but since the magnitude of
-  * TpS[i] is T, we have that
-  *    TpS[i] = T phi[i]/|phi|
-  *
-  * Note: that this TpS[i] includes the load / background stress, so that must
-  * be subtracted off to get the actual upwind state
-  */
+  /*
+   * upwind perpendicular velocities and tractions
+   *
+   * LHS are the volume values and RHS are the upwind states and we find them by
+   * forcing these characteristics to remain unchanged which satisfying the
+   * constraint that
+   *
+   *    T = | TpS[i] |
+   *
+   * and that TpS points in the same direciton as VpS
+   *
+   * The following characteristics must remain unchanges
+   *
+   *   wpm = Tpm - Zsm*vpm = TpS - Zsm*vpSm
+   *   wpp = Tpp - Zsp*vpp =-TpS - Zsp*vpSp
+   *
+   * scaling and adding gives the relationship
+   *
+   *   phi[i] = (wpm[i]*Zsp-wpp[i]*Zsm)/(Zsp+Zsm)
+   *          = TpS[i] - ((Zsm*Zsp)/(Zsm+Zsp))*VpS[i]
+   *
+   * which since TpS and VpS must be parallel gives the directions of TpS and
+   * VpS. Thus we have that TpS[i] = A phi[i] / |phi|, but since the magnitude
+   * of TpS[i] is T, we have that
+   *
+   *    TpS[i] = T phi[i]/|phi|
+   *
+   * Note: that this TpS[i] includes the load / background stress, so that must
+   * be subtracted off to get the actual upwind state
+   */
   bfam_real_t phi[3];
   bfam_real_t mag = 0;
   for(bfam_locidx_t i = 0; i < 3; i++)
@@ -205,18 +213,86 @@ beard_dgx_upwind_state_friction_m(
     bfam_real_t wpm = Tpm[i] + Tp0[i] - Zsm*vpm[i];
     bfam_real_t wpp = Tpp[i] - Tp0[i] - Zsp*vpp[i];
 
-    /* phi[i] = Tps[i] - ((Zsm*Zsp)/(Zsm+Zsp))*VpS[i] */
+    /* phi[i] = TpS[i] - ((Zsm*Zsp)/(Zsm+Zsp))*VpS[i] */
     phi[i] = (wpm*Zsp-wpp*Zsm)/(Zsp+Zsm);
 
     /* mag = | phi[i] | */
     mag += phi[i]*phi[i];
   }
   mag = BFAM_REAL_SQRT(mag);
+  const bfam_real_t eta = ((Zsp*Zsm)/(Zsm+Zsp));
   for(bfam_locidx_t i = 0; i < 3; i++)
   {
     TpS[i]  = T*phi[i]/mag - Tp0[i];
     vpSm[i] = (TpS[i]-Tpm[i])/Zsm + vpm[i];
-    VpS[i]  = (phi[i] - TpS[i] - Tp0[i])/((Zsp*Zsm)/(Zsm+Zsp));
+    VpS[i]  = (phi[i] - TpS[i] - Tp0[i])/eta;
+  }
+}
+
+static inline void
+beard_dgx_upwind_state_rate_and_state_friction_m(
+          bfam_real_t *TpS,       bfam_real_t *vpSm,        bfam_real_t *VpS,
+    const bfam_real_t    N, const bfam_real_t  a    ,
+    const bfam_real_t   V0, const bfam_real_t  psi  ,
+    const bfam_real_t *Tpm, const bfam_real_t *Tpp  , const bfam_real_t *Tp0,
+    const bfam_real_t *vpm, const bfam_real_t *vpp  ,
+    const bfam_real_t  Zsm, const bfam_real_t  Zsp  )
+{
+  /*
+   * Upwind perpendicular velocities and tractions
+   *
+   * To solve the rate and state friction law we need to find T and V that
+   * satisfy
+   *
+   *    T = N*f(V,psi)
+   *
+   * such that the characteristics propagating into the interface remain
+   * unchanged, i.e., the following characteristics must remain unchanges
+   *
+   *   wpm = Tpm - Zsm*vpm = TpS - Zsm*vpSm
+   *   wpp = Tpp - Zsp*vpp =-TpS - Zsp*vpSp
+   *
+   * Scaling and adding these relationships gives
+   *
+   * NEED TO CHECK THE FORMULA FOR VpS, I THINK THAT I HAVE A MINUS SIGN OFF!!!
+   *
+   *   phi[i] = (wpm[i]*Zsp-wpp[i]*Zsm)/(Zsp+Zsm)
+   *          = TpS[i] - eta*VpS[i]
+   *
+   *   eta    = ((Zsm*Zsp)/(Zsm+Zsp))
+   *
+   * which since TpS and VpS must be parallel gives the directions of TpS and
+   * VpS. That is, we have that
+   *
+   *    |phi| u[i] = |TpS| u[i] - eta |VpS| u[i]
+   *
+   * which gives the radiation damping relationship
+   *
+   *    |phi| = |TpS| - eta |VpS|
+   *
+   * Note: that this TpS[i] includes the load / background stress, so that must
+   * be subtracted off to get the actual upwind state
+   */
+  bfam_real_t phi[3];
+  bfam_real_t mag = 0;
+  for(bfam_locidx_t i = 0; i < 3; i++)
+  {
+    bfam_real_t wpm = Tpm[i] + Tp0[i] - Zsm*vpm[i];
+    bfam_real_t wpp = Tpp[i] - Tp0[i] - Zsp*vpp[i];
+
+    /* phi[i] = TpS[i] - ((Zsm*Zsp)/(Zsm+Zsp))*VpS[i] */
+    phi[i] = (wpm*Zsp-wpp*Zsm)/(Zsp+Zsm);
+
+    /* mag = | phi[i] | */
+    mag += phi[i]*phi[i];
+  }
+  mag = BFAM_REAL_SQRT(mag);
+  const bfam_real_t eta = ((Zsp*Zsm)/(Zsm+Zsp));
+  for(bfam_locidx_t i = 0; i < 3; i++)
+  {
+    TpS[i]  = T*phi[i]/mag - Tp0[i];
+    vpSm[i] = (TpS[i]-Tpm[i])/Zsm + vpm[i];
+    VpS[i]  = (phi[i] - TpS[i] - Tp0[i])/eta;
   }
 }
 
@@ -1996,6 +2072,11 @@ void beard_dgx_inter_rhs_ageing_law_interface(
       }
 
       BFAM_WARNING("AGEING LAW NOT IMPLEMENTED!");
+      /*
+       * Call bracketed Newton solver to solve:
+       *    Slock - eta*V = N*f(V,psi)
+       * where eta = 2/(1/ZsP+1/ZsM)
+       */
       const bfam_real_t Slock2 =
         + (TpS_g[3*pnt+0] + Tp1_0[iG])*(TpS_g[3*pnt+0] + Tp1_0[iG])
         + (TpS_g[3*pnt+1] + Tp2_0[iG])*(TpS_g[3*pnt+1] + Tp2_0[iG])
@@ -2011,8 +2092,8 @@ void beard_dgx_inter_rhs_ageing_law_interface(
         const bfam_real_t Tp0[] =
             {Tp1_0[iG], Tp2_0[iG], Tp3_0[iG]};
 
-        beard_dgx_upwind_state_friction_m(&TpS_g[3*pnt], &vpS_g[3*pnt], VpS,
-            Sfric, TpM, TpP, Tp0, vpM, vpP, ZsM, ZsP);
+        beard_dgx_upwind_state_rate_and_state_friction_m(&TpS_g[3*pnt],
+            &vpS_g[3*pnt], VpS, Sfric, TpM, TpP, Tp0, vpM, vpP, ZsM, ZsP);
 
         Vp1[iG] = VpS[0];
         Vp2[iG] = VpS[1];
