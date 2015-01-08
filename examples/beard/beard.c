@@ -3304,13 +3304,6 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   bfam_real_t initial_energy = compute_energy(beard,prefs,0,"");
   bfam_real_t energy = initial_energy;
   if(initial_energy < BFAM_REAL_EPS) initial_energy = -1;
-  BFAM_ROOT_INFO("\x1B[%dm"
-      "time: %10.5"BFAM_REAL_PRIe
-      " energy: %10.5"BFAM_REAL_PRIe
-      "\x1B[0m",
-      34,
-      0*dt,
-      energy);
 
   if(noutput >= 0)
   {
@@ -3334,6 +3327,14 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   const int NFLUSH = 10;
   int nflush = 0;
   const bfam_real_t first_step = bfam_clock();
+
+  BFAM_ROOT_INFO("\x1B[%dm"
+      "time: %10.5"BFAM_REAL_PRIe
+      " energy: %10.5"BFAM_REAL_PRIe
+      "\x1B[0m",
+      34,
+      0*dt,
+      energy);
   for(int s = 1; s <= nsteps; s++)
   {
     beard->beard_ts->step(beard->beard_ts,dt);
