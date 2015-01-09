@@ -166,8 +166,8 @@ BFAM_ASSUME_ALIGNED(field,32);
 /* Computational choice macros */
 #define MAX_ITER         (100)
 #define FTOL             (BFAM_REAL_EPS*100)
-#define ATOL             (BFAM_REAL_EPS*100)
-#define RTOL             (BFAM_REAL_EPS*100)
+#define ATOL             (0)
+#define RTOL             (0)
 #define BEARD_STATE      beard_dgx_upwind_state_m
 #define MASSPROJECTION   (1)
 #define PROJECTION       (0)
