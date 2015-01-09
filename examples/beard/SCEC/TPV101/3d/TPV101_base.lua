@@ -9,7 +9,7 @@ ceil = math.ceil
 
 -- refinement parameters
 min_level = 4
-max_level = 4
+max_level = 7
 output_prefix = "TPV101"
 data_directory = "data"
 -- connectivity info
@@ -26,9 +26,9 @@ brick =
 default_boundary_tag = "non-reflecting"
 
 -- set up the domain
-Lx = 50
-Ly = 50
-Lz = 50
+Lx = 40
+Ly = 40
+Lz = 40
 
 Cx = brick.nx/2
 Cy = brick.ny/2
@@ -41,6 +41,7 @@ function connectivity_vertices(x, y, z)
   return xout,yout,zout
 end
 
+BUF = 1
 function refinement_function(
   x0,y0,z0,x1,y1,z1,
   x2,y2,z2,x3,y3,z3,
@@ -56,10 +57,10 @@ function refinement_function(
   xmin = min(xmin,xa2)
   xmin = min(xmin,xa2)
 
-  ya0 = abs(y0)
-  ya1 = abs(y1)
-  ya2 = abs(y2)
-  ya3 = abs(y3)
+  ya0 = abs(y0-7.5)
+  ya1 = abs(y1-7.5)
+  ya2 = abs(y2-7.5)
+  ya3 = abs(y3-7.5)
   ymin = min( ya0,ya1)
   ymin = min(ymin,ya2)
   ymin = min(ymin,ya3)
@@ -70,7 +71,7 @@ function refinement_function(
     return 1
   elseif level >= max_level then
     return 0
-  elseif xmin <= 15 and zmin >= -15 and ymin <= 0.1 then
+  elseif xmin <= 15+BUF and ymin <= 7.5+BUF and zmin <= BUF then
     return 1
   else
     return 0
@@ -93,7 +94,7 @@ function element_order(
   level, treeid)
 
   -- N = treeid%3+1
-  N = 3
+  N = 4
 
   return N
 end
@@ -174,16 +175,16 @@ function a_function(x,y,z,t)
 end
 
 function psi_function(x,y,z,t)
-  f0   = 0.6
-  V0   = 1e-6
-  Vini = 1e-12
-  a    = a_function(x,y,z,t)
-  b    = 0.012
-  L    = 0.02
-  N    = 120.0
-  T    =   75.0
-  psi  = (L/V0)*exp((a*ln(2*sinh(T/(a*N))) -f0 - a*ln(Vini/V0))/b)
-  return psi
+  f0    = 0.6
+  V0    = 1e-6
+  Vini  = 1e-12
+  a     = a_function(x,y,z,t)
+  b     = 0.012
+  L     = 0.02
+  N     = 120.0
+  T     =   75.0
+  theta = (L/V0)*exp((a*ln(2*sinh(T/(a*N))) -f0 - a*ln(Vini/V0))/b)
+  return f0 + b*ln(V0*theta/L)
 end
 
 R = 3.0

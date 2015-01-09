@@ -164,6 +164,10 @@ BFAM_ASSUME_ALIGNED(field,32);
 
 
 /* Computational choice macros */
+#define MAX_ITER         (100)
+#define FTOL             (BFAM_REAL_EPS*100)
+#define ATOL             (BFAM_REAL_EPS*100)
+#define RTOL             (BFAM_REAL_EPS*100)
 #define BEARD_STATE      beard_dgx_upwind_state_m
 #define MASSPROJECTION   (1)
 #define PROJECTION       (0)
@@ -195,7 +199,12 @@ beard_dgx_upwind_state_friction_m(
    * scaling and adding gives the relationship
    *
    *   phi[i] = (wpm[i]*Zsp-wpp[i]*Zsm)/(Zsp+Zsm)
-   *          = TpS[i] - ((Zsm*Zsp)/(Zsm+Zsp))*VpS[i]
+   *          = TpS[i] + eta*VpS[i]
+   *
+   *   Vps[i] = vpSp[i] - vpSm[i]
+   *
+   *   eta    = ((Zsm*Zsp)/(Zsm+Zsp))
+   *
    *
    * which since TpS and VpS must be parallel gives the directions of TpS and
    * VpS. Thus we have that TpS[i] = A phi[i] / |phi|, but since the magnitude
@@ -207,32 +216,122 @@ beard_dgx_upwind_state_friction_m(
    * be subtracted off to get the actual upwind state
    */
   bfam_real_t phi[3];
-  bfam_real_t mag = 0;
+  bfam_real_t phi_m = 0;
+  const bfam_real_t eta = ((Zsp*Zsm)/(Zsm+Zsp));
   for(bfam_locidx_t i = 0; i < 3; i++)
   {
     bfam_real_t wpm = Tpm[i] + Tp0[i] - Zsm*vpm[i];
     bfam_real_t wpp = Tpp[i] - Tp0[i] - Zsp*vpp[i];
 
-    /* phi[i] = TpS[i] - ((Zsm*Zsp)/(Zsm+Zsp))*VpS[i] */
+    /* phi[i] = TpS[i] + eta*VpS[i] */
     phi[i] = (wpm*Zsp-wpp*Zsm)/(Zsp+Zsm);
 
-    /* mag = | phi[i] | */
-    mag += phi[i]*phi[i];
+    /* phi_m = | phi[i] | */
+    phi_m += phi[i]*phi[i];
   }
-  mag = BFAM_REAL_SQRT(mag);
-  const bfam_real_t eta = ((Zsp*Zsm)/(Zsm+Zsp));
+
+  phi_m = BFAM_REAL_SQRT(phi_m);
   for(bfam_locidx_t i = 0; i < 3; i++)
   {
-    TpS[i]  = T*phi[i]/mag - Tp0[i];
+    TpS[i]  = T*phi[i]/phi_m - Tp0[i];
     vpSm[i] = (TpS[i]-Tpm[i])/Zsm + vpm[i];
     VpS[i]  = (phi[i] - TpS[i] - Tp0[i])/eta;
   }
 }
 
+static inline bfam_locidx_t
+beard_dgx_rs_arcsinh_newton(bfam_real_t *V_ptr, bfam_real_t *T_ptr,
+    const bfam_real_t eta, const bfam_real_t phi,
+    const bfam_real_t a  , const bfam_real_t psi,
+    const bfam_real_t Tn , const bfam_real_t V0,
+    const bfam_locidx_t max_iterations,
+    const bfam_real_t ftol,
+    const bfam_real_t atol,
+    const bfam_real_t rtol)
+{
+
+  /*
+   * We solve the relationship
+   *
+   *    phi - eta V = -Tn f(V; psi, a, V0) = tau
+   *    f(V; psi, a, V0) = a arcsinh((V/(2 V0)) exp(psi/a))
+   *
+   * with a bracketed Newton's method. The initial brackets are:
+   *
+   *    V = [0, phi/eta]
+   *
+   * since this corresponds to tau = phi and tau = 0 (respectively)
+   */
+
+  bfam_real_t V = *V_ptr;
+  bfam_real_t Vmin = 0;
+  bfam_real_t Vmax = phi/eta;
+
+  if( V < Vmin )
+    V = Vmin;
+  else if(V > Vmax)
+    V = Vmax;
+
+  const bfam_real_t A  = BFAM_REAL_EXP(psi/a)/(2*V0);
+
+  /* Compute the initial function value */
+  bfam_real_t G = phi - eta*V + Tn*a*BFAM_REAL_ASINH(A*V);
+  if(G < 0)
+    Vmax = V;
+  else if(G > 0)
+    Vmin = V;
+  else
+  {
+    *V_ptr = V;
+    *T_ptr = -Tn*a*BFAM_REAL_ASINH(A*V);
+    return 0;
+  }
+
+  for(bfam_locidx_t iter = 0; iter<max_iterations; iter++)
+  {
+    const bfam_real_t dG = - eta + Tn*a*A/BFAM_REAL_SQRT(A*A*V*V+1);
+    bfam_real_t dV = -G/dG;
+    V += dV;
+
+    /* If outside the bounds use the midpoint */
+    if( V < Vmin || V > Vmax)
+    {
+      V  = 0.5*(Vmin + Vmax);
+      dV =      Vmax - Vmin ;
+    }
+
+    /* Update the objective function */
+    G = phi - eta*V + Tn*a*BFAM_REAL_ASINH(A*V);
+
+    /* Stop if converged */
+    if(  BFAM_REAL_ABS(G) < ftol ||
+        (BFAM_REAL_ABS(dV)<=atol+rtol*(BFAM_REAL_ABS(V)+BFAM_REAL_ABS(dV))))
+    {
+      *V_ptr = V;
+      *T_ptr = -Tn*a*BFAM_REAL_ASINH(A*V);
+      return 0;
+    }
+
+    /* Update the bounds function */
+    if(G < 0)
+      Vmax = V;
+    else if(G > 0)
+      Vmin = V;
+  }
+
+  BFAM_INFO("%"BFAM_REAL_FMTe,G);
+  BFAM_INFO("%"BFAM_REAL_FMTe,A);
+  BFAM_INFO("%"BFAM_REAL_FMTe,phi);
+  BFAM_INFO("%"BFAM_REAL_FMTe,psi);
+  BFAM_INFO("%"BFAM_REAL_FMTe,psi/a);
+
+  return 1;
+}
+
 static inline void
 beard_dgx_upwind_state_rate_and_state_friction_m(
-          bfam_real_t *TpS,       bfam_real_t *vpSm,        bfam_real_t *VpS,
-    const bfam_real_t    N, const bfam_real_t  a    ,
+          bfam_real_t *TpS,       bfam_real_t *vpSm ,       bfam_real_t *VpS,
+    const bfam_real_t   Tn, const bfam_real_t  a    ,
     const bfam_real_t   V0, const bfam_real_t  psi  ,
     const bfam_real_t *Tpm, const bfam_real_t *Tpp  , const bfam_real_t *Tp0,
     const bfam_real_t *vpm, const bfam_real_t *vpp  ,
@@ -244,55 +343,75 @@ beard_dgx_upwind_state_rate_and_state_friction_m(
    * To solve the rate and state friction law we need to find T and V that
    * satisfy
    *
-   *    T = N*f(V,psi)
+   *    T = -Tn f(V, psi; a, V0)
    *
-   * such that the characteristics propagating into the interface remain
-   * unchanged, i.e., the following characteristics must remain unchanges
+   * (note that with our definition Tn is negative in compression)  such that
+   * the characteristics propagating into the interface remain unchanged, i.e.,
+   * the following characteristics must remain unchanges
    *
    *   wpm = Tpm - Zsm*vpm = TpS - Zsm*vpSm
    *   wpp = Tpp - Zsp*vpp =-TpS - Zsp*vpSp
    *
    * Scaling and adding these relationships gives
    *
-   * NEED TO CHECK THE FORMULA FOR VpS, I THINK THAT I HAVE A MINUS SIGN OFF!!!
-   *
    *   phi[i] = (wpm[i]*Zsp-wpp[i]*Zsm)/(Zsp+Zsm)
-   *          = TpS[i] - eta*VpS[i]
+   *          = TpS[i] + eta*VpS[i]
+   *
+   *   Vps[i] = vpSp[i] - vpSm[i]
    *
    *   eta    = ((Zsm*Zsp)/(Zsm+Zsp))
    *
    * which since TpS and VpS must be parallel gives the directions of TpS and
    * VpS. That is, we have that
    *
-   *    |phi| u[i] = |TpS| u[i] - eta |VpS| u[i]
+   *    |phi| u[i] = |TpS| u[i] + eta |VpS| u[i]
    *
    * which gives the radiation damping relationship
    *
-   *    |phi| = |TpS| - eta |VpS|
+   *    |phi| = |TpS| + eta |VpS|
+   *
+   * We thus must solve the following non-linear relationship:
+   *
+   *    |TpS] = |phi| - eta |VpS| = -Tn f(V; psi, a, V0)
    *
    * Note: that this TpS[i] includes the load / background stress, so that must
    * be subtracted off to get the actual upwind state
    */
   bfam_real_t phi[3];
-  bfam_real_t mag = 0;
+  bfam_real_t phi_m = 0;
+  const bfam_real_t eta = ((Zsp*Zsm)/(Zsm+Zsp));
+  bfam_real_t V = 0;
   for(bfam_locidx_t i = 0; i < 3; i++)
   {
     bfam_real_t wpm = Tpm[i] + Tp0[i] - Zsm*vpm[i];
     bfam_real_t wpp = Tpp[i] - Tp0[i] - Zsp*vpp[i];
 
-    /* phi[i] = TpS[i] - ((Zsm*Zsp)/(Zsm+Zsp))*VpS[i] */
+    /* phi[i] = TpS[i] + eta*VpS[i] */
     phi[i] = (wpm*Zsp-wpp*Zsm)/(Zsp+Zsm);
 
-    /* mag = | phi[i] | */
-    mag += phi[i]*phi[i];
+    /* phi_m = | phi[i] | */
+    phi_m += phi[i]*phi[i];
+
+    /* initialize V to the difference of nodal values */
+    V = V + (vpp[i]-vpm[i])*(vpp[i]-vpm[i]);
   }
-  mag = BFAM_REAL_SQRT(mag);
-  const bfam_real_t eta = ((Zsp*Zsm)/(Zsm+Zsp));
+  phi_m = BFAM_REAL_SQRT(phi_m);
+  V     = BFAM_REAL_SQRT(V);
+
+  bfam_real_t T = 0;
+  const bfam_locidx_t ret_val = beard_dgx_rs_arcsinh_newton(&V, &T, eta, phi_m,
+                                                            a, psi, Tn, V0,
+                                                            MAX_ITER, FTOL,
+                                                            ATOL, RTOL);
+  BFAM_ABORT_IF(ret_val,"newton solver returned %"BFAM_LOCIDX_PRId,ret_val);
+
+  bfam_real_t tmp = 0;
+  bfam_real_t vmp = 0;
   for(bfam_locidx_t i = 0; i < 3; i++)
   {
-    TpS[i]  = T*phi[i]/mag - Tp0[i];
+    TpS[i]  = T*phi[i]/phi_m - Tp0[i];
     vpSm[i] = (TpS[i]-Tpm[i])/Zsm + vpm[i];
-    VpS[i]  = (phi[i] - TpS[i] - Tp0[i])/eta;
+    VpS[i]  = (phi[i] - (TpS[i] + Tp0[i]))/eta;
   }
 }
 
@@ -1780,7 +1899,6 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
       Tp2[iG]   = TpS_g[3*pnt+1] + Tp2_0[iG];
       Tp3[iG]   = TpS_g[3*pnt+2] + Tp3_0[iG];
 
-
       /* substract off the grid values */
       TpS_g[3*pnt+0] -= TpM[0];
       TpS_g[3*pnt+1] -= TpM[1];
@@ -1965,12 +2083,14 @@ void beard_dgx_inter_rhs_ageing_law_interface(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp1   ,"","Vp1"   ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp2   ,"","Vp2"   ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp3   ,"","Vp3"   ,fields_g);
-  //JK BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dc    ,"","Dc"    ,fields_g);
-  //JK BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dp    ,"","Dp"    ,fields_g);
-  //JK BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fs    ,"","fs"    ,fields_g);
-  //JK BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fc    ,"","fc"    ,fields_g);
-  //JK BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fd    ,"","fd"    ,fields_g);
-  //JK BFAM_LOAD_FIELD_RESTRICT_ALIGNED(c0    ,"","c0"    ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(a     ,"","a"     ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(psi   ,"","psi"   ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(V0    ,"","V0"    ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(f0    ,"","f0"    ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(L     ,"","L"     ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(b     ,"","b"     ,fields_g);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dpsi,rate_prefix,"psi",fields_g);
 
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDp ,rate_prefix,"Dp", fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDn ,rate_prefix,"Dn", fields_g);
@@ -2071,7 +2191,6 @@ void beard_dgx_inter_rhs_ageing_law_interface(
 #endif
       }
 
-      BFAM_WARNING("AGEING LAW NOT IMPLEMENTED!");
       /*
        * Call bracketed Newton solver to solve:
        *    Slock - eta*V = N*f(V,psi)
@@ -2086,27 +2205,22 @@ void beard_dgx_inter_rhs_ageing_law_interface(
       //JK const bfam_real_t Sfric = c0[iG]-Tn[iG]*fc[iG];
       const bfam_real_t Sfric = 0;
 
-      if(Sfric*Sfric < Slock2)
-      {
-        bfam_real_t VpS[3];
-        const bfam_real_t Tp0[] =
-            {Tp1_0[iG], Tp2_0[iG], Tp3_0[iG]};
+      bfam_real_t VpS[3];
+      const bfam_real_t Tp0[] =
+      {Tp1_0[iG], Tp2_0[iG], Tp3_0[iG]};
 
-        beard_dgx_upwind_state_rate_and_state_friction_m(&TpS_g[3*pnt],
-            &vpS_g[3*pnt], VpS, Sfric, TpM, TpP, Tp0, vpM, vpP, ZsM, ZsP);
+      beard_dgx_upwind_state_rate_and_state_friction_m(
+          &TpS_g[3*pnt], &vpS_g[3*pnt], VpS,
+          Tn[pnt], a[iG],
+          V0[iG] , psi[iG],
+          TpM, TpP, Tp0,
+          vpM, vpP,
+          ZsM, ZsP);
 
-        Vp1[iG] = VpS[0];
-        Vp2[iG] = VpS[1];
-        Vp3[iG] = VpS[2];
-        V[iG]   = BFAM_REAL_SQRT(VpS[0]*VpS[0] + VpS[1]*VpS[1] + VpS[2]*VpS[2]);
-      }
-      else
-      {
-        Vp1[iG] = 0;
-        Vp2[iG] = 0;
-        Vp3[iG] = 0;
-        V[iG]   = 0;
-      }
+      Vp1[iG] = VpS[0];
+      Vp2[iG] = VpS[1];
+      Vp3[iG] = VpS[2];
+      V[iG]   = BFAM_REAL_SQRT(VpS[0]*VpS[0] + VpS[1]*VpS[1] + VpS[2]*VpS[2]);
 
       dDn[iG]  += 0;
       dDp[iG]  += V[iG];
@@ -2117,6 +2231,10 @@ void beard_dgx_inter_rhs_ageing_law_interface(
       Tp2[iG]   = TpS_g[3*pnt+1] + Tp2_0[iG];
       Tp3[iG]   = TpS_g[3*pnt+2] + Tp3_0[iG];
 
+      const bfam_real_t theta =
+        (L[iG]/V0[iG])*BFAM_REAL_EXP((psi[iG]-f0[iG])/b[iG]);
+      dpsi[iG] += b[iG]*(1.0/theta-V[iG]/L[iG]);
+      /* dpsi[iG] += (b[iG]/theta)*(1-V[iG]*theta/L[iG]); */
 
       /* substract off the grid values */
       TpS_g[3*pnt+0] -= TpM[0];
@@ -2145,7 +2263,8 @@ void beard_dgx_inter_rhs_ageing_law_interface(
       vpS_M = vpS_m_STORAGE;
       vnS_M = vnS_m_STORAGE;
 
-      if(MASSPROJECTION && (!glue_p->same_order || glue_p->EToHm[le] || glue_p->EToHp[le]))
+      if(MASSPROJECTION && (!glue_p->same_order || glue_p->EToHm[le] ||
+                             glue_p->EToHp[le]))
       {
         BFAM_ASSERT(glue_m->massprojection);
 #if   DIM == 2
@@ -2158,7 +2277,8 @@ void beard_dgx_inter_rhs_ageing_law_interface(
 #else
 #error "Bad Dimension"
 #endif
-        beard_massproject_flux(TnS_M, TpS_M, vnS_M, vpS_M, N, Nrp_g, TnS_g, TpS_g,
+        beard_massproject_flux(TnS_M, TpS_M, vnS_M, vpS_M, N, Nrp_g,
+                               TnS_g, TpS_g,
                                vnS_g, vpS_g,
                                MP1,
 #if DIM==3
@@ -2166,7 +2286,8 @@ void beard_dgx_inter_rhs_ageing_law_interface(
 #endif
                                wi);
       }
-      else if(PROJECTION  && (!glue_p->same_order || glue_p->EToHm[le] || glue_p->EToHp[le]))
+      else if(PROJECTION  && (!glue_p->same_order || glue_p->EToHm[le] ||
+                               glue_p->EToHp[le]))
       {
         BFAM_ASSERT(glue_m->projection);
 #if   DIM == 2
