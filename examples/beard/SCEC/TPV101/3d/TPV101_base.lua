@@ -188,13 +188,13 @@ function psi_function(x,y,z,t)
 end
 
 R = 3.0
-function S23_function(x,y,z,t)
-  S23 = 75
+function S13_function(x,y,z,t)
+  S13 = 75
   r = sqrt((x-x0)^2+(y-y0)^2)
   if r < R then
-    S23 = S23 + 25*exp(r^2/(r^2-R^2))
+    S13 = S13 + 25*exp(r^2/(r^2-R^2))
   end
-  return S23
+  return S13
 end
 
 fault = {
@@ -206,7 +206,7 @@ fault = {
   b      = 0.012,
   L      = 0.02,
   S33_0  = -120.0,
-  S23_0  = "S23_function",
+  S13_0  = "S13_function",
   psi    = "psi_function"
 }
 
