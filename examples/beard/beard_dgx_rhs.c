@@ -301,10 +301,11 @@ beard_dgx_rs_arcsinh_newton(bfam_real_t *V_ptr, bfam_real_t *T_ptr,
     }
 
     /* Update the objective function */
-    G = phi - eta*V + Tn*a*BFAM_REAL_ASINH(A*V);
+    const bfam_real_t G2 = -Tn*a*BFAM_REAL_ASINH(A*V);
+    G = phi - eta*V - G2;
 
     /* Stop if converged */
-    if(  BFAM_REAL_ABS(G) < ftol ||
+    if(  BFAM_REAL_ABS(G) < ftol*(1+G2)    ||
         (BFAM_REAL_ABS(dV)<=atol+rtol*(BFAM_REAL_ABS(V)+BFAM_REAL_ABS(dV))))
     {
       *V_ptr = V;
@@ -319,11 +320,22 @@ beard_dgx_rs_arcsinh_newton(bfam_real_t *V_ptr, bfam_real_t *T_ptr,
       Vmin = V;
   }
 
-  BFAM_INFO("%"BFAM_REAL_FMTe,G);
-  BFAM_INFO("%"BFAM_REAL_FMTe,A);
-  BFAM_INFO("%"BFAM_REAL_FMTe,phi);
-  BFAM_INFO("%"BFAM_REAL_FMTe,psi);
-  BFAM_INFO("%"BFAM_REAL_FMTe,psi/a);
+  BFAM_INFO("A:     %"BFAM_REAL_FMTe,A);
+  BFAM_INFO("phi:   %"BFAM_REAL_FMTe,phi);
+  BFAM_INFO("psi:   %"BFAM_REAL_FMTe,psi);
+  BFAM_INFO("psi/a: %"BFAM_REAL_FMTe,psi/a);
+
+  G = phi - eta*V + Tn*a*BFAM_REAL_ASINH(A*Vmin);
+  BFAM_INFO("Gmin:  %"BFAM_REAL_FMTe,G);
+  BFAM_INFO("Vmin:  %"BFAM_REAL_FMTe,Vmin);
+
+  G = phi - eta*V + Tn*a*BFAM_REAL_ASINH(A*V);
+  BFAM_INFO("G:     %"BFAM_REAL_FMTe,G);
+  BFAM_INFO("V:     %"BFAM_REAL_FMTe,Vmin);
+
+  G = phi - eta*V + Tn*a*BFAM_REAL_ASINH(A*Vmax);
+  BFAM_INFO("Gmax:  %"BFAM_REAL_FMTe,G);
+  BFAM_INFO("Vmax:  %"BFAM_REAL_FMTe,Vmax);
 
   return 1;
 }
