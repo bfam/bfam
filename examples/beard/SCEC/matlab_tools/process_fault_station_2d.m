@@ -61,11 +61,11 @@ if cnt > 0
   nstress      = zeros(size(t));
   for k = 1:cnt
     vshearstress = vshearstress - data(cnt).dat(1:M,Tp3)/cnt/data(cnt).n(2);
-    vsliprate    = vsliprate    + data(cnt).dat(1:M,Vp3)/cnt;
+    vsliprate    = vsliprate    + data(cnt).dat(1:M,V)/cnt;
     vslip        = vslip        - data(cnt).dat(1:M,Dp3)/cnt;
 
     hshearstress = hshearstress + data(cnt).dat(1:M,Tp1)/cnt/data(cnt).n(2);;
-    hsliprate    = hsliprate    + data(cnt).dat(1:M,Vp1)/cnt;
+    hsliprate    = hsliprate    + data(cnt).dat(1:M,V)/cnt;
     hslip        = hslip        + data(cnt).dat(1:M,Dp1)/cnt;
 
     nstress      = nstress      + data(cnt).dat(1:M,Tn )/cnt;

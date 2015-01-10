@@ -81,10 +81,10 @@ if N_data > 0
   pdata.Tp2 = 0;
   pdata.Tp3 = 0;
 
-  pdata.n   = sign(n_ref(1)*data(1).n(1) + n_ref(2)*data(1).n(2))*data(1).n;
+  pdata.n   = sign(n_ref(1)*data(1).n(1) + n_ref(2)*data(1).n(2) + n_ref(3)*data(1).n(3))*data(1).n;
   head_saved = false;
   for n = 1:N_data
-    n_sign    = sign(n_ref(1)*data(n).n(1) + n_ref(2)*data(n).n(2));
+    n_sign    = sign(n_ref(1)*data(n).n(1) + n_ref(2)*data(n).n(2) + n_ref(3)*data(n).n(3));
     if(~head_saved && n_sign == 1)
       head_saved = true;
       pdata.header = data(n).header;

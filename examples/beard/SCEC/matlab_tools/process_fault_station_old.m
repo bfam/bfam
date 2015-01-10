@@ -25,6 +25,7 @@ for k = 1:length(A)
     ln = fgetl(iid);
     while ln(1) == '#'
       header = header + 1;
+      data(cnt).variables = ln;
       ln = fgetl(iid);
       if strcmp(ln,'# interpolated normal:') == 1
         header = header + 1;
@@ -33,7 +34,6 @@ for k = 1:length(A)
       end
     end
 
-    data(cnt).variables = ln;
     num_col = 14;
     if strcmp(data(cnt).variables,'t Tp1 Tp2 Tp3 Tn V Vp1 Vp2 Vp3 Dp Dp1 Dp2 Dp3 Dn') ~= 1
       error('Format changed')
