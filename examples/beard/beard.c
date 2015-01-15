@@ -65,8 +65,10 @@ const char *slip_weakening_fields[] = {
   "Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
   "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3",
   "S11_0","S12_0","S13_0","S22_0","S23_0","S33_0",
+  "pf_0",
   "Dc", "fs", "fc", "fd", "c0",
-  "Dp","Dp1","Dp2","Dp3","Dn",NULL};
+  "Dp","Dp1","Dp2","Dp3","Dn",
+  "Tforce", "Tforce_0", NULL};
 const char *rate_and_state_fields[] = {
   "Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
   "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3",
@@ -1598,6 +1600,7 @@ field_set_friction_init_stress(bfam_locidx_t npoints, const char *name,
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23,"",    "S23_0",&s->fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33,"",    "S33_0",&s->fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn ,"",     "Tn_0",&s->fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(pf ,"",     "pf_0",&s->fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1,"",    "Tp1_0",&s->fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2,"",    "Tp2_0",&s->fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3,"",    "Tp3_0",&s->fields);
@@ -1607,7 +1610,7 @@ field_set_friction_init_stress(bfam_locidx_t npoints, const char *name,
     Tp1[n] = BEARD_D3_AP(S11[n]*nx1[n] + S12[n]*nx2[n], + S13[n]*nx3[n]);
     Tp2[n] = BEARD_D3_AP(S12[n]*nx1[n] + S22[n]*nx2[n], + S23[n]*nx3[n]);
     Tp3[n] = BEARD_D3_AP(S13[n]*nx1[n] + S23[n]*nx2[n], + S33[n]*nx3[n]);
-    Tn[n]  = BEARD_D3_AP(Tp1[n]*nx1[n] + Tp2[n]*nx2[n], + Tp3[n]*nx3[n]);
+    Tn[n]  = BEARD_D3_AP(Tp1[n]*nx1[n] + Tp2[n]*nx2[n], + Tp3[n]*nx3[n])+pf[n];
     Tp1[n]-= Tn[n] *nx1[n];
     Tp2[n]-= Tn[n] *nx2[n];
 #if DIM==3

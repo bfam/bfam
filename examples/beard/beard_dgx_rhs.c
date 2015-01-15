@@ -171,6 +171,7 @@ BFAM_ASSUME_ALIGNED(field,32);
 #define BEARD_STATE      beard_dgx_upwind_state_m
 #define MASSPROJECTION   (1)
 #define PROJECTION       (0)
+#define NO_OPENING       (0 == 1)
 
 static inline void
 beard_dgx_upwind_state_friction_m(
@@ -1754,24 +1755,26 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zs_P  ,"","Zs"       ,fields_p);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp_P  ,"","Zp"       ,fields_p);
 
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1_0 ,"","Tp1_0" ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2_0 ,"","Tp2_0" ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3_0 ,"","Tp3_0" ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn_0  ,"","Tn_0"  ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1   ,"","Tp1"   ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2   ,"","Tp2"   ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3   ,"","Tp3"   ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn    ,"","Tn"    ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(V     ,"","V"     ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp1   ,"","Vp1"   ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp2   ,"","Vp2"   ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp3   ,"","Vp3"   ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dc    ,"","Dc"    ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dp    ,"","Dp"    ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fs    ,"","fs"    ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fc    ,"","fc"    ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fd    ,"","fd"    ,fields_g);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(c0    ,"","c0"    ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1_0   ,"","Tp1_0"   ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2_0   ,"","Tp2_0"   ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3_0   ,"","Tp3_0"   ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn_0    ,"","Tn_0"    ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1     ,"","Tp1"     ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2     ,"","Tp2"     ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3     ,"","Tp3"     ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn      ,"","Tn"      ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(V       ,"","V"       ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp1     ,"","Vp1"     ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp2     ,"","Vp2"     ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Vp3     ,"","Vp3"     ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dc      ,"","Dc"      ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Dp      ,"","Dp"      ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fs      ,"","fs"      ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fc      ,"","fc"      ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(fd      ,"","fd"      ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(c0      ,"","c0"      ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(T       ,"","Tforce"  ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(T0      ,"","Tforce_0",fields_g);
 
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDp ,rate_prefix,"Dp", fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dDn ,rate_prefix,"Dn", fields_g);
@@ -1851,7 +1854,7 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
           TnM, TnP, TpM, TpP, vnM, vnP, vpM, vpP, ZpM, ZpP, ZsM, ZsP);
 
       Tn[iG] = TnS_g[pnt]+Tn_0[iG];
-      if(Tn[iG] > 0)
+      if(NO_OPENING && Tn[iG] > 0)
       {
         BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x  ,"","_grid_x0" ,fields_g);
         BFAM_LOAD_FIELD_RESTRICT_ALIGNED(y  ,"","_grid_x1" ,fields_g);
@@ -1877,7 +1880,18 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
         + (TpS_g[3*pnt+1] + Tp2_0[iG])*(TpS_g[3*pnt+1] + Tp2_0[iG])
         + (TpS_g[3*pnt+2] + Tp3_0[iG])*(TpS_g[3*pnt+2] + Tp3_0[iG]);
 
-      fc[iG] = fs[iG]-(fs[iG]-fd[iG])*BFAM_MIN(Dp[iG],Dc[iG])/Dc[iG];
+      bfam_real_t f_val = BFAM_MIN(Dp[iG],Dc[iG])/Dc[iG];
+
+      /* START SCEC
+       * This forces the rupture for SCEC test problems :: eventually should
+       * move to the input file
+       */
+      if(T0[iG] > 0)
+        f_val = BFAM_MAX(f_val,
+                         BFAM_MIN(BFAM_MAX((bfam_real_t)(t-T[iG])/T0[iG],0),1));
+      /* END SCEC */
+
+      fc[iG] = fs[iG]-(fs[iG]-fd[iG])*f_val;
       const bfam_real_t Sfric = c0[iG]-Tn[iG]*fc[iG];
 
       if(Sfric*Sfric < Slock2)
@@ -2182,7 +2196,7 @@ void beard_dgx_inter_rhs_ageing_law_interface(
           TnM, TnP, TpM, TpP, vnM, vnP, vpM, vpP, ZpM, ZpP, ZsM, ZsP);
 
       Tn[iG] = TnS_g[pnt]+Tn_0[iG];
-      if(Tn[iG] > 0)
+      if(NO_OPENING && Tn[iG] > 0)
       {
         BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x  ,"","_grid_x0" ,fields_g);
         BFAM_LOAD_FIELD_RESTRICT_ALIGNED(y  ,"","_grid_x1" ,fields_g);
