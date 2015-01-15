@@ -4,7 +4,7 @@ abs = math.abs
 sqrt = math.sqrt
 -- refinement parameters
 max_level = 300
-output_prefix = "TPV27_base"
+output_prefix = "TPV26_base"
 data_directory = "data"
 elem_order = 4
 h1_targ = elem_order*0.1
