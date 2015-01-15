@@ -1,4 +1,4 @@
-#!/bin/bash/data
+#!/bin/bash
 #PBS -j oe
 #PBS -o TPV26.out
 #PBS -N TPV26
