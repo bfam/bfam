@@ -137,7 +137,7 @@ function refinement_function(
                              x4,y4,z4,x5,y5,z5,
                              x6,y6,z6,x7,y7,z7)
 
-  if hmax > max(0.1,r)/0.1*h1_targ then
+  if hmax > max(2,r)/2*h1_targ then
     return 1
   end
 
