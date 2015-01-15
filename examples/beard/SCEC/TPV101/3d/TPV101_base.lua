@@ -120,7 +120,7 @@ v3  = 0
 -- time stepper to use
 lsrk_method  = "KC54"
 
-tend   = 12
+tend   = 15
 tout   = 1
 tfout  = 0.1
 tdisp  = tout
