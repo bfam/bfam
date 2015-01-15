@@ -232,22 +232,22 @@ function S22_0_function(x,y,z,t)
   return -2.670*9.8*y -- in MPa
 end
 function S11_0_function(x,y,z,t)
-  Omega = Omega_function(x,y,z,t)
+  W     = Omega_function(x,y,z,t)
   pf    = pf_0_function(x,y,z,t)
   S22   = S22_0_function(x,y,z,t)
-  return Omega*(b11*(S22+pf)-pf)+(1-Omega)*S22
+  return W*(b11*(S22+pf)-pf)+(1-W)*S22
 end
 function S33_0_function(x,y,z,t)
-  Omega = Omega_function(x,y,z,t)
+  W     = Omega_function(x,y,z,t)
   pf    = pf_0_function(x,y,z,t)
   S22   = S22_0_function(x,y,z,t)
-  return Omega*(b33*(S22 + pf) - pf) + (1 - Omega)*S22
+  return W*(b33*(S22 + pf) - pf) + (1 - W)*S22
 end
 function S13_0_function(x,y,z,t)
-  Omega = Omega_function(x,y,z,t)
+  W     = Omega_function(x,y,z,t)
   pf    = pf_0_function(x,y,z,t)
   S22   = S22_0_function(x,y,z,t)
-  return Omega*b13*(S22+pf)
+  return W*b13*(S22+pf)
 end
 function c0_function(x,y,z,t)
   return 0.4 + 0.00072*max(0.0,5-y)

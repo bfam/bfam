@@ -1759,6 +1759,7 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2_0   ,"","Tp2_0"   ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3_0   ,"","Tp3_0"   ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn_0    ,"","Tn_0"    ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(pf_0    ,"","pf_0"  ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1     ,"","Tp1"     ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2     ,"","Tp2"     ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3     ,"","Tp3"     ,fields_g);
@@ -1853,7 +1854,8 @@ void beard_dgx_inter_rhs_slip_weakening_interface(
           &TnS_g[pnt],&TpS_g[3*pnt],&vnS_g[pnt],&vpS_g[3*pnt],
           TnM, TnP, TpM, TpP, vnM, vnP, vpM, vpP, ZpM, ZpP, ZsM, ZsP);
 
-      Tn[iG] = TnS_g[pnt]+Tn_0[iG];
+      /* We add pf since our normal stress is negative in compression */
+      Tn[iG] = TnS_g[pnt]+Tn_0[iG]+pf_0[iG];
       if(NO_OPENING && Tn[iG] > 0)
       {
         BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x  ,"","_grid_x0" ,fields_g);
@@ -2101,6 +2103,7 @@ void beard_dgx_inter_rhs_ageing_law_interface(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2_0 ,"","Tp2_0" ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3_0 ,"","Tp3_0" ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tn_0  ,"","Tn_0"  ,fields_g);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(pf_0  ,"","pf_0"  ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp1   ,"","Tp1"   ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp2   ,"","Tp2"   ,fields_g);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tp3   ,"","Tp3"   ,fields_g);
@@ -2195,7 +2198,8 @@ void beard_dgx_inter_rhs_ageing_law_interface(
           &TnS_g[pnt],&TpS_g[3*pnt],&vnS_g[pnt],&vpS_g[3*pnt],
           TnM, TnP, TpM, TpP, vnM, vnP, vpM, vpP, ZpM, ZpP, ZsM, ZsP);
 
-      Tn[iG] = TnS_g[pnt]+Tn_0[iG];
+      /* We add pf since our normal stress is negative in compression */
+      Tn[iG] = TnS_g[pnt]+Tn_0[iG]+pf_0[iG];
       if(NO_OPENING && Tn[iG] > 0)
       {
         BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x  ,"","_grid_x0" ,fields_g);
