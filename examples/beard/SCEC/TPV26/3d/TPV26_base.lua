@@ -11,7 +11,7 @@ h1_targ = elem_order*0.1
 
 -- connectivity info
 connectivity = "brick"
-BUF = 0
+BUF = 2
 brick =
 {
   nx = 2+2*BUF,
