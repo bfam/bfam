@@ -42,7 +42,7 @@ echo PBS: PATH = $PBS_O_PATH
 echo ------------------------------------------------------
 
 source /etc/profile
-module load compile/intel/13.0.0 mpi/openmpi/1.8
+module load compile/intel/13.0.0 mpi/openmpi
 root_dir=/home/jekozdon/data/SCEC_CVWS/TPV27/3d
 
 echo mkdir -p $root_dir/data
@@ -51,4 +51,4 @@ mkdir -p $root_dir/data
 echo cd $root_dir
 cd $root_dir
 
-mpirun ~/bfam_build/compute_7/beard_3d ../../SCEC/TPV27/3d/TPV27_base.lua
+mpirun ~/bfam_build/compute_3/beard_3d ../../SCEC/TPV27/3d/TPV27_base.lua
