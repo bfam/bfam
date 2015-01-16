@@ -1776,6 +1776,18 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
     int top = lua_gettop(L);
 #endif
     lua_getglobal(L,"plastic");
+    bfam_domain_add_tag((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
+        volume, "_plastic");
+    switch(prefs->plasticity)
+    {
+      case DUVAUT_LIONS:
+        bfam_domain_add_tag((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
+            volume, "_plastic");
+        break;
+      default:
+        BFAM_ABORT("Unknown plastic type for adding the tags");
+    }
+
     for(int f = 0; plastic_fields[f] != NULL; f++)
     {
       bfam_domain_add_field (domain, BFAM_DOMAIN_OR, volume,
@@ -3419,12 +3431,11 @@ run_simulation(beard_t *beard,prefs_t *prefs)
 
     if(plastic_fields)
     {
-      snprintf(output,BFAM_BUFSIZ,"%s_plasticity",prefs->output_prefix,0);
+      snprintf(output,BFAM_BUFSIZ,"%s_plasticity",prefs->output_prefix);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
           volume_tags, prefs->data_directory, output, (0)*dt, plastic_fields,
           NULL, NULL, prefs->vtk_binary, prefs->vtk_compress,
           prefs->vtk_num_pnts);
-      BFAM_ABORT("HERE");
     }
   }
 
@@ -3443,6 +3454,11 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   for(int s = 1; s <= nsteps; s++)
   {
     beard->beard_ts->step(beard->beard_ts,dt);
+    if(plastic_fields)
+    {
+      /* Use the return mapping algorithm to handle the plasticity */
+    }
+
     if(ndisp > 0 && s%ndisp == 0)
     {
       bfam_real_t new_energy = compute_energy(beard,prefs,s*dt,"");
