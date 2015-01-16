@@ -7,7 +7,10 @@ max_level = 300
 output_prefix = "TPV26_base"
 data_directory = "data"
 elem_order = 4
-h1_targ = elem_order*0.1
+h1_targ   = elem_order*0.1
+r_targ    = 5
+D_targ    = 20
+hmax_targ = elem_order*1
 
 -- connectivity info
 connectivity = "brick"
@@ -137,7 +140,8 @@ function refinement_function(
                              x4,y4,z4,x5,y5,z5,
                              x6,y6,z6,x7,y7,z7)
 
-  if hmax > max(2,r)/2*h1_targ then
+  D = (min(D_targ,max(r_targ,r))-r_targ)/(D_targ-r_targ)
+  if hmax > h1_targ*(1-D) + hmax_targ*D then
     return 1
   end
 
