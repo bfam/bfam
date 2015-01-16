@@ -173,8 +173,8 @@ v2  = 0
 v3  = 0
 
 -- plasticity parameters
-pasticity = {
-  tag = "Drucker-Prager: Duvaut-Lions",
+plastic = {
+  tag = "Duvaut-Lions",
   c  = 1.36,   -- plastic cohesion
   Tr = 0.03,   -- viscoplastic relaxation time
   nu = 0.1934, -- bulk friction

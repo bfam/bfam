@@ -60,6 +60,13 @@ const char *comm_args_tensors[]           = {"T",NULL};
 const char *comm_args_tensor_components[] = {"S11","S12","S13",
                                              "S22","S23","S33",NULL};
 
+const char *elastic_fields[] = {"rho", "lam", "mu", "v1", "v2", "v3", "S11",
+  "S22", "S33", "S12", "S13", "S23",NULL};
+
+const char **plastic_fields = NULL;
+const char *duvaut_lions_plastic_fields[] = {"c","Tr","phi","nu",
+  "S11_0", "S12_0", "S13_0", "S22_0", "S23_0", "S33_0", NULL};
+
 const char **friction_fields = NULL;
 const char *slip_weakening_fields[] = {
   "Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
@@ -421,6 +428,11 @@ typedef struct brick_args
   bfam_locidx_t* bc;
 } brick_args_t;
 
+typedef enum plastic_type {
+  NONE,
+  DUVAUT_LIONS,
+} plastic_type_t;
+
 typedef struct prefs
 {
   lua_State *L;
@@ -445,6 +457,8 @@ typedef struct prefs
 
   bfam_ts_local_adams_method_t local_adams_method;
   char local_adams_name[BFAM_BUFSIZ];
+
+  plastic_type_t plasticity;
 } prefs_t;
 
 
@@ -857,6 +871,36 @@ new_prefs(const char *prefs_filename)
 #error "Bad dimension"
 #endif
   }
+
+  /* Read (if they exist) the plasticity parameters */
+  lua_getglobal(L,"plastic");
+  prefs->plasticity = NONE;
+  if(lua_istable(L, -1))
+  {
+    luaL_checktype(L, -1, LUA_TTABLE);
+
+    lua_pushstring(L, "tag");
+    lua_gettable(L, -2);
+    if(lua_isstring(L, -1))
+    {
+      const char * tag = lua_tostring(L, -1);
+      size_t match_len = lua_strlen(L, -1);
+      if(match_len == 12 && 0==strncmp(tag, "Duvaut-Lions", match_len))
+      {
+        prefs->plasticity = DUVAUT_LIONS;
+        BFAM_ABORT_IF(plastic_fields,"Plastic fields already set!");
+        plastic_fields = duvaut_lions_plastic_fields;
+      }
+      else
+        BFAM_ABORT("invalid plasticity type '%s'",tag);
+      lua_pop(L, 1);
+    }
+    else
+      BFAM_ABORT("not 'tag' found in the 'plastic' table");
+  }
+  else
+    BFAM_ROOT_WARNING("table `plastic' not found");
+  lua_pop(L, 1);
 
   BFAM_ASSERT(lua_gettop(prefs->L)==0);
   return prefs;
@@ -1709,13 +1753,11 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
 {
 
   const char *volume[] = {"_volume",NULL};
-  const char *fields[] = {"rho", "lam", "mu", "v1", "v2", "v3", "S11", "S22",
-    "S33", "S12", "S13", "S23",NULL};
   bfam_domain_t *domain = (bfam_domain_t*)beard->domain;
-  for(int f = 0; fields[f] != NULL; f++)
+  for(int f = 0; elastic_fields[f] != NULL; f++)
   {
-    bfam_domain_add_field (domain, BFAM_DOMAIN_OR, volume, fields[f]);
-    bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, fields[f], 0,
+    bfam_domain_add_field (domain, BFAM_DOMAIN_OR, volume, elastic_fields[f]);
+    bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, elastic_fields[f], 0,
         field_set_val, prefs->L);
   }
   const char *fields_aux[] = {"rho_inv", "Zs", "Zp",NULL};
@@ -1724,6 +1766,58 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
     bfam_domain_add_field (domain, BFAM_DOMAIN_OR, volume, fields_aux[f]);
     bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, fields_aux[f], 0,
         field_set_val_aux, NULL);
+  }
+
+  /* Add plastic fields if we are supposed to */
+  if(plastic_fields)
+  {
+    lua_State *L = prefs->L;
+#ifdef BFAM_DEBUG
+    int top = lua_gettop(L);
+#endif
+    lua_getglobal(L,"plastic");
+    for(int f = 0; plastic_fields[f] != NULL; f++)
+    {
+      bfam_domain_add_field (domain, BFAM_DOMAIN_OR, volume,
+          plastic_fields[f]);
+
+      bfam_real_t value = 0;
+      lua_pushstring(L,plastic_fields[f]);
+      lua_gettable(L,-2);
+      if(lua_isstring(L,-1) && !lua_isnumber(L,-1))
+      {
+        char fname[BFAM_BUFSIZ];
+        strncpy(fname,lua_tostring(L,-1),BFAM_BUFSIZ);
+        lua_pop(L, 1);
+
+        set_val_extended_args_t args;
+        args.fname = fname;
+        args.L     = L;
+        bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume,
+            plastic_fields[f], 0, field_set_val_extend, &args);
+      }
+      else
+      {
+        if(lua_isnumber(L,-1))
+        {
+          value = (bfam_real_t)lua_tonumber(L, -1);
+          BFAM_ROOT_INFO("plasticity: using '%s' with value %"BFAM_REAL_PRIe,
+              plastic_fields[f], value);
+        }
+        else
+          BFAM_ROOT_WARNING(
+              " plastic does not contain `%s',"
+              " using default %"BFAM_REAL_PRIe, plastic_fields[f],
+              value);
+        bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume,
+            plastic_fields[f], 0, field_set_const, &value);
+        lua_pop(L, 1);
+      }
+    }
+    lua_pop(L,-1);
+#ifdef BFAM_DEBUG
+    BFAM_ASSERT(top == lua_gettop(L));
+#endif
   }
 
   /* add glue fields */
@@ -3317,12 +3411,21 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     p4est_vtk_write_all(beard->domain->pxest, NULL,
                         1, 1, 1, 1, 0, 0, 0, output);
 
-    const char *fields[] = {"rho", "lam", "mu", "v1", "v2", "v3", "S11", "S22",
-      "S33", "S12", "S13", "S23",NULL};
     snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,0);
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        volume_tags, prefs->data_directory, output, (0)*dt, fields, NULL, NULL,
-        prefs->vtk_binary, prefs->vtk_compress, prefs->vtk_num_pnts);
+        volume_tags, prefs->data_directory, output, (0)*dt, elastic_fields,
+        NULL, NULL, prefs->vtk_binary, prefs->vtk_compress,
+        prefs->vtk_num_pnts);
+
+    if(plastic_fields)
+    {
+      snprintf(output,BFAM_BUFSIZ,"%s_plasticity",prefs->output_prefix,0);
+      bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
+          volume_tags, prefs->data_directory, output, (0)*dt, plastic_fields,
+          NULL, NULL, prefs->vtk_binary, prefs->vtk_compress,
+          prefs->vtk_num_pnts);
+      BFAM_ABORT("HERE");
+    }
   }
 
   BFAM_ASSERT(beard->beard_ts);
