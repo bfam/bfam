@@ -1782,7 +1782,7 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
     {
       case DUVAUT_LIONS:
         bfam_domain_add_tag((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
-            volume, "_plastic");
+            volume, "_Duvaut-Lions");
         break;
       default:
         BFAM_ABORT("Unknown plastic type for adding the tags");
@@ -2385,6 +2385,38 @@ void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_local"));
   else
     BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
+}
+
+static void
+duvaut_lions_return_map(int N, bfam_subdomain_dgx_t *sub,
+    const char *field_prefix, const bfam_long_real_t t)
+{
+#if  DIM==2
+#define X(order) \
+  case order: beard_dgx_duvaut_lions_return_map_2_##order(N,sub, \
+                  field_prefix,t); break;
+#elif  DIM==3
+#define X(order) \
+  case order: beard_dgx_duvaut_lions_return_map_3_##order(N,sub, \
+                  field_prefix,t); break;
+#else
+#error "Bad Dimension"
+#endif
+
+  switch(N)
+  {
+    BFAM_LIST_OF_DGX_NORDERS
+    default:
+#if   DIM==2
+      beard_dgx_duvaut_lions_return_map_2_(N,sub, field_prefix,t);
+#elif DIM==3
+      beard_dgx_duvaut_lions_return_map_3_(N,sub, field_prefix,t);
+#else
+#error "Bad Dimension"
+#endif
+      break;
+  }
+#undef X
 }
 
 static void
@@ -3457,6 +3489,33 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     if(plastic_fields)
     {
       /* Use the return mapping algorithm to handle the plasticity */
+      switch(prefs->plasticity)
+      {
+        case DUVAUT_LIONS:
+          {
+            /* get the subdomains being handled by DL plasticity */
+            const char *DL_plastic[] = {"_Duvaut-Lions",NULL};
+            bfam_subdomain_t *subs[beard->domain->base.numSubdomains];
+            bfam_locidx_t num_subs = 0;
+            bfam_domain_get_subdomains((bfam_domain_t*) beard->domain,
+                BFAM_DOMAIN_OR,DL_plastic,beard->domain->base.numSubdomains,
+                subs,&num_subs);
+
+            BFAM_ABORT_IF_NOT(prefs->lsrk_method != BFAM_TS_LSRK_NOOP,
+                "right now plasticity requires LSRK time stepping");
+
+            bfam_ts_lsrk_t *ts = (bfam_ts_lsrk_t*) beard->beard_ts;
+            /* call the return map algorithm on these subdomains */
+            for(bfam_locidx_t n = 0; n < num_subs; n++)
+            {
+              bfam_subdomain_dgx_t *s = (bfam_subdomain_dgx_t*) subs[n];
+              duvaut_lions_return_map(s->N,s,"",ts->t);
+            }
+            break;
+          }
+        default:
+          BFAM_ABORT("Unknown plastic type for adding the tags");
+      }
     }
 
     if(ndisp > 0 && s%ndisp == 0)

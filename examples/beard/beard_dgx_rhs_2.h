@@ -7,6 +7,9 @@
   void beard_dgx_intra_rhs_elastic_2_##order(int N,                  \
       bfam_subdomain_dgx_t *sub, const char *rate_prefix,            \
       const char *field_prefix, const bfam_long_real_t t);           \
+  void beard_dgx_duvaut_lions_return_map_2_##order(int N,            \
+      bfam_subdomain_dgx_t *sub, const char *field_prefix,           \
+      const bfam_long_real_t t);                                     \
   void beard_dgx_scale_rates_elastic_2_##order(int N,                \
       bfam_subdomain_dgx_t *sub, const char *rate_prefix,            \
       const bfam_long_real_t a);                                     \
@@ -61,6 +64,9 @@ BFAM_LIST_OF_DGX_NORDERS
 void beard_dgx_intra_rhs_elastic_2_(int N,
     bfam_subdomain_dgx_t *sub, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t);
+void beard_dgx_duvaut_lions_return_map_2_(int N,
+    bfam_subdomain_dgx_t *sub, const char *field_prefix,
+    const bfam_long_real_t t);
 void beard_dgx_scale_rates_elastic_2_(int N,
     bfam_subdomain_dgx_t *sub, const char *rate_prefix,
     const bfam_long_real_t a);

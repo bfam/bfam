@@ -103,6 +103,8 @@
 #define BEARD_APPEND_EXPAND_4(a,b,c,d) BEARD_APPEND_4(a,b,c,d)
 #define beard_dgx_intra_rhs_elastic \
   BEARD_APPEND_EXPAND_4(beard_dgx_intra_rhs_elastic_,DIM,_,NORDER)
+#define beard_dgx_duvaut_lions_return_map \
+  BEARD_APPEND_EXPAND_4(beard_dgx_duvaut_lions_return_map_,DIM,_,NORDER)
 
 #define beard_dgx_scale_rates_elastic \
   BEARD_APPEND_EXPAND_4(beard_dgx_scale_rates_elastic_,DIM,_,NORDER)
@@ -780,6 +782,12 @@ beard_massproject_flux(bfam_real_t *Tns,       bfam_real_t *TpS,
         }
       p++;
     }
+}
+
+void beard_dgx_duvaut_lions_return_map(
+    int inN, bfam_subdomain_dgx_t *sub, const char *field_prefix,
+    const bfam_long_real_t t)
+{
 }
 
 void beard_dgx_intra_rhs_elastic(
