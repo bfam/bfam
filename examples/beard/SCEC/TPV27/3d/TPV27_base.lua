@@ -185,6 +185,7 @@ plastic = {
   S22_0  = "S22_0_function",
   S23_0  = 0,
   S33_0  = "S33_0_function",
+  pf     = "pf_0_function",
 }
 
 -- time stepper to use

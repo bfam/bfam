@@ -64,7 +64,7 @@ const char *elastic_fields[] = {"rho", "lam", "mu", "v1", "v2", "v3", "S11",
   "S22", "S33", "S12", "S13", "S23",NULL};
 
 const char **plastic_fields = NULL;
-const char *duvaut_lions_plastic_fields[] = {"c","Tr","phi","nu",
+const char *duvaut_lions_plastic_fields[] = {"c","Tr","phi","nu","pf",
   "S11_0", "S12_0", "S13_0", "S22_0", "S23_0", "S33_0", NULL};
 
 const char **friction_fields = NULL;
