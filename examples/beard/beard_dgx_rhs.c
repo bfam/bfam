@@ -786,8 +786,82 @@ beard_massproject_flux(bfam_real_t *Tns,       bfam_real_t *TpS,
 
 void beard_dgx_duvaut_lions_return_map(
     int inN, bfam_subdomain_dgx_t *sub, const char *field_prefix,
-    const bfam_long_real_t t)
+    const bfam_long_real_t t, const bfam_long_real_t dt)
 {
+  GENERIC_INIT(inN,beard_dgx_duvaut_lions_return_map);
+
+  /* get the fields we will need */
+  bfam_dictionary_t *fields = &sub->base.fields;
+  bfam_dictionary_t *fields_face = &sub->base.fields_face;
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11  ,field_prefix,"S11"  ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22  ,field_prefix,"S22"  ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33  ,field_prefix,"S33"  ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12  ,field_prefix,"S12"  ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13  ,field_prefix,"S13"  ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23  ,field_prefix,"S23"  ,fields);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11_0,field_prefix,"S11_0",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22_0,field_prefix,"S22_0",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33_0,field_prefix,"S33_0",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12_0,field_prefix,"S12_0",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13_0,field_prefix,"S13_0",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23_0,field_prefix,"S23_0",fields);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(phi  ,field_prefix,"phi"  ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(pf   ,field_prefix,"pf"   ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(c    ,field_prefix,"c"    ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Tr   ,field_prefix,"Tr"   ,fields);
+
+  bfam_locidx_t K  = sub->K;
+
+  /* loop through all the elements */
+  for(bfam_locidx_t e = 0; e < K;e++)
+  {
+    bfam_locidx_t off = e*Np;
+
+
+    for(bfam_locidx_t i = 0; i < Np; i++)
+    {
+      const bfam_locidx_t k = off + i;
+
+      /* Compute the mean stress */
+      bfam_real_t Sm = (BFAM_REAL(1.0)/BFAM_REAL(3.0))*
+                       (S11_0[k]+S11[k] + S22_0[k]+S22[k] + S22_0[k]+S33[k]);
+
+      /* Compute deviatoric stress */
+      const bfam_real_t s11 = S11[k]+S11_0[k] - Sm;
+      const bfam_real_t s22 = S22[k]+S22_0[k] - Sm;
+      const bfam_real_t s33 = S33[k]+S33_0[k] - Sm;
+      const bfam_real_t s12 = S12[k]+S12_0[k];
+      const bfam_real_t s13 = S13[k]+S13_0[k];
+      const bfam_real_t s23 = S23[k]+S23_0[k];
+
+      /* Second invarient of deviatoric stress tensor */
+      const bfam_real_t J =  BFAM_REAL_SQRT(
+                             BFAM_REAL(0.5)*(s11*s11 + 2*s12*s12 + 2*s13*s13 +
+                                             s22*s22 + 2*s23*s23 +   s33*s33));
+
+      /* Trial Drucker-Prager yield stress */
+      const bfam_real_t Y = BFAM_MAX(0,c[k]*BFAM_REAL_COS(phi[k])
+                                       - (Sm+pf[k])*BFAM_REAL_SIN(phi[k]));
+
+      /* Trial Drucker-Prager yield function */
+      const bfam_real_t F = J - Y;
+
+      if(F > 0)
+      {
+        const bfam_real_t r =   BFAM_REAL_EXP(-(bfam_real_t)dt/Tr[k]) +
+                             (1-BFAM_REAL_EXP(-(bfam_real_t)dt/Tr[k]))*Y/J;
+        S11[k] = Sm + r*s11 - S11_0[k];
+        S12[k] =      r*s12 - S12_0[k];
+        S13[k] =      r*s13 - S13_0[k];
+        S22[k] = Sm + r*s22 - S22_0[k];
+        S23[k] =      r*s23 - S23_0[k];
+        S33[k] = Sm + r*s33 - S33_0[k];
+      }
+    }
+  }
 }
 
 void beard_dgx_intra_rhs_elastic(

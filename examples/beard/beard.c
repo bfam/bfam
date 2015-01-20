@@ -2389,16 +2389,17 @@ void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
 
 static void
 duvaut_lions_return_map(int N, bfam_subdomain_dgx_t *sub,
-    const char *field_prefix, const bfam_long_real_t t)
+    const char *field_prefix, const bfam_long_real_t t,
+    const bfam_long_real_t dt)
 {
 #if  DIM==2
 #define X(order) \
   case order: beard_dgx_duvaut_lions_return_map_2_##order(N,sub, \
-                  field_prefix,t); break;
+                  field_prefix,t,dt); break;
 #elif  DIM==3
 #define X(order) \
   case order: beard_dgx_duvaut_lions_return_map_3_##order(N,sub, \
-                  field_prefix,t); break;
+                  field_prefix,t,dt); break;
 #else
 #error "Bad Dimension"
 #endif
@@ -2408,9 +2409,9 @@ duvaut_lions_return_map(int N, bfam_subdomain_dgx_t *sub,
     BFAM_LIST_OF_DGX_NORDERS
     default:
 #if   DIM==2
-      beard_dgx_duvaut_lions_return_map_2_(N,sub, field_prefix,t);
+      beard_dgx_duvaut_lions_return_map_2_(N,sub, field_prefix,t,dt);
 #elif DIM==3
-      beard_dgx_duvaut_lions_return_map_3_(N,sub, field_prefix,t);
+      beard_dgx_duvaut_lions_return_map_3_(N,sub, field_prefix,t,dt);
 #else
 #error "Bad Dimension"
 #endif
@@ -3509,7 +3510,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
             for(bfam_locidx_t n = 0; n < num_subs; n++)
             {
               bfam_subdomain_dgx_t *s = (bfam_subdomain_dgx_t*) subs[n];
-              duvaut_lions_return_map(s->N,s,"",ts->t);
+              duvaut_lions_return_map(s->N,s,"",ts->t, dt);
             }
             break;
           }
