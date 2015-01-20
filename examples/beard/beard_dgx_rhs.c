@@ -802,11 +802,11 @@ void beard_dgx_duvaut_lions_return_map(
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23  ,field_prefix,"S23"  ,fields);
 
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11_0,field_prefix,"S11_0",fields);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22_0,field_prefix,"S22_0",fields);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33_0,field_prefix,"S33_0",fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12_0,field_prefix,"S12_0",fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13_0,field_prefix,"S13_0",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22_0,field_prefix,"S22_0",fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23_0,field_prefix,"S23_0",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33_0,field_prefix,"S33_0",fields);
 
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(phi  ,field_prefix,"phi"  ,fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(pf   ,field_prefix,"pf"   ,fields);
@@ -827,15 +827,15 @@ void beard_dgx_duvaut_lions_return_map(
 
       /* Compute the mean stress */
       bfam_real_t Sm = (BFAM_REAL(1.0)/BFAM_REAL(3.0))*
-                       (S11_0[k]+S11[k] + S22_0[k]+S22[k] + S22_0[k]+S33[k]);
+                       (S11_0[k]+S11[k] + S22_0[k]+S22[k] + S33_0[k]+S33[k]);
 
       /* Compute deviatoric stress */
       const bfam_real_t s11 = S11[k]+S11_0[k] - Sm;
-      const bfam_real_t s22 = S22[k]+S22_0[k] - Sm;
-      const bfam_real_t s33 = S33[k]+S33_0[k] - Sm;
       const bfam_real_t s12 = S12[k]+S12_0[k];
       const bfam_real_t s13 = S13[k]+S13_0[k];
+      const bfam_real_t s22 = S22[k]+S22_0[k] - Sm;
       const bfam_real_t s23 = S23[k]+S23_0[k];
+      const bfam_real_t s33 = S33[k]+S33_0[k] - Sm;
 
       /* Second invarient of deviatoric stress tensor */
       const bfam_real_t J =  BFAM_REAL_SQRT(
