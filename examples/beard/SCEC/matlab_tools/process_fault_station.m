@@ -83,6 +83,10 @@ if N_data > 0
 
   pdata.n   = sign(n_ref(1)*data(1).n(1) + n_ref(2)*data(1).n(2) + n_ref(3)*data(1).n(3))*data(1).n;
   head_saved = false;
+
+  for n = 1:N_data
+    disp([n length(data(n).Dp)])
+  end
   for n = 1:N_data
     n_sign    = sign(n_ref(1)*data(n).n(1) + n_ref(2)*data(n).n(2) + n_ref(3)*data(n).n(3));
     if(~head_saved && n_sign == 1)
@@ -96,9 +100,8 @@ if N_data > 0
       disp(n_sign*data(n).n)
     end
 
+
     pdata.Dp  = pdata.Dp  +        data(n).Dp /N_data;
-    disp(size(pdata.Dp1))
-    disp(size(data(n).Dp1))
     pdata.Dp1 = pdata.Dp1 + n_sign*data(n).Dp1/N_data;
     pdata.Dp2 = pdata.Dp2 + n_sign*data(n).Dp2/N_data;
     pdata.Dp3 = pdata.Dp3 + n_sign*data(n).Dp3/N_data;
