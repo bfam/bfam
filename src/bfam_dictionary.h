@@ -6,7 +6,8 @@
 #include <bfam_base.h>
 #include <bfam_critbit.h>
 
-typedef struct {
+typedef struct
+{
   size_t num_entries;
   bfam_critbit0_tree_t t;
 } bfam_dictionary_t;
@@ -45,7 +46,7 @@ int bfam_dictionary_contains(bfam_dictionary_t *d, const char *u);
  *            2 &if {\it d} {\rm was mutated successfully}}$.
  */
 int bfam_dictionary_insert(bfam_dictionary_t *d, const char *key,
-                                  const char *val);
+                           const char *val);
 
 /** Inserting key and value pair where value is a pointer into a dictionary
  *
@@ -61,7 +62,7 @@ int bfam_dictionary_insert(bfam_dictionary_t *d, const char *key,
  *            2 &if {\it d} {\rm was mutated successfully}}$.
  */
 int bfam_dictionary_insert_ptr(bfam_dictionary_t *d, const char *key,
-                                  const void *val);
+                               const void *val);
 
 /** Inserting key and value pair where value is a \c bfam_locidx_t into a
  * dictionary.
@@ -91,7 +92,7 @@ int bfam_dictionary_insert_locidx(bfam_dictionary_t *d, const char *key,
  *   $\cases{ \c NULL & if {\it key} {\rm is not a member} \cr
  *          {\rm pointer to value} & if {\it key} {\rm is a member}$
  */
-char* bfam_dictionary_get_value(bfam_dictionary_t *d, const char *key);
+char *bfam_dictionary_get_value(bfam_dictionary_t *d, const char *key);
 
 /** Return a value given a key assuming value is a pointer
  *
@@ -104,7 +105,7 @@ char* bfam_dictionary_get_value(bfam_dictionary_t *d, const char *key);
  *   $\cases{ \c NULL & if {\it key} {\rm is not a member} \cr
  *          {\rm pointer to value} & if {\it key} {\rm is a member}$
  */
-void* bfam_dictionary_get_value_ptr(bfam_dictionary_t *d, const char *key);
+void *bfam_dictionary_get_value_ptr(bfam_dictionary_t *d, const char *key);
 
 /** Return a value given a key assuming value is a \c bfam_locidx_t.
  *
@@ -120,7 +121,7 @@ void* bfam_dictionary_get_value_ptr(bfam_dictionary_t *d, const char *key);
  *            \c 1 & if {\it key} {\rm is a member}$
  */
 int bfam_dictionary_get_value_locidx(bfam_dictionary_t *d, const char *key,
-    bfam_locidx_t *val);
+                                     bfam_locidx_t *val);
 
 /** Clearing a dictionarty.
  *
@@ -133,7 +134,6 @@ int bfam_dictionary_get_value_locidx(bfam_dictionary_t *d, const char *key,
  * \param [in,out] d dictionary
  */
 void bfam_dictionary_clear(bfam_dictionary_t *d);
-
 
 /** Fetching values with a given prefix.
  *
@@ -148,8 +148,9 @@ void bfam_dictionary_clear(bfam_dictionary_t *d);
  * \note (Note that, if |handle| returns 0, the iteration is aborted)
  */
 int bfam_dictionary_allprefixed(bfam_dictionary_t *t, const char *prefix,
-                              int (*handle) (const char *, const char*, void *),
-                              void *arg);
+                                int (*handle)(const char *, const char *,
+                                              void *),
+                                void *arg);
 
 /** Fetching pointer values with a given prefix.
  *
@@ -167,7 +168,7 @@ int bfam_dictionary_allprefixed(bfam_dictionary_t *t, const char *prefix,
  * the pointer to the pointer
  */
 int bfam_dictionary_allprefixed_ptr(bfam_dictionary_t *t, const char *prefix,
-                              int (*handle) (const char *, void*, void *),
-                              void *arg);
+                                    int (*handle)(const char *, void *, void *),
+                                    void *arg);
 
 #endif

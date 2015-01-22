@@ -7,6 +7,6 @@
  *
  * \return A pointer to a string literal containing the version number.
  */
-const char * bfam_version_get();
+const char *bfam_version_get();
 
 #endif

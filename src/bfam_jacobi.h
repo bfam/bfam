@@ -1,7 +1,6 @@
 #ifndef BFAM_JACOBI_H
 #define BFAM_JACOBI_H
 
-
 /** Compute normalized Jacobi Polynomials at \a x
  *
  * \param[in]  alpha Jacobi polynomial parameter
@@ -13,9 +12,8 @@
  * \param[out] P     An array of length \a nx containing the normalized Jacobi
  *                   polynomial $p^{(\alpha,\beta)}_N$ evaluated at \a x.
  */
-void
-bfam_jacobi_p(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
-    size_t nx, bfam_long_real_t *x, bfam_long_real_t *P);
+void bfam_jacobi_p(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
+                   size_t nx, bfam_long_real_t *x, bfam_long_real_t *P);
 
 /** Compute the derivative of the normalized Jacobi Polynomials at \a x
  *
@@ -29,9 +27,8 @@ bfam_jacobi_p(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
  *                   normalized Jacobi polynomial $p^{(\alpha,\beta)}_N$
  *                   evaluated at \a x.
  */
-void
-bfam_grad_jacobi_p(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
-    size_t nx, bfam_long_real_t *x, bfam_long_real_t *P);
+void bfam_grad_jacobi_p(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
+                        size_t nx, bfam_long_real_t *x, bfam_long_real_t *P);
 
 /** Compute the nodes and weights of the Jacobi Gauss quadrature
  *
@@ -41,9 +38,9 @@ bfam_grad_jacobi_p(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
  * \param[out] x     Nodes for the Jacobi Gauss quadrature
  * \param[out] w     Weights for the Jacobi Gauss quadrature
  */
-void
-bfam_jacobi_gauss_quadrature(bfam_long_real_t alpha, bfam_long_real_t beta,
-    int N, bfam_long_real_t *x, bfam_long_real_t *w);
+void bfam_jacobi_gauss_quadrature(bfam_long_real_t alpha, bfam_long_real_t beta,
+                                  int N, bfam_long_real_t *x,
+                                  bfam_long_real_t *w);
 
 /** Compute the nodes and weights of the Jacobi Gauss Lobatto quadrature
  *
@@ -53,9 +50,10 @@ bfam_jacobi_gauss_quadrature(bfam_long_real_t alpha, bfam_long_real_t beta,
  * \param[out] x     Nodes for the Jacobi Gauss Lobatto quadrature
  * \param[out] w     Weights for the Jacobi Gauss Lobatto quadrature
  */
-void
-bfam_jacobi_gauss_lobatto_quadrature(bfam_long_real_t alpha,
-    bfam_long_real_t beta, int N, bfam_long_real_t *x, bfam_long_real_t *w);
+void bfam_jacobi_gauss_lobatto_quadrature(bfam_long_real_t alpha,
+                                          bfam_long_real_t beta, int N,
+                                          bfam_long_real_t *x,
+                                          bfam_long_real_t *w);
 
 /** Compute the Jacobi Vandermonde matrix.
  *
@@ -69,9 +67,9 @@ bfam_jacobi_gauss_lobatto_quadrature(bfam_long_real_t alpha,
  *                   the $i,j$ entry contains the normalized Jacobi polynomials
  *                   $p^{(\alpha,\beta)}_j$ evaluated at \a x[i].
  */
-void
-bfam_jacobi_p_vandermonde(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
-    size_t nx, bfam_long_real_t *x, bfam_long_real_t *V);
+void bfam_jacobi_p_vandermonde(bfam_long_real_t alpha, bfam_long_real_t beta,
+                               int N, size_t nx, bfam_long_real_t *x,
+                               bfam_long_real_t *V);
 
 /** Compute the Gradient Jacobi Vandermonde matrix.
  *
@@ -85,9 +83,9 @@ bfam_jacobi_p_vandermonde(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
  *                   the $i,j$ entry contains the normalized Jacobi polynomials
  *                   $p^{(\alpha,\beta)}_j$ evaluated at \a x[i].
  */
-void
-bfam_grad_jacobi_p_vandermonde(bfam_long_real_t alpha, bfam_long_real_t beta,
-    int N, size_t nx, bfam_long_real_t *x, bfam_long_real_t *V);
+void bfam_grad_jacobi_p_vandermonde(bfam_long_real_t alpha,
+                                    bfam_long_real_t beta, int N, size_t nx,
+                                    bfam_long_real_t *x, bfam_long_real_t *V);
 
 /** Compute the interpolation matrix using Jacobi polynomials.
  *
@@ -104,10 +102,9 @@ bfam_grad_jacobi_p_vandermonde(bfam_long_real_t alpha, bfam_long_real_t beta,
  * \param[out] I     Interpolation matrix.
  *
  */
-void
-bfam_jacobi_p_interpolation(bfam_long_real_t alpha, bfam_long_real_t beta,
-    int N, size_t nx, bfam_long_real_t *x, bfam_long_real_t *V,
-    bfam_long_real_t *I);
+void bfam_jacobi_p_interpolation(bfam_long_real_t alpha, bfam_long_real_t beta,
+                                 int N, size_t nx, bfam_long_real_t *x,
+                                 bfam_long_real_t *V, bfam_long_real_t *I);
 
 /** Compute the differentiation matrix using Jacobi polynomials.
  *
@@ -124,10 +121,10 @@ bfam_jacobi_p_interpolation(bfam_long_real_t alpha, bfam_long_real_t beta,
  * \param[out] D     Differentiation matrix.
  *
  */
-void
-bfam_jacobi_p_differentiation(bfam_long_real_t alpha, bfam_long_real_t beta,
-    int N, size_t nx, bfam_long_real_t *x, bfam_long_real_t *V,
-    bfam_long_real_t *D);
+void bfam_jacobi_p_differentiation(bfam_long_real_t alpha,
+                                   bfam_long_real_t beta, int N, size_t nx,
+                                   bfam_long_real_t *x, bfam_long_real_t *V,
+                                   bfam_long_real_t *D);
 
 /** Compute the mass matrix using Jacobi polynomials.
  *
@@ -141,8 +138,7 @@ bfam_jacobi_p_differentiation(bfam_long_real_t alpha, bfam_long_real_t beta,
  * \param[out] M     mass matrix.
  *
  */
-void
-bfam_jacobi_p_mass(bfam_long_real_t alpha, bfam_long_real_t beta,
-    int N, bfam_long_real_t *V, bfam_long_real_t *M);
+void bfam_jacobi_p_mass(bfam_long_real_t alpha, bfam_long_real_t beta, int N,
+                        bfam_long_real_t *V, bfam_long_real_t *M);
 
 #endif

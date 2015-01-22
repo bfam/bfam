@@ -24,7 +24,7 @@ typedef struct bfam_ts_local_adams
   bfam_locidx_t *currentStageArray; /**< array of current stage counter */
   bfam_locidx_t *numStepsArray;     /**< array of number of steps completed */
   bfam_locidx_t numLevels;          /**< number of levels to time step */
-  bfam_long_real_t  t;              /**< domain time */
+  bfam_long_real_t t;               /**< domain time */
   bfam_communicator_t **comm_array; /**< NULL terminated array of communicators
                                          for the local level communicator I
                                          handle
@@ -32,33 +32,34 @@ typedef struct bfam_ts_local_adams
   bfam_dictionary_t elems;          /**< dictionary of subdomains I step */
 
   /* LSRK method for initialization */
-  bfam_ts_lsrk_t* lsrk;
+  bfam_ts_lsrk_t *lsrk;
 
   /* scale rates function */
-  void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const bfam_long_real_t a);
+  void (*scale_rates)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
+                      const bfam_long_real_t a);
 
   /* compute rhs that does not require communication */
-  void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *minus_rate_prefix,
-      const char *field_prefix, const bfam_long_real_t t);
+  void (*intra_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
+                    const char *minus_rate_prefix, const char *field_prefix,
+                    const bfam_long_real_t t);
 
   /* compute rhs that does require communication */
-  void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *minus_rate_prefix,
-      const char *field_prefix, const bfam_long_real_t t);
+  void (*inter_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
+                    const char *minus_rate_prefix, const char *field_prefix,
+                    const bfam_long_real_t t);
 
   /* add the rates to the fields: q_lhs := q_rhs + a*dq */
   /* NOTE: should handle case of in place addition */
-  void (*add_rates) (bfam_subdomain_t *thisSubdomain,
-      const char *field_prefix_lhs, const char *field_prefix_rhs,
-      const char *rate_prefix, const bfam_long_real_t a);
+  void (*add_rates)(bfam_subdomain_t *thisSubdomain,
+                    const char *field_prefix_lhs, const char *field_prefix_rhs,
+                    const char *rate_prefix, const bfam_long_real_t a);
 
   /* add the rates to the fields: q_lhs := q_rhs + a*dq */
   /* NOTE: should handle case of in place addition */
-  void (*add_rates_glue_p) (bfam_subdomain_t *thisSubdomain,
-      const char *field_prefix_lhs, const char *field_prefix_rhs,
-      const char *rate_prefix, const bfam_long_real_t a);
+  void (*add_rates_glue_p)(bfam_subdomain_t *thisSubdomain,
+                           const char *field_prefix_lhs,
+                           const char *field_prefix_rhs,
+                           const char *rate_prefix, const bfam_long_real_t a);
 } bfam_ts_local_adams_t;
 
 typedef enum bfam_ts_local_adams_method
@@ -76,8 +77,7 @@ typedef enum bfam_ts_local_adams_method
  * \param [in]   buf_siz    size of the buffer to fill
  * \param [in]   level      level number to fill
  */
-void
-bfam_ts_local_adams_fill_level_tag(char* tag, size_t buf_siz, int level);
+void bfam_ts_local_adams_fill_level_tag(char *tag, size_t buf_siz, int level);
 
 /** create an explicit Local Adams scheme
  *
@@ -106,27 +106,30 @@ bfam_ts_local_adams_fill_level_tag(char* tag, size_t buf_siz, int level);
  *
  * \return the newly created low storage RK time stepper
  */
-bfam_ts_local_adams_t*
-bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
-    bfam_locidx_t num_lvls, bfam_domain_match_t subdom_match, const char**
-    subdom_tags, bfam_domain_match_t comm_match, const char** comm_tags,
-    MPI_Comm mpicomm, int mpitag, bfam_subdomain_comm_args_t * comm_data,
-    void (*aux_rates)  (bfam_subdomain_t *thisSubdomain, const char *prefix),
-    void (*glue_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
-    void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const bfam_long_real_t a),
-    void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *minus_rate_prefix,
-      const char *field_prefix, const bfam_long_real_t t),
-    void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *minus_rate_prefix,
-      const char *field_prefix, const bfam_long_real_t t),
-    void (*add_rates) (bfam_subdomain_t *thisSubdomain,
-      const char *field_prefix_lhs, const char *field_prefix_rhs,
-      const char *rate_prefix, const bfam_long_real_t a),
-    void (*add_rates_glue_p) (bfam_subdomain_t *thisSubdomain,
-      const char *field_prefix_lhs, const char *field_prefix_rhs,
-      const char *rate_prefix, const bfam_long_real_t a),
+bfam_ts_local_adams_t *bfam_ts_local_adams_new(
+    bfam_domain_t *dom, bfam_ts_local_adams_method_t method,
+    bfam_locidx_t num_lvls, bfam_domain_match_t subdom_match,
+    const char **subdom_tags, bfam_domain_match_t comm_match,
+    const char **comm_tags, MPI_Comm mpicomm, int mpitag,
+    bfam_subdomain_comm_args_t *comm_data,
+    void (*aux_rates)(bfam_subdomain_t *thisSubdomain, const char *prefix),
+    void (*glue_rates)(bfam_subdomain_t *thisSubdomain, const char *prefix),
+    void (*scale_rates)(bfam_subdomain_t *thisSubdomain,
+                        const char *rate_prefix, const bfam_long_real_t a),
+    void (*intra_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
+                      const char *minus_rate_prefix, const char *field_prefix,
+                      const bfam_long_real_t t),
+    void (*inter_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
+                      const char *minus_rate_prefix, const char *field_prefix,
+                      const bfam_long_real_t t),
+    void (*add_rates)(bfam_subdomain_t *thisSubdomain,
+                      const char *field_prefix_lhs,
+                      const char *field_prefix_rhs, const char *rate_prefix,
+                      const bfam_long_real_t a),
+    void (*add_rates_glue_p)(bfam_subdomain_t *thisSubdomain,
+                             const char *field_prefix_lhs,
+                             const char *field_prefix_rhs,
+                             const char *rate_prefix, const bfam_long_real_t a),
     const int RK_init);
 
 /** initialize an Local Adams scheme
@@ -155,51 +158,50 @@ bfam_ts_local_adams_new(bfam_domain_t* dom, bfam_ts_local_adams_method_t method,
  * \param [in]  RK_init          boolean which if true signifies using LSRK to
  *                               init Local Adams method
  */
-void
-bfam_ts_local_adams_init(bfam_ts_local_adams_t* ts,
-    bfam_domain_t* dom, bfam_ts_local_adams_method_t method, bfam_locidx_t
-    num_lvls, bfam_domain_match_t subdom_match, const char** subdom_tags,
-    bfam_domain_match_t comm_match, const char** comm_tags, MPI_Comm mpicomm,
-    int mpitag, bfam_subdomain_comm_args_t * comm_data,
-    void (*aux_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
-    void (*glue_rates) (bfam_subdomain_t *thisSubdomain, const char *prefix),
-    void (*scale_rates) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const bfam_long_real_t a),
-    void (*intra_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *minus_rate_prefix,
-      const char *field_prefix, const bfam_long_real_t t),
-    void (*inter_rhs) (bfam_subdomain_t *thisSubdomain,
-      const char *rate_prefix, const char *minus_rate_prefix,
-      const char *field_prefix, const bfam_long_real_t t),
-    void (*add_rates) (bfam_subdomain_t *thisSubdomain,
-      const char *field_prefix_lhs, const char *field_prefix_rhs,
-      const char *rate_prefix, const bfam_long_real_t a),
-    void (*add_rates_glue_p) (bfam_subdomain_t *thisSubdomain,
-      const char *field_prefix_lhs, const char *field_prefix_rhs,
-      const char *rate_prefix, const bfam_long_real_t a),
+void bfam_ts_local_adams_init(
+    bfam_ts_local_adams_t *ts, bfam_domain_t *dom,
+    bfam_ts_local_adams_method_t method, bfam_locidx_t num_lvls,
+    bfam_domain_match_t subdom_match, const char **subdom_tags,
+    bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
+    int mpitag, bfam_subdomain_comm_args_t *comm_data,
+    void (*aux_rates)(bfam_subdomain_t *thisSubdomain, const char *prefix),
+    void (*glue_rates)(bfam_subdomain_t *thisSubdomain, const char *prefix),
+    void (*scale_rates)(bfam_subdomain_t *thisSubdomain,
+                        const char *rate_prefix, const bfam_long_real_t a),
+    void (*intra_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
+                      const char *minus_rate_prefix, const char *field_prefix,
+                      const bfam_long_real_t t),
+    void (*inter_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
+                      const char *minus_rate_prefix, const char *field_prefix,
+                      const bfam_long_real_t t),
+    void (*add_rates)(bfam_subdomain_t *thisSubdomain,
+                      const char *field_prefix_lhs,
+                      const char *field_prefix_rhs, const char *rate_prefix,
+                      const bfam_long_real_t a),
+    void (*add_rates_glue_p)(bfam_subdomain_t *thisSubdomain,
+                             const char *field_prefix_lhs,
+                             const char *field_prefix_rhs,
+                             const char *rate_prefix, const bfam_long_real_t a),
     const int RK_init);
 
 /** free an Local Adams scheme
  *
  * \param [in,out]  ts       pointer to time stepper to free
  */
-void
-bfam_ts_local_adams_free(bfam_ts_local_adams_t* ts);
+void bfam_ts_local_adams_free(bfam_ts_local_adams_t *ts);
 
 /** set the time of the scheme
  *
  * \param [in,out]  ts       pointer to time stepper to set
  * \param [in]      time     time to set
  */
-void
-bfam_ts_local_adams_set_time(bfam_ts_local_adams_t* ts, bfam_long_real_t time);
-
+void bfam_ts_local_adams_set_time(bfam_ts_local_adams_t *ts,
+                                  bfam_long_real_t time);
 
 /** get the time of the scheme
  *
  * \param [in]  ts       pointer to local_adams to get time
  */
-bfam_long_real_t
-bfam_ts_local_adams_get_time(bfam_ts_local_adams_t* ts);
+bfam_long_real_t bfam_ts_local_adams_get_time(bfam_ts_local_adams_t *ts);
 
 #endif

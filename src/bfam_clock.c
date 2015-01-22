@@ -34,49 +34,42 @@
 #include <bfam_clock.h>
 
 #if defined(BFAM_HAVE_CLOCK_MONOTONIC)
-int
-bfam_clock_is_monotonic()
+int bfam_clock_is_monotonic()
 {
   struct timespec ts;
 
-  if(clock_gettime(CLOCK_MONOTONIC, &ts))
+  if (clock_gettime(CLOCK_MONOTONIC, &ts))
   {
     return 0;
   }
   return 1;
 }
 #elif defined(BFAM_HAVE_MACH_ABSOLUTE_TIME)
-int
-bfam_clock_is_monotonic()
+int bfam_clock_is_monotonic()
 {
   mach_timebase_info_data_t info;
 
-  if(mach_timebase_info(&info))
+  if (mach_timebase_info(&info))
   {
     return 0;
   }
   return 1;
 }
 #else
-int
-bfam_clock_is_monotonic()
-{
-  return 0;
-}
+int bfam_clock_is_monotonic() { return 0; }
 #endif
 
-static double
-bfam_clock_fallback()
+static double bfam_clock_fallback()
 {
 #ifdef BFAM_HAVE_GETTIMEOFDAY
   struct timeval tv;
   static double ref_time_sec = 0;
 
-  if(0 == gettimeofday(&tv, NULL))
+  if (0 == gettimeofday(&tv, NULL))
   {
-    if(ref_time_sec == 0)
+    if (ref_time_sec == 0)
     {
-      ref_time_sec = (double) tv.tv_sec;
+      ref_time_sec = (double)tv.tv_sec;
     }
     return (tv.tv_sec - ref_time_sec) + tv.tv_usec / 1000000.0;
   }
@@ -86,33 +79,31 @@ bfam_clock_fallback()
 }
 
 #if defined(BFAM_HAVE_CLOCK_MONOTONIC)
-double
-bfam_clock()
+double bfam_clock()
 {
   struct timespec ts;
   static double ref_time_sec = 0;
 
-  if(0 == clock_gettime(CLOCK_MONOTONIC, &ts))
+  if (0 == clock_gettime(CLOCK_MONOTONIC, &ts))
   {
-    if(0 == ref_time_sec)
+    if (0 == ref_time_sec)
     {
-      ref_time_sec = (double) ts.tv_sec;
+      ref_time_sec = (double)ts.tv_sec;
     }
-    return (ts.tv_sec-ref_time_sec) + ts.tv_nsec / 1000000000.0;
+    return (ts.tv_sec - ref_time_sec) + ts.tv_nsec / 1000000000.0;
   }
 
   BFAM_WARNING("clock_gettime(CLOCK_MONOTONIC, &ts) failed");
   return bfam_clock_fallback();
 }
 #elif defined(BFAM_HAVE_MACH_ABSOLUTE_TIME)
-double
-bfam_clock()
+double bfam_clock()
 {
   uint64_t time = mach_absolute_time();
   static double scaling_factor = 0;
   static uint64_t ref_time = 0;
 
-  if(0 == ref_time)
+  if (0 == ref_time)
   {
     ref_time = time;
   }
@@ -133,10 +124,5 @@ bfam_clock()
   return (double)time * scaling_factor / 1000000000.0;
 }
 #else
-double
-bfam_clock()
-{
-  return bfam_clock_fallback();
-}
+double bfam_clock() { return bfam_clock_fallback(); }
 #endif
-

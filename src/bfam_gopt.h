@@ -1,30 +1,36 @@
 #ifndef BFAM_GOPT_H
 #define BFAM_GOPT_H
 
-#define BFAM_GOPT_ONCE   0
+#define BFAM_GOPT_ONCE 0
 #define BFAM_GOPT_REPEAT 1
-#define BFAM_GOPT_NOARG  0
-#define BFAM_GOPT_ARG    2
+#define BFAM_GOPT_NOARG 0
+#define BFAM_GOPT_ARG 2
 
 /*
  * Moved this from an anonymous struct inside of bfam_gopt_start because
  * clang was barfing.
  */
-struct gopt_struct {
+struct gopt_struct
+{
   int k;
   int f;
   const char *s;
-  const char*const*l;
+  const char *const *l;
 };
 
-#define bfam_gopt_start(...)      \
-  (const void*)(const struct gopt_struct[]){ __VA_ARGS__, {0,0,NULL,NULL}}
-#define bfam_gopt_option(k,f,s,l) { k, f, s, l }
-#define bfam_gopt_shorts( ... )   \
-  (const char*)(const char[]){ __VA_ARGS__, 0 }
-#define bfam_gopt_longs( ... )    \
-  (const char**)(const char*[]){ __VA_ARGS__, NULL }
-
+#define bfam_gopt_start(...)                                                   \
+  (const void *)(const struct gopt_struct[])                                   \
+  {                                                                            \
+    __VA_ARGS__, { 0, 0, NULL, NULL }                                          \
+  }
+#define bfam_gopt_option(k, f, s, l)                                           \
+  {                                                                            \
+    k, f, s, l                                                                 \
+  }
+#define bfam_gopt_shorts(...)                                                  \
+  (const char *)(const char[]) { __VA_ARGS__, 0 }
+#define bfam_gopt_longs(...)                                                   \
+  (const char **)(const char *[]) { __VA_ARGS__, NULL }
 
 /** Sorts options.
  *
@@ -85,7 +91,7 @@ const char *bfam_gopt_arg_i(const void *opts, int key, size_t i);
  * \returns the number of times the option was specified
  */
 size_t bfam_gopt_args(const void *opts, int key, const char **args,
-    size_t args_len);
+                      size_t args_len);
 
 /** Release memory for options.
  *

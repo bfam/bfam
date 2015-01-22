@@ -9,65 +9,65 @@ struct bfam_subdomain;
 
 typedef struct bfam_subdomain_comm_args
 {
-  const char ** scalars_m;           /* \c NULL terminated array of scalars to
-                                      * send */
+  const char **scalars_m; /* \c NULL terminated array of scalars to
+                           * send */
 
-  const char ** vectors_m;           /* \c NULL terminated array of vectors to
-                                      * send
-                                      * \note will suffix n for normal component
-                                      *       and p[1-3] for perpendicular
-                                      *       components */
+  const char **vectors_m; /* \c NULL terminated array of vectors to
+                           * send
+                           * \note will suffix n for normal component
+                           *       and p[1-3] for perpendicular
+                           *       components */
 
-  const char ** vector_components_m; /* \c NULL terminated array of vectors
-                                      * components
-                                      * \note must be three components per
-                                      *       vector to send and a \c NULL entry
-                                      *       will lead to 0 being used for that
-                                      *       component */
+  const char **vector_components_m; /* \c NULL terminated array of vectors
+                                     * components
+                                     * \note must be three components per
+                                     *       vector to send and a \c NULL entry
+                                     *       will lead to 0 being used for that
+                                     *       component */
 
-  const char ** tensors_m;           /* \c NULL terminated array of tensor to
-                                      * send
-                                      * \note will suffix n for normal component
-                                      *       and p[1-3] for perpendicular
-                                      *       components */
+  const char **tensors_m; /* \c NULL terminated array of tensor to
+                           * send
+                           * \note will suffix n for normal component
+                           *       and p[1-3] for perpendicular
+                           *       components */
 
-  const char ** tensor_components_m; /* \c NULL terminated array of symetric
-                                      * tensor components in order
-                                      * {11,22,33,12,13,23}
-                                      * \note must be six components per tensor
-                                      *       to send and \c NULL entry will
-                                      *       lead to 0 being used for that
-                                      *       component */
+  const char **tensor_components_m; /* \c NULL terminated array of symetric
+                                     * tensor components in order
+                                     * {11,22,33,12,13,23}
+                                     * \note must be six components per tensor
+                                     *       to send and \c NULL entry will
+                                     *       lead to 0 being used for that
+                                     *       component */
 
-  const char ** face_scalars_m;      /* \c NULL terminated array of face scalars
-                                      *  to send */
-  const char ** scalars_p;
-  const char ** vectors_p;
-  const char ** vector_components_p;
-  const char ** tensors_p;
-  const char ** tensor_components_p;
-  const char ** face_scalars_p;
+  const char **face_scalars_m; /* \c NULL terminated array of face scalars
+                                *  to send */
+  const char **scalars_p;
+  const char **vectors_p;
+  const char **vector_components_p;
+  const char **tensors_p;
+  const char **tensor_components_p;
+  const char **face_scalars_p;
 
   /**< user specified glue grid communication info:
    *   recv_sz and send_sz should be added to and not reset
    */
-  void (*user_comm_info) (struct bfam_subdomain *thisSubdomain,
-      size_t *send_sz, size_t *recv_sz, void *args);
+  void (*user_comm_info)(struct bfam_subdomain *thisSubdomain, size_t *send_sz,
+                         size_t *recv_sz, void *args);
 
   /**< user specified put data into the send buffer */
-  void (*user_put_send_buffer) (struct bfam_subdomain *thisSubdomain,
-      void *buffer, size_t send_sz, void *args);
+  void (*user_put_send_buffer)(struct bfam_subdomain *thisSubdomain,
+                               void *buffer, size_t send_sz, void *args);
 
   /**< use specified get data from the recv buffer */
-  void (*user_get_recv_buffer) (struct bfam_subdomain *thisSubdomain,
-      void *buffer, size_t recv_sz, void *args);
+  void (*user_get_recv_buffer)(struct bfam_subdomain *thisSubdomain,
+                               void *buffer, size_t recv_sz, void *args);
 
   /**< all the user to pass data */
   void *user_data;
 
   /**< callback function for custom user prefix */
-  void (*user_prefix_function) (struct bfam_subdomain *thisSubdomain,
-      char *prefix, size_t buf_siz, void* user_data);
+  void (*user_prefix_function)(struct bfam_subdomain *thisSubdomain,
+                               char *prefix, size_t buf_siz, void *user_data);
 
 } bfam_subdomain_comm_args_t;
 
@@ -76,35 +76,32 @@ typedef struct bfam_subdomain_face_map_entry
   bfam_locidx_t np; /* Neighbor's processor number */
   bfam_locidx_t ns; /* Neighbor's subdomain id */
   bfam_locidx_t nk; /* Neighbor's element number */
-  int8_t        nf; /* Neighbor's face number */
-  int8_t        nh; /* Neighbor's hanging number */
+  int8_t nf;        /* Neighbor's face number */
+  int8_t nh;        /* Neighbor's hanging number */
 
-  bfam_locidx_t  s; /* Local subdomain id */
-  bfam_locidx_t  k; /* Local element number */
-  int8_t         f; /* Local face number */
-  int8_t         h; /* Local hanging number */
-  int8_t         o; /* Local orientation */
+  bfam_locidx_t s; /* Local subdomain id */
+  bfam_locidx_t k; /* Local element number */
+  int8_t f;        /* Local face number */
+  int8_t h;        /* Local hanging number */
+  int8_t o;        /* Local orientation */
 
   bfam_locidx_t id; /* Interface id */
 
   bfam_locidx_t gi; /* Index variable */
-  bfam_locidx_t  i; /* Index variable */
+  bfam_locidx_t i;  /* Index variable */
 } bfam_subdomain_face_map_entry_t;
 
 /*
  * Compare function which sorts a bfam_subdomain_face_map_entry_t array
  * in sending order.
  */
-int
-bfam_subdomain_face_send_cmp(const void *a, const void *b);
+int bfam_subdomain_face_send_cmp(const void *a, const void *b);
 
 /*
  * Compare function which sorts a bfam_subdomain_face_map_entry_t array
  * in receiving order.
  */
-int
-bfam_subdomain_face_recv_cmp(const void *a, const void *b);
-
+int bfam_subdomain_face_recv_cmp(const void *a, const void *b);
 
 /*
  * This is the field initialization function which will be called for each
@@ -119,12 +116,10 @@ bfam_subdomain_face_recv_cmp(const void *a, const void *b);
  * \param [out] field     the field values that need to be set
  *
  */
-typedef void (*bfam_subdomain_init_field_t) (bfam_locidx_t npoints,
-    const char *name,
-    bfam_real_t time, bfam_real_t *restrict x, bfam_real_t *restrict y,
-    bfam_real_t *restrict z, struct bfam_subdomain *s, void *arg,
-    bfam_real_t *restrict field);
-
+typedef void (*bfam_subdomain_init_field_t)(
+    bfam_locidx_t npoints, const char *name, bfam_real_t time,
+    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
+    struct bfam_subdomain *s, void *arg, bfam_real_t *restrict field);
 
 /**
  * base structure for to store glue data for a subdomain, i.e., plus and minus
@@ -138,16 +133,16 @@ typedef void (*bfam_subdomain_init_field_t) (bfam_locidx_t npoints,
  */
 typedef struct bfam_subdomain_glue_data
 {
-  bfam_locidx_t     rank; /* Rank of the subdomain on this side */
-  bfam_locidx_t     id_s; /* Sort Id of the subdomain on this side */
-  bfam_locidx_t       id; /* Id of the subdomain on this side */
+  bfam_locidx_t rank; /* Rank of the subdomain on this side */
+  bfam_locidx_t id_s; /* Sort Id of the subdomain on this side */
+  bfam_locidx_t id;   /* Id of the subdomain on this side */
 
   bfam_dictionary_t fields; /**< a dictionary storing glue fields */
 
   bfam_critbit0_tree_t tags; /**< critbit for tags for the glue */
 
   /* The following pointers should only be \ne NULL on the minus side */
-  struct bfam_subdomain *sub_m;  /* Local neighboring subdomain */
+  struct bfam_subdomain *sub_m; /* Local neighboring subdomain */
 } bfam_subdomain_glue_data_t;
 
 /**
@@ -162,11 +157,11 @@ typedef struct bfam_subdomain_glue_data
  */
 typedef struct bfam_subdomain
 {
-  bfam_locidx_t     id;
-  bfam_locidx_t     uid;  /**< typically physics id */
-  char*           name;     /**< Name of the subdomain */
+  bfam_locidx_t id;
+  bfam_locidx_t uid;         /**< typically physics id */
+  char *name;                /**< Name of the subdomain */
   bfam_critbit0_tree_t tags; /**< critbit for tags for the subdomain */
-  bfam_dictionary_t fields; /**< a dictionary storing pointers to fields */
+  bfam_dictionary_t fields;  /**< a dictionary storing pointers to fields */
 
   bfam_dictionary_t fields_face; /**< a dictionary storing face fields */
 
@@ -175,78 +170,66 @@ typedef struct bfam_subdomain
   bfam_subdomain_glue_data_t *glue_p;
 
   /* user data */
-  void* user_data;
+  void *user_data;
 
   /* Function pointers that domain will need to call */
-  void (*free)                (struct bfam_subdomain *thisSubdomain);
+  void (*free)(struct bfam_subdomain *thisSubdomain);
 
   /**< Write a vtk vtu file */
-  int (*vtk_write_vtu_piece) (struct bfam_subdomain *thisSubdomain,
-                               FILE *file,
-                               bfam_real_t time,
-                               const char **scalars,
-                               const char **vectors,
-                               const char **components,
-                               int writeBinary,
-                               int writeCompressed,
-                               int rank,
-                               bfam_locidx_t id,
-                               int Np_write);
+  int (*vtk_write_vtu_piece)(struct bfam_subdomain *thisSubdomain, FILE *file,
+                             bfam_real_t time, const char **scalars,
+                             const char **vectors, const char **components,
+                             int writeBinary, int writeCompressed, int rank,
+                             bfam_locidx_t id, int Np_write);
 
   /**< Write a vtk vts file */
-  void (*vtk_write_vts_piece) (struct bfam_subdomain *thisSubdomain,
-                               FILE *file,
-                               const char **scalars,
-                               const char **vectors,
-                               const char **components,
-                               int writeBinary,
-                               int writeCompressed,
-                               int rank);
+  void (*vtk_write_vts_piece)(struct bfam_subdomain *thisSubdomain, FILE *file,
+                              const char **scalars, const char **vectors,
+                              const char **components, int writeBinary,
+                              int writeCompressed, int rank);
 
   /**< vts filename */
-  void (*vtk_write_vts_filename) (struct bfam_subdomain *thisSubdomain,
-      void *buffer, size_t recv_sz);
+  void (*vtk_write_vts_filename)(struct bfam_subdomain *thisSubdomain,
+                                 void *buffer, size_t recv_sz);
 
   /**< write the filename suffix */
-  void (*vtk_write_suffix) (struct bfam_subdomain *thisSubdomain,char * suffix,
-      int len);
+  void (*vtk_write_suffix)(struct bfam_subdomain *thisSubdomain, char *suffix,
+                           int len);
 
   /**< write the pvts filename */
-  void (*vtk_write_pvts_pieces) (struct bfam_subdomain *thisSubdomain,
-      const char* filename, FILE *file);
+  void (*vtk_write_pvts_pieces)(struct bfam_subdomain *thisSubdomain,
+                                const char *filename, FILE *file);
 
   /**< Add a field to the subdomain */
-  int (*field_add) (struct bfam_subdomain *thisSubdomain, const char* name);
+  int (*field_add)(struct bfam_subdomain *thisSubdomain, const char *name);
 
   /**< Add a field to the plus side of the subdomain */
-  int (*field_plus_add) (struct bfam_subdomain *thisSubdomain,
-                         const char* name);
+  int (*field_plus_add)(struct bfam_subdomain *thisSubdomain, const char *name);
   /**< Add a field to the minus side of the  subdomain */
-  int (*field_minus_add) (struct bfam_subdomain *thisSubdomain,
-                          const char* name);
+  int (*field_minus_add)(struct bfam_subdomain *thisSubdomain,
+                         const char *name);
 
   /**< Add a field to the faces of the subdomain */
-  int (*field_face_add) (struct bfam_subdomain *thisSubdomain,
-                         const char* name);
+  int (*field_face_add)(struct bfam_subdomain *thisSubdomain, const char *name);
 
   /**< Initialize a field in the subdomain */
-  void (*field_init) (struct bfam_subdomain *thisSubdomain, const char* name,
-      bfam_real_t time, bfam_subdomain_init_field_t init_field, void *arg);
+  void (*field_init)(struct bfam_subdomain *thisSubdomain, const char *name,
+                     bfam_real_t time, bfam_subdomain_init_field_t init_field,
+                     void *arg);
 
   /**< Glue grid communication info */
-  void (*glue_comm_info) (struct bfam_subdomain *thisSubdomain, int *rank,
-      bfam_locidx_t *s, int num_sort, size_t *send_sz, size_t *recv_sz,
-      void *args);
+  void (*glue_comm_info)(struct bfam_subdomain *thisSubdomain, int *rank,
+                         bfam_locidx_t *s, int num_sort, size_t *send_sz,
+                         size_t *recv_sz, void *args);
 
   /**< Put data into the send buffer */
-  void (*glue_put_send_buffer) (struct bfam_subdomain *thisSubdomain,
-      void *buffer, size_t send_sz, void *args);
+  void (*glue_put_send_buffer)(struct bfam_subdomain *thisSubdomain,
+                               void *buffer, size_t send_sz, void *args);
 
   /**< Get data from the recv buffer */
-  void (*glue_get_recv_buffer) (struct bfam_subdomain *thisSubdomain,
-      void *buffer, size_t recv_sz, void *args);
+  void (*glue_get_recv_buffer)(struct bfam_subdomain *thisSubdomain,
+                               void *buffer, size_t recv_sz, void *args);
 } bfam_subdomain_t;
-
 
 /** initializes a subdomain
  *
@@ -258,9 +241,8 @@ typedef struct bfam_subdomain
  * \param [in]     uid  user id number for this subdomain
  * \param [in]     name Name of this subdomain
  */
-void
-bfam_subdomain_init(bfam_subdomain_t *subdomain, bfam_locidx_t id,
-    bfam_locidx_t uid, const char* name);
+void bfam_subdomain_init(bfam_subdomain_t *subdomain, bfam_locidx_t id,
+                         bfam_locidx_t uid, const char *name);
 
 /** initializes a subdomain glue data
  *
@@ -273,17 +255,16 @@ bfam_subdomain_init(bfam_subdomain_t *subdomain, bfam_locidx_t id,
  * \param [in]     mpirank for this glue subdomain data
  * \param [in]     pointer to the minus side subdomain (can be \c NULL);
  */
-void
-bfam_subdomain_glue_init(bfam_subdomain_glue_data_t *glue,
-    const bfam_locidx_t rank, const bfam_locidx_t id, const bfam_locidx_t id_s,
-    bfam_subdomain_t *sub_m);
+void bfam_subdomain_glue_init(bfam_subdomain_glue_data_t *glue,
+                              const bfam_locidx_t rank, const bfam_locidx_t id,
+                              const bfam_locidx_t id_s,
+                              bfam_subdomain_t *sub_m);
 
 /** free up the memory allocated by the subdomain
- * 
+ *
  * \param [in,out] thisSubdomain subdomain to clean up
  */
-void
-bfam_subdomain_free(bfam_subdomain_t *thisSubdomain);
+void bfam_subdomain_free(bfam_subdomain_t *thisSubdomain);
 
 /** Add a tag to the subdomain
  *
@@ -291,8 +272,7 @@ bfam_subdomain_free(bfam_subdomain_t *thisSubdomain);
  * \param [in]     tag           tag of the domain (\0 terminated string)
  *
  */
-void
-bfam_subdomain_add_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+void bfam_subdomain_add_tag(bfam_subdomain_t *thisSubdomain, const char *tag);
 
 /** Remove a tag from the subdomain
  *
@@ -301,8 +281,7 @@ bfam_subdomain_add_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
  *
  * \returns It returns 1 if the tag was removed, 0 otherwise.
  */
-int
-bfam_subdomain_delete_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+int bfam_subdomain_delete_tag(bfam_subdomain_t *thisSubdomain, const char *tag);
 
 /** Check to see if a subdomain has a tag
  *
@@ -311,8 +290,7 @@ bfam_subdomain_delete_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
  *
  * \return nonzero iff \a thisSubdomain has the tag \a tag
  */
-int
-bfam_subdomain_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+int bfam_subdomain_has_tag(bfam_subdomain_t *thisSubdomain, const char *tag);
 
 /** Check to see if a subdomain has a tag with the given prefix
  *
@@ -321,8 +299,8 @@ bfam_subdomain_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
  *
  * \return nonzero iff \a thisSubdomain has the tag \a tag
  */
-int
-bfam_subdomain_has_tag_prefix(bfam_subdomain_t *thisSubdomain, const char* tag);
+int bfam_subdomain_has_tag_prefix(bfam_subdomain_t *thisSubdomain,
+                                  const char *tag);
 
 /** Add a tag to the subdomain minus glue
  *
@@ -330,8 +308,8 @@ bfam_subdomain_has_tag_prefix(bfam_subdomain_t *thisSubdomain, const char* tag);
  * \param [in]     tag           tag of the domain (\0 terminated string)
  *
  */
-void
-bfam_subdomain_minus_add_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+void bfam_subdomain_minus_add_tag(bfam_subdomain_t *thisSubdomain,
+                                  const char *tag);
 
 /** Remove a tag from the subdomain minus glue
  *
@@ -340,9 +318,8 @@ bfam_subdomain_minus_add_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
  *
  * \returns It returns 1 if the tag was removed, 0 otherwise.
  */
-int
-bfam_subdomain_minus_delete_tag(bfam_subdomain_t *thisSubdomain,
-                                const char* tag);
+int bfam_subdomain_minus_delete_tag(bfam_subdomain_t *thisSubdomain,
+                                    const char *tag);
 
 /** Check to see if a subdomain has a tag minus glue
  *
@@ -351,8 +328,8 @@ bfam_subdomain_minus_delete_tag(bfam_subdomain_t *thisSubdomain,
  *
  * \return nonzero iff \a thisSubdomain has the tag \a tag
  */
-int
-bfam_subdomain_minus_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+int bfam_subdomain_minus_has_tag(bfam_subdomain_t *thisSubdomain,
+                                 const char *tag);
 
 /** Check to see if a subdomain has a minus glue tag with the given prefix
  *
@@ -361,9 +338,8 @@ bfam_subdomain_minus_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
  *
  * \return nonzero iff \a thisSubdomain has the tag \a tag
  */
-int
-bfam_subdomain_minus_has_tag_prefix(bfam_subdomain_t *thisSubdomain,
-    const char* tag);
+int bfam_subdomain_minus_has_tag_prefix(bfam_subdomain_t *thisSubdomain,
+                                        const char *tag);
 
 /** Add a tag to the subdomain plus glue
  *
@@ -371,8 +347,8 @@ bfam_subdomain_minus_has_tag_prefix(bfam_subdomain_t *thisSubdomain,
  * \param [in]     tag           tag of the domain (\0 terminated string)
  *
  */
-void
-bfam_subdomain_plus_add_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+void bfam_subdomain_plus_add_tag(bfam_subdomain_t *thisSubdomain,
+                                 const char *tag);
 
 /** Remove a tag from the subdomain plus glue
  *
@@ -381,9 +357,8 @@ bfam_subdomain_plus_add_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
  *
  * \returns It returns 1 if the tag was removed, 0 otherwise.
  */
-int
-bfam_subdomain_plus_delete_tag(bfam_subdomain_t *thisSubdomain,
-                                const char* tag);
+int bfam_subdomain_plus_delete_tag(bfam_subdomain_t *thisSubdomain,
+                                   const char *tag);
 
 /** Check to see if a subdomain has a tag plus glue
  *
@@ -392,8 +367,8 @@ bfam_subdomain_plus_delete_tag(bfam_subdomain_t *thisSubdomain,
  *
  * \return nonzero iff \a thisSubdomain has the tag \a tag
  */
-int
-bfam_subdomain_plus_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+int bfam_subdomain_plus_has_tag(bfam_subdomain_t *thisSubdomain,
+                                const char *tag);
 
 /** Check to see if a subdomain has a plus glue tag with the given prefix
  *
@@ -402,9 +377,8 @@ bfam_subdomain_plus_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
  *
  * \return nonzero iff \a thisSubdomain has the tag \a tag
  */
-int
-bfam_subdomain_plus_has_tag_prefix(bfam_subdomain_t *thisSubdomain,
-    const char* tag);
+int bfam_subdomain_plus_has_tag_prefix(bfam_subdomain_t *thisSubdomain,
+                                       const char *tag);
 
 /** Add a tag to the subdomain
  *
@@ -412,8 +386,7 @@ bfam_subdomain_plus_has_tag_prefix(bfam_subdomain_t *thisSubdomain,
  * \param [in]     tag           tag of the domain (\0 terminated string)
  *
  */
-void
-bfam_subdomain_add_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+void bfam_subdomain_add_tag(bfam_subdomain_t *thisSubdomain, const char *tag);
 
 /** Remove a tag from the subdomain
  *
@@ -422,8 +395,7 @@ bfam_subdomain_add_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
  *
  * \returns It returns 1 if the tag was removed, 0 otherwise.
  */
-int
-bfam_subdomain_delete_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+int bfam_subdomain_delete_tag(bfam_subdomain_t *thisSubdomain, const char *tag);
 
 /** Check to see if a subdomain has a tag
  *
@@ -432,8 +404,7 @@ bfam_subdomain_delete_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
  *
  * \return nonzero iff \a thisSubdomain has the tag \a tag
  */
-int
-bfam_subdomain_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
+int bfam_subdomain_has_tag(bfam_subdomain_t *thisSubdomain, const char *tag);
 
 /** Add a field to the subdomain
  *
@@ -445,8 +416,7 @@ bfam_subdomain_has_tag(bfam_subdomain_t *thisSubdomain, const char* tag);
  *            1 &if {\it name} {\rm was already a field} \cr
  *            2 &if {\it name} {\rm was added successfully}}$.
  */
-int
-bfam_subdomain_field_add(bfam_subdomain_t *thisSubdomain, const char* name);
+int bfam_subdomain_field_add(bfam_subdomain_t *thisSubdomain, const char *name);
 
 /** Add a field to the plus side of the subdomain.
  *
@@ -458,9 +428,8 @@ bfam_subdomain_field_add(bfam_subdomain_t *thisSubdomain, const char* name);
  *            1 &if {\it name} {\rm was already a field} \cr
  *            2 &if {\it name} {\rm was added successfully}}$.
  */
-int
-bfam_subdomain_field_plus_add(bfam_subdomain_t *thisSubdomain,
-                              const char* name);
+int bfam_subdomain_field_plus_add(bfam_subdomain_t *thisSubdomain,
+                                  const char *name);
 
 /** Add a field to the minus side of the subdomain.
  *
@@ -472,9 +441,8 @@ bfam_subdomain_field_plus_add(bfam_subdomain_t *thisSubdomain,
  *            1 &if {\it name} {\rm was already a field} \cr
  *            2 &if {\it name} {\rm was added successfully}}$.
  */
-int
-bfam_subdomain_field_minus_add(bfam_subdomain_t *thisSubdomain,
-                               const char* name);
+int bfam_subdomain_field_minus_add(bfam_subdomain_t *thisSubdomain,
+                                   const char *name);
 
 /** Add a field to the faces of the subdomain.
  *
@@ -486,9 +454,8 @@ bfam_subdomain_field_minus_add(bfam_subdomain_t *thisSubdomain,
  *            1 &if {\it name} {\rm was already a field} \cr
  *            2 &if {\it name} {\rm was added successfully}}$.
  */
-int
-bfam_subdomain_field_face_add(bfam_subdomain_t *thisSubdomain,
-                              const char* name);
+int bfam_subdomain_field_face_add(bfam_subdomain_t *thisSubdomain,
+                                  const char *name);
 
 /** Initialize a field in the subdomain
  *
@@ -498,8 +465,9 @@ bfam_subdomain_field_face_add(bfam_subdomain_t *thisSubdomain,
  * \param [in]     init_field     initilization function
  * \param [in]     arg           user pointer
  */
-void
-bfam_subdomain_field_init(bfam_subdomain_t *thisSubdomain, const char* name,
-      bfam_real_t time, bfam_subdomain_init_field_t init_field, void *arg);
+void bfam_subdomain_field_init(bfam_subdomain_t *thisSubdomain,
+                               const char *name, bfam_real_t time,
+                               bfam_subdomain_init_field_t init_field,
+                               void *arg);
 
 #endif

@@ -22,9 +22,9 @@
  */
 typedef struct bfam_domain_pxest_2
 {
-  bfam_domain_t         base;  /** parent domain */
-  p4est_connectivity_t *conn;  /** connectivity for p4est */
-  p4est_t              *pxest; /** forest of quadtrees */
+  bfam_domain_t base;         /** parent domain */
+  p4est_connectivity_t *conn; /** connectivity for p4est */
+  p4est_t *pxest;             /** forest of quadtrees */
 } bfam_domain_pxest_t_2;
 
 /* Domain managed by pxest based functions */
@@ -38,8 +38,8 @@ typedef struct bfam_domain_pxest_2
  *
  * \return the newly created pxest managed domain
  */
-bfam_domain_pxest_t_2*
-bfam_domain_pxest_new_2(MPI_Comm domComm, p4est_connectivity_t *conn);
+bfam_domain_pxest_t_2 *bfam_domain_pxest_new_2(MPI_Comm domComm,
+                                               p4est_connectivity_t *conn);
 
 /** initializes a domain
  *
@@ -47,9 +47,8 @@ bfam_domain_pxest_new_2(MPI_Comm domComm, p4est_connectivity_t *conn);
  * \param [in]     domComm pointer to the communicator for the domain
  * \param [in]     conn    pointer to the pxest connectivity for the domain
  */
-void
-bfam_domain_pxest_init_2(bfam_domain_pxest_t_2 *domain, MPI_Comm domComm,
-                         p4est_connectivity_t *conn);
+void bfam_domain_pxest_init_2(bfam_domain_pxest_t_2 *domain, MPI_Comm domComm,
+                              p4est_connectivity_t *conn);
 
 /** Clean up domain
  *
@@ -58,8 +57,7 @@ bfam_domain_pxest_init_2(bfam_domain_pxest_t_2 *domain, MPI_Comm domComm,
  *
  * \param [in,out] domain domain to clean up
  */
-void
-bfam_domain_pxest_free_2(bfam_domain_pxest_t_2 *domain);
+void bfam_domain_pxest_free_2(bfam_domain_pxest_t_2 *domain);
 
 /** Fill a \c glueID based on tree ids.
  *
@@ -77,9 +75,9 @@ bfam_domain_pxest_free_2(bfam_domain_pxest_t_2 *domain);
  *                            stored in -x +x -y +y order for each quadrant
  *                            with the face index running the fastest.
  */
-void
-bfam_domain_pxest_quad_to_glueid_2(p4est_t *pxest,
-    const bfam_locidx_t* tree_to_glueid, bfam_locidx_t* quad_to_glueid);
+void bfam_domain_pxest_quad_to_glueid_2(p4est_t *pxest,
+                                        const bfam_locidx_t *tree_to_glueid,
+                                        bfam_locidx_t *quad_to_glueid);
 
 /** Takes an initialized domain and generates a DG hex mesh
  *
@@ -101,13 +99,12 @@ bfam_domain_pxest_quad_to_glueid_2(p4est_t *pxest,
  *                               further transform the nodal locations
  * \param [in] user_args         user argument for nodes_transform
  */
-void
-bfam_domain_pxest_split_dgx_subdomains_2(bfam_domain_pxest_t_2 *domain,
-    bfam_locidx_t numSubdomains, bfam_locidx_t *subdomainID, int *N,
-    bfam_locidx_t *glueID,
+void bfam_domain_pxest_split_dgx_subdomains_2(
+    bfam_domain_pxest_t_2 *domain, bfam_locidx_t numSubdomains,
+    bfam_locidx_t *subdomainID, int *N, bfam_locidx_t *glueID,
     void (*nodes_transform)(const bfam_locidx_t num_Vi,
-      const bfam_locidx_t num_pnts, bfam_long_real_t** lxi,
-      void* user_args),
-    void* user_args);
+                            const bfam_locidx_t num_pnts,
+                            bfam_long_real_t **lxi, void *user_args),
+    void *user_args);
 
 #endif

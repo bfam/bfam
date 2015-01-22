@@ -9,9 +9,9 @@
 /**
  * structure containing a domain (which is a collection of subdomains!)
  */
-typedef struct bfam_domain 
+typedef struct bfam_domain
 {
-  bfam_subdomain_t** subdomains;  /**< array of pointers to subdomains */
+  bfam_subdomain_t **subdomains; /**< array of pointers to subdomains */
   bfam_locidx_t numSubdomains;   /**< number of subdomains that are
                                       currently in the domain */
   bfam_locidx_t sizeSubdomains;  /**< total number of subdomains the domain
@@ -34,15 +34,14 @@ typedef enum bfam_domain_match
  *
  * \return the newly created domain
  */
-bfam_domain_t* bfam_domain_new(MPI_Comm domComm);
+bfam_domain_t *bfam_domain_new(MPI_Comm domComm);
 
 /** initializes a domain
  *
  * \param [in,out] domain pointer to the domain
  * \param [in]     domComm pointer to the communicator for the domain
  */
-void
-bfam_domain_init(bfam_domain_t *domain, MPI_Comm domComm);
+void bfam_domain_init(bfam_domain_t *domain, MPI_Comm domComm);
 
 /** Clean up domain
  *
@@ -51,17 +50,15 @@ bfam_domain_init(bfam_domain_t *domain, MPI_Comm domComm);
  *
  * \param [in,out] domain domain to clean up
  */
-void
-bfam_domain_free(bfam_domain_t *domain);
+void bfam_domain_free(bfam_domain_t *domain);
 
 /** Add subdomain
  *
  * \param [in,out] thisDomain domain to add subdomain to
  * \param [in]     newSubdomain subdomain to add to the domain
  */
-void
-bfam_domain_add_subdomain(bfam_domain_t *thisDomain,
-    bfam_subdomain_t *newSubdomain);
+void bfam_domain_add_subdomain(bfam_domain_t *thisDomain,
+                               bfam_subdomain_t *newSubdomain);
 
 /** Get subdomains with tags passed in
  *
@@ -77,11 +74,11 @@ bfam_domain_add_subdomain(bfam_domain_t *thisDomain,
  * \param [out] numSubdomains number of matching subdomains
  *
  */
-void
-bfam_domain_get_subdomains(bfam_domain_t *thisDomain,
-    bfam_domain_match_t match, const char **tags,
-    bfam_locidx_t numEntries, bfam_subdomain_t **subdomains,
-    bfam_locidx_t *numSubdomains);
+void bfam_domain_get_subdomains(bfam_domain_t *thisDomain,
+                                bfam_domain_match_t match, const char **tags,
+                                bfam_locidx_t numEntries,
+                                bfam_subdomain_t **subdomains,
+                                bfam_locidx_t *numSubdomains);
 
 /** Get subdomains with tags passed in
  *
@@ -97,11 +94,12 @@ bfam_domain_get_subdomains(bfam_domain_t *thisDomain,
  * \param [out] numSubdomains number of matching subdomains
  *
  */
-void
-bfam_domain_get_subdomains_critbit(bfam_domain_t *thisDomain,
-    bfam_domain_match_t match, bfam_critbit0_tree_t *tags,
-    bfam_locidx_t numEntries, bfam_subdomain_t **subdomains,
-    bfam_locidx_t *numSubdomains);
+void bfam_domain_get_subdomains_critbit(bfam_domain_t *thisDomain,
+                                        bfam_domain_match_t match,
+                                        bfam_critbit0_tree_t *tags,
+                                        bfam_locidx_t numEntries,
+                                        bfam_subdomain_t **subdomains,
+                                        bfam_locidx_t *numSubdomains);
 
 /** Add tag to subdomains matching the tags passed in.
  *
@@ -114,9 +112,8 @@ bfam_domain_get_subdomains_critbit(bfam_domain_t *thisDomain,
  * \param [in]      tag           tag to add to the subdomains
  *
  */
-void
-bfam_domain_add_tag(bfam_domain_t *thisDomain, bfam_domain_match_t match,
-    const char **mtags, const char *tag);
+void bfam_domain_add_tag(bfam_domain_t *thisDomain, bfam_domain_match_t match,
+                         const char **mtags, const char *tag);
 
 /** Add fields to subdomains matching the tags passed in.
  *
@@ -129,9 +126,8 @@ bfam_domain_add_tag(bfam_domain_t *thisDomain, bfam_domain_match_t match,
  * \param [in]      tags          tags to add to the subdomains
  *
  */
-void
-bfam_domain_add_tags(bfam_domain_t *thisDomain, bfam_domain_match_t match,
-    const char **mtags, const char **tags);
+void bfam_domain_add_tags(bfam_domain_t *thisDomain, bfam_domain_match_t match,
+                          const char **mtags, const char **tags);
 
 /** Add fields to subdomains matching the tags passed in.
  *
@@ -144,9 +140,8 @@ bfam_domain_add_tags(bfam_domain_t *thisDomain, bfam_domain_match_t match,
  * \param [in]      field         field to add to the subdomains
  *
  */
-void
-bfam_domain_add_field(bfam_domain_t *thisDomain, bfam_domain_match_t match,
-    const char **tags, const char *field);
+void bfam_domain_add_field(bfam_domain_t *thisDomain, bfam_domain_match_t match,
+                           const char **tags, const char *field);
 
 /** Add fields to subdomains matching the tags passed in.
  *
@@ -159,9 +154,9 @@ bfam_domain_add_field(bfam_domain_t *thisDomain, bfam_domain_match_t match,
  * \param [in]      fields        fields to add to the subdomains
  *
  */
-void
-bfam_domain_add_fields(bfam_domain_t *thisDomain, bfam_domain_match_t match,
-    const char **tags, const char **fields);
+void bfam_domain_add_fields(bfam_domain_t *thisDomain,
+                            bfam_domain_match_t match, const char **tags,
+                            const char **fields);
 
 /** Add fields to subdomains matching the tags passed in.
  *
@@ -176,9 +171,10 @@ bfam_domain_add_fields(bfam_domain_t *thisDomain, bfam_domain_match_t match,
  * \param [in]      field         field to add to the subdomains
  *
  */
-void
-bfam_domain_add_field_critbit(bfam_domain_t *thisDomain,
-    bfam_domain_match_t match, bfam_critbit0_tree_t *tags, const char *field);
+void bfam_domain_add_field_critbit(bfam_domain_t *thisDomain,
+                                   bfam_domain_match_t match,
+                                   bfam_critbit0_tree_t *tags,
+                                   const char *field);
 
 /** Add fields to subdomains matching the tags passed in
  *
@@ -191,10 +187,10 @@ bfam_domain_add_field_critbit(bfam_domain_t *thisDomain,
  * \param [in]      fields        fields to add to the subdomains
  *
  */
-void
-bfam_domain_add_fields_critbit(bfam_domain_t *thisDomain,
-    bfam_domain_match_t match, bfam_critbit0_tree_t *tags,
-    const char **fields);
+void bfam_domain_add_fields_critbit(bfam_domain_t *thisDomain,
+                                    bfam_domain_match_t match,
+                                    bfam_critbit0_tree_t *tags,
+                                    const char **fields);
 
 /** Add minus fields to subdomains matching the tags passed in.
  *
@@ -207,9 +203,9 @@ bfam_domain_add_fields_critbit(bfam_domain_t *thisDomain,
  * \param [in]      field         field to add to the subdomains
  *
  */
-void
-bfam_domain_add_minus_field(bfam_domain_t *thisDomain, bfam_domain_match_t match,
-    const char **tags, const char *field);
+void bfam_domain_add_minus_field(bfam_domain_t *thisDomain,
+                                 bfam_domain_match_t match, const char **tags,
+                                 const char *field);
 
 /** Add minus fields to subdomains matching the tags passed in.
  *
@@ -222,9 +218,9 @@ bfam_domain_add_minus_field(bfam_domain_t *thisDomain, bfam_domain_match_t match
  * \param [in]      fields        fields to add to the subdomains
  *
  */
-void
-bfam_domain_add_minus_fields(bfam_domain_t *thisDomain,
-    bfam_domain_match_t match, const char **tags, const char **fields);
+void bfam_domain_add_minus_fields(bfam_domain_t *thisDomain,
+                                  bfam_domain_match_t match, const char **tags,
+                                  const char **fields);
 
 /** Add minus fields to subdomains matching the tags passed in.
  *
@@ -239,9 +235,10 @@ bfam_domain_add_minus_fields(bfam_domain_t *thisDomain,
  * \param [in]      field         field to add to the subdomains
  *
  */
-void
-bfam_domain_add_minus_field_critbit(bfam_domain_t *thisDomain,
-    bfam_domain_match_t match, bfam_critbit0_tree_t *tags, const char *field);
+void bfam_domain_add_minus_field_critbit(bfam_domain_t *thisDomain,
+                                         bfam_domain_match_t match,
+                                         bfam_critbit0_tree_t *tags,
+                                         const char *field);
 
 /** Add minus fields to subdomains matching the tags passed in
  *
@@ -254,11 +251,10 @@ bfam_domain_add_minus_field_critbit(bfam_domain_t *thisDomain,
  * \param [in]      fields        fields to add to the subdomains
  *
  */
-void
-bfam_domain_add_minus_fields_critbit(bfam_domain_t *thisDomain,
-    bfam_domain_match_t match, bfam_critbit0_tree_t *tags,
-    const char **fields);
-
+void bfam_domain_add_minus_fields_critbit(bfam_domain_t *thisDomain,
+                                          bfam_domain_match_t match,
+                                          bfam_critbit0_tree_t *tags,
+                                          const char **fields);
 
 /** Add plus fields to subdomains matching the tags passed in.
  *
@@ -271,9 +267,9 @@ bfam_domain_add_minus_fields_critbit(bfam_domain_t *thisDomain,
  * \param [in]      field         field to add to the subdomains
  *
  */
-void
-bfam_domain_add_plus_field(bfam_domain_t *thisDomain, bfam_domain_match_t match,
-    const char **tags, const char *field);
+void bfam_domain_add_plus_field(bfam_domain_t *thisDomain,
+                                bfam_domain_match_t match, const char **tags,
+                                const char *field);
 
 /** Add plus fields to subdomains matching the tags passed in.
  *
@@ -286,9 +282,9 @@ bfam_domain_add_plus_field(bfam_domain_t *thisDomain, bfam_domain_match_t match,
  * \param [in]      fields        fields to add to the subdomains
  *
  */
-void
-bfam_domain_add_plus_fields(bfam_domain_t *thisDomain, bfam_domain_match_t match,
-    const char **tags, const char **fields);
+void bfam_domain_add_plus_fields(bfam_domain_t *thisDomain,
+                                 bfam_domain_match_t match, const char **tags,
+                                 const char **fields);
 
 /** Add plus fields to subdomains matching the tags passed in.
  *
@@ -303,9 +299,10 @@ bfam_domain_add_plus_fields(bfam_domain_t *thisDomain, bfam_domain_match_t match
  * \param [in]      field         field to add to the subdomains
  *
  */
-void
-bfam_domain_add_plus_field_critbit(bfam_domain_t *thisDomain,
-    bfam_domain_match_t match, bfam_critbit0_tree_t *tags, const char *field);
+void bfam_domain_add_plus_field_critbit(bfam_domain_t *thisDomain,
+                                        bfam_domain_match_t match,
+                                        bfam_critbit0_tree_t *tags,
+                                        const char *field);
 
 /** Add fields to subdomains matching the tags passed in
  *
@@ -318,10 +315,10 @@ bfam_domain_add_plus_field_critbit(bfam_domain_t *thisDomain,
  * \param [in]      fields        fields to add to the subdomains
  *
  */
-void
-bfam_domain_add_plus_fields_critbit(bfam_domain_t *thisDomain,
-    bfam_domain_match_t match, bfam_critbit0_tree_t *tags,
-    const char **fields);
+void bfam_domain_add_plus_fields_critbit(bfam_domain_t *thisDomain,
+                                         bfam_domain_match_t match,
+                                         bfam_critbit0_tree_t *tags,
+                                         const char **fields);
 
 /** Initialize a field.
  *
@@ -337,10 +334,10 @@ bfam_domain_add_plus_fields_critbit(bfam_domain_t *thisDomain,
  * \param [in]      arg           user pointer to pass to init function
  *
  */
-void
-bfam_domain_init_field(bfam_domain_t *thisDomain, bfam_domain_match_t match,
-    const char **tags, const char *field, bfam_real_t time,
-    bfam_subdomain_init_field_t init_field, void *arg);
+void bfam_domain_init_field(bfam_domain_t *thisDomain,
+                            bfam_domain_match_t match, const char **tags,
+                            const char *field, bfam_real_t time,
+                            bfam_subdomain_init_field_t init_field, void *arg);
 
 /** Initialize a field.
  *
@@ -358,9 +355,11 @@ bfam_domain_init_field(bfam_domain_t *thisDomain, bfam_domain_match_t match,
  * \param [in]      arg           user pointer to pass to init function
  *
  */
-void
-bfam_domain_init_field_critbit(bfam_domain_t *thisDomain,
-    bfam_domain_match_t match, bfam_critbit0_tree_t *tags, const char *field,
-    bfam_real_t time, bfam_subdomain_init_field_t init_field, void *arg);
+void bfam_domain_init_field_critbit(bfam_domain_t *thisDomain,
+                                    bfam_domain_match_t match,
+                                    bfam_critbit0_tree_t *tags,
+                                    const char *field, bfam_real_t time,
+                                    bfam_subdomain_init_field_t init_field,
+                                    void *arg);
 
 #endif

@@ -23,9 +23,8 @@ void bfam_util_strcsl(char *str, const char **list);
  *
  * \note This code is not designed for speed.
  */
-void bfam_util_mtranspose(size_t m, size_t n,
-                          bfam_long_real_t *restrict A, size_t lda,
-                          bfam_long_real_t *restrict B, size_t ldb);
+void bfam_util_mtranspose(size_t m, size_t n, bfam_long_real_t *restrict A,
+                          size_t lda, bfam_long_real_t *restrict B, size_t ldb);
 
 /** Matrix transpose matrix multiplication.
  *
@@ -85,9 +84,8 @@ void bfam_util_mmmult(size_t m, size_t n, size_t k,
  *
  * \note This code is not designed for speed.
  */
-void bfam_util_mvmult(size_t m, size_t n,
-                      bfam_long_real_t *restrict A, size_t lda,
-                      bfam_long_real_t *restrict b,
+void bfam_util_mvmult(size_t m, size_t n, bfam_long_real_t *restrict A,
+                      size_t lda, bfam_long_real_t *restrict b,
                       bfam_long_real_t *restrict c);
 
 /** LU Factorization using Gaussian Elimination with Complete Pivoting.
@@ -160,24 +158,24 @@ void bfam_util_backslash(size_t m, size_t n, bfam_long_real_t *restrict A,
 
 /** Transfinite Interpolation
  */
-void bfam_util_transfinite(
-    bfam_real_t *x, bfam_real_t *y, bfam_real_t *z,
-    const bfam_gloidx_t *N, const bfam_locidx_t *Nl, const bfam_gloidx_t *gx,
-    const bfam_long_real_t *xc, const bfam_long_real_t *xe,
-    const bfam_long_real_t *r,
-    const bfam_long_real_t *yc, const bfam_long_real_t *ye,
-    const bfam_long_real_t *s,
-    const bfam_long_real_t *zc, const bfam_long_real_t *ze,
-    const bfam_long_real_t *t);
+void
+bfam_util_transfinite(bfam_real_t *x, bfam_real_t *y, bfam_real_t *z,
+                      const bfam_gloidx_t *N, const bfam_locidx_t *Nl,
+                      const bfam_gloidx_t *gx, const bfam_long_real_t *xc,
+                      const bfam_long_real_t *xe, const bfam_long_real_t *r,
+                      const bfam_long_real_t *yc, const bfam_long_real_t *ye,
+                      const bfam_long_real_t *s, const bfam_long_real_t *zc,
+                      const bfam_long_real_t *ze, const bfam_long_real_t *t);
 
 /** Linear blending
  */
-void bfam_util_linear_blend(
-    bfam_real_t *restrict x, bfam_real_t *restrict y, bfam_real_t *restrict z,
-    const int dim,
-    const bfam_gloidx_t *N, const bfam_locidx_t *Nltmp,
-    const bfam_gloidx_t *gxtmp, const bfam_long_real_t *xc,
-    const bfam_long_real_t *yc, const bfam_long_real_t *zc);
+void bfam_util_linear_blend(bfam_real_t *restrict x, bfam_real_t *restrict y,
+                            bfam_real_t *restrict z, const int dim,
+                            const bfam_gloidx_t *N, const bfam_locidx_t *Nltmp,
+                            const bfam_gloidx_t *gxtmp,
+                            const bfam_long_real_t *xc,
+                            const bfam_long_real_t *yc,
+                            const bfam_long_real_t *zc);
 
 /** Integer power routine
  */

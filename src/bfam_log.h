@@ -3,18 +3,18 @@
 
 #include <bfam_base.h>
 
-#define BFAM_LC_ALL         0
-#define BFAM_LC_ROOT        1
+#define BFAM_LC_ALL 0
+#define BFAM_LC_ROOT 1
 
-#define BFAM_LL_DEFAULT    -1
-#define BFAM_LL_ALWAYS      0
-#define BFAM_LL_TRACE       1
-#define BFAM_LL_DEBUG       2
-#define BFAM_LL_VERBOSE     3
-#define BFAM_LL_INFO        4
-#define BFAM_LL_WARNING     5
-#define BFAM_LL_ERROR       6
-#define BFAM_LL_SILENT      7
+#define BFAM_LL_DEFAULT -1
+#define BFAM_LL_ALWAYS 0
+#define BFAM_LL_TRACE 1
+#define BFAM_LL_DEBUG 2
+#define BFAM_LL_VERBOSE 3
+#define BFAM_LL_INFO 4
+#define BFAM_LL_WARNING 5
+#define BFAM_LL_ERROR 6
+#define BFAM_LL_SILENT 7
 
 /*
  * Setting a hard log threshold is set at compile time
@@ -29,35 +29,26 @@
 #endif
 #endif
 
-#define BFAM_ROOT_TRACE(...)      \
-  BFAM_LOG(BFAM_LC_ROOT, BFAM_LL_TRACE,   __VA_ARGS__)
-#define BFAM_ROOT_LDEBUG(...)     \
-  BFAM_LOG(BFAM_LC_ROOT, BFAM_LL_DEBUG,   __VA_ARGS__)
-#define BFAM_ROOT_VERBOSE(...)    \
+#define BFAM_ROOT_TRACE(...) BFAM_LOG(BFAM_LC_ROOT, BFAM_LL_TRACE, __VA_ARGS__)
+#define BFAM_ROOT_LDEBUG(...) BFAM_LOG(BFAM_LC_ROOT, BFAM_LL_DEBUG, __VA_ARGS__)
+#define BFAM_ROOT_VERBOSE(...)                                                 \
   BFAM_LOG(BFAM_LC_ROOT, BFAM_LL_VERBOSE, __VA_ARGS__)
-#define BFAM_ROOT_INFO(...)       \
-  BFAM_LOG(BFAM_LC_ROOT, BFAM_LL_INFO,    __VA_ARGS__)
-#define BFAM_ROOT_WARNING(...)  \
+#define BFAM_ROOT_INFO(...) BFAM_LOG(BFAM_LC_ROOT, BFAM_LL_INFO, __VA_ARGS__)
+#define BFAM_ROOT_WARNING(...)                                                 \
   BFAM_LOG(BFAM_LC_ROOT, BFAM_LL_WARNING, __VA_ARGS__)
-#define BFAM_ROOT_LERROR(...)     \
-  BFAM_LOG(BFAM_LC_ROOT, BFAM_LL_ERROR,   __VA_ARGS__)
+#define BFAM_ROOT_LERROR(...) BFAM_LOG(BFAM_LC_ROOT, BFAM_LL_ERROR, __VA_ARGS__)
 
-#define BFAM_TRACE(...)      \
-  BFAM_LOG(BFAM_LC_ALL, BFAM_LL_TRACE,    __VA_ARGS__)
-#define BFAM_LDEBUG(...)     \
-  BFAM_LOG(BFAM_LC_ALL, BFAM_LL_DEBUG,    __VA_ARGS__)
-#define BFAM_VERBOSE(...)    \
-  BFAM_LOG(BFAM_LC_ALL, BFAM_LL_VERBOSE,  __VA_ARGS__)
-#define BFAM_INFO(...)       \
-  BFAM_LOG(BFAM_LC_ALL, BFAM_LL_INFO,     __VA_ARGS__)
-#define BFAM_WARNING(...)  \
-  BFAM_LOG(BFAM_LC_ALL, BFAM_LL_WARNING,  __VA_ARGS__)
-#define BFAM_LERROR(...)     \
-  BFAM_LOG(BFAM_LC_ALL, BFAM_LL_ERROR,    __VA_ARGS__)
+#define BFAM_TRACE(...) BFAM_LOG(BFAM_LC_ALL, BFAM_LL_TRACE, __VA_ARGS__)
+#define BFAM_LDEBUG(...) BFAM_LOG(BFAM_LC_ALL, BFAM_LL_DEBUG, __VA_ARGS__)
+#define BFAM_VERBOSE(...) BFAM_LOG(BFAM_LC_ALL, BFAM_LL_VERBOSE, __VA_ARGS__)
+#define BFAM_INFO(...) BFAM_LOG(BFAM_LC_ALL, BFAM_LL_INFO, __VA_ARGS__)
+#define BFAM_WARNING(...) BFAM_LOG(BFAM_LC_ALL, BFAM_LL_WARNING, __VA_ARGS__)
+#define BFAM_LERROR(...) BFAM_LOG(BFAM_LC_ALL, BFAM_LL_ERROR, __VA_ARGS__)
 
-#define BFAM_LOG(category, level, ...)                                    \
-  ((level) < BFAM_LL_THRESHOLD ? (void) 0 :                               \
-   bfam_log_printf(__FILE__, __LINE__, (category), (level), __VA_ARGS__))
+#define BFAM_LOG(category, level, ...)                                         \
+  ((level) < BFAM_LL_THRESHOLD ? (void)0 : bfam_log_printf(                    \
+                                               __FILE__, __LINE__, (category), \
+                                               (level), __VA_ARGS__))
 
 /** Initialization function for the logging system.
  *

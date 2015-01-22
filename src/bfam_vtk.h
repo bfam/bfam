@@ -11,8 +11,7 @@
  * \param [in]  writeBinary     boolean indicating if the data should be written
  *                              in binary.
  */
-void
-bfam_vtk_write_vtu_empty(FILE *file,int writeBinary);
+void bfam_vtk_write_vtu_empty(FILE *file, int writeBinary);
 
 /** Write out vtk files for each domain.
  *
@@ -39,11 +38,11 @@ bfam_vtk_write_vtu_empty(FILE *file,int writeBinary);
  *
  */
 
-void
-bfam_vtk_write_struc_file(bfam_domain_t *domain, bfam_domain_match_t match,
-    const char **tags, const char *prefix, const char **scalars,
-    const char **vectors, const char **components, int binary,
-    int compress);
+void bfam_vtk_write_struc_file(bfam_domain_t *domain, bfam_domain_match_t match,
+                               const char **tags, const char *prefix,
+                               const char **scalars, const char **vectors,
+                               const char **components, int binary,
+                               int compress);
 
 /** Write out vtk files for each domain.
  *
@@ -73,12 +72,12 @@ bfam_vtk_write_struc_file(bfam_domain_t *domain, bfam_domain_match_t match,
  *
  */
 
-void
-bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match, const
-    char **tags, const char *directory, const char *prefix, bfam_real_t time,
-    const char **scalars, const char **vectors, const char **components,
-    int binary, int compress, int Np_write);
-
+void bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match,
+                         const char **tags, const char *directory,
+                         const char *prefix, bfam_real_t time,
+                         const char **scalars, const char **vectors,
+                         const char **components, int binary, int compress,
+                         int Np_write);
 
 /** Utility function to write binary data in VTK format.
  *
@@ -92,9 +91,8 @@ bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match, const
  *
  * \returns 0 on success and -1 on file error.
  */
-int
-bfam_vtk_write_binary_data(int compressed, FILE *file, char *data, size_t size);
-
+int bfam_vtk_write_binary_data(int compressed, FILE *file, char *data,
+                               size_t size);
 
 /** Utility function for writing a scalar data array.
  *
@@ -107,10 +105,10 @@ bfam_vtk_write_binary_data(int compressed, FILE *file, char *data, size_t size);
  * \param [in]  Ntotal          length of the scalar.
  * \param [in]  s               scalar data.
  */
-void
-bfam_vtk_write_real_scalar_data_array(FILE* file, const char *name,
-    int writeBinary, int writeCompressed, bfam_locidx_t Ntotal,
-    const bfam_real_t *s);
+void bfam_vtk_write_real_scalar_data_array(FILE *file, const char *name,
+                                           int writeBinary, int writeCompressed,
+                                           bfam_locidx_t Ntotal,
+                                           const bfam_real_t *s);
 
 /** Utility function for writing a vector data array.
  *
@@ -125,9 +123,11 @@ bfam_vtk_write_real_scalar_data_array(FILE* file, const char *name,
  * \param [in]  v2              2nd component of the vector.
  * \param [in]  v3              3rd component of the vector.
  */
-void
-bfam_vtk_write_real_vector_data_array(FILE* file, const char *name,
-    int writeBinary, int writeCompressed, bfam_locidx_t Ntotal,
-    const bfam_real_t *v1, const bfam_real_t *v2, const bfam_real_t *v3);
+void bfam_vtk_write_real_vector_data_array(FILE *file, const char *name,
+                                           int writeBinary, int writeCompressed,
+                                           bfam_locidx_t Ntotal,
+                                           const bfam_real_t *v1,
+                                           const bfam_real_t *v2,
+                                           const bfam_real_t *v3);
 
 #endif

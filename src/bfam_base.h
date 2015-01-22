@@ -1,8 +1,8 @@
 #ifndef BFAM_BASE_H
 #define BFAM_BASE_H
 
-#if !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__USLC__) && \
-    !defined(_M_UNIX) && !defined(__sgi) && !defined(__DragonFly__) && \
+#if !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__USLC__) &&      \
+    !defined(_M_UNIX) && !defined(__sgi) && !defined(__DragonFly__) &&         \
     !defined(__TANDEM)
 #define _XOPEN_SOURCE 600
 #endif
@@ -51,9 +51,9 @@
 #include <mach/mach_time.h>
 #endif
 
-#if defined (BFAM_HAVE_SYSEXITS_H)
+#if defined(BFAM_HAVE_SYSEXITS_H)
 #include <sysexits.h>
-#elif defined (BFAM_HAVE_SYS_SYSEXITS_H)
+#elif defined(BFAM_HAVE_SYS_SYSEXITS_H)
 #include <sys/sysexits.h>
 #else
 #define EX_OSERR EXIT_FAILURE
@@ -67,11 +67,11 @@
 #endif
 
 #ifdef BFAM_HAVE_OPENCL
-#  ifdef __APPLE__
-#    include <OpenCL/cl.h>
-#  else
-#    include <CL/cl.h>
-#  endif
+#ifdef __APPLE__
+#include <OpenCL/cl.h>
+#else
+#include <CL/cl.h>
+#endif
 #endif
 
 #ifdef BFAM_HAVE_LUA5_2_LUA_H
@@ -91,50 +91,53 @@
 #endif
 
 #if defined __GNUC__ && !defined __GNUC_PREREQ
-# ifndef __GNUC_MINOR__
-#    define __GNUC_PREREQ(maj, min) 0
-# else
-#    define __GNUC_PREREQ(maj, min) \
-         ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
-# endif
+#ifndef __GNUC_MINOR__
+#define __GNUC_PREREQ(maj, min) 0
+#else
+#define __GNUC_PREREQ(maj, min)                                                \
+  ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
+#endif
 #endif
 
 #define BFAM_BUFSIZ 8192
 
 #define BFAM_LITTLE_ENDIAN 0
-#define BFAM_BIG_ENDIAN    1
+#define BFAM_BIG_ENDIAN 1
 
-#define BFAM_APPEND(x, y) x ## y
+#define BFAM_APPEND(x, y) x##y
 #define BFAM_APPEND_EXPAND(x, y) BFAM_APPEND(x, y)
 
-#define BFAM_MIN(a,b) (((a)<(b))?(a):(b))
-#define BFAM_MAX(a,b) (((a)>(b))?(a):(b))
+#define BFAM_MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define BFAM_MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-#define BFAM_NOOP() do {} while(0)
+#define BFAM_NOOP()                                                            \
+  do                                                                           \
+  {                                                                            \
+  } while (0)
 #define BFAM_ABORT(...) bfam_abort_verbose(__FILE__, __LINE__, __VA_ARGS__)
-#define BFAM_ABORT_IF(q,...) ((q) ? BFAM_ABORT(__VA_ARGS__) : (void) 0)
-#define BFAM_ABORT_IF_NOT(q,...)  BFAM_ABORT_IF(!(q), __VA_ARGS__)
+#define BFAM_ABORT_IF(q, ...) ((q) ? BFAM_ABORT(__VA_ARGS__) : (void)0)
+#define BFAM_ABORT_IF_NOT(q, ...) BFAM_ABORT_IF(!(q), __VA_ARGS__)
 
 #ifdef BFAM_DEBUG
-#define BFAM_ASSERT(expression)   \
+#define BFAM_ASSERT(expression)                                                \
   BFAM_ABORT_IF_NOT((expression), "Assert Failed: '" #expression "'")
 #else
 #define BFAM_ASSERT(expression) BFAM_NOOP()
 #endif
 
-#define BFAM_SYS_ERROR_CHECK(cond, msg) \
-  do                                    \
-  {                                     \
-    if(cond)                            \
-    {                                   \
-      perror(msg);                      \
-      BFAM_ABORT("perror");             \
-    }                                   \
+#define BFAM_SYS_ERROR_CHECK(cond, msg)                                        \
+  do                                                                           \
+  {                                                                            \
+    if (cond)                                                                  \
+    {                                                                          \
+      perror(msg);                                                             \
+      BFAM_ABORT("perror");                                                    \
+    }                                                                          \
   } while (0)
 
 #define BFAM_MPI_CHECK(c) BFAM_ABORT_IF_NOT((c) == MPI_SUCCESS, "MPI Error")
 
-#define BFAM_IS_ALIGNED(p,a) (((intptr_t)(p) & ((a) - 1)) == 0)
+#define BFAM_IS_ALIGNED(p, a) (((intptr_t)(p) & ((a)-1)) == 0)
 
 /*
  * Switch for different compilers taken from this web page:
@@ -144,57 +147,57 @@
  */
 #if defined(__clang__)
 /* Clang/LLVM. ---------------------------------------------- */
-#    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
+#define BFAM_ASSUME_ALIGNED(lvalueptr, align) BFAM_NOOP()
 #elif defined(__ICC) || defined(__INTEL_COMPILER)
 /* Intel ICC/ICPC. ------------------------------------------ */
-#    define BFAM_ASSUME_ALIGNED(lvalueptr, align)        \
-         __assume_aligned(lvalueptr, align);             \
-         BFAM_ASSERT(BFAM_IS_ALIGNED(lvalueptr, align))
+#define BFAM_ASSUME_ALIGNED(lvalueptr, align)                                  \
+  __assume_aligned(lvalueptr, align);                                          \
+  BFAM_ASSERT(BFAM_IS_ALIGNED(lvalueptr, align))
 
 #elif defined(__GNUC__) || defined(__GNUG__)
 /* GNU GCC/G++. --------------------------------------------- */
-#  if __GNUC_PREREQ(4,7)
+#if __GNUC_PREREQ(4, 7)
 //      If  gcc_version >= 4.7
-#    define BFAM_ASSUME_ALIGNED(lvalueptr, align)                 \
-         lvalueptr = __builtin_assume_aligned (lvalueptr, align); \
-         BFAM_ASSERT(BFAM_IS_ALIGNED(lvalueptr, align))
-#  else
+#define BFAM_ASSUME_ALIGNED(lvalueptr, align)                                  \
+  lvalueptr = __builtin_assume_aligned(lvalueptr, align);                      \
+  BFAM_ASSERT(BFAM_IS_ALIGNED(lvalueptr, align))
+#else
 //       Else
-#    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
-#  endif
+#define BFAM_ASSUME_ALIGNED(lvalueptr, align) BFAM_NOOP()
+#endif
 
 #elif defined(__HP_cc) || defined(__HP_aCC)
 /* Hewlett-Packard C/aC++. ---------------------------------- */
-#    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
+#define BFAM_ASSUME_ALIGNED(lvalueptr, align) BFAM_NOOP()
 
 #elif defined(__IBMC__) || defined(__IBMCPP__)
 /* IBM XL C/C++. -------------------------------------------- */
-#    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
+#define BFAM_ASSUME_ALIGNED(lvalueptr, align) BFAM_NOOP()
 
 #elif defined(_MSC_VER)
 /* Microsoft Visual Studio. --------------------------------- */
-#    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
+#define BFAM_ASSUME_ALIGNED(lvalueptr, align) BFAM_NOOP()
 
 #elif defined(__PGI)
 /* Portland Group PGCC/PGCPP. ------------------------------- */
-#    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
+#define BFAM_ASSUME_ALIGNED(lvalueptr, align) BFAM_NOOP()
 
 #elif defined(__SUNPRO_C) || defined(__SUNPRO_CC)
 /* Oracle Solaris Studio. ----------------------------------- */
-#    define BFAM_ASSUME_ALIGNED(lvalueptr, align)  BFAM_NOOP()
+#define BFAM_ASSUME_ALIGNED(lvalueptr, align) BFAM_NOOP()
 
 #endif
 
 #if (defined __GNUC__) || (defined __PGI) || (defined __IBMC__)
-  #define BFAM_ALIGN(n) __attribute__((aligned(n)))
-#elif (defined _MSC_VER)
-  #define BFAM_ALIGN(n) __declspec(align(n))
+#define BFAM_ALIGN(n) __attribute__((aligned(n)))
+#elif(defined _MSC_VER)
+#define BFAM_ALIGN(n) __declspec(align(n))
 #else
-  #error Need equilvent of __attribute__((aligned(n))) for this compiler
+#error Need equilvent of __attribute__((aligned(n))) for this compiler
 #endif
 
 #if defined __GNUC__
-#define BFAM_ASM_COMMENT(X)  __asm__("# " X)
+#define BFAM_ASM_COMMENT(X) __asm__("# " X)
 #else
 #define BFAM_ASM_COMMENT(X)
 #endif
@@ -213,8 +216,8 @@
 
 #define BFAM_KEYVALUE_SPLIT '\255'
 
-#define BFAM_APPROX_EQ(x, y, K, abs, eps, min) \
-  ((abs)((x)-(y)) < (min) + (K) * (eps) * BFAM_MAX((abs)((x)),(abs)((y))))
+#define BFAM_APPROX_EQ(x, y, K, abs, eps, min)                                 \
+  ((abs)((x) - (y)) < (min) + (K) * (eps)*BFAM_MAX((abs)((x)), (abs)((y))))
 
 /* Type for setup computations */
 #ifdef BFAM_USE_LONG_DOUBLE
@@ -224,17 +227,16 @@ typedef long double bfam_long_real_t;
 #define BFAM_LONG_REAL_PRIf "Lf"
 #define BFAM_LONG_REAL_PRIg "Lg"
 
-#define BFAM_LONG_REAL_ABS      fabsl
-#define BFAM_LONG_REAL_ATAN     atanl
-#define BFAM_LONG_REAL_COS       cosl
+#define BFAM_LONG_REAL_ABS fabsl
+#define BFAM_LONG_REAL_ATAN atanl
+#define BFAM_LONG_REAL_COS cosl
 #define BFAM_LONG_REAL_LGAMMA lgammal
-#define BFAM_LONG_REAL_LOG       logl
-#define BFAM_LONG_REAL_EXP       expl
-#define BFAM_LONG_REAL_HYPOT   hypotl
-#define BFAM_LONG_REAL_SQRT     sqrtl
-#define BFAM_LONG_REAL_SIN       sinl
-#define BFAM_LONG_REAL_TAN       tanl
-
+#define BFAM_LONG_REAL_LOG logl
+#define BFAM_LONG_REAL_EXP expl
+#define BFAM_LONG_REAL_HYPOT hypotl
+#define BFAM_LONG_REAL_SQRT sqrtl
+#define BFAM_LONG_REAL_SIN sinl
+#define BFAM_LONG_REAL_TAN tanl
 
 #define BFAM_LONG_REAL_EPS LDBL_EPSILON
 #define BFAM_LONG_REAL_MIN LDBL_MIN
@@ -245,26 +247,25 @@ typedef double bfam_long_real_t;
 #define BFAM_LONG_REAL_PRIf "f"
 #define BFAM_LONG_REAL_PRIg "g"
 
-#define BFAM_LONG_REAL_ABS      fabs
-#define BFAM_LONG_REAL_ATAN     atan
-#define BFAM_LONG_REAL_COS       cos
+#define BFAM_LONG_REAL_ABS fabs
+#define BFAM_LONG_REAL_ATAN atan
+#define BFAM_LONG_REAL_COS cos
 #define BFAM_LONG_REAL_LGAMMA lgamma
-#define BFAM_LONG_REAL_LOG       log
-#define BFAM_LONG_REAL_EXP       exp
-#define BFAM_LONG_REAL_HYPOT   hypot
-#define BFAM_LONG_REAL_SQRT     sqrt
-#define BFAM_LONG_REAL_SIN       sin
-#define BFAM_LONG_REAL_TAN       tan
-
+#define BFAM_LONG_REAL_LOG log
+#define BFAM_LONG_REAL_EXP exp
+#define BFAM_LONG_REAL_HYPOT hypot
+#define BFAM_LONG_REAL_SQRT sqrt
+#define BFAM_LONG_REAL_SIN sin
+#define BFAM_LONG_REAL_TAN tan
 
 #define BFAM_LONG_REAL_EPS DBL_EPSILON
 #define BFAM_LONG_REAL_MIN DBL_MIN
 #endif
-#define BFAM_LONG_REAL_PI  (4*BFAM_LONG_REAL_ATAN(1))
+#define BFAM_LONG_REAL_PI (4 * BFAM_LONG_REAL_ATAN(1))
 
-#define BFAM_LONG_REAL_APPROX_EQ(x, y, K)                               \
-  BFAM_APPROX_EQ((x), (y), (K), BFAM_LONG_REAL_ABS, BFAM_LONG_REAL_EPS, \
-                 BFAM_LONG_REAL_EPS * BFAM_LONG_REAL_EPS)
+#define BFAM_LONG_REAL_APPROX_EQ(x, y, K)                                      \
+  BFAM_APPROX_EQ((x), (y), (K), BFAM_LONG_REAL_ABS, BFAM_LONG_REAL_EPS,        \
+                 BFAM_LONG_REAL_EPS *BFAM_LONG_REAL_EPS)
 
 /* Type for runtime computations */
 typedef double bfam_real_t;
@@ -280,11 +281,11 @@ typedef double bfam_real_t;
 #define BFAM_REAL_ABS fabs
 #define BFAM_REAL_SQRT sqrt
 #define BFAM_REAL_EXP exp
-#define BFAM_REAL_COS   cos
-#define BFAM_REAL_SIN   sin
+#define BFAM_REAL_COS cos
+#define BFAM_REAL_SIN sin
 #define BFAM_REAL_ASINH asinh
 #define BFAM_REAL_HYPOT hypot
-#define BFAM_REAL_HYPOT3(x,y,z) hypot((x),hypot((y),(z)))
+#define BFAM_REAL_HYPOT3(x, y, z) hypot((x), hypot((y), (z)))
 
 #define BFAM_REAL_EPS DBL_EPSILON
 #define BFAM_REAL_MIN DBL_MIN
@@ -292,9 +293,8 @@ typedef double bfam_real_t;
 #define BFAM_REAL_VTK "Float64"
 #define BFAM_REAL_FMTe "24.16e"
 
-#define BFAM_REAL_APPROX_EQ(x, y, K)                                         \
-  BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS,                \
-                 BFAM_REAL_EPS)
+#define BFAM_REAL_APPROX_EQ(x, y, K)                                           \
+  BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, BFAM_REAL_EPS)
 
 /* Type for processor-local indexing */
 typedef int32_t bfam_locidx_t;
@@ -315,42 +315,40 @@ typedef int64_t bfam_gloidx_t;
 #define BFAM_GLOIDX_SCNd SCNd64
 
 /* conversions between p4est and standard orientation */
-static const int8_t bfam_p8est_FToF_code[6][6] = {{0,1,1,0,0,1},
-                                                  {2,0,0,1,1,0},
-                                                  {2,0,0,1,1,0},
-                                                  {0,2,2,0,0,1},
-                                                  {0,2,2,0,0,1},
-                                                  {2,0,0,2,2,0}};
+static const int8_t bfam_p8est_FToF_code[6][6] = {{0, 1, 1, 0, 0, 1},
+                                                  {2, 0, 0, 1, 1, 0},
+                                                  {2, 0, 0, 1, 1, 0},
+                                                  {0, 2, 2, 0, 0, 1},
+                                                  {0, 2, 2, 0, 0, 1},
+                                                  {2, 0, 0, 2, 2, 0}};
 
-static const int8_t bfam_p8est_code_to_perm[3][4] = {{1,2,5,6},
-                                                     {0,3,4,7},
-                                                     {0,4,3,7}};
+static const int8_t bfam_p8est_code_to_perm[3][4] = {
+    {1, 2, 5, 6}, {0, 3, 4, 7}, {0, 4, 3, 7}};
 
-static const int8_t bfam_p8est_perm_to_order[8][4] = {{0,1,2,3},
-                                                      {0,2,1,3},
-                                                      {1,0,3,2},
-                                                      {1,3,0,2},
-                                                      {2,0,3,1},
-                                                      {2,3,0,1},
-                                                      {3,1,2,0},
-                                                      {3,2,1,0}};
+static const int8_t bfam_p8est_perm_to_order[8][4] = {{0, 1, 2, 3},
+                                                      {0, 2, 1, 3},
+                                                      {1, 0, 3, 2},
+                                                      {1, 3, 0, 2},
+                                                      {2, 0, 3, 1},
+                                                      {2, 3, 0, 1},
+                                                      {3, 1, 2, 0},
+                                                      {3, 2, 1, 0}};
 
-static const int8_t bfam_p8est_perm_to_order_inv[8][4] = {{0,1,2,3},
-                                                          {0,2,1,3},
-                                                          {1,0,3,2},
-                                                          {2,0,3,1},
-                                                          {1,3,0,2},
-                                                          {2,3,0,1},
-                                                          {3,1,2,0},
-                                                          {3,2,1,0}};
-
+static const int8_t bfam_p8est_perm_to_order_inv[8][4] = {{0, 1, 2, 3},
+                                                          {0, 2, 1, 3},
+                                                          {1, 0, 3, 2},
+                                                          {2, 0, 3, 1},
+                                                          {1, 3, 0, 2},
+                                                          {2, 3, 0, 1},
+                                                          {3, 1, 2, 0},
+                                                          {3, 2, 1, 0}};
 
 /** BFAM_P8EST_ORIENTATION
  * f    my face
  * nf   neighbor face
  * o    p8est orientation code
  */
-#define BFAM_P8EST_ORIENTATION(f,nf,o) \
+#define BFAM_P8EST_ORIENTATION(f, nf, o)                                       \
   (bfam_p8est_code_to_perm[bfam_p8est_FToF_code[f][nf]][o])
 
 /*
@@ -411,7 +409,6 @@ static const int8_t bfam_p8est_perm_to_order_inv[8][4] = {{0,1,2,3},
  *   (a,b) --> (Na-a,Nb-b)
  */
 
-
 /** Abort function.
  *
  * This call will abort the program.
@@ -421,7 +418,6 @@ static const int8_t bfam_p8est_perm_to_order_inv[8][4] = {{0,1,2,3},
  * \return This function does not return.
  */
 void bfam_abort() BFAM_NORETURN;
-
 
 /** Verbose abort function.
  *
@@ -447,7 +443,7 @@ void bfam_abort_verbose(const char *file, int line, ...) BFAM_NORETURN;
  *
  * \return pointer to allocated memory.
  */
-void * bfam_malloc(size_t size);
+void *bfam_malloc(size_t size);
 
 /** \c calloc wrapper.
  *
@@ -459,7 +455,7 @@ void * bfam_malloc(size_t size);
  *
  * \return pointer to allocated memory.
  */
-void * bfam_calloc(size_t nmemb, size_t size);
+void *bfam_calloc(size_t nmemb, size_t size);
 
 /** \c realloc wrapper.
  *
@@ -471,7 +467,7 @@ void * bfam_calloc(size_t nmemb, size_t size);
  *
  * \return pointer to reallocated memory.
  */
-void * bfam_realloc(void *ptr, size_t size);
+void *bfam_realloc(void *ptr, size_t size);
 
 /** \c free wrapper
  *

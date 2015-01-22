@@ -1,7 +1,8 @@
 #ifndef BFAM_CRITBIT_H
 #define BFAM_CRITBIT_H
 
-typedef struct {
+typedef struct
+{
   void *root;
 } bfam_critbit0_tree_t;
 
@@ -70,6 +71,6 @@ void bfam_critbit0_clear(bfam_critbit0_tree_t *t);
  * \note (Note that, if |handle| returns 0, the iteration is aborted)
  */
 int bfam_critbit0_allprefixed(bfam_critbit0_tree_t *t, const char *prefix,
-                              int (*handle) (const char *, void *), void *arg);
+                              int (*handle)(const char *, void *), void *arg);
 
 #endif
