@@ -10,11 +10,12 @@ elem_order = 4
 h1_targ   = elem_order*0.1
 r_targ    = 5
 D_targ    = 20
-hmax_targ = elem_order*1
+hmax_targ = elem_order*2
+-- hmax_targ = h1_targ
 
 -- connectivity info
 connectivity = "brick"
-BUF = 2
+BUF = 1
 brick =
 {
   nx = 2+2*BUF,
@@ -195,22 +196,27 @@ plastic = {
 -- time stepper to use
 lsrk_method  = "KC54"
 
-tend   = 13
-tout   = 1
-tfout  = 0.01
-tdisp  = 0.01
+tend       = 13
+-- tout       = 1
+-- tfout      = 0.01
+tout       = -1
+tfout      = -1
+tdisp      = 0.01
 tstations  = 0.01
-nerr   = 0
+nerr       = 0
 
 function time_step_parameters(dt)
   dt      = 0.5*dt
-  nfoutput = math.ceil(tfout / dt)
-  dt       = tfout / nfoutput
 
-  noutput    = tout  / dt
-  ndisp      = tdisp / dt
-  nsteps     = tend / dt
+  T       = tstations
+  n       = math.ceil(T / dt)
+  dt      = T / n
+
+  noutput    = tout      / dt
+  ndisp      = tdisp     / dt
+  nsteps     = tend      / dt
   nstations  = tstations / dt
+  nfoutput   = tfout     / dt
   -- nsteps = 1
 
   return dt,nsteps, ndisp, noutput, nfoutput, nstations
@@ -270,7 +276,7 @@ function S13_0_function(x,y,z,t)
   return W*b13*(S22+pf)
 end
 function c0_function(x,y,z,t)
-  return 0.4 + 0.00072*max(0.0,5-y)
+  return 0.4 + 0.72*max(0.0,5-y)
 end
 function Tforce_function(x,y,z,t)
   rcrit = 4
