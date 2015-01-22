@@ -1,7 +1,6 @@
 #include <bfam.h>
 
-int
-main (int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   char *r1 = bfam_malloc_aligned(1024);
   char *r2 = bfam_malloc_aligned(3432);

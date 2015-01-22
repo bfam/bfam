@@ -6,10 +6,9 @@
 #include <bfam.h>
 #include <bfam_test_lua_script.h>
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
-  lua_State* L;
+  lua_State *L;
   int status;
 
   // initialize Lua interpreter
@@ -20,7 +19,8 @@ main(int argc, char *argv[])
 
   // run script
   status = luaL_dostring(L, bfam_test_lua_script);
-  if (status) {
+  if (status)
+  {
     fprintf(stderr, "Couldn't do script: %s\n", lua_tostring(L, -1));
     exit(1);
   }
@@ -46,7 +46,7 @@ main(int argc, char *argv[])
   // Cleanup:  Deallocate all space assocatated with the lua state
   lua_close(L);
 
-  if(result == 233)
+  if (result == 233)
     return 0;
   else
     return 1;

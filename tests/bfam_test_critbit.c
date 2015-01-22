@@ -1,12 +1,11 @@
 #include <bfam.h>
 
-static void
-test_contains()
+static void test_contains()
 {
   bfam_critbit0_tree_t tree = {0};
 
-  static const char *elems[] =
-      {"a", "aa", "b", "bb", "ab", "ba", "aba", "bab", NULL};
+  static const char *elems[] = {"a",  "aa",  "b",   "bb", "ab",
+                                "ba", "aba", "bab", NULL};
 
   for (unsigned i = 0; elems[i]; ++i)
     bfam_critbit0_insert(&tree, elems[i]);
@@ -20,13 +19,12 @@ test_contains()
   bfam_critbit0_clear(&tree);
 }
 
-static void
-test_delete()
+static void test_delete()
 {
   bfam_critbit0_tree_t tree = {0};
 
-  static const char *elems[] =
-      {"a", "aa", "b", "bb", "ab", "ba", "aba", "bab", NULL};
+  static const char *elems[] = {"a",  "aa",  "b",   "bb", "ab",
+                                "ba", "aba", "bab", NULL};
 
   for (unsigned i = 1; elems[i]; ++i)
   {
@@ -55,8 +53,7 @@ test_delete()
   bfam_critbit0_clear(&tree);
 }
 
-int
-main (int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   test_contains();
   test_delete();

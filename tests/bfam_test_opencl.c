@@ -3,26 +3,25 @@
 
 #define SIZE 34
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
-  int             failures = 0;
+  int failures = 0;
 #ifdef BFAM_HAVE_OPENCL
 
-  cl_context      context;
-  cl_int          status;
+  cl_context context;
+  cl_int status;
   cl_command_queue queue;
 
   bfam_cl_print_platforms_devices();
   bfam_cl_create_context_on(NULL, NULL, 0, &context, &queue, 0);
-  cl_kernel kernel = bfam_cl_kernel_from_string(context,
-                                                bfam_test_opencl_kernels,
-                                                "square", NULL);
+  cl_kernel kernel = bfam_cl_kernel_from_string(
+      context, bfam_test_opencl_kernels, "square", NULL);
 
   bfam_cl_print_device_info_from_queue(queue);
 
-  cl_int * h_data = bfam_calloc(SIZE, sizeof(cl_int));
-  for (size_t i = 0; i < SIZE; ++i) {
+  cl_int *h_data = bfam_calloc(SIZE, sizeof(cl_int));
+  for (size_t i = 0; i < SIZE; ++i)
+  {
     h_data[i] = i;
   }
 
@@ -44,26 +43,22 @@ main(int argc, char *argv[])
   /*
    * submit kernel to the queue
    */
-  BFAM_CL_SAFE_CALL(
-      clEnqueueNDRangeKernel(queue, kernel, 1, NULL, gdim,
-                             ldim, 0, NULL, NULL)
-      );
+  BFAM_CL_SAFE_CALL(clEnqueueNDRangeKernel(queue, kernel, 1, NULL, gdim, ldim,
+                                           0, NULL, NULL));
 
   /*
    * transfer the result to the host
    */
-  BFAM_CL_SAFE_CALL(
-      clEnqueueReadBuffer(queue, c_data, CL_TRUE, 0,
-                          sizeof(cl_int) * SIZE,
-                          h_data, 0, NULL, NULL)
-      );
+  BFAM_CL_SAFE_CALL(clEnqueueReadBuffer(
+      queue, c_data, CL_TRUE, 0, sizeof(cl_int) * SIZE, h_data, 0, NULL, NULL));
 
   /*
    * verify the result
    */
-  for (size_t i = 0; i < SIZE; ++i) {
-    BFAM_INFO("%d: %d", (int) i, (int) h_data[i]);
-    if (h_data[i] != (cl_int) (i * i))
+  for (size_t i = 0; i < SIZE; ++i)
+  {
+    BFAM_INFO("%d: %d", (int)i, (int)h_data[i]);
+    if (h_data[i] != (cl_int)(i * i))
       ++failures;
   }
 
