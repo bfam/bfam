@@ -100,8 +100,8 @@ static int build_mesh(MPI_Comm mpicomm)
   /*
    * Create an arbitrary splitting of the domain to test things.
    *
-   * When use a subdomain id independent of MPI partition.  In practice
-   * the subdomain id will be selectmd based on physics, element type, element
+   * We use a subdomain id independent of MPI partition.  In practice the
+   * subdomain id will be selected based on physics, element type, element
    * order, etc.
    *
    * For no particular reason increase element order with id
