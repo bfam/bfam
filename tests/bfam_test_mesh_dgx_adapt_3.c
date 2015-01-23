@@ -153,7 +153,7 @@ static int build_mesh(MPI_Comm mpicomm)
   }
 
   bfam_domain_pxest_split_dgx_subdomains_3(domain, numSubdomains, subdomainID,
-                                           N, NULL, NULL, NULL);
+                                           NULL, N, NULL, NULL, NULL);
 
   const char *volume[] = {"_volume", NULL};
 

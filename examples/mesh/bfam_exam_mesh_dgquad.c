@@ -160,7 +160,7 @@ build_mesh(MPI_Comm mpicomm)
   }
 
   bfam_domain_pxest_split_dgx_subdomains_2(domain, numSubdomains,
-      subdomainID, N, NULL, NULL, NULL);
+      subdomainID, NULL, N, NULL, NULL, NULL);
 
   const char *volume[] = {"_volume", NULL};
   bfam_vtk_write_file((bfam_domain_t*)domain, BFAM_DOMAIN_AND, volume,

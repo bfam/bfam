@@ -1506,15 +1506,15 @@ split_domain(beard_t *beard, prefs_t *prefs)
   lua_getglobal(prefs->L,"transform_nodes");
   if(lua_isfunction(prefs->L,-1))
   {
-    bfam_domain_pxest_split_dgx_subdomains(domain, data.max_N, sub_ids, N,
-        glue_ids,&transform_nodes,prefs);
+    bfam_domain_pxest_split_dgx_subdomains(domain, data.max_N, sub_ids, NULL,
+        N, glue_ids,&transform_nodes,prefs);
   }
   else
   {
     BFAM_ROOT_WARNING("function `%s' not found in lua file",
         "transform_nodes");
-    bfam_domain_pxest_split_dgx_subdomains(domain, data.max_N, sub_ids, N,
-        glue_ids,NULL,NULL);
+    bfam_domain_pxest_split_dgx_subdomains(domain, data.max_N, sub_ids, NULL,
+        N, glue_ids,NULL,NULL);
   }
   lua_pop(prefs->L,1);
   BFAM_ASSERT(lua_gettop(prefs->L)==0);

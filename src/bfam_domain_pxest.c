@@ -1039,7 +1039,8 @@ static void bfam_domain_pxest_boundary_subdomain_face_mapping(
 
 void bfam_domain_pxest_split_dgx_subdomains(
     bfam_domain_pxest_t *domain, bfam_locidx_t numSubdomains,
-    bfam_locidx_t *subdomainID, int *N, bfam_locidx_t *glueID,
+    bfam_locidx_t *subdomainID, bfam_locidx_t *roots, int *N,
+    bfam_locidx_t *glueID,
     void (*nodes_transform)(const bfam_locidx_t num_Vi,
                             const bfam_locidx_t num_pnts,
                             bfam_long_real_t **lxi, void *user_args),

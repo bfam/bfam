@@ -87,6 +87,7 @@ void bfam_domain_pxest_quad_to_glueid_2(p4est_t *pxest,
  * \param [in]     subdomainID   array of length \c pxest->local_num_quadrants
  *                               which indicates the subdomain id for each
  *                               element
+ * \param [in]     roots         array of roots for the volume subdomains
  * \param [in]     N             array of orders for the volume subdomains
  * \param [in]     glueID        array indicating what glue subdomains exist.
  *                               If the number is negative than no glue
@@ -101,7 +102,8 @@ void bfam_domain_pxest_quad_to_glueid_2(p4est_t *pxest,
  */
 void bfam_domain_pxest_split_dgx_subdomains_2(
     bfam_domain_pxest_t_2 *domain, bfam_locidx_t numSubdomains,
-    bfam_locidx_t *subdomainID, int *N, bfam_locidx_t *glueID,
+    bfam_locidx_t *subdomainID, bfam_locidx_t *roots, int *N,
+    bfam_locidx_t *glueID,
     void (*nodes_transform)(const bfam_locidx_t num_Vi,
                             const bfam_locidx_t num_pnts,
                             bfam_long_real_t **lxi, void *user_args),
