@@ -108,6 +108,7 @@ bfam_real_t *field;                                                            \
 BFAM_ASSUME_ALIGNED(field,32);
 
 
+#if 0
 /*
  * These algorithms are taken from
  * http://www.grc.nasa.gov/WWW/winddocs/utilities/b4wind_guide/trilinear.html
@@ -136,6 +137,7 @@ inverse_linear(bfam_real_t *r,
   }
 #endif
 }
+#endif
 
 static void
 inverse_bilinear_normal(bfam_real_t *interp_coeff,
@@ -189,6 +191,7 @@ inverse_bilinear_normal(bfam_real_t *interp_coeff,
 
 }
 
+#if DIM == 2
 static void
 inverse_bilinear(bfam_real_t *r,
     const bfam_real_t x,  const bfam_real_t y,
@@ -244,7 +247,9 @@ inverse_bilinear(bfam_real_t *r,
   }
 #endif
 }
+#endif
 
+#if DIM == 3
 static void
 inverse_trilinear(bfam_real_t *r,
     const bfam_real_t x, const bfam_real_t y, const bfam_real_t z,
@@ -363,6 +368,7 @@ inverse_trilinear(bfam_real_t *r,
   }
 #endif
 }
+#endif
 
 
 

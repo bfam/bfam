@@ -420,8 +420,8 @@ beard_dgx_upwind_state_rate_and_state_friction_m(
                                                             ATOL, RTOL);
   BFAM_ABORT_IF(ret_val,"newton solver returned %"BFAM_LOCIDX_PRId,ret_val);
 
-  bfam_real_t tmp = 0;
-  bfam_real_t vmp = 0;
+  // bfam_real_t tmp = 0;
+  // bfam_real_t vmp = 0;
   for(bfam_locidx_t i = 0; i < 3; i++)
   {
     TpS[i]  = T*phi[i]/phi_m - Tp0[i];
@@ -792,7 +792,7 @@ void beard_dgx_duvaut_lions_return_map(
 
   /* get the fields we will need */
   bfam_dictionary_t *fields = &sub->base.fields;
-  bfam_dictionary_t *fields_face = &sub->base.fields_face;
+  // bfam_dictionary_t *fields_face = &sub->base.fields_face;
 
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11  ,field_prefix,"S11"  ,fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22  ,field_prefix,"S22"  ,fields);
@@ -2308,14 +2308,16 @@ void beard_dgx_inter_rhs_ageing_law_interface(
        *    Slock - eta*V = N*f(V,psi)
        * where eta = 2/(1/ZsP+1/ZsM)
        */
+#if 0
       const bfam_real_t Slock2 =
         + (TpS_g[3*pnt+0] + Tp1_0[iG])*(TpS_g[3*pnt+0] + Tp1_0[iG])
         + (TpS_g[3*pnt+1] + Tp2_0[iG])*(TpS_g[3*pnt+1] + Tp2_0[iG])
         + (TpS_g[3*pnt+2] + Tp3_0[iG])*(TpS_g[3*pnt+2] + Tp3_0[iG]);
+#endif
 
       //JK fc[iG] = fs[iG]-(fs[iG]-fd[iG])*BFAM_MIN(Dp[iG],Dc[iG])/Dc[iG];
       //JK const bfam_real_t Sfric = c0[iG]-Tn[iG]*fc[iG];
-      const bfam_real_t Sfric = 0;
+      //const bfam_real_t Sfric = 0;
 
       bfam_real_t VpS[3];
       const bfam_real_t Tp0[] =
