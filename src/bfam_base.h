@@ -409,6 +409,14 @@ static const int8_t bfam_p8est_perm_to_order_inv[8][4] = {{0, 1, 2, 3},
  *   (a,b) --> (Na-a,Nb-b)
  */
 
+/*  This is the user data each p4est qudrant will hold.
+ */
+typedef struct
+{
+  bfam_locidx_t sub_id;
+  bfam_locidx_t elm_id;
+} bfam_pxest_user_data_t;
+
 /** Abort function.
  *
  * This call will abort the program.

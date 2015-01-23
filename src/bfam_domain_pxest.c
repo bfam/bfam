@@ -58,10 +58,12 @@ bfam_domain_pxest_t *bfam_domain_pxest_new(MPI_Comm domComm,
 void bfam_domain_pxest_init(bfam_domain_pxest_t *domain, MPI_Comm domComm,
                             p4est_connectivity_t *conn)
 {
+  bfam_pxest_user_data_t default_user_data = {0, 0};
   bfam_domain_init(&domain->base, domComm);
 
   domain->conn = conn;
-  domain->pxest = p4est_new(domComm, conn, 0, NULL, NULL);
+  domain->pxest = p4est_new(domComm, conn, sizeof(bfam_pxest_user_data_t), NULL,
+                            &default_user_data);
 }
 
 void bfam_domain_pxest_free(bfam_domain_pxest_t *domain)
@@ -1180,6 +1182,34 @@ void bfam_domain_pxest_split_dgx_subdomains(
     const bfam_locidx_t idk = subdomainID[k];
     ktosubk[k] = subk[idk];
     ++subk[idk];
+  }
+
+  /*
+   * Fill the quadrant user data
+   */
+  {
+    p4est_topidx_t t;
+    p4est_locidx_t k;
+    for (t = pxest->first_local_tree, k = 0; t <= pxest->last_local_tree; ++t)
+    {
+      p4est_tree_t *tree = p4est_tree_array_index(pxest->trees, t);
+      sc_array_t *quadrants = &tree->quadrants;
+      size_t num_quads = quadrants->elem_count;
+
+      /* loop over the elements in tree and calculated vertex coordinates */
+      for (size_t zz = 0; zz < num_quads; ++zz, ++k)
+      {
+        BFAM_ASSERT(k < K);
+        bfam_pxest_user_data_t *ud;
+        p4est_quadrant_t *quad;
+
+        quad = p4est_quadrant_array_index(quadrants, zz);
+        ud = quad->p.user_data;
+
+        ud->sub_id = subdomainID[k];
+        ud->elm_id = ktosubk[k];
+      }
+    }
   }
 
   /*
