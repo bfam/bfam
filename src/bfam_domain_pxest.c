@@ -46,6 +46,8 @@
   BFAM_APPEND_EXPAND(bfam_domain_pxest_quad_to_glueid_, DIM)
 #define bfam_domain_pxest_split_dgx_subdomains                                 \
   BFAM_APPEND_EXPAND(bfam_domain_pxest_split_dgx_subdomains_, DIM)
+#define bfam_domain_pxest_adapt                                                \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_adapt_, DIM)
 
 bfam_domain_pxest_t *bfam_domain_pxest_new(MPI_Comm domComm,
                                            p4est_connectivity_t *conn)
@@ -1509,6 +1511,8 @@ void bfam_domain_pxest_split_dgx_subdomains(
   BFAM_ROOT_LDEBUG("End splitting pxest domain into subdomains.");
   bfam_domain_pxest_dgx_print_stats(domain);
 }
+
+void bfam_domain_pxest_adapt(bfam_domain_pxest_t *domain) {}
 
 #else
 

@@ -110,4 +110,11 @@ void bfam_domain_pxest_split_dgx_subdomains_3(
                             bfam_long_real_t **lxi, void *user_args),
     void *user_args);
 
+/** Adapt the mesh
+ *
+ * This will adapt the mesh based on \c hadapt and \c padapt in the \c
+ * bfam_subdomain_dgx structure.
+ */
+void bfam_domain_pxest_adapt_3(bfam_domain_pxest_t_3 *domain);
+
 #endif
