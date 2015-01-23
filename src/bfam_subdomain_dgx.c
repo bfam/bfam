@@ -104,7 +104,7 @@ bfam_real_t BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_m_,
                                    &sub->base.glue_m->fields);
 
   return BFAM_APPEND_EXPAND(point_interp_, BFAM_DGX_DIMENSION)(point, source,
-                                                               inDIM);
+                                                               DIM);
 }
 
 bfam_real_t BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,
@@ -120,7 +120,7 @@ bfam_real_t BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_field_,
   bfam_subdomain_dgx_t *sub = point->sub;
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(source, prefix, field, &sub->base.fields);
   return BFAM_APPEND_EXPAND(point_interp_, BFAM_DGX_DIMENSION)(point, source,
-                                                               inDIM);
+                                                               DIM);
 }
 
 void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_fields_,
