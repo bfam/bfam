@@ -413,9 +413,21 @@ static const int8_t bfam_p8est_perm_to_order_inv[8][4] = {{0, 1, 2, 3},
  */
 typedef struct
 {
-  bfam_locidx_t sub_id;
-  bfam_locidx_t elm_id;
-} bfam_pxest_user_data_t;
+  int8_t N;
+  bfam_locidx_t subd_id;
+  bfam_locidx_t elem_id;
+  bfam_locidx_t root_id;    /* used for element merging */
+  bfam_locidx_t glue_id[4]; /* used for element merging */
+} bfam_pxest_user_data_t_2;
+
+typedef struct
+{
+  int8_t N;
+  bfam_locidx_t subd_id;
+  bfam_locidx_t elem_id;
+  bfam_locidx_t root_id;    /* used for element merging */
+  bfam_locidx_t glue_id[6]; /* used for element merging */
+} bfam_pxest_user_data_t_3;
 
 /** Abort function.
  *

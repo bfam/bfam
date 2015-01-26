@@ -48,6 +48,7 @@
   BFAM_APPEND_EXPAND(bfam_domain_pxest_split_dgx_subdomains_, DIM)
 #define bfam_domain_pxest_adapt                                                \
   BFAM_APPEND_EXPAND(bfam_domain_pxest_adapt_, DIM)
+#define bfam_pxest_user_data_t BFAM_APPEND_EXPAND(bfam_pxest_user_data_t_, DIM)
 
 bfam_domain_pxest_t *bfam_domain_pxest_new(MPI_Comm domComm,
                                            p4est_connectivity_t *conn)
@@ -60,7 +61,7 @@ bfam_domain_pxest_t *bfam_domain_pxest_new(MPI_Comm domComm,
 void bfam_domain_pxest_init(bfam_domain_pxest_t *domain, MPI_Comm domComm,
                             p4est_connectivity_t *conn)
 {
-  bfam_pxest_user_data_t default_user_data = {0, 0};
+  bfam_pxest_user_data_t default_user_data = {0};
   bfam_domain_init(&domain->base, domComm);
 
   domain->conn = conn;
@@ -1069,6 +1070,9 @@ void bfam_domain_pxest_split_dgx_subdomains(
   bfam_locidx_t **EToE = bfam_malloc(numSubdomains * sizeof(bfam_locidx_t *));
   int8_t **EToF = bfam_malloc(numSubdomains * sizeof(int8_t *));
 
+  bfam_locidx_t *sub_to_actual_sub_id =
+      bfam_malloc(numSubdomains * sizeof(bfam_locidx_t));
+
   bfam_locidx_t *ktosubk =
       bfam_malloc(mesh->local_num_quadrants * sizeof(bfam_locidx_t));
 
@@ -1188,34 +1192,6 @@ void bfam_domain_pxest_split_dgx_subdomains(
   }
 
   /*
-   * Fill the quadrant user data
-   */
-  {
-    p4est_topidx_t t;
-    p4est_locidx_t k;
-    for (t = pxest->first_local_tree, k = 0; t <= pxest->last_local_tree; ++t)
-    {
-      p4est_tree_t *tree = p4est_tree_array_index(pxest->trees, t);
-      sc_array_t *quadrants = &tree->quadrants;
-      size_t num_quads = quadrants->elem_count;
-
-      /* loop over the elements in tree and calculated vertex coordinates */
-      for (size_t zz = 0; zz < num_quads; ++zz, ++k)
-      {
-        BFAM_ASSERT(k < K);
-        bfam_pxest_user_data_t *ud;
-        p4est_quadrant_t *quad;
-
-        quad = p4est_quadrant_array_index(quadrants, zz);
-        ud = quad->p.user_data;
-
-        ud->sub_id = subdomainID[k];
-        ud->elm_id = ktosubk[k];
-      }
-    }
-  }
-
-  /*
    * Here we are decoding the p4est_mesh_t structure.  See p4est_mesh.h
    * for more details on how the data is stored.
    */
@@ -1273,8 +1249,8 @@ void bfam_domain_pxest_split_dgx_subdomains(
         EToF[id], nodes_transform, user_args, DIM);
 
     bfam_subdomain_add_tag((bfam_subdomain_t *)subdomains[id], "_volume");
-    bfam_domain_add_subdomain((bfam_domain_t *)domain,
-                              (bfam_subdomain_t *)subdomains[id]);
+    sub_to_actual_sub_id[id] = bfam_domain_add_subdomain(
+        (bfam_domain_t *)domain, (bfam_subdomain_t *)subdomains[id]);
   }
 
   /*
@@ -1471,6 +1447,45 @@ void bfam_domain_pxest_split_dgx_subdomains(
     pfk += Kglue;
   }
 
+  /*
+   * Fill the quadrant user data
+   */
+  {
+    p4est_topidx_t t;
+    p4est_locidx_t k;
+    for (t = pxest->first_local_tree, k = 0; t <= pxest->last_local_tree; ++t)
+    {
+      p4est_tree_t *tree = p4est_tree_array_index(pxest->trees, t);
+      sc_array_t *quadrants = &tree->quadrants;
+      size_t num_quads = quadrants->elem_count;
+
+      /* loop over the elements in tree and calculated vertex coordinates */
+      for (size_t zz = 0; zz < num_quads; ++zz, ++k)
+      {
+        BFAM_ASSERT(k < K);
+        bfam_pxest_user_data_t *ud;
+        p4est_quadrant_t *quad;
+
+        quad = p4est_quadrant_array_index(quadrants, zz);
+        ud = quad->p.user_data;
+
+        ud->subd_id = sub_to_actual_sub_id[subdomainID[k]];
+        ud->elem_id = ktosubk[k];
+
+        ud->root_id =
+            (roots) ? roots[subdomainID[k]] : BFAM_DEFAULT_SUBDOMAIN_ROOT;
+        for (int f = 0; f < P4EST_FACES; ++f)
+        {
+          ud->glue_id[f] = (glueID) ? glueID[P4EST_FACES * k + f] : -1;
+        }
+      }
+    }
+  }
+
+  /*
+   * Start Cleanup
+   */
+
   bfam_free(subdomains);
 
   for (bfam_locidx_t id = 0; id < numSubdomains; ++id)
@@ -1490,6 +1505,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
   bfam_free(subk);
 
   bfam_free(ktosubk);
+  bfam_free(sub_to_actual_sub_id);
 
   bfam_free_aligned(bfmapping);
   bfam_free_aligned(ifmapping);
