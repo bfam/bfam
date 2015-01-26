@@ -214,6 +214,12 @@ bfam_locidx_t bfam_domain_add_subdomain(bfam_domain_t *thisDomain,
   return sub_id;
 }
 
+bfam_subdomain_t *bfam_domain_get_subdomain_by_num(bfam_domain_t *thisDomain,
+                                                   bfam_locidx_t id)
+{
+  return thisDomain->subdomains[id];
+}
+
 void bfam_domain_add_tag(bfam_domain_t *thisDomain, bfam_domain_match_t match,
                          const char **mtags, const char *tag)
 {
