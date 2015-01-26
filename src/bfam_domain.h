@@ -6,6 +6,8 @@
 #include <bfam_dictionary.h>
 #include <bfam_subdomain.h>
 
+#define BFAM_DEFAULT_SUBDOMAIN_ROOT 0
+
 /**
  * structure containing a domain (which is a collection of subdomains!)
  */
