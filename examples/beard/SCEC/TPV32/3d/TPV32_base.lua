@@ -169,12 +169,12 @@ mat = {
 function cp(x,y,z,t)
   k = 1
   while mat.D[k] do
+    V = mat.cp[k]
     if mat.D[k] > y then
       dy = (mat.D[k-1]-y)/(mat.D[k-1]-mat.D[k])
-      V = V + (mat.cp[k]-mat.cp[k-1])
+      V = V + (V-mat.cp[k-1])*dy
       break
     end
-    V = mat.cp[k]
     k = k + 1
   end
   return V
@@ -182,12 +182,12 @@ end
 function cs(x,y,z,t)
   k = 1
   while mat.D[k] do
+    V = mat.cs[k]
     if mat.D[k] > y then
       dy = (mat.D[k-1]-y)/(mat.D[k-1]-mat.D[k])
-      V = V + (mat.cs[k]-mat.cs[k-1])
+      V = V + (V-mat.cs[k-1])*dy
       break
     end
-    V = mat.cs[k]
     k = k + 1
   end
   return V
@@ -195,12 +195,12 @@ end
 function rho(x,y,z,t)
   k = 1
   while mat.D[k] do
+    V = mat.rho[k]
     if mat.D[k] > y then
       dy = (mat.D[k-1]-y)/(mat.D[k-1]-mat.D[k])
-      V = V + (mat.rho[k]-mat.rho[k-1])
+      V = V + (V-mat.rho[k-1])*dy
       break
     end
-    V = mat.rho[k]
     k = k + 1
   end
   return V
