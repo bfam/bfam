@@ -160,7 +160,7 @@ function element_order(
 end
 
 -- material properties
-mat = {
+material = {
  D   = {    0, 0.5  , 1.0  , 1.6  , 2.4  , 3.6  , 5.0  , 9.0  , 11.0  , 15.0  ,},
  cp  = {2.200, 3.000, 3.600, 4.400, 4.800, 5.250, 5.500, 5.750,  6.100,  6.300,},
  cs  = {1.050, 1.400, 1.950, 2.500, 2.800, 3.100, 3.250, 3.450,  3.600,  3.700,},
@@ -168,39 +168,39 @@ mat = {
 }
 function cp(x,y,z,t)
   k = 1
-  while mat.D[k] do
-    V = mat.cp[k]
-    if mat.D[k] > y then
-      dy = (mat.D[k-1]-y)/(mat.D[k-1]-mat.D[k])
-      V = V + (V-mat.cp[k-1])*dy
+  while material.D[k] do
+    if material.D[k] > y then
+      dy = (material.D[k-1]-y)/(material.D[k-1]-material.D[k])
+      V  = material.cp[k-1] - (material.cp[k-1]-material.cp[k])*dy
       break
     end
+    V = material.cp[k]
     k = k + 1
   end
   return V
 end
 function cs(x,y,z,t)
   k = 1
-  while mat.D[k] do
-    V = mat.cs[k]
-    if mat.D[k] > y then
-      dy = (mat.D[k-1]-y)/(mat.D[k-1]-mat.D[k])
-      V = V + (V-mat.cs[k-1])*dy
+  while material.D[k] do
+    if material.D[k] > y then
+      dy = (material.D[k-1]-y)/(material.D[k-1]-material.D[k])
+      V  = material.cs[k-1] - (material.cs[k-1]-material.cs[k])*dy
       break
     end
+    V = material.cs[k]
     k = k + 1
   end
   return V
 end
 function rho(x,y,z,t)
   k = 1
-  while mat.D[k] do
-    V = mat.rho[k]
-    if mat.D[k] > y then
-      dy = (mat.D[k-1]-y)/(mat.D[k-1]-mat.D[k])
-      V = V + (V-mat.rho[k-1])*dy
+  while material.D[k] do
+    if material.D[k] > y then
+      dy = (material.D[k-1]-y)/(material.D[k-1]-material.D[k])
+      V  = material.rho[k-1] - (material.rho[k-1]-material.rho[k])*dy
       break
     end
+    V = material.rho[k]
     k = k + 1
   end
   return V
@@ -290,14 +290,14 @@ fault_stations = {
 -- faults
 mu0  = 2.670*3.464^2
 function S11_0_function(x,y,z,t)
-  return -60*mu(x,y,z,t) / mu0
+  return -60 * mu(x,y,z,t) / mu0
 end
 function S33_0_function(x,y,z,t)
-  return -60*mu(x,y,z,t) / mu0
+  return -60 * mu(x,y,z,t) / mu0
 end
 function S13_0_function(x,y,z,t)
   r = (min(2,max(1.4,sqrt(x^2 + (y-7.5)^2)))-1.4)/0.6
-  return (30 + 2.475*(1+math.cos(math.pi*r)))*(mu(x,y,z,t) / mu0)
+  return (30 + 2.475*(1+math.cos(math.pi*r)))*mu(x,y,z,t) / mu0
 end
 function c0_function(x,y,z,t)
  return 0.000425*max(0,2.4-y)
