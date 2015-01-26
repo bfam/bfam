@@ -181,9 +181,10 @@ void bfam_domain_get_subdomains_critbit(bfam_domain_t *thisDomain,
   return;
 }
 
-void bfam_domain_add_subdomain(bfam_domain_t *thisDomain,
-                               bfam_subdomain_t *newSubdomain)
+bfam_locidx_t bfam_domain_add_subdomain(bfam_domain_t *thisDomain,
+                                        bfam_subdomain_t *newSubdomain)
 {
+  bfam_locidx_t sub_id;
   // double size
   if (thisDomain->numSubdomains == thisDomain->sizeSubdomains)
   {
@@ -207,8 +208,10 @@ void bfam_domain_add_subdomain(bfam_domain_t *thisDomain,
   }
 
   // add block
-  thisDomain->subdomains[thisDomain->numSubdomains] = newSubdomain;
+  sub_id = thisDomain->numSubdomains;
+  thisDomain->subdomains[sub_id] = newSubdomain;
   thisDomain->numSubdomains++;
+  return sub_id;
 }
 
 void bfam_domain_add_tag(bfam_domain_t *thisDomain, bfam_domain_match_t match,

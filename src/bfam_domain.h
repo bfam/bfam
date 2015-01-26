@@ -56,9 +56,11 @@ void bfam_domain_free(bfam_domain_t *domain);
  *
  * \param [in,out] thisDomain domain to add subdomain to
  * \param [in]     newSubdomain subdomain to add to the domain
+ *
+ * \return subdomain id
  */
-void bfam_domain_add_subdomain(bfam_domain_t *thisDomain,
-                               bfam_subdomain_t *newSubdomain);
+bfam_locidx_t bfam_domain_add_subdomain(bfam_domain_t *thisDomain,
+                                        bfam_subdomain_t *newSubdomain);
 
 /** Get subdomains with tags passed in
  *
