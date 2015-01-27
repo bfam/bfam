@@ -75,7 +75,8 @@ void bfam_domain_pxest_free(bfam_domain_pxest_t *domain)
   domain->conn = NULL;
 
   /* Memory we do manage */
-  p4est_destroy(domain->pxest);
+  if (domain->pxest)
+    p4est_destroy(domain->pxest);
   domain->pxest = NULL;
 
   bfam_domain_free(&domain->base);
