@@ -1470,6 +1470,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
         quad = p4est_quadrant_array_index(quadrants, zz);
         ud = quad->p.user_data;
 
+        ud->N = N[subdomainID[k]];
         ud->subd_id = sub_to_actual_sub_id[subdomainID[k]];
         ud->elem_id = ktosubk[k];
 
