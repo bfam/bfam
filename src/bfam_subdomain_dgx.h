@@ -167,10 +167,7 @@ bfam_subdomain_dgx_t *bfam_subdomain_dgx_new_(
     const int N, const bfam_locidx_t Nv, const int num_Vi,
     const bfam_long_real_t **Vi, const bfam_locidx_t K,
     const bfam_locidx_t *EToV, const bfam_locidx_t *EToE, const int8_t *EToF,
-    void (*nodes_transform)(const bfam_locidx_t num_Vi,
-                            const bfam_locidx_t num_pnts,
-                            bfam_long_real_t **lxi, void *user_args),
-    void *user_args, const int dim);
+    bfam_dgx_nodes_transform_t nodes_transform, void *user_args, const int dim);
 
 /** initializes a dgx subdomain
  *
@@ -195,16 +192,15 @@ bfam_subdomain_dgx_t *bfam_subdomain_dgx_new_(
  *                    transform the nodal locations
  * \param [in]     dim       number of (computational) dimensions
  */
-void bfam_subdomain_dgx_init_(
-    bfam_subdomain_dgx_t *subdomain, const bfam_locidx_t id,
-    const bfam_locidx_t uid, const char *name, const int N,
-    const bfam_locidx_t Nv, const int num_Vi, const bfam_long_real_t **Vi,
-    const bfam_locidx_t K, const bfam_locidx_t *EToV, const bfam_locidx_t *EToE,
-    const int8_t *EToF,
-    void (*nodes_transform)(const bfam_locidx_t num_Vi,
-                            const bfam_locidx_t num_pnts,
-                            bfam_long_real_t **lxi, void *user_args),
-    void *user_args, const int dim);
+void bfam_subdomain_dgx_init_(bfam_subdomain_dgx_t *subdomain,
+                              const bfam_locidx_t id, const bfam_locidx_t uid,
+                              const char *name, const int N,
+                              const bfam_locidx_t Nv, const int num_Vi,
+                              const bfam_long_real_t **Vi,
+                              const bfam_locidx_t K, const bfam_locidx_t *EToV,
+                              const bfam_locidx_t *EToE, const int8_t *EToF,
+                              bfam_dgx_nodes_transform_t nodes_transform,
+                              void *user_args, const int dim);
 
 /** create a dgx glue subdomain.
  *
@@ -361,10 +357,7 @@ void bfam_subdomain_dgx_free_(bfam_subdomain_t *subdomain);
       const int N, const bfam_locidx_t Nv, const int num_Vi,                   \
       const bfam_long_real_t **Vi, const bfam_locidx_t K,                      \
       const bfam_locidx_t *EToV, const bfam_locidx_t *EToE,                    \
-      const int8_t *EToF,                                                      \
-      void (*nodes_transform)(const bfam_locidx_t num_Vi,                      \
-                              const bfam_locidx_t num_pnts,                    \
-                              bfam_long_real_t **lxi, void *user_args),        \
+      const int8_t *EToF, bfam_dgx_nodes_transform_t nodes_transform,          \
       void *user_args, const int dim);                                         \
   void bfam_subdomain_dgx_init_##dg_dim(                                       \
       bfam_subdomain_dgx_t *subdomain, const bfam_locidx_t id,                 \
@@ -372,10 +365,8 @@ void bfam_subdomain_dgx_free_(bfam_subdomain_t *subdomain);
       const bfam_locidx_t Nv, const int num_Vi, const bfam_long_real_t **Vi,   \
       const bfam_locidx_t K, const bfam_locidx_t *EToV,                        \
       const bfam_locidx_t *EToE, const int8_t *EToF,                           \
-      void (*nodes_transform)(const bfam_locidx_t num_Vi,                      \
-                              const bfam_locidx_t num_pnts,                    \
-                              bfam_long_real_t **lxi, void *user_args),        \
-      void *user_args, const int dim);                                         \
+      bfam_dgx_nodes_transform_t nodes_transform, void *user_args,             \
+      const int dim);                                                          \
   void bfam_subdomain_dgx_free_##dg_dim(bfam_subdomain_t *subdomain);          \
   bfam_subdomain_dgx_t *bfam_subdomain_dgx_glue_new_##dg_dim(                  \
       const bfam_locidx_t id, const bfam_locidx_t uid, const char *name,       \

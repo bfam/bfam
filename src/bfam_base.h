@@ -431,6 +431,11 @@ typedef struct
   bfam_locidx_t glue_id[6]; /* used for element merging */
 } bfam_pxest_user_data_t_3;
 
+typedef void (*bfam_dgx_nodes_transform_t)(const bfam_locidx_t num_Vi,
+                                           const bfam_locidx_t num_pnts,
+                                           bfam_long_real_t **lxi,
+                                           void *user_args);
+
 /** Abort function.
  *
  * This call will abort the program.
