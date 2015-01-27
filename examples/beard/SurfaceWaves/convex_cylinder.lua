@@ -31,10 +31,14 @@ function connectivity_vertices(xin, yin, zin)
 end
 
 function transform_nodes(x, y, z)
-  if     abs(x) < abs(y) and x >  c1 then
-  elseif abs(x) < abs(y) and x < -c1 then
-  elseif abs(y) < abs(x) and y >  c1 then
-  elseif abs(y) < abs(x) and y < -c1 then
+  if     abs(x) < abs(y) and y >  c1 then
+    -- NORTH
+  elseif abs(x) < abs(y) and y < -c1 then
+    -- SOUTH
+  elseif abs(y) < abs(x) and x >  c1 then
+    -- EAST
+  elseif abs(y) < abs(x) and x < -c1 then
+    -- WEST
   end
 
   return x, y, z
