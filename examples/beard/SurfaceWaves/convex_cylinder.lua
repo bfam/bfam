@@ -1,5 +1,7 @@
-cos = math.cos
-sin = math.sin
+pi   = math.pi
+sqrt = math.sqrt
+abs  = math.abs
+
 output_prefix = "convex_cylinder"
 data_directory = "data"
 elem_order = 4
@@ -10,13 +12,33 @@ mesh_file = "/home/jekozdon/codes/bfam/examples/beard/SurfaceWaves/convex_cylind
 
 default_boundary_tag = "free surface"
 
--- ABQ->p4est:
--- 1 -> 4
--- 2 -> 5
--- 3 -> 2
--- 4 -> 1
--- 5 -> 3
--- 6 -> 0
+c1 = sqrt(pi/5)/2
+c2 = 1/sqrt(2)
+
+function connectivity_vertices(xin, yin, zin)
+
+  z = 0
+
+  if abs(xin) == 1 then
+    x = (xin/abs(xin))*c1
+    y = (yin/abs(yin))*c1
+  elseif abs(xin) == 2 then
+    x = (xin/abs(xin))*c2
+    y = (yin/abs(yin))*c2
+  end
+
+  return x, y, z
+end
+
+function transform_nodes(x, y, z)
+  if     abs(x) < abs(y) and x >  c1 then
+  elseif abs(x) < abs(y) and x < -c1 then
+  elseif abs(y) < abs(x) and y >  c1 then
+  elseif abs(y) < abs(x) and y < -c1 then
+  end
+
+  return x, y, z
+end
 
 function element_size(
   x0,y0,z0,x1,y1,z1,
@@ -39,7 +61,7 @@ function element_size(
   hmax = math.max(hmax,h)
   hmin = math.min(hmin,h)
 
-  return math.sqrt(hmin), math.sqrt(hmax)
+  return sqrt(hmin), sqrt(hmax)
 
 end
 
