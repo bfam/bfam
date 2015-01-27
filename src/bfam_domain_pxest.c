@@ -1659,8 +1659,7 @@ static void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *domain,
                                             bfam_locidx_t *num_subdomains,
                                             bfam_locidx_t **subdomain_id,
                                             bfam_locidx_t **roots, int **N,
-                                            bfam_locidx_t **glue_id,
-                                            bfam_locidx_t **sub_to_parent_sub)
+                                            bfam_locidx_t **glue_id)
 {
   /* TODO compute new split */
   bfam_locidx_t K = 0;
@@ -1670,8 +1669,6 @@ static void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *domain,
   *roots = bfam_malloc_aligned(*num_subdomains * sizeof(bfam_locidx_t));
   *N = bfam_malloc_aligned(*num_subdomains * sizeof(bfam_locidx_t));
   *glue_id = bfam_malloc_aligned(P4EST_FACES * K * sizeof(bfam_locidx_t));
-  *sub_to_parent_sub =
-      bfam_malloc_aligned(*num_subdomains * sizeof(bfam_locidx_t));
 }
 
 static void bfam_domain_pxest_transfer_fields(bfam_domain_pxest_t *domain_dest,
@@ -1698,7 +1695,6 @@ bfam_domain_pxest_coarsen(bfam_domain_pxest_t *domain,
   bfam_locidx_t *new_roots;
   int *new_N;
   bfam_locidx_t *new_glue_id;
-  bfam_locidx_t *sub_to_parent_sub;
 
   /* Grab old subdomains */
   bfam_domain_pxest_t *old_domain = bfam_domain_pxest_base_copy(domain);
@@ -1719,14 +1715,12 @@ bfam_domain_pxest_coarsen(bfam_domain_pxest_t *domain,
   /* Create subdomain ids and glue ids */
   bfam_domain_pxest_compute_split(domain, &new_num_subdomains,
                                   &new_subdomain_id, &new_roots, &new_N,
-                                  &new_glue_id, &sub_to_parent_sub);
+                                  &new_glue_id);
 
   /* Split domains */
   bfam_domain_pxest_split_dgx_subdomains(
       domain, new_num_subdomains, new_subdomain_id, new_roots, new_N,
       new_glue_id, nodes_transform, user_args);
-
-  /* TODO: Decide about transferring tags */
 
   /* Transfer fields */
   bfam_domain_pxest_transfer_fields(domain, old_domain);
@@ -1736,7 +1730,6 @@ bfam_domain_pxest_coarsen(bfam_domain_pxest_t *domain,
   bfam_free_aligned(new_roots);
   bfam_free_aligned(new_N);
   bfam_free_aligned(new_glue_id);
-  bfam_free_aligned(sub_to_parent_sub);
 
   /* Dump old subdomains */
   bfam_domain_pxest_free(old_domain);
