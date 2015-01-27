@@ -52,6 +52,7 @@
 
 #define BFAM_PXEST_FLAG_COARSEN (1 << 0)
 #define BFAM_PXEST_FLAG_REFINE (1 << 1)
+#define BFAM_PXEST_FLAG_ADAPTED (1 << 2)
 
 bfam_domain_pxest_t *bfam_domain_pxest_new(MPI_Comm domComm,
                                            p4est_connectivity_t *conn)
@@ -1530,7 +1531,230 @@ void bfam_domain_pxest_split_dgx_subdomains(
   bfam_domain_pxest_dgx_print_stats(domain);
 }
 
-void bfam_domain_pxest_adapt(bfam_domain_pxest_t *domain) {}
+/** Mark quadrants in pxest for adaptation.
+ *
+ * This marks all of the quadrants for refinement and coarsening.
+ *
+ * \param [in,out] domain coming in the domain's pxest needs to be in sync with
+ *                        the subdomains; and returning the pxest user data will
+ *                        be updated with the new refinement flags based on
+ *                        info in the subdomain (any currently set refinement
+ *                        flags will be zeroed.)
+ */
+static void bfam_domain_pxest_mark_elements(bfam_domain_pxest_t *domain)
+{
+  p4est_t *pxest = domain->pxest;
+  /*
+   * Fill the quadrant user data refinement flags
+   */
+  for (p4est_topidx_t t = pxest->first_local_tree; t <= pxest->last_local_tree;
+       ++t)
+  {
+    p4est_tree_t *tree = p4est_tree_array_index(pxest->trees, t);
+    sc_array_t *quadrants = &tree->quadrants;
+    size_t num_quads = quadrants->elem_count;
+
+    /* loop over the elements in tree and calculated vertex coordinates */
+    for (size_t zz = 0; zz < num_quads; ++zz)
+    {
+      p4est_quadrant_t *quad = p4est_quadrant_array_index(quadrants, zz);
+      bfam_pxest_user_data_t *ud = quad->p.user_data;
+
+      /*
+       * Here we make the assumption that all subdomains associated with a pxest
+       * quadrant are of dgx type
+       */
+      bfam_subdomain_dgx_t *subdomain =
+          (bfam_subdomain_dgx_t *)bfam_domain_get_subdomain_by_num(
+              (bfam_domain_t *)domain, ud->subd_id);
+
+      /* set the new order of the element */
+      ud->N = subdomain->padapt[ud->elem_id];
+
+      /* reset adaption flags */
+      ud->flags &= ~BFAM_PXEST_FLAG_COARSEN;
+      ud->flags &= ~BFAM_PXEST_FLAG_REFINE;
+      ud->flags &= ~BFAM_PXEST_FLAG_ADAPTED;
+
+      /* flag element for adaption */
+      switch (subdomain->hadapt[ud->elem_id])
+      {
+      case -1:
+        ud->flags |= BFAM_PXEST_FLAG_COARSEN;
+        break;
+      case 1:
+        ud->flags |= BFAM_PXEST_FLAG_REFINE;
+        break;
+      }
+    }
+  }
+}
+
+static bfam_domain_pxest_t *
+bfam_domain_pxest_base_copy(bfam_domain_pxest_t *domain)
+{
+  bfam_domain_pxest_t *new_domain = bfam_malloc(sizeof(bfam_domain_pxest_t));
+
+  memcpy(&new_domain->base, &domain->base, sizeof(bfam_domain_t));
+  new_domain->conn = NULL;
+  new_domain->pxest = NULL;
+
+  return new_domain;
+}
+
+static int bfam_domain_pxest_quadrant_coarsen(p4est_t *p4est,
+                                              p4est_topidx_t which_tree,
+                                              p4est_quadrant_t *quadrants[])
+{
+  for (int k = 0; k < P4EST_CHILDREN; ++k)
+  {
+    bfam_pxest_user_data_t *ud = quadrants[k]->p.user_data;
+
+    if (!(ud->flags & BFAM_PXEST_FLAG_COARSEN))
+    {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+static void bfam_domain_pxest_quadrant_init(p4est_t *p4est,
+                                            p4est_topidx_t which_tree,
+                                            p4est_quadrant_t *quadrant)
+{
+  memset(quadrant->p.user_data, 0, sizeof(bfam_pxest_user_data_t));
+}
+
+static void bfam_domain_pxest_quadrant_replace(p4est_t *p4est,
+                                               p4est_topidx_t which_tree,
+                                               int num_outgoing,
+                                               p4est_quadrant_t *outgoing[],
+                                               int num_incoming,
+                                               p4est_quadrant_t *incoming[])
+{
+  if (num_outgoing == 1)
+  {
+    /* Refining: copy data to all children */
+    for (int c = 0; c < num_incoming; ++c)
+      memcpy(incoming[c]->p.user_data, outgoing[0]->p.user_data,
+             sizeof(bfam_pxest_user_data_t));
+  }
+  else
+  {
+    /* Coarsening: copy data from the first child */
+    BFAM_ASSERT(num_incoming == 1);
+    memcpy(incoming[0]->p.user_data, outgoing[0]->p.user_data,
+           sizeof(bfam_pxest_user_data_t));
+  }
+
+  for (int c = 0; c < num_incoming; ++c)
+  {
+    bfam_pxest_user_data_t *ud = incoming[c]->p.user_data;
+    ud->flags |= BFAM_PXEST_FLAG_ADAPTED;
+  }
+}
+
+static void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *domain,
+                                            bfam_locidx_t *num_subdomains,
+                                            bfam_locidx_t **subdomain_id,
+                                            bfam_locidx_t **roots, int **N,
+                                            bfam_locidx_t **glue_id,
+                                            bfam_locidx_t **sub_to_parent_sub)
+{
+  /* TODO compute new split */
+  bfam_locidx_t K = 0;
+  *num_subdomains = 0;
+
+  *subdomain_id = bfam_malloc_aligned(K * sizeof(bfam_locidx_t));
+  *roots = bfam_malloc_aligned(*num_subdomains * sizeof(bfam_locidx_t));
+  *N = bfam_malloc_aligned(*num_subdomains * sizeof(bfam_locidx_t));
+  *glue_id = bfam_malloc_aligned(P4EST_FACES * K * sizeof(bfam_locidx_t));
+  *sub_to_parent_sub =
+      bfam_malloc_aligned(*num_subdomains * sizeof(bfam_locidx_t));
+}
+
+static void bfam_domain_pxest_transfer_fields(bfam_domain_pxest_t *domain_dest,
+                                              bfam_domain_pxest_t *domain_src)
+{
+  /* TODO Transfer Volume Fields */
+  /* TODO Transfer Glue Fields */
+}
+
+/** Coarsen pxest based on subdomains.
+ *
+ * This coarsens the pxest structure based on information
+ * in the subdomain.
+ *
+ * \warning this leaves the domain in a incomplete state
+ */
+static void
+bfam_domain_pxest_coarsen(bfam_domain_pxest_t *domain,
+                          bfam_dgx_nodes_transform_t nodes_transform,
+                          void *user_args)
+{
+  bfam_locidx_t new_num_subdomains;
+  bfam_locidx_t *new_subdomain_id;
+  bfam_locidx_t *new_roots;
+  int *new_N;
+  bfam_locidx_t *new_glue_id;
+  bfam_locidx_t *sub_to_parent_sub;
+
+  /* Grab old subdomains */
+  bfam_domain_pxest_t *old_domain = bfam_domain_pxest_base_copy(domain);
+
+  /* TODO: Drop unneeded memory from old_domain */
+
+  /* Drop subdomains */
+  bfam_domain_init(&domain->base, domain->base.comm);
+
+  /* Mark elements for coarsening */
+  bfam_domain_pxest_mark_elements(domain);
+
+  /* Change pxest order and coarsening */
+  p4est_coarsen_ext(domain->pxest, 0, 0, bfam_domain_pxest_quadrant_coarsen,
+                    bfam_domain_pxest_quadrant_init,
+                    bfam_domain_pxest_quadrant_replace);
+
+  /* Create subdomain ids and glue ids */
+  bfam_domain_pxest_compute_split(domain, &new_num_subdomains,
+                                  &new_subdomain_id, &new_roots, &new_N,
+                                  &new_glue_id, &sub_to_parent_sub);
+
+  /* Split domains */
+  bfam_domain_pxest_split_dgx_subdomains(
+      domain, new_num_subdomains, new_subdomain_id, new_roots, new_N,
+      new_glue_id, nodes_transform, user_args);
+
+  /* TODO: Decide about transferring tags */
+
+  /* Transfer fields */
+  bfam_domain_pxest_transfer_fields(domain, old_domain);
+
+  /* Start cleanup */
+  bfam_free_aligned(new_subdomain_id);
+  bfam_free_aligned(new_roots);
+  bfam_free_aligned(new_N);
+  bfam_free_aligned(new_glue_id);
+  bfam_free_aligned(sub_to_parent_sub);
+
+  /* Dump old subdomains */
+  bfam_domain_pxest_free(old_domain);
+}
+
+void bfam_domain_pxest_adapt(bfam_domain_pxest_t *domain,
+                             bfam_dgx_nodes_transform_t nodes_transform,
+                             void *user_args)
+{
+  /* coarsen */
+  bfam_domain_pxest_coarsen(domain, nodes_transform, user_args);
+
+  /* split and partition based on guessed elements */
+
+  /* refine and balance */
+
+  /* split and partition based on actual elements */
+}
 
 #else
 
