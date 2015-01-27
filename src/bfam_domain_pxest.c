@@ -50,6 +50,9 @@
   BFAM_APPEND_EXPAND(bfam_domain_pxest_adapt_, DIM)
 #define bfam_pxest_user_data_t BFAM_APPEND_EXPAND(bfam_pxest_user_data_t_, DIM)
 
+#define BFAM_PXEST_FLAG_COARSEN (1 << 0)
+#define BFAM_PXEST_FLAG_REFINE (1 << 1)
+
 bfam_domain_pxest_t *bfam_domain_pxest_new(MPI_Comm domComm,
                                            p4est_connectivity_t *conn)
 {

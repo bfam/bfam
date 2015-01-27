@@ -413,6 +413,7 @@ static const int8_t bfam_p8est_perm_to_order_inv[8][4] = {{0, 1, 2, 3},
  */
 typedef struct
 {
+  uint8_t flags;
   int8_t N;
   bfam_locidx_t subd_id;
   bfam_locidx_t elem_id;
@@ -422,6 +423,7 @@ typedef struct
 
 typedef struct
 {
+  uint8_t flags;
   int8_t N;
   bfam_locidx_t subd_id;
   bfam_locidx_t elem_id;
