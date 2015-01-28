@@ -8,7 +8,7 @@ height_split = 5
 output_prefix = "TPV32_base"
 data_directory = "data"
 elem_order = 4
-h1_targ   = elem_order*0.1
+h1_targ   = 4*0.1
 r_targ    = 5
 D_targ    = 20
 hmax_targ = elem_order*2
@@ -342,7 +342,7 @@ function S13_0_function(x,y,z,t)
   return (30 + 2.475*(1+math.cos(math.pi*r)))*mu(x,y,z,t) / mu0
 end
 function c0_function(x,y,z,t)
- return 0.000425*max(0,2.4-y)
+ return 0.425*max(0,2.4-y)
 end
 
 fault = {
