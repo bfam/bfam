@@ -1637,17 +1637,34 @@ static void bfam_domain_pxest_quadrant_replace(p4est_t *p4est,
   {
     /* Refining: copy data to all children */
     for (int c = 0; c < num_incoming; ++c)
-      memcpy(incoming[c]->p.user_data, outgoing[0]->p.user_data,
-             sizeof(bfam_pxest_user_data_t));
+    {
+      bfam_pxest_user_data_t *in_ud = incoming[c]->p.user_data;
+      memcpy(in_ud, outgoing[0]->p.user_data, sizeof(bfam_pxest_user_data_t));
+
+      /* remove glue from internal faces */
+      in_ud->glue_id[(c / 1 + 1) % 2 + 0] = -1;
+      in_ud->glue_id[(c / 2 + 1) % 2 + 2] = -1;
+      in_ud->glue_id[(c / 4 + 1) % 2 + 4] = -1;
+    }
   }
   else
   {
     /* Coarsening: copy data from the first child */
     BFAM_ASSERT(num_incoming == 1);
-    memcpy(incoming[0]->p.user_data, outgoing[0]->p.user_data,
-           sizeof(bfam_pxest_user_data_t));
+    bfam_pxest_user_data_t *in_ud = incoming[0]->p.user_data;
+    bfam_pxest_user_data_t *out_ud;
+
+    memcpy(in_ud, outgoing[0]->p.user_data, sizeof(bfam_pxest_user_data_t));
+
+    for (unsigned int f = 0; f < P4EST_FACES; ++f)
+    {
+      /* grab a parent on the face and use their glue id */
+      out_ud = incoming[(f % 2) << (f / 2)]->p.user_data;
+      in_ud->glue_id[f] = out_ud->glue_id[f];
+    }
   }
 
+  /* mark elements as new */
   for (int c = 0; c < num_incoming; ++c)
   {
     bfam_pxest_user_data_t *ud = incoming[c]->p.user_data;
