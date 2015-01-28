@@ -4,6 +4,7 @@ abs = math.abs
 sqrt = math.sqrt
 -- refinement parameters
 max_level = 300
+height_split = 5
 output_prefix = "TPV32_base"
 data_directory = "data"
 elem_order = 4
@@ -47,6 +48,8 @@ function connectivity_vertices(x, y, z)
   zout = Lz*(z-Cz)
   return xout,yout,zout
 end
+
+
 
 --REFINEMENT FUNCTION
 function fault_distance(x,y,z)
@@ -166,6 +169,24 @@ material = {
  cs  = {1.050, 1.400, 1.950, 2.500, 2.800, 3.100, 3.250, 3.450,  3.600,  3.700,},
  rho = {2.200, 2.450, 2.550, 2.600, 2.600, 2.620, 2.650, 2.720,  2.750,  2.900,},
 }
+
+function transform_nodes(x, y, z)
+  Hy = Ly / 2^height_split
+  km = 0
+  yb = 0
+  for key,D in pairs(material.D) do
+    kp = math.floor(D/Hy+0.5)
+    if Hy*km < y and y <= Hy*kp then
+      dy = (y-km*Hy)/(kp*Hy-km*Hy)
+      y = yb + dy*(D-yb)
+      break
+    end
+    km = kp
+    yb = D
+  end
+  return x,y,z
+end
+
 function cp(x,y,z,t)
   k = 1
   while material.D[k] do
