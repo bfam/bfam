@@ -247,7 +247,7 @@ v3  = 0
 -- time stepper to use
 lsrk_method  = "KC54"
 
-tend       = 13
+tend       = 15
 -- tout       = 1
 -- tfout      = 0.01
 tout       = -1
@@ -308,15 +308,36 @@ fault_stations = {
    "faultst120dp120", 12.0, 12.0, 0.0, 0.0, 0.0, 1.0, 0.1,
 }
 
+volume_stations = {
+  "body-030st000dp000",  0.0, 0.0,  -3.0,
+  "body-030st000dp005",  0.0, 0.5,  -3.0,
+  "body-030st000dp024",  0.0, 2.4,  -3.0,
+  "body-030st120dp000", 12.0, 0.0,  -3.0,
+  "body-030st120dp005", 12.0, 0.5,  -3.0,
+  "body-030st120dp024", 12.0, 2.4,  -3.0,
+  "body-090st000dp000",  0.0, 0.0,  -9.0,
+  "body-090st000dp005",  0.0, 0.5,  -9.0,
+  "body-090st000dp024",  0.0, 2.4,  -9.0,
+  "body-090st150dp000", 15.0, 0.0,  -9.0,
+  "body-090st150dp005", 15.0, 0.5,  -9.0,
+  "body-090st150dp024", 15.0, 2.4,  -9.0,
+  "body-150st000dp000",  0.0, 0.0, -15.0,
+  "body-150st000dp005",  0.0, 0.5, -15.0,
+  "body-150st000dp024",  0.0, 2.4, -15.0,
+  "body-150st150dp000", 15.0, 0.0, -15.0,
+  "body-150st150dp005", 15.0, 0.5, -15.0,
+  "body-150st150dp024", 15.0, 2.4, -15.0,
+}
+
 -- faults
 mu0  = 2.670*3.464^2
-function S11_0_function(x,y,z,t)
+function s11_0_function(x,y,z,t)
   return -60 * mu(x,y,z,t) / mu0
 end
-function S33_0_function(x,y,z,t)
+function s33_0_function(x,y,z,t)
   return -60 * mu(x,y,z,t) / mu0
 end
-function S13_0_function(x,y,z,t)
+function s13_0_function(x,y,z,t)
   r = (min(2,max(1.4,sqrt(x^2 + (y-7.5)^2)))-1.4)/0.6
   return (30 + 2.475*(1+math.cos(math.pi*r)))*mu(x,y,z,t) / mu0
 end
@@ -329,13 +350,13 @@ fault = {
   tag    = "slip weakening",
   fs     = 0.58,
   fd     = 0.45,
-  Dc     = 0.18,
-  S11_0  = "S11_0_function",
-  S12_0  = 0,
-  S13_0  = "S13_0_function",
-  S22_0  = 0,
-  S23_0  = 0,
-  S33_0  = "S33_0_function",
+  dc     = 0.18,
+  s11_0  = "s11_0_function",
+  s12_0  = 0,
+  s13_0  = "s13_0_function",
+  s22_0  = 0,
+  s23_0  = 0,
+  s33_0  = "s33_0_function",
   c0     = "c0_function",
 }
 
@@ -363,8 +384,8 @@ glue_info = {
 
 -- friction stuff
 glueid_treeid_faceid = {
-  4, (Cx-1) + (0)*brick.nx + (Cz-1)*brick.nx*brick.ny, 5,
-  4, (Cx-1) + (0)*brick.nx + (Cz  )*brick.nx*brick.ny, 4,
-  4, (Cx  ) + (0)*brick.nx + (Cz-1)*brick.nx*brick.ny, 5,
-  4, (Cx  ) + (0)*brick.nx + (Cz  )*brick.nx*brick.ny, 4,
+  4, (cx-1) + (0)*brick.nx + (Cz-1)*brick.nx*brick.ny, 5,
+  4, (cx-1) + (0)*brick.nx + (Cz  )*brick.nx*brick.ny, 4,
+  4, (cx  ) + (0)*brick.nx + (Cz-1)*brick.nx*brick.ny, 5,
+  4, (cx  ) + (0)*brick.nx + (Cz  )*brick.nx*brick.ny, 4,
 }
