@@ -1678,14 +1678,78 @@ static void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *domain,
                                             bfam_locidx_t **roots, int **N,
                                             bfam_locidx_t **glue_id)
 {
-  /* TODO compute new split */
-  bfam_locidx_t K = 0;
+  char key[BFAM_BUFSIZ];
+  p4est_t *pxest = domain->pxest;
+  bfam_dictionary_t rootN_to_sub;
+
+  bfam_dictionary_init(&rootN_to_sub);
+
+  bfam_locidx_t K = 0, k = 0;
   *num_subdomains = 0;
 
+  /* find subdomains */
+  for (p4est_topidx_t t = pxest->first_local_tree; t <= pxest->last_local_tree;
+       ++t)
+  {
+    int retval;
+    p4est_tree_t *tree = p4est_tree_array_index(pxest->trees, t);
+    sc_array_t *quadrants = &tree->quadrants;
+    size_t num_quads = quadrants->elem_count;
+
+    /* loop over the elements in tree and calculated vertex coordinates */
+    for (size_t zz = 0; zz < num_quads; ++zz)
+    {
+      p4est_quadrant_t *quad = p4est_quadrant_array_index(quadrants, zz);
+      bfam_pxest_user_data_t *ud = quad->p.user_data;
+
+      snprintf(key, BFAM_BUFSIZ, "%jd_%d", (intmax_t)ud->root_id, (int)ud->N);
+
+      retval =
+          bfam_dictionary_insert_locidx(&rootN_to_sub, key, *num_subdomains);
+      BFAM_ABORT_IF(retval == 0, "Can't insert '%s' into dictionary", key);
+
+      /* If we have a new subdomain increment it */
+      if (retval == 2)
+        ++(*num_subdomains);
+
+      ++K;
+    }
+  }
+
+  BFAM_ASSERT((bfam_locidx_t)rootN_to_sub.num_entries == *num_subdomains);
+
+  /* TODO compute new split */
   *subdomain_id = bfam_malloc_aligned(K * sizeof(bfam_locidx_t));
   *roots = bfam_malloc_aligned(*num_subdomains * sizeof(bfam_locidx_t));
   *N = bfam_malloc_aligned(*num_subdomains * sizeof(bfam_locidx_t));
   *glue_id = bfam_malloc_aligned(P4EST_FACES * K * sizeof(bfam_locidx_t));
+
+  k = 0;
+  for (p4est_topidx_t t = pxest->first_local_tree; t <= pxest->last_local_tree;
+       ++t)
+  {
+    int retval;
+    p4est_tree_t *tree = p4est_tree_array_index(pxest->trees, t);
+    sc_array_t *quadrants = &tree->quadrants;
+    size_t num_quads = quadrants->elem_count;
+
+    /* loop over the elements in tree and calculated vertex coordinates */
+    for (size_t zz = 0; zz < num_quads; ++zz, ++k)
+    {
+      p4est_quadrant_t *quad = p4est_quadrant_array_index(quadrants, zz);
+      bfam_pxest_user_data_t *ud = quad->p.user_data;
+
+      snprintf(key, BFAM_BUFSIZ, "%jd_%d", (intmax_t)ud->root_id, (int)ud->N);
+
+      retval = bfam_dictionary_get_value_locidx(&rootN_to_sub, key,
+                                                &(*subdomain_id)[k]);
+      BFAM_ABORT_IF(retval == 0, "rootN key `%s` does not exist", key);
+      (*N)[(*subdomain_id)[k]] = ud->N;
+      (*roots)[(*subdomain_id)[k]] = ud->root_id;
+      for (int f = 0; f < P4EST_FACES; ++f)
+        (*glue_id)[k * P4EST_FACES + f] = ud->glue_id[f];
+    }
+  }
 }
 
 static void bfam_domain_pxest_transfer_fields(bfam_domain_pxest_t *domain_dest,
