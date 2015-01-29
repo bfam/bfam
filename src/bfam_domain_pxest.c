@@ -1696,7 +1696,6 @@ static void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *domain,
     sc_array_t *quadrants = &tree->quadrants;
     size_t num_quads = quadrants->elem_count;
 
-    /* loop over the elements in tree and calculated vertex coordinates */
     for (size_t zz = 0; zz < num_quads; ++zz)
     {
       p4est_quadrant_t *quad = p4est_quadrant_array_index(quadrants, zz);
@@ -1718,7 +1717,7 @@ static void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *domain,
 
   BFAM_ASSERT((bfam_locidx_t)rootN_to_sub.num_entries == *num_subdomains);
 
-  /* TODO compute new split */
+  /* compute new split */
   *subdomain_id = bfam_malloc_aligned(K * sizeof(bfam_locidx_t));
   *roots = bfam_malloc_aligned(*num_subdomains * sizeof(bfam_locidx_t));
   *N = bfam_malloc_aligned(*num_subdomains * sizeof(bfam_locidx_t));
@@ -1733,7 +1732,6 @@ static void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *domain,
     sc_array_t *quadrants = &tree->quadrants;
     size_t num_quads = quadrants->elem_count;
 
-    /* loop over the elements in tree and calculated vertex coordinates */
     for (size_t zz = 0; zz < num_quads; ++zz, ++k)
     {
       p4est_quadrant_t *quad = p4est_quadrant_array_index(quadrants, zz);
