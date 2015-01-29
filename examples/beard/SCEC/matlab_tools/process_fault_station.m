@@ -85,9 +85,6 @@ if N_data > 0
   head_saved = false;
 
   for n = 1:N_data
-    disp([n length(data(n).Dp)])
-  end
-  for n = 1:N_data
     n_sign    = sign(n_ref(1)*data(n).n(1) + n_ref(2)*data(n).n(2) + n_ref(3)*data(n).n(3));
     if(~head_saved && n_sign == 1)
       head_saved = true;
