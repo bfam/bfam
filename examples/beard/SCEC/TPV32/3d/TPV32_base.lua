@@ -129,6 +129,9 @@ function refinement_function(
   if(level >= max_level) then
     return 0
   end
+  if y4 < 15 and level < height_split then
+    return 1
+  end
 
   r = fault_distance(x0,y0,z0)
   r = min(r,fault_distance(x1,y1,z1))
