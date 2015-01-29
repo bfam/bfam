@@ -1548,6 +1548,9 @@ field_set_val_extend(bfam_locidx_t npoints, const char *name, bfam_real_t t,
   BFAM_ASSUME_ALIGNED(field, 32);
   bfam_real_t val = 0;
 
+  bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t *)s;
+  BFAM_ASSERT(npoints == sub->Np*sub->K);
+
   set_val_extended_args_t *val_args = (set_val_extended_args_t*)arg;
   lua_State *L = val_args->L;
   lua_getglobal(L,val_args->fname);
@@ -1558,18 +1561,49 @@ field_set_val_extend(bfam_locidx_t npoints, const char *name, bfam_real_t t,
                    val_args->fname);
     lua_pop(L,1);
 #if   DIM==2
-    bfam_real_t tmpz = 0;
+    const bfam_real_t tmpz = 0;
 #endif
-    for(bfam_locidx_t n=0; n < npoints; ++n)
+    for(bfam_locidx_t elem=0; elem < sub->K; ++elem)
+    {
+      bfam_real_t xc = 0;
+      bfam_real_t yc = 0;
+      bfam_real_t zc = 0;
+#if   DIM==3
+      for(bfam_locidx_t iz = 0; iz < 2; iz++)
+#endif
+        for(bfam_locidx_t iy = 0; iy < 2; iy++)
+          for(bfam_locidx_t ix = 0; ix < 2; ix++)
+          {
 #if   DIM==2
-      lua_global_function_call(L, val_args->fname, "rrrr>r", x[n],y[n],tmpz,t,
-                               &field[n]);
+            const bfam_locidx_t iz   = 0;
+#endif
+            const bfam_locidx_t ind = elem*sub->Np
+                                    + ix*(sub->N)
+                                    + iy*(sub->N)*(sub->N+1)
+                                    + iz*(sub->N)*(sub->N+1)*(sub->N+1);
+            xc += x[ind];
+            yc += y[ind];
+#if   DIM==3
+            zc += z[ind];
+#endif
+          }
+      xc /= (BEARD_D3_AP(4,*2));
+      yc /= (BEARD_D3_AP(4,*2));
+      zc /= (BEARD_D3_AP(4,*2));
+      for(bfam_locidx_t dof=0; dof < sub->Np; ++dof)
+      {
+        const bfam_locidx_t n = elem*sub->Np + dof;
+#if   DIM==2
+        lua_global_function_call(L, val_args->fname, "rrrrrrr>r",x[n],y[n],tmpz,
+                                 t,xc,yc,zc,&field[n]);
 #elif DIM==3
-      lua_global_function_call(L, val_args->fname, "rrrr>r", x[n],y[n],z[n],t,
-                               &field[n]);
+        lua_global_function_call(L, val_args->fname, "rrrrrrr>r",x[n],y[n],z[n],
+                                 t,xc,yc,zc,&field[n]);
 #else
 #error "Bad Dimension"
 #endif
+      }
+    }
     return;
   }
   else if(lua_isnumber(L,-1)) val = (bfam_real_t)lua_tonumber(L,-1);
