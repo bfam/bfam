@@ -124,6 +124,13 @@ typedef struct bfam_subdomain_dgx
   int8_t *padapt; /* length K where entries indicate the desired
                    * order for each element after p-adaptation
                    */
+
+  bfam_locidx_t *parent_subd_id; /* length K where entries indicate which
+                                    parent subdomain the element came from
+                                    after adaptation. */
+  bfam_locidx_t *parent_elem_id; /* length K where entries indicate which
+                                    parent element the element came from after
+                                    adaptation. */
 } bfam_subdomain_dgx_t;
 
 typedef struct bfam_subdomain_dgx_point_interp

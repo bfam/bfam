@@ -2661,6 +2661,8 @@ static void bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
 
   subdomain->hadapt = NULL;
   subdomain->padapt = NULL;
+  subdomain->parent_subd_id = NULL;
+  subdomain->parent_elem_id = NULL;
 
   if (DIM > 0)
   {
@@ -2714,10 +2716,14 @@ static void bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
 
     subdomain->hadapt = bfam_malloc_aligned(K * sizeof(int8_t));
     subdomain->padapt = bfam_malloc_aligned(K * sizeof(int8_t));
+    subdomain->parent_subd_id = bfam_malloc_aligned(K * sizeof(bfam_locidx_t));
+    subdomain->parent_elem_id = bfam_malloc_aligned(K * sizeof(bfam_locidx_t));
     for (bfam_locidx_t k = 0; k < K; ++k)
     {
       subdomain->hadapt[k] = 0;
       subdomain->padapt[k] = N;
+      subdomain->parent_subd_id[k] = -1;
+      subdomain->parent_elem_id[k] = -1;
     }
   }
 }
@@ -3133,6 +3139,14 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,
   if (sub->padapt)
     bfam_free_aligned(sub->padapt);
   sub->padapt = NULL;
+
+  if (sub->parent_subd_id)
+    bfam_free_aligned(sub->parent_subd_id);
+  sub->parent_subd_id = NULL;
+
+  if (sub->parent_elem_id)
+    bfam_free_aligned(sub->parent_elem_id);
+  sub->parent_elem_id = NULL;
 
   bfam_subdomain_dgx_null_all_values(sub);
 
