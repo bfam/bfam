@@ -1038,10 +1038,12 @@ refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
 
 typedef struct split_iter_data
 {
-  lua_State *L;
-  int loc;
-  bfam_locidx_t *subdomain_id;
-  bfam_locidx_t  max_N;
+  lua_State         *L;
+  bfam_locidx_t      next_sub;
+  bfam_locidx_t      loc;
+  bfam_locidx_t     *subdomain_id;
+  bfam_dictionary_t *N;
+  bfam_dictionary_t *root;
 } split_iter_data_t;
 
 static void
@@ -1093,9 +1095,21 @@ get_element_order(p4est_iter_volume_info_t *info, void *arg)
 #endif
 
   BFAM_ABORT_IF_NOT(result == 0, "no 'element_order' function");
-  BFAM_ABORT_IF_NOT(N > 0, "N must be greater than 0");
-  data->subdomain_id[data->loc] = N-1;
-  data->max_N = BFAM_MAX(N,data->max_N);
+  BFAM_ABORT_IF_NOT(N>0, "order '%d' is not bigger than zero",N);
+
+  char order_str[BFAM_BUFSIZ];
+  snprintf(order_str, BFAM_BUFSIZ, "%d", N);
+
+  bfam_locidx_t sub;
+  if(0 == bfam_dictionary_get_value_locidx(data->N,order_str,&sub))
+  {
+    sub = data->next_sub;
+    data->next_sub++;
+    bfam_dictionary_insert_locidx(data->N   , order_str, sub);
+    bfam_dictionary_insert_locidx(data->root, order_str,   0);
+  }
+
+  data->subdomain_id[data->loc] = sub;
   data->loc++;
 }
 
@@ -1476,6 +1490,30 @@ transform_nodes(const bfam_locidx_t num_Vi, const bfam_locidx_t num_pnts,
 
 }
 
+typedef struct d2la_data
+{
+  bfam_locidx_t  A_sz;
+  bfam_locidx_t* A;
+} d2la_data_t;
+
+static int
+dict_to_locidx_array(const char * key_str, const char *val_str, void *in_args)
+{
+  d2la_data_t *data = (d2la_data_t*)in_args;
+  bfam_locidx_t V;
+  bfam_locidx_t k;
+
+  int m = sscanf(key_str, "%" BFAM_LOCIDX_SCNd, &V);
+  BFAM_ASSERT(m == 1);
+  int n = sscanf(val_str, "%" BFAM_LOCIDX_SCNd, &k);
+  BFAM_ASSERT(n == 1);
+
+  BFAM_ASSERT(data->A_sz > k);
+  data->A[k] = V;
+
+  return (n==1)&&(m==1);
+}
+
 static void
 split_domain(beard_t *beard, prefs_t *prefs)
 {
@@ -1484,15 +1522,27 @@ split_domain(beard_t *beard, prefs_t *prefs)
   bfam_locidx_t *sub_ids =
     bfam_malloc(domain->pxest->local_num_quadrants*sizeof(bfam_locidx_t));
 
-  split_iter_data_t data = {prefs->L,0,sub_ids,0};
+  bfam_dictionary_t N_dict;
+  bfam_dictionary_t root_dict;
+  bfam_dictionary_init(&N_dict);
+  bfam_dictionary_init(&root_dict);
+  split_iter_data_t data = {prefs->L,0,0,sub_ids,&N_dict,&root_dict};
   p4est_iterate (domain->pxest, NULL, &data, get_element_order, NULL, NULL
 #if DIM==3
       ,NULL
 #endif
       );
 
-  bfam_locidx_t *N = bfam_malloc(data.max_N*sizeof(bfam_locidx_t));
-  for(int n = 0; n < data.max_N;n++) N[n] = n+1;
+  bfam_locidx_t num_sub = N_dict.num_entries;
+  BFAM_ASSERT(N_dict.num_entries == root_dict.num_entries);
+  bfam_locidx_t    N[num_sub];
+  bfam_locidx_t root[num_sub];
+
+  d2la_data_t N_data = {num_sub, N};
+  bfam_dictionary_allprefixed(&N_dict, "", dict_to_locidx_array, &N_data);
+
+  d2la_data_t root_data = {num_sub, root};
+  bfam_dictionary_allprefixed(&root_dict, "", dict_to_locidx_array, &root_data);
 
   bfam_locidx_t *tree_ids =
     bfam_malloc(P4EST_FACES*domain->pxest->connectivity->num_trees
@@ -1510,15 +1560,15 @@ split_domain(beard_t *beard, prefs_t *prefs)
   lua_getglobal(prefs->L,"transform_nodes");
   if(lua_isfunction(prefs->L,-1))
   {
-    bfam_domain_pxest_split_dgx_subdomains(domain, data.max_N, sub_ids, NULL,
-        N, glue_ids,&transform_nodes,prefs);
+    bfam_domain_pxest_split_dgx_subdomains(domain, num_sub, sub_ids, root, N,
+        glue_ids,&transform_nodes,prefs);
   }
   else
   {
     BFAM_ROOT_WARNING("function `%s' not found in lua file",
         "transform_nodes");
-    bfam_domain_pxest_split_dgx_subdomains(domain, data.max_N, sub_ids, NULL,
-        N, glue_ids,NULL,NULL);
+    bfam_domain_pxest_split_dgx_subdomains(domain, num_sub, sub_ids, root, N,
+        glue_ids,NULL,NULL);
   }
   lua_pop(prefs->L,1);
   BFAM_ASSERT(lua_gettop(prefs->L)==0);
@@ -1527,7 +1577,8 @@ split_domain(beard_t *beard, prefs_t *prefs)
   bfam_free(tree_ids);
   bfam_free(glue_ids);
   bfam_free(sub_ids);
-  bfam_free(N);
+  bfam_dictionary_clear(&N_dict);
+  bfam_dictionary_clear(&root_dict);
 }
 
 typedef struct set_val_extended_args
