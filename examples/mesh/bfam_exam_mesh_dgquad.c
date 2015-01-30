@@ -95,8 +95,9 @@ build_mesh(MPI_Comm mpicomm)
   bfam_domain_pxest_t_2* domain = bfam_domain_pxest_new_2(mpicomm, conn);
 
   refine_level = 2;
-  p4est_refine(domain->pxest, 1, refine_fn, NULL);
-  p4est_balance(domain->pxest, P4EST_CONNECT_FACE, NULL);
+  p4est_refine(domain->pxest, 1, refine_fn, bfam_domain_pxest_init_callback_2);
+  p4est_balance(domain->pxest, P4EST_CONNECT_FACE,
+      bfam_domain_pxest_init_callback_2);
   p4est_partition(domain->pxest, 1, NULL);
 
   p4est_vtk_write_file(domain->pxest, NULL, "p4est_mesh");

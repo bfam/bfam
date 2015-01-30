@@ -23,6 +23,8 @@
 #define FDIM 1
 #define BEARD_D3_AP(A1,A2) (A1)
 #define BEARD_D3_OP(A) BFAM_NOOP()
+#define bfam_domain_pxest_init_callback \
+  bfam_domain_pxest_init_callback_2
 #define bfam_domain_pxest_new bfam_domain_pxest_new_2
 #define bfam_domain_pxest_quad_to_glueid \
   bfam_domain_pxest_quad_to_glueid_2
@@ -38,6 +40,8 @@
 #define FDIM 2
 #define BEARD_D3_AP(A1,A2) (A1 A2)
 #define BEARD_D3_OP(A) A
+#define bfam_domain_pxest_init_callback \
+  bfam_domain_pxest_init_callback_3
 #define bfam_domain_pxest_new bfam_domain_pxest_new_3
 #define bfam_domain_pxest_quad_to_glueid \
   bfam_domain_pxest_quad_to_glueid_3
@@ -2185,7 +2189,8 @@ init_domain(beard_t *beard, prefs_t *prefs)
     lua_pop(prefs->L, 1);
     void *current_user_pointer = beard->domain->pxest->user_pointer;
     beard->domain->pxest->user_pointer = prefs->L;
-    p4est_refine(beard->domain->pxest, 1, refine_fn, NULL);
+    p4est_refine(beard->domain->pxest, 1, refine_fn,
+        bfam_domain_pxest_init_callback);
 
     beard->domain->pxest->user_pointer = current_user_pointer;
   }
@@ -2200,7 +2205,8 @@ init_domain(beard_t *beard, prefs_t *prefs)
    */
   int stat_ref = lua_get_global_int(prefs->L, "static_refinement", 0);
   for(int i = 0; i < stat_ref; i++)
-    p4est_refine(beard->domain->pxest, 0, static_refine_fn, NULL);
+    p4est_refine(beard->domain->pxest, 0, static_refine_fn,
+        bfam_domain_pxest_init_callback);
 
   p4est_partition(beard->domain->pxest, 1, NULL);
 

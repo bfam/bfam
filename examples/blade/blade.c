@@ -22,6 +22,8 @@
 #define DIM  2
 #define BLADE_D3_AP(A1,A2) (A1)
 #define BLADE_D3_OP(A) BFAM_NOOP()
+#define bfam_domain_pxest_init_callback \
+  bfam_domain_pxest_init_callback_2
 #define bfam_domain_pxest_new bfam_domain_pxest_new_2
 #define bfam_domain_pxest_quad_to_glueid \
   bfam_domain_pxest_quad_to_glueid_2
@@ -36,6 +38,8 @@
 #define DIM  3
 #define BLADE_D3_AP(A1,A2) (A1 A2)
 #define BLADE_D3_OP(A) A
+#define bfam_domain_pxest_init_callback \
+  bfam_domain_pxest_init_callback_3
 #define bfam_domain_pxest_new bfam_domain_pxest_new_3
 #define bfam_domain_pxest_quad_to_glueid \
   bfam_domain_pxest_quad_to_glueid_3
@@ -1034,14 +1038,16 @@ init_domain(blade_t *blade, prefs_t *prefs)
     lua_pop(prefs->L, 1);
     void *current_user_pointer = blade->domain->pxest->user_pointer;
     blade->domain->pxest->user_pointer = prefs->L;
-    p4est_refine(blade->domain->pxest, 1, refine_fn, NULL);
+    p4est_refine(blade->domain->pxest, 1, refine_fn,
+        bfam_domain_pxest_init_callback);
 
     blade->domain->pxest->user_pointer = current_user_pointer;
   }
   else BFAM_ROOT_WARNING("function `%s' not found in lua file",
       "refinement_function");
 
-  p4est_balance(blade->domain->pxest, P4EST_CONNECT_CORNER, NULL);
+  p4est_balance(blade->domain->pxest, P4EST_CONNECT_CORNER,
+      bfam_domain_pxest_init_callback);
 
   /*
    * This is to statically refine all cells of a balanced mesh, since it's
@@ -1049,7 +1055,8 @@ init_domain(blade_t *blade, prefs_t *prefs)
    */
   int stat_ref = lua_get_global_int(prefs->L, "static_refinement", 0);
   for(int i = 0; i < stat_ref; i++)
-    p4est_refine(blade->domain->pxest, 0, static_refine_fn, NULL);
+    p4est_refine(blade->domain->pxest, 0, static_refine_fn,
+        bfam_domain_pxest_init_callback);
 
   p4est_partition(blade->domain->pxest, 1, NULL);
 

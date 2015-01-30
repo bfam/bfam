@@ -36,6 +36,8 @@
 #endif
 
 #define bfam_domain_pxest_t BFAM_APPEND_EXPAND(bfam_domain_pxest_t_, DIM)
+#define bfam_domain_pxest_init_callback                                        \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_init_callback_, DIM)
 #define bfam_domain_pxest_new BFAM_APPEND_EXPAND(bfam_domain_pxest_new_, DIM)
 #define bfam_domain_pxest_init BFAM_APPEND_EXPAND(bfam_domain_pxest_init_, DIM)
 #define bfam_domain_pxest_free BFAM_APPEND_EXPAND(bfam_domain_pxest_free_, DIM)
@@ -54,6 +56,27 @@
 #define BFAM_PXEST_FLAG_REFINE (1 << 1)
 #define BFAM_PXEST_FLAG_ADAPTED (1 << 2)
 
+void bfam_domain_pxest_init_callback(p4est_t *p4est, p4est_topidx_t which_tree,
+                                     p4est_quadrant_t *quadrant)
+{
+
+  bfam_pxest_user_data_t *ud = quadrant->p.user_data;
+
+  ud->flags = 0;
+  ud->N = -1;
+  ud->subd_id = -1;
+  ud->elem_id = -1;
+  ud->root_id = BFAM_DEFAULT_SUBDOMAIN_ROOT;
+  ud->glue_id[0] = -1;
+  ud->glue_id[1] = -1;
+  ud->glue_id[2] = -1;
+  ud->glue_id[3] = -1;
+#if DIM == 3
+  ud->glue_id[4] = -1;
+  ud->glue_id[5] = -1;
+#endif
+}
+
 bfam_domain_pxest_t *bfam_domain_pxest_new(MPI_Comm domComm,
                                            p4est_connectivity_t *conn)
 {
@@ -69,8 +92,9 @@ void bfam_domain_pxest_init(bfam_domain_pxest_t *domain, MPI_Comm domComm,
   bfam_domain_init(&domain->base, domComm);
 
   domain->conn = conn;
-  domain->pxest = p4est_new(domComm, conn, sizeof(bfam_pxest_user_data_t), NULL,
-                            &default_user_data);
+  domain->pxest =
+      p4est_new(domComm, conn, sizeof(bfam_pxest_user_data_t),
+                bfam_domain_pxest_init_callback, &default_user_data);
 }
 
 void bfam_domain_pxest_free(bfam_domain_pxest_t *domain)

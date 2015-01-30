@@ -9,6 +9,8 @@ static int refine_level = 0;
 #define DIM 2
 
 #define bfam_domain_pxest_t BFAM_APPEND_EXPAND(bfam_domain_pxest_t_, DIM)
+#define bfam_domain_pxest_init_callback                                        \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_init_callback_, DIM)
 #define bfam_domain_pxest_new BFAM_APPEND_EXPAND(bfam_domain_pxest_new_, DIM)
 #define bfam_domain_pxest_init BFAM_APPEND_EXPAND(bfam_domain_pxest_init_, DIM)
 #define bfam_domain_pxest_free BFAM_APPEND_EXPAND(bfam_domain_pxest_free_, DIM)
@@ -330,8 +332,9 @@ static int build_mesh(MPI_Comm mpicomm)
   bfam_domain_pxest_t *domain = bfam_domain_pxest_new(mpicomm, conn);
 
   refine_level = 4;
-  p4est_refine(domain->pxest, 2, refine_fn, NULL);
-  p4est_balance(domain->pxest, P4EST_CONNECT_CORNER, NULL);
+  p4est_refine(domain->pxest, 2, refine_fn, bfam_domain_pxest_init_callback);
+  p4est_balance(domain->pxest, P4EST_CONNECT_CORNER,
+                bfam_domain_pxest_init_callback);
   p4est_partition(domain->pxest, 1, NULL);
 
   /*
