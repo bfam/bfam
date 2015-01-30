@@ -1641,6 +1641,7 @@ static void bfam_domain_pxest_quadrant_replace(p4est_t *p4est,
                                                int num_incoming,
                                                p4est_quadrant_t *incoming[])
 {
+  BFAM_ASSERT(num_outgoing != 1 || num_incoming != 1);
   if (num_outgoing == 1)
   {
     /* Refining: copy data to all children */
