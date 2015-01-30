@@ -217,6 +217,8 @@ bfam_locidx_t bfam_domain_add_subdomain(bfam_domain_t *thisDomain,
 bfam_subdomain_t *bfam_domain_get_subdomain_by_num(bfam_domain_t *thisDomain,
                                                    bfam_locidx_t id)
 {
+  BFAM_ABORT_IF(id >= thisDomain->numSubdomains || id < 0,
+                "Bad subdomain id: %jd", (intmax_t)id);
   return thisDomain->subdomains[id];
 }
 
