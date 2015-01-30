@@ -1497,6 +1497,10 @@ void bfam_domain_pxest_split_dgx_subdomains(
             (bfam_subdomain_dgx_t *)bfam_domain_get_subdomain_by_num(
                 (bfam_domain_t *)domain, new_subd_id);
 
+        new_subdomain->hadapt[new_elem_id] = ud->flags;
+        if (ud->N > 0)
+          new_subdomain->padapt[new_elem_id] = ud->N;
+
         new_subdomain->parent_subd_id[new_elem_id] = ud->subd_id;
         new_subdomain->parent_elem_id[new_elem_id] = ud->elem_id;
 
