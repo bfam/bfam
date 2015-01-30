@@ -116,10 +116,12 @@ typedef struct bfam_subdomain_dgx
 
   int ***gmask; /* geometry mask: same order as Ng */
 
-  int8_t *hadapt; /* length K where entries indicate h-adaptation
-                   * -1:coarsen; 0:no change 1:refine
-                   *  for each element
-                   */
+  uint8_t *hadapt; /* length K where entries indicate h-adaptation
+                    * which has the flags:
+                    *   BFAM_FLAG_COARSEN
+                    *   BFAM_FLAG_REFINE
+                    *   BFAM_FLAG_ADAPTED
+                    */
 
   int8_t *padapt; /* length K where entries indicate the desired
                    * order for each element after p-adaptation

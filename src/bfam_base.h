@@ -314,6 +314,11 @@ typedef int64_t bfam_gloidx_t;
 #define BFAM_GLOIDX_PRId PRId64
 #define BFAM_GLOIDX_SCNd SCNd64
 
+/* Flags for adaptation */
+#define BFAM_FLAG_COARSEN (1 << 0)
+#define BFAM_FLAG_REFINE (1 << 1)
+#define BFAM_FLAG_ADAPTED (1 << 2)
+
 /* conversions between p4est and standard orientation */
 static const int8_t bfam_p8est_FToF_code[6][6] = {{0, 1, 1, 0, 0, 1},
                                                   {2, 0, 0, 1, 1, 0},

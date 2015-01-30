@@ -52,10 +52,6 @@
   BFAM_APPEND_EXPAND(bfam_domain_pxest_adapt_, DIM)
 #define bfam_pxest_user_data_t BFAM_APPEND_EXPAND(bfam_pxest_user_data_t_, DIM)
 
-#define BFAM_PXEST_FLAG_COARSEN (1 << 0)
-#define BFAM_PXEST_FLAG_REFINE (1 << 1)
-#define BFAM_PXEST_FLAG_ADAPTED (1 << 2)
-
 void bfam_domain_pxest_init_callback(p4est_t *p4est, p4est_topidx_t which_tree,
                                      p4est_quadrant_t *quadrant)
 {
@@ -1604,20 +1600,7 @@ static void bfam_domain_pxest_mark_elements(bfam_domain_pxest_t *domain)
       ud->N = subdomain->padapt[ud->elem_id];
 
       /* reset adaption flags */
-      ud->flags &= ~BFAM_PXEST_FLAG_COARSEN;
-      ud->flags &= ~BFAM_PXEST_FLAG_REFINE;
-      ud->flags &= ~BFAM_PXEST_FLAG_ADAPTED;
-
-      /* flag element for adaption */
-      switch (subdomain->hadapt[ud->elem_id])
-      {
-      case -1:
-        ud->flags |= BFAM_PXEST_FLAG_COARSEN;
-        break;
-      case 1:
-        ud->flags |= BFAM_PXEST_FLAG_REFINE;
-        break;
-      }
+      ud->flags = subdomain->hadapt[ud->elem_id];
     }
   }
 }
@@ -1642,7 +1625,8 @@ static int bfam_domain_pxest_quadrant_coarsen(p4est_t *p4est,
   {
     bfam_pxest_user_data_t *ud = quadrants[k]->p.user_data;
 
-    if (!(ud->flags & BFAM_PXEST_FLAG_COARSEN))
+    /* TODO Add check for same glue id and root id */
+    if (!(ud->flags & BFAM_FLAG_COARSEN))
     {
       return 0;
     }
@@ -1701,7 +1685,7 @@ static void bfam_domain_pxest_quadrant_replace(p4est_t *p4est,
   for (int c = 0; c < num_incoming; ++c)
   {
     bfam_pxest_user_data_t *ud = incoming[c]->p.user_data;
-    ud->flags |= BFAM_PXEST_FLAG_ADAPTED;
+    ud->flags |= BFAM_FLAG_ADAPTED;
   }
 }
 
