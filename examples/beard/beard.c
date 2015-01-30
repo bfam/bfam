@@ -1565,34 +1565,69 @@ field_set_val_extend(bfam_locidx_t npoints, const char *name, bfam_real_t t,
 #endif
     for(bfam_locidx_t elem=0; elem < sub->K; ++elem)
     {
+      const bfam_locidx_t off = elem*sub->Np;
       bfam_real_t xc = 0;
       bfam_real_t yc = 0;
       bfam_real_t zc = 0;
-#if   DIM==3
-      for(bfam_locidx_t iz = 0; iz < 2; iz++)
-#endif
-        for(bfam_locidx_t iy = 0; iy < 2; iy++)
+      switch(sub->dim)
+      {
+        case 1:
           for(bfam_locidx_t ix = 0; ix < 2; ix++)
           {
-#if   DIM==2
-            const bfam_locidx_t iz   = 0;
-#endif
-            const bfam_locidx_t ind = elem*sub->Np
-                                    + ix*(sub->N)
-                                    + iy*(sub->N)*(sub->N+1)
-                                    + iz*(sub->N)*(sub->N+1)*(sub->N+1);
-            xc += x[ind];
-            yc += y[ind];
+            const bfam_locidx_t ind = + ix*(sub->N);
+            xc += x[off+ind];
+            yc += y[off+ind];
 #if   DIM==3
-            zc += z[ind];
+            zc += z[off+ind];
 #endif
           }
-      xc /= (BEARD_D3_AP(4,*2));
-      yc /= (BEARD_D3_AP(4,*2));
-      zc /= (BEARD_D3_AP(4,*2));
-      for(bfam_locidx_t dof=0; dof < sub->Np; ++dof)
+          xc /= 2;
+          yc /= 2;
+          zc /= 2;
+          break;
+        case 2:
+          for(bfam_locidx_t iy = 0; iy < 2; iy++)
+            for(bfam_locidx_t ix = 0; ix < 2; ix++)
+            {
+              const bfam_locidx_t ind = + ix*(sub->N)
+                                        + iy*(sub->N)*(sub->N+1);
+
+              xc += x[off+ind];
+              yc += y[off+ind];
+#if   DIM==3
+              zc += z[off+ind];
+#endif
+            }
+          xc /= 4;
+          yc /= 4;
+          zc /= 4;
+          break;
+        case 3:
+          for(bfam_locidx_t iz = 0; iz < 2; iz++)
+            for(bfam_locidx_t iy = 0; iy < 2; iy++)
+              for(bfam_locidx_t ix = 0; ix < 2; ix++)
+              {
+                const bfam_locidx_t ind = + ix*(sub->N)
+                                          + iy*(sub->N)*(sub->N+1)
+                                          + iz*(sub->N)*(sub->N+1)*(sub->N+1);
+                xc += x[off+ind];
+                yc += y[off+ind];
+#if   DIM==3
+                zc += z[off+ind];
+#endif
+              }
+          xc /= 8;
+          yc /= 8;
+          zc /= 8;
+          break;
+        default:
+          BFAM_ABORT("Unknown dimension: %"BFAM_LOCIDX_PRId,
+              (bfam_locidx_t)sub->dim);
+      }
+
+      for(bfam_locidx_t dof=0; dof < sub->Np; dof++)
       {
-        const bfam_locidx_t n = elem*sub->Np + dof;
+        const bfam_locidx_t n = off + dof;
 #if   DIM==2
         lua_global_function_call(L, val_args->fname, "rrrrrrr>r",x[n],y[n],tmpz,
                                  t,xc,yc,zc,&field[n]);
