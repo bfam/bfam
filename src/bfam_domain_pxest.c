@@ -1467,12 +1467,22 @@ void bfam_domain_pxest_split_dgx_subdomains(
         bfam_pxest_user_data_t *ud;
         p4est_quadrant_t *quad;
 
+        const bfam_locidx_t new_subd_id = sub_to_actual_sub_id[subdomainID[k]];
+        const bfam_locidx_t new_elem_id = ktosubk[k];
+
         quad = p4est_quadrant_array_index(quadrants, zz);
         ud = quad->p.user_data;
 
+        bfam_subdomain_dgx_t *new_subdomain =
+            (bfam_subdomain_dgx_t *)bfam_domain_get_subdomain_by_num(
+                (bfam_domain_t *)domain, new_subd_id);
+
+        new_subdomain->parent_subd_id[new_elem_id] = ud->subd_id;
+        new_subdomain->parent_elem_id[new_elem_id] = ud->elem_id;
+
         ud->N = N[subdomainID[k]];
-        ud->subd_id = sub_to_actual_sub_id[subdomainID[k]];
-        ud->elem_id = ktosubk[k];
+        ud->subd_id = new_subd_id;
+        ud->elem_id = new_elem_id;
 
         ud->root_id =
             (roots) ? roots[subdomainID[k]] : BFAM_DEFAULT_SUBDOMAIN_ROOT;
