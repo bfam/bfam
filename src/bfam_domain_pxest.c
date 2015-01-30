@@ -1760,11 +1760,119 @@ static void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *domain,
   bfam_dictionary_clear(&rootN_to_sub);
 }
 
+static int bfam_subdomain_dgx_add_fields_iter(const char *key, void *val,
+                                              void *arg)
+{
+  bfam_subdomain_dgx_t *sub_dest = arg;
+
+  /* Don't add internal fields */
+  if (key[0] != '_')
+  {
+
+    int retval = bfam_subdomain_field_add((bfam_subdomain_t *)sub_dest, key);
+    BFAM_ABORT_IF(retval == 0, "Out of memory");
+    BFAM_VERBOSE("Added field '%s' to subdomain %jd", key,
+                 (intmax_t)sub_dest->base.id);
+  }
+
+  return 1;
+}
+
+typedef struct
+{
+  bfam_subdomain_dgx_t *subdomain_dest;
+  bfam_domain_pxest_t *domain_src;
+} bfam_subdomain_dgx_transfer_field_data_t;
+
+static int bfam_subdomain_dgx_transfer_field_iter(const char *key, void *val,
+                                                  void *arg)
+{
+  BFAM_ABORT_IF(val == NULL, "Null pointer for destination field");
+  /* Don't transfer internal fields */
+  if (key[0] == '_')
+    return 1;
+
+  bfam_subdomain_dgx_transfer_field_data_t *fd = arg;
+  bfam_real_t *field_dest = val;
+  BFAM_VERBOSE("Transfer field '%s' to subdomain %jd", key,
+               (intmax_t)fd->subdomain_dest->base.id);
+
+  for (bfam_locidx_t k; k < fd->subdomain_dest->K; ++k)
+  {
+    bfam_subdomain_dgx_t *sub_src =
+        (bfam_subdomain_dgx_t *)bfam_domain_get_subdomain_by_num(
+            (bfam_domain_t *)fd->domain_src,
+            fd->subdomain_dest->parent_subd_id[k]);
+
+    bfam_real_t *field_src =
+        bfam_dictionary_get_value_ptr(&sub_src->base.fields, key);
+    BFAM_ABORT_IF(field_src == NULL, "Null pointer for source field");
+
+    /* TODO: Do interpolation or projection */
+  }
+  return 1;
+}
+
+static void
+bfam_domain_pxest_transfer_fields_volume(bfam_domain_pxest_t *domain_dest,
+                                         bfam_domain_pxest_t *domain_src)
+{
+  /* Transfer Volume Fields */
+  bfam_domain_t *dbase_dest = &domain_dest->base;
+  bfam_subdomain_t **subdomains_dest =
+      bfam_malloc(dbase_dest->numSubdomains * sizeof(bfam_subdomain_t **));
+
+  bfam_subdomain_dgx_transfer_field_data_t fd;
+
+  bfam_locidx_t num_subdomains_dest = 0;
+
+  const char *volume[] = {"_volume", NULL};
+
+  bfam_domain_get_subdomains(dbase_dest, BFAM_DOMAIN_AND, volume,
+                             dbase_dest->numSubdomains, subdomains_dest,
+                             &num_subdomains_dest);
+
+  for (bfam_locidx_t s = 0; s < num_subdomains_dest; ++s)
+  {
+    bfam_subdomain_dgx_t *sub_dest = (bfam_subdomain_dgx_t *)subdomains_dest[s];
+
+    if (sub_dest->K == 0)
+      continue;
+
+    /*
+     * We assume that all of the parent subdomains have the same fields.
+     */
+    bfam_subdomain_dgx_t *a_sub_src =
+        (bfam_subdomain_dgx_t *)bfam_domain_get_subdomain_by_num(
+            (bfam_domain_t *)domain_src, sub_dest->parent_subd_id[0]);
+
+    bfam_dictionary_allprefixed_ptr(&a_sub_src->base.fields, "",
+                                    &bfam_subdomain_dgx_add_fields_iter,
+                                    sub_dest);
+
+    fd.subdomain_dest = sub_dest;
+    fd.domain_src = domain_src;
+
+    bfam_dictionary_allprefixed_ptr(&sub_dest->base.fields, "",
+                                    &bfam_subdomain_dgx_transfer_field_iter,
+                                    &fd);
+  }
+
+  bfam_free(subdomains_dest);
+}
+
+static void
+bfam_domain_pxest_transfer_fields_glue(bfam_domain_pxest_t *domain_dest,
+                                       bfam_domain_pxest_t *domain_src)
+{
+  /* TODO Transfer Glue Fields */
+}
+
 static void bfam_domain_pxest_transfer_fields(bfam_domain_pxest_t *domain_dest,
                                               bfam_domain_pxest_t *domain_src)
 {
-  /* TODO Transfer Volume Fields */
-  /* TODO Transfer Glue Fields */
+  bfam_domain_pxest_transfer_fields_volume(domain_dest, domain_src);
+  bfam_domain_pxest_transfer_fields_glue(domain_dest, domain_src);
 }
 
 /** Coarsen pxest based on subdomains.
