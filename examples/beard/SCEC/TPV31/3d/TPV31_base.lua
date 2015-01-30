@@ -274,10 +274,8 @@ function time_step_parameters(dt)
   nsteps     = tend      / dt
   nstations  = tstations / dt
   nfoutput   = tfout     / dt
-  -- nsteps     = 1
-  -- noutput    = 1
-  -- nfoutput   = 1
 
+  --- return dt,     1,     1,       1,        1,         1
   return dt,nsteps, ndisp, noutput, nfoutput, nstations
 end
 
