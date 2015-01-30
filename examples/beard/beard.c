@@ -1907,12 +1907,12 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
 #endif
     lua_getglobal(L,"plastic");
     bfam_domain_add_tag((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
-        volume, "_plastic");
+        volume, "plastic");
     switch(prefs->plasticity)
     {
       case DUVAUT_LIONS:
         bfam_domain_add_tag((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
-            volume, "_Duvaut-Lions");
+            volume, "Duvaut-Lions");
         break;
       default:
         BFAM_ABORT("Unknown plastic type for adding the tags");
