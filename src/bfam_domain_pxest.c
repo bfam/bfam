@@ -1820,6 +1820,7 @@ bfam_domain_pxest_coarsen(bfam_domain_pxest_t *domain,
 
   /* Dump old subdomains */
   bfam_domain_pxest_free(old_domain);
+  bfam_free(old_domain);
 }
 
 void bfam_domain_pxest_adapt(bfam_domain_pxest_t *domain,
