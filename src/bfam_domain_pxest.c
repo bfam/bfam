@@ -1783,6 +1783,9 @@ bfam_domain_pxest_coarsen(bfam_domain_pxest_t *domain,
   int *new_N;
   bfam_locidx_t *new_glue_id;
 
+  /* Mark elements for coarsening */
+  bfam_domain_pxest_mark_elements(domain);
+
   /* Grab old subdomains */
   bfam_domain_pxest_t *old_domain = bfam_domain_pxest_base_copy(domain);
 
@@ -1790,9 +1793,6 @@ bfam_domain_pxest_coarsen(bfam_domain_pxest_t *domain,
 
   /* Drop subdomains */
   bfam_domain_init(&domain->base, domain->base.comm);
-
-  /* Mark elements for coarsening */
-  bfam_domain_pxest_mark_elements(domain);
 
   /* Change pxest order and coarsening */
   p4est_coarsen_ext(domain->pxest, 0, 0, bfam_domain_pxest_quadrant_coarsen,
