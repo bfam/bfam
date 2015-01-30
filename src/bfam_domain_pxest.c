@@ -1756,6 +1756,8 @@ static void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *domain,
         (*glue_id)[k * P4EST_FACES + f] = ud->glue_id[f];
     }
   }
+
+  bfam_dictionary_clear(&rootN_to_sub);
 }
 
 static void bfam_domain_pxest_transfer_fields(bfam_domain_pxest_t *domain_dest,
