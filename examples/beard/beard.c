@@ -474,6 +474,11 @@ typedef struct prefs
 
 /*
  * Lua helper functions
+ * \param [in]  L              pointer to lua file
+ * \param [in]  ret_val_cont   if true then continue on return type failure
+ * \param [in]  name           function to execure in lua
+ * \param [in]  sig            signature of the call
+ * \param [in,out] var_args    inputs and pointers for outputs
  */
 /*
  * Helper function for calling a lua function. Based on generic call function of
@@ -487,11 +492,13 @@ typedef struct prefs
  * }
  */
 static int
-lua_global_function_call(lua_State *L, const char *name, const char *sig, ...)
+lua_global_function_call(lua_State *L, const int ret_val_cont, const char *name,
+    const char *sig, ...)
 {
   va_list vl;
   int num_arg = 0;
   int num_res = 0;
+  int ret_val = 0;
 
   va_start(vl,sig);
 
@@ -543,22 +550,25 @@ lua_global_function_call(lua_State *L, const char *name, const char *sig, ...)
     switch(sig[num_arg+1+n])
     {
       case 'r':
-        BFAM_ABORT_IF_NOT(lua_isnumber(L,n-num_res),
+        if(lua_isnumber(L,n-num_res))
+          *va_arg(vl, bfam_real_t*) = (bfam_real_t)lua_tonumber(L,n-num_res);
+        else BFAM_ABORT_IF_NOT(ret_val_cont && ++ret_val,
             "for '%s' return %d expected number got '%s'",
             name, n, lua_tostring(L,n-num_res));
-        *va_arg(vl, bfam_real_t*) = (bfam_real_t)lua_tonumber(L,n-num_res);
         break;
       case 'i':
-        BFAM_ABORT_IF_NOT(lua_isnumber(L,n-num_res),
-            "for '%s' return %d expected number got '%s'",
+        if(lua_isnumber(L,n-num_res))
+          *va_arg(vl, int*) = lua_tointeger(L,n-num_res);
+        else BFAM_ABORT_IF_NOT(ret_val_cont && ++ret_val,
+            "   for '%s' return %d expected number got '%s'",
             name, n, lua_tostring(L,n-num_res));
-        *va_arg(vl, int*) = lua_tointeger(L,n-num_res);
         break;
       case 's':
-        BFAM_ABORT_IF_NOT(lua_isstring(L,n-num_res),
+        if(lua_isstring(L,n-num_res))
+          *va_arg(vl, const char **) = lua_tostring(L,n-num_res);
+        else BFAM_ABORT_IF_NOT(ret_val_cont && ++ret_val,
             "for '%s' return %d expected string got '%s'",
             name, n, lua_tostring(L,n-num_res));
-        *va_arg(vl, const char **) = lua_tostring(L,n-num_res);
         break;
       default:
         BFAM_ABORT("function '%s' invalid output argument (%c)",name,
@@ -569,7 +579,7 @@ lua_global_function_call(lua_State *L, const char *name, const char *sig, ...)
   lua_pop(L,num_res);
 
   va_end(vl);
-  return 0;
+  return ret_val;
 }
 static int
 lua_get_global_int(lua_State *L, const char *name, int def)
@@ -1001,7 +1011,7 @@ refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
     }
 
   int val = 0;
-  int result = lua_global_function_call(L,"refinement_function",
+  int result = lua_global_function_call(L,0,"refinement_function",
       "ddd" "ddd" "ddd" "ddd" "ii" ">" "i",
       vxyz[0], vxyz[1], vxyz[2], vxyz[3], vxyz[ 4], vxyz[ 5],
       vxyz[6], vxyz[7], vxyz[8], vxyz[9], vxyz[10], vxyz[11],
@@ -1021,7 +1031,7 @@ refine_fn(p4est_t * p4est, p4est_topidx_t which_tree,
     }
 
   int val = 0;
-  int result = lua_global_function_call(L,"refinement_function",
+  int result = lua_global_function_call(L,0,"refinement_function",
       "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ii" ">" "i",
       vxyz[ 0], vxyz[ 1], vxyz[ 2], vxyz[ 3], vxyz[ 4], vxyz[ 5],
       vxyz[ 6], vxyz[ 7], vxyz[ 8], vxyz[ 9], vxyz[10], vxyz[11],
@@ -1040,9 +1050,10 @@ typedef struct split_iter_data
 {
   lua_State         *L;
   bfam_locidx_t      next_sub;
+  bfam_locidx_t      next_root;
   bfam_locidx_t      loc;
   bfam_locidx_t     *subdomain_id;
-  bfam_dictionary_t *N;
+  bfam_dictionary_t *root_N;
   bfam_dictionary_t *root;
 } split_iter_data_t;
 
@@ -1053,6 +1064,8 @@ get_element_order(p4est_iter_volume_info_t *info, void *arg)
 
   double vxyz[P4EST_CHILDREN*3];
 
+  int N = 0;
+  const char *root_str = "elastic";
 #if   DIM==2
   for(int ix = 0; ix < 2; ix++)
     for(int iy = 0; iy < 2; iy++)
@@ -1063,12 +1076,11 @@ get_element_order(p4est_iter_volume_info_t *info, void *arg)
           info->quad->x+ox, info->quad->y+oy,&vxyz[3*(ix + 2*iy)]);
     }
 
-  int N = 0;
-  int result = lua_global_function_call(data->L,"element_order",
-      "ddd" "ddd" "ddd" "ddd" "ii" ">" "i",
+  int result = lua_global_function_call(data->L,1,"element_order",
+      "ddd" "ddd" "ddd" "ddd" "ii" ">" "is",
       vxyz[0], vxyz[1], vxyz[2], vxyz[3], vxyz[ 4], vxyz[ 5],
       vxyz[6], vxyz[7], vxyz[8], vxyz[9], vxyz[10], vxyz[11],
-      info->quad->level, info->treeid, &N);
+      info->quad->level, info->treeid, &N,&root_str);
 #elif DIM==3
   for(int iz = 0; iz < 2; iz++)
     for(int iy = 0; iy < 2; iy++)
@@ -1082,14 +1094,13 @@ get_element_order(p4est_iter_volume_info_t *info, void *arg)
           &vxyz[3*(ix + 2*(iy + 2*iz))]);
     }
 
-  int N = 0;
-  int result = lua_global_function_call(data->L,"element_order",
-      "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ii" ">" "i",
+  int result = lua_global_function_call(data->L,0,"element_order",
+      "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ddd" "ii" ">" "is",
       vxyz[ 0], vxyz[ 1], vxyz[ 2], vxyz[ 3], vxyz[ 4], vxyz[ 5],
       vxyz[ 6], vxyz[ 7], vxyz[ 8], vxyz[ 9], vxyz[10], vxyz[11],
       vxyz[12], vxyz[13], vxyz[14], vxyz[15], vxyz[16], vxyz[17],
       vxyz[18], vxyz[19], vxyz[20], vxyz[21], vxyz[22], vxyz[23],
-      info->quad->level, info->treeid, &N);
+      info->quad->level, info->treeid, &N,&root_str);
 #else
 #error "Bad Dimension"
 #endif
@@ -1097,16 +1108,23 @@ get_element_order(p4est_iter_volume_info_t *info, void *arg)
   BFAM_ABORT_IF_NOT(result == 0, "no 'element_order' function");
   BFAM_ABORT_IF_NOT(N>0, "order '%d' is not bigger than zero",N);
 
-  char order_str[BFAM_BUFSIZ];
-  snprintf(order_str, BFAM_BUFSIZ, "%d", N);
-
   bfam_locidx_t sub;
-  if(0 == bfam_dictionary_get_value_locidx(data->N,order_str,&sub))
+  bfam_locidx_t root;
+  if(0 == bfam_dictionary_get_value_locidx(data->root,root_str,&root))
+  {
+    root = data->next_root;
+    data->next_root++;
+    bfam_dictionary_insert_locidx(data->root, root_str, root);
+    BFAM_INFO(root_str);
+  }
+
+  char order_str[BFAM_BUFSIZ];
+  snprintf(order_str, BFAM_BUFSIZ, "%d_%d", root, N);
+  if(0 == bfam_dictionary_get_value_locidx(data->root_N,order_str,&sub))
   {
     sub = data->next_sub;
     data->next_sub++;
-    bfam_dictionary_insert_locidx(data->N   , order_str, sub);
-    bfam_dictionary_insert_locidx(data->root, order_str,   0);
+    bfam_dictionary_insert_locidx(data->root_N, order_str, sub);
   }
 
   data->subdomain_id[data->loc] = sub;
@@ -1473,10 +1491,10 @@ transform_nodes(const bfam_locidx_t num_Vi, const bfam_locidx_t num_pnts,
     bfam_real_t x = (bfam_real_t)lxi[0][k];
     bfam_real_t y = (bfam_real_t)lxi[1][k];
 #if DIM==2
-    lua_global_function_call(L, "transform_nodes", "rr>rr", x, y, &x, &y);
+    lua_global_function_call(L,0, "transform_nodes", "rr>rr", x, y, &x, &y);
 #elif DIM==3
     bfam_real_t z = (bfam_real_t)lxi[2][k];
-    lua_global_function_call(L, "transform_nodes", "rrr>rrr",
+    lua_global_function_call(L,0, "transform_nodes", "rrr>rrr",
                              x, y, z, &x, &y, &z);
     lxi[2][k] = z;
 #else
@@ -1492,26 +1510,29 @@ transform_nodes(const bfam_locidx_t num_Vi, const bfam_locidx_t num_pnts,
 
 typedef struct d2la_data
 {
-  bfam_locidx_t  A_sz;
+  bfam_locidx_t  sz;
   bfam_locidx_t* A;
+  bfam_locidx_t* B;
 } d2la_data_t;
 
 static int
 dict_to_locidx_array(const char * key_str, const char *val_str, void *in_args)
 {
   d2la_data_t *data = (d2la_data_t*)in_args;
-  bfam_locidx_t V;
+  bfam_locidx_t V1;
+  bfam_locidx_t V2;
   bfam_locidx_t k;
 
-  int m = sscanf(key_str, "%" BFAM_LOCIDX_SCNd, &V);
-  BFAM_ASSERT(m == 1);
+  int m = sscanf(key_str, "%d_%d", &V1, &V2);
+  BFAM_ASSERT(m == 2);
   int n = sscanf(val_str, "%" BFAM_LOCIDX_SCNd, &k);
   BFAM_ASSERT(n == 1);
 
-  BFAM_ASSERT(data->A_sz > k);
-  data->A[k] = V;
+  BFAM_ASSERT(data->sz > k);
+  data->A[k] = V1;
+  data->B[k] = V2;
 
-  return (n==1)&&(m==1);
+  return (n==1)&&(m==2);
 }
 
 static void
@@ -1522,27 +1543,23 @@ split_domain(beard_t *beard, prefs_t *prefs)
   bfam_locidx_t *sub_ids =
     bfam_malloc(domain->pxest->local_num_quadrants*sizeof(bfam_locidx_t));
 
-  bfam_dictionary_t N_dict;
+  bfam_dictionary_t root_N_dict;
   bfam_dictionary_t root_dict;
-  bfam_dictionary_init(&N_dict);
+  bfam_dictionary_init(&root_N_dict);
   bfam_dictionary_init(&root_dict);
-  split_iter_data_t data = {prefs->L,0,0,sub_ids,&N_dict,&root_dict};
+  split_iter_data_t data = {prefs->L,0,0,0,sub_ids,&root_N_dict,&root_dict};
   p4est_iterate (domain->pxest, NULL, &data, get_element_order, NULL, NULL
 #if DIM==3
       ,NULL
 #endif
       );
 
-  bfam_locidx_t num_sub = N_dict.num_entries;
-  BFAM_ASSERT(N_dict.num_entries == root_dict.num_entries);
+  bfam_locidx_t num_sub = root_N_dict.num_entries;
   bfam_locidx_t    N[num_sub];
   bfam_locidx_t root[num_sub];
 
-  d2la_data_t N_data = {num_sub, N};
-  bfam_dictionary_allprefixed(&N_dict, "", dict_to_locidx_array, &N_data);
-
-  d2la_data_t root_data = {num_sub, root};
-  bfam_dictionary_allprefixed(&root_dict, "", dict_to_locidx_array, &root_data);
+  d2la_data_t RN_data = {num_sub, root, N};
+  bfam_dictionary_allprefixed(&root_N_dict, "", dict_to_locidx_array, &RN_data);
 
   bfam_locidx_t *tree_ids =
     bfam_malloc(P4EST_FACES*domain->pxest->connectivity->num_trees
@@ -1577,7 +1594,7 @@ split_domain(beard_t *beard, prefs_t *prefs)
   bfam_free(tree_ids);
   bfam_free(glue_ids);
   bfam_free(sub_ids);
-  bfam_dictionary_clear(&N_dict);
+  bfam_dictionary_clear(&root_N_dict);
   bfam_dictionary_clear(&root_dict);
 }
 
@@ -1680,11 +1697,11 @@ field_set_val_extend(bfam_locidx_t npoints, const char *name, bfam_real_t t,
       {
         const bfam_locidx_t n = off + dof;
 #if   DIM==2
-        lua_global_function_call(L, val_args->fname, "rrrrrrr>r",x[n],y[n],tmpz,
-                                 t,xc,yc,zc,&field[n]);
+        lua_global_function_call(L,0, val_args->fname, "rrrrrrr>r",x[n],y[n],
+                                 tmpz, t,xc,yc,zc,&field[n]);
 #elif DIM==3
-        lua_global_function_call(L, val_args->fname, "rrrrrrr>r",x[n],y[n],z[n],
-                                 t,xc,yc,zc,&field[n]);
+        lua_global_function_call(L,0, val_args->fname, "rrrrrrr>r",x[n],y[n],
+                                 z[n], t,xc,yc,zc,&field[n]);
 #else
 #error "Bad Dimension"
 #endif
@@ -2292,7 +2309,7 @@ init_domain(beard_t *beard, prefs_t *prefs)
     bfam_real_t x = beard->conn->vertices[i*3+0];
     bfam_real_t y = beard->conn->vertices[i*3+1];
     bfam_real_t z = beard->conn->vertices[i*3+2];
-    int result = lua_global_function_call(prefs->L,"connectivity_vertices",
+    int result = lua_global_function_call(prefs->L,0,"connectivity_vertices",
         "rrr>rrr",x,y,z,&x,&y,&z);
     if(result != 0) break;
     beard->conn->vertices[i*3+0] = x;
@@ -3176,9 +3193,9 @@ check_error(bfam_locidx_t npoints, const char *name, bfam_real_t t,
   for(bfam_locidx_t n=0; n < npoints; ++n)
   {
 #if   DIM==2
-    lua_global_function_call(L, name+6, "rrrr>r", x[n],y[n],tmpz,t,&err[n]);
+    lua_global_function_call(L,0, name+6, "rrrr>r", x[n],y[n],tmpz,t,&err[n]);
 #elif DIM==3
-    lua_global_function_call(L, name+6, "rrrr>r", x[n],y[n],z[n],t,&err[n]);
+    lua_global_function_call(L,0, name+6, "rrrr>r", x[n],y[n],z[n],t,&err[n]);
 #else
 #error "Bad Dimension"
 #endif
@@ -3415,14 +3432,14 @@ compute_domain_dt(beard_t *beard, prefs_t *prefs, const char *volume[],
         beard->mpicomm));
 
   bfam_real_t dt = 0;
-  int result = lua_global_function_call(prefs->L, "time_step_parameters",
+  int result = lua_global_function_call(prefs->L,0, "time_step_parameters",
       "r>riiiii", min_global_dt, &dt, nsteps_ptr, ndisp_ptr, noutput_ptr,
       nfoutput_ptr, nstations_ptr);
   BFAM_ABORT_IF_NOT(result == 0,
       "problem with lua call to 'time_step_parameters': "
       "should be a function that takes dt "
       "and returns dt, nsteps, ndisp, noutput,nfoutput");
-  result = lua_global_function_call(prefs->L,"nerr","r>i",dt,nerr_ptr);
+  result = lua_global_function_call(prefs->L,0,"nerr","r>i",dt,nerr_ptr);
   if(*nerr_ptr > 0)
   {
       const char *err_flds[] = { "error_v1",  "error_v2",  "error_v3",
