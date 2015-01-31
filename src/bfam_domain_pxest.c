@@ -1625,17 +1625,32 @@ static int bfam_domain_pxest_quadrant_coarsen(p4est_t *p4est,
                                               p4est_topidx_t which_tree,
                                               p4est_quadrant_t *quadrants[])
 {
+  bfam_pxest_user_data_t *ud = quadrants[0]->p.user_data;
+  bfam_locidx_t root_id = ud->root_id;
+
   for (int k = 0; k < P4EST_CHILDREN; ++k)
   {
-    bfam_pxest_user_data_t *ud = quadrants[k]->p.user_data;
+    ud = quadrants[k]->p.user_data;
 
-    /* TODO Add check for same glue id and root id */
+    /* only coarsen if we all want to coarsen */
     if (!(ud->flags & BFAM_FLAG_COARSEN))
-    {
       return 0;
-    }
+
+    /* only coarsen if we have the same root ids */
+    if (ud->root_id != root_id)
+      return 0;
   }
 
+  /* Only coarsen if the parent faces have the same glue id */
+  for (unsigned int f = 0; f < P4EST_FACES; ++f)
+  {
+    bfam_locidx_t glue_id = ud->glue_id[(f % 2) << (f / 2)];
+    for (unsigned int c = 0; c < P4EST_CHILDREN; ++c)
+    {
+      if (((c >> (f / 2)) % 2 == f % 2) && (glue_id != ud->glue_id[c]))
+        return 0;
+    }
+  }
   return 1;
 }
 
