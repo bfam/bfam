@@ -1680,7 +1680,9 @@ static void bfam_domain_pxest_quadrant_replace(p4est_t *p4est,
       /* remove glue from internal faces */
       in_ud->glue_id[(c / 1 + 1) % 2 + 0] = -1;
       in_ud->glue_id[(c / 2 + 1) % 2 + 2] = -1;
+#if DIM == 3
       in_ud->glue_id[(c / 4 + 1) % 2 + 4] = -1;
+#endif
     }
   }
   else
