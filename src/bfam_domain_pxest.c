@@ -1271,6 +1271,10 @@ void bfam_domain_pxest_split_dgx_subdomains(
         EToF[id], nodes_transform, user_args, DIM);
 
     bfam_subdomain_add_tag((bfam_subdomain_t *)subdomains[id], "_volume");
+    char root_id_tag[BFAM_BUFSIZ];
+    snprintf(root_id_tag, BFAM_BUFSIZ, "_volume_id_%jd", (intmax_t)roots[id]);
+    bfam_subdomain_add_tag((bfam_subdomain_t *)subdomains[id], root_id_tag);
+
     sub_to_actual_sub_id[id] = bfam_domain_add_subdomain(
         (bfam_domain_t *)domain, (bfam_subdomain_t *)subdomains[id]);
   }
