@@ -176,6 +176,8 @@ static int build_mesh(MPI_Comm mpicomm)
   bfam_vtk_write_file((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, NULL,
                       "ps_adapt_pre", 0, ps, NULL, NULL, 0, 0, 0);
 
+  bfam_domain_pxest_adapt_3(domain, NULL, NULL);
+
   bfam_free(subdomainID);
   bfam_free(N);
 
