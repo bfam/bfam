@@ -1105,7 +1105,8 @@ get_element_order(p4est_iter_volume_info_t *info, void *arg)
 #error "Bad Dimension"
 #endif
 
-  BFAM_ABORT_IF_NOT(result == 0, "no 'element_order' function");
+  BFAM_ABORT_IF_NOT(result <= 1, "something went wrong with 'element_order'"
+                    " function");
   BFAM_ABORT_IF_NOT(N>0, "order '%d' is not bigger than zero",N);
 
   bfam_locidx_t sub;
