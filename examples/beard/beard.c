@@ -1116,7 +1116,6 @@ get_element_order(p4est_iter_volume_info_t *info, void *arg)
     root = data->next_root;
     data->next_root++;
     bfam_dictionary_insert_locidx(data->root, root_str, root);
-    BFAM_INFO(root_str);
   }
 
   char order_str[BFAM_BUFSIZ];
