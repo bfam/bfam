@@ -1536,6 +1536,24 @@ dict_to_locidx_array(const char * key_str, const char *val_str, void *in_args)
   return (n==1)&&(m==2);
 }
 
+
+static int
+dict_to_volume_tag(const char * key_str, const char *val_str, void *in_args)
+{
+  bfam_domain_t *dom = (bfam_domain_t*)in_args;
+  bfam_locidx_t root;
+
+  int n = sscanf(val_str, "%" BFAM_LOCIDX_SCNd, &root);
+  BFAM_ASSERT(n == 1);
+  char tag[BFAM_BUFSIZ];
+  snprintf(tag,BFAM_BUFSIZ, "_volume_id_%jd", (intmax_t) root);
+  const char *tags[] = {tag,NULL};
+  bfam_domain_add_tag(dom, BFAM_DOMAIN_OR, tags, key_str);
+
+  return (n==1);
+}
+
+
 static void
 split_domain(beard_t *beard, prefs_t *prefs)
 {
@@ -1591,6 +1609,7 @@ split_domain(beard_t *beard, prefs_t *prefs)
   lua_pop(prefs->L,1);
   BFAM_ASSERT(lua_gettop(prefs->L)==0);
 
+  bfam_dictionary_allprefixed(&root_dict, "", dict_to_volume_tag, domain);
 
   bfam_free(tree_ids);
   bfam_free(glue_ids);
