@@ -14,7 +14,7 @@ output_prefix = "solution"
 connectivity = "brick"
 brick =
 {
-  nx = 10,
+  nx = 4,
   ny = 1,
   nz = 1,
   bc0 = 1,
@@ -33,6 +33,9 @@ Lz = 1
 Cx = Lx*brick.nx/2
 Cy = Ly*brick.ny/2
 Cz = 0
+
+Sw = 0.5*Lx
+Sx = Cx-Sw
 
 function connectivity_vertices(x, y, z)
   -- if x > 0 and x < brick.nx and
@@ -63,7 +66,17 @@ function element_order(
   x2,y2,z2,x3,y3,z3,
   level, treeid)
 
-  return order
+  -- V = (x0+x1+x2+x3)/4
+  V = math.abs(x0)
+  V = math.max(V,x1)
+  V = math.max(V,x2)
+  V = math.max(V,x3)
+  N = 4
+  if( math.abs(V) > Cx-0.5*Lx ) then
+    return N, "sponge"
+  else
+    return N, "elastic"
+  end
 end
 
 -- initial values
@@ -83,15 +96,20 @@ v3  = 0
 
 function v1(x,y,z,t)
   r2 = x^2+y^2+z^2
-  return math.exp(-r2/0.1)
+  return math.exp(-r2/0.1^2)
 end
+
+function a_sponge(x,y,z,t,xc,yc,zc)
+  return 100*((math.abs(x)-Sx)/Sw)^2
+end
+
 
 -- time stepper to use
 lsrk_method  = "KC54"
 
 tend      = 10*Lx/cp
-tout      = tend/10
-tdisp     = tend/10
+tout      = tend/100
+tdisp     = tend/100
 tstations = -1
 tfout     = -1
 terr      = tend

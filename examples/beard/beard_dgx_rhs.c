@@ -103,6 +103,8 @@
 #define BEARD_APPEND_EXPAND_4(a,b,c,d) BEARD_APPEND_4(a,b,c,d)
 #define beard_dgx_intra_rhs_elastic \
   BEARD_APPEND_EXPAND_4(beard_dgx_intra_rhs_elastic_,DIM,_,NORDER)
+#define beard_dgx_intra_rhs_sponge \
+  BEARD_APPEND_EXPAND_4(beard_dgx_intra_rhs_sponge_,DIM,_,NORDER)
 #define beard_dgx_duvaut_lions_return_map \
   BEARD_APPEND_EXPAND_4(beard_dgx_duvaut_lions_return_map_,DIM,_,NORDER)
 
@@ -1247,6 +1249,58 @@ void beard_dgx_intra_rhs_elastic(
             dv1,dv2,dv3, dS11,dS22,dS33,dS12,dS13,dS23,
             lam[iM],mu[iM],rhoi[iM],nM,sJ[f],JI[iM],wi[0]);
       }
+    }
+  }
+}
+
+void beard_dgx_intra_rhs_sponge(
+    int inN, bfam_subdomain_dgx_t *sub, const char *rate_prefix,
+    const char *field_prefix, const bfam_long_real_t t)
+{
+  GENERIC_INIT(inN,beard_dgx_intra_rhs_sponge);
+
+  /* get the fields we will need */
+  bfam_dictionary_t *fields = &sub->base.fields;
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1 ,field_prefix,"v1" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2 ,field_prefix,"v2" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v3 ,field_prefix,"v3" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S11,field_prefix,"S11",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S22,field_prefix,"S22",fields);
+  BEARD_D3_OP(BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S33,field_prefix,"S33",fields));
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S12,field_prefix,"S12",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S13,field_prefix,"S13",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(S23,field_prefix,"S23",fields);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv1 ,rate_prefix,"v1" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv2 ,rate_prefix,"v2" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dv3 ,rate_prefix,"v3" ,fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS11,rate_prefix,"S11",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS22,rate_prefix,"S22",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS33,rate_prefix,"S33",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS12,rate_prefix,"S12",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS13,rate_prefix,"S13",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(dS23,rate_prefix,"S23",fields);
+
+  /* get the material properties and metric terms */
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(alpha,"","a_sponge",fields);
+
+  bfam_locidx_t K  = sub->K;
+  /* loop through all the elements */
+  for(bfam_locidx_t e = 0; e < K;e++)
+  {
+    for(bfam_locidx_t i = 0; i < Np; i++)
+    {
+      const bfam_locidx_t k = e*Np + i;
+      dv1[k] -= alpha[k]*v1[k];
+      dv2[k] -= alpha[k]*v2[k];
+      dv3[k] -= alpha[k]*v3[k];
+      dS11[k] -= alpha[k]*S11[k];
+      dS12[k] -= alpha[k]*S12[k];
+      dS13[k] -= alpha[k]*S13[k];
+      dS22[k] -= alpha[k]*S22[k];
+      dS23[k] -= alpha[k]*S23[k];
+      BEARD_D3_OP(dS33[k] -= alpha[k]*S33[k]);
     }
   }
 }

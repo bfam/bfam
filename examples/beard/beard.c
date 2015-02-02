@@ -67,6 +67,8 @@ const char *comm_args_tensor_components[] = {"S11","S12","S13",
 const char *elastic_fields[] = {"rho", "lam", "mu", "v1", "v2", "v3", "S11",
   "S22", "S33", "S12", "S13", "S23",NULL};
 
+const char *sponge_fields[] = {"a_sponge",NULL};
+
 const char **plastic_fields = NULL;
 const char *duvaut_lions_plastic_fields[] = {"c","Tr","phi","nu","pf",
   "S11_0", "S12_0", "S13_0", "S22_0", "S23_0", "S33_0", NULL};
@@ -1933,6 +1935,13 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
     bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, fields_aux[f], 0,
         field_set_val_aux, NULL);
   }
+  const char *sponge[] = {"sponge",NULL};
+  for(int f = 0; sponge_fields[f] != NULL; f++)
+  {
+    bfam_domain_add_field (domain, BFAM_DOMAIN_OR, sponge, sponge_fields[f]);
+    bfam_domain_init_field(domain, BFAM_DOMAIN_OR, sponge, sponge_fields[f], 0,
+        field_set_val, prefs->L);
+  }
 
   /* Add plastic fields if we are supposed to */
   if(plastic_fields)
@@ -2620,6 +2629,38 @@ intra_rhs_elastic(int N, bfam_subdomain_dgx_t *sub,
 #undef X
 }
 
+static void
+intra_rhs_sponge(int N, bfam_subdomain_dgx_t *sub,
+    const char *rate_prefix, const char *field_prefix, const bfam_long_real_t t)
+{
+#if  DIM==2
+#define X(order) \
+  case order: beard_dgx_intra_rhs_sponge_2_##order(N,sub, \
+                  rate_prefix,field_prefix,t); break;
+#elif  DIM==3
+#define X(order) \
+  case order: beard_dgx_intra_rhs_sponge_3_##order(N,sub, \
+                  rate_prefix,field_prefix,t); break;
+#else
+#error "Bad Dimension"
+#endif
+
+  switch(N)
+  {
+    BFAM_LIST_OF_DGX_NORDERS
+    default:
+#if   DIM==2
+      beard_dgx_intra_rhs_sponge_2_(N,sub,rate_prefix, field_prefix,t);
+#elif DIM==3
+      beard_dgx_intra_rhs_sponge_3_(N,sub,rate_prefix, field_prefix,t);
+#else
+#error "Bad Dimension"
+#endif
+      break;
+  }
+#undef X
+}
+
 void intra_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
     const char *minus_rate_prefix, const char *field_prefix,
     const bfam_long_real_t t)
@@ -2628,7 +2669,11 @@ void intra_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
 
   bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*) thisSubdomain;
   if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+  {
     intra_rhs_elastic(sub->N,sub,rate_prefix,field_prefix,t);
+    if(bfam_subdomain_has_tag(thisSubdomain,"sponge"))
+      intra_rhs_sponge(sub->N,sub,rate_prefix,field_prefix,t);
+  }
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_boundary")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_parallel")
       ||  bfam_subdomain_has_tag(thisSubdomain,"_glue_local"   ));
