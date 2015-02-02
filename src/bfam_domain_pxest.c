@@ -1710,14 +1710,33 @@ static void bfam_domain_pxest_quadrant_replace(p4est_t *p4est,
   }
 }
 
-static void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *domain,
+static int bfam_domain_pxest_select_N(uint8_t pflags, int N_old, int N_req)
+{
+  int N_new;
+  if (N_req > 0)
+  {
+    if ((pflags & (BFAM_FLAG_COARSEN | BFAM_FLAG_REFINE)) ==
+        (BFAM_FLAG_COARSEN | BFAM_FLAG_REFINE))
+      N_new = N_req;
+    else if (pflags & BFAM_FLAG_COARSEN)
+      N_new = BFAM_MIN(N_old, N_req);
+    else if (pflags & BFAM_FLAG_REFINE)
+      N_new = BFAM_MAX(N_old, N_req);
+  }
+  else
+    N_new = N_old;
+
+  return N_new;
+}
+
+static void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *old_domain,
+                                            p4est_t *pxest, uint8_t pflags,
                                             bfam_locidx_t *num_subdomains,
                                             bfam_locidx_t **subdomain_id,
                                             bfam_locidx_t **roots, int **N,
                                             bfam_locidx_t **glue_id)
 {
   char key[BFAM_BUFSIZ];
-  p4est_t *pxest = domain->pxest;
   bfam_dictionary_t rootN_to_sub;
 
   bfam_dictionary_init(&rootN_to_sub);
@@ -1739,7 +1758,14 @@ static void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *domain,
       p4est_quadrant_t *quad = p4est_quadrant_array_index(quadrants, zz);
       bfam_pxest_user_data_t *ud = quad->p.user_data;
 
-      snprintf(key, BFAM_BUFSIZ, "%jd_%d", (intmax_t)ud->root_id, (int)ud->N);
+      /* Change order if we are refining or coarsening */
+      bfam_subdomain_dgx_t *sub =
+          (bfam_subdomain_dgx_t *)bfam_domain_get_subdomain_by_num(
+              (bfam_domain_t *)old_domain, ud->subd_id);
+
+      int N_new = bfam_domain_pxest_select_N(pflags, sub->N, ud->N);
+
+      snprintf(key, BFAM_BUFSIZ, "%jd_%d", (intmax_t)ud->root_id, (int)N_new);
 
       retval =
           bfam_dictionary_insert_locidx(&rootN_to_sub, key, *num_subdomains);
@@ -1775,12 +1801,19 @@ static void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *domain,
       p4est_quadrant_t *quad = p4est_quadrant_array_index(quadrants, zz);
       bfam_pxest_user_data_t *ud = quad->p.user_data;
 
-      snprintf(key, BFAM_BUFSIZ, "%jd_%d", (intmax_t)ud->root_id, (int)ud->N);
+      /* Change order if we are refining or coarsening */
+      bfam_subdomain_dgx_t *sub =
+          (bfam_subdomain_dgx_t *)bfam_domain_get_subdomain_by_num(
+              (bfam_domain_t *)old_domain, ud->subd_id);
+
+      int N_new = bfam_domain_pxest_select_N(pflags, sub->N, ud->N);
+
+      snprintf(key, BFAM_BUFSIZ, "%jd_%d", (intmax_t)ud->root_id, (int)N_new);
 
       retval = bfam_dictionary_get_value_locidx(&rootN_to_sub, key,
                                                 &(*subdomain_id)[k]);
       BFAM_ABORT_IF(retval == 0, "rootN key `%s` does not exist", key);
-      (*N)[(*subdomain_id)[k]] = ud->N;
+      (*N)[(*subdomain_id)[k]] = N_new;
       (*roots)[(*subdomain_id)[k]] = ud->root_id;
       for (int f = 0; f < P4EST_FACES; ++f)
         (*glue_id)[k * P4EST_FACES + f] = ud->glue_id[f];
@@ -1940,9 +1973,9 @@ bfam_domain_pxest_coarsen(bfam_domain_pxest_t *domain,
                     bfam_domain_pxest_quadrant_replace);
 
   /* Create subdomain ids and glue ids */
-  bfam_domain_pxest_compute_split(domain, &new_num_subdomains,
-                                  &new_subdomain_id, &new_roots, &new_N,
-                                  &new_glue_id);
+  bfam_domain_pxest_compute_split(old_domain, domain->pxest, BFAM_FLAG_COARSEN,
+                                  &new_num_subdomains, &new_subdomain_id,
+                                  &new_roots, &new_N, &new_glue_id);
 
   /* Split domains */
   bfam_domain_pxest_split_dgx_subdomains(
