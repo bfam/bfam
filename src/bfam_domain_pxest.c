@@ -1861,8 +1861,9 @@ static int bfam_subdomain_dgx_transfer_field_iter(const char *key, void *val,
 
   bfam_subdomain_dgx_transfer_field_data_t *fd = arg;
   bfam_real_t *field_dest = val;
-  BFAM_VERBOSE("Transfer field '%s' to subdomain %jd", key,
-               (intmax_t)fd->subdomain_dest->base.id);
+  BFAM_VERBOSE("Transfer field '%s' to subdomain %jd (K:%jd)", key,
+               (intmax_t)fd->subdomain_dest->base.id,
+               (intmax_t)fd->subdomain_dest->K);
 
   for (bfam_locidx_t k = 0; k < fd->subdomain_dest->K; ++k)
   {
@@ -1876,6 +1877,12 @@ static int bfam_subdomain_dgx_transfer_field_iter(const char *key, void *val,
     BFAM_ABORT_IF(field_src == NULL, "Null pointer for source field");
 
     /* TODO: Do interpolation or projection */
+    BFAM_VERBOSE(
+        "Transfer '%s' s:%03jd k:%03jd N:%02d -> s:%03jd k:%03jd N:%02d", key,
+        (intmax_t)fd->subdomain_dest->parent_subd_id[k],
+        (intmax_t)fd->subdomain_dest->parent_elem_id[k], sub_src->N,
+        (intmax_t)fd->subdomain_dest->base.id, (intmax_t)k,
+        fd->subdomain_dest->N);
   }
   return 1;
 }
