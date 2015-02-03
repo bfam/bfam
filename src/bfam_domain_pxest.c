@@ -1864,7 +1864,7 @@ static int bfam_subdomain_dgx_transfer_field_iter(const char *key, void *val,
   BFAM_VERBOSE("Transfer field '%s' to subdomain %jd", key,
                (intmax_t)fd->subdomain_dest->base.id);
 
-  for (bfam_locidx_t k; k < fd->subdomain_dest->K; ++k)
+  for (bfam_locidx_t k = 0; k < fd->subdomain_dest->K; ++k)
   {
     bfam_subdomain_dgx_t *sub_src =
         (bfam_subdomain_dgx_t *)bfam_domain_get_subdomain_by_num(
