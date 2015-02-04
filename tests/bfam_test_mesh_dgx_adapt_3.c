@@ -238,8 +238,8 @@ int main(int argc, char *argv[])
   const char *helpText =
       "\n"
       "\n"
-      "  there are four possible options to this program, some of which have\n"
-      "  multiple names:\n"
+      "  there are four possible options to this program, some of which \n"
+      "  have multiple names:\n"
       "\n"
       "    -h -? --help --HELP\n"
       "    -V --version\n"
