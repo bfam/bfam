@@ -75,6 +75,27 @@ static void poly3_field(bfam_locidx_t npoints, const char *name,
     field[n] = z[n];
 }
 
+static void mark_elements(bfam_domain_pxest_t_3 *domain)
+{
+  bfam_domain_t *dbase = &domain->base;
+  bfam_subdomain_t **subdomains =
+      bfam_malloc(dbase->numSubdomains * sizeof(bfam_subdomain_t *));
+
+  bfam_locidx_t num_subdomains = 0;
+
+  const char *volume[] = {"_volume", NULL};
+
+  bfam_domain_get_subdomains(dbase, BFAM_DOMAIN_AND, volume,
+                             dbase->numSubdomains, subdomains, &num_subdomains);
+
+  for (bfam_locidx_t s = 0; s < num_subdomains; ++s)
+  {
+    bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t *)subdomains[s];
+    for (bfam_locidx_t k = 0; k < sub->K; ++k)
+      sub->padapt[k] = 1;
+  }
+}
+
 static int build_mesh(MPI_Comm mpicomm)
 {
   int failures = 0;
@@ -176,6 +197,7 @@ static int build_mesh(MPI_Comm mpicomm)
   bfam_vtk_write_file((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, NULL,
                       "ps_adapt_pre", 0, ps, NULL, NULL, 0, 0, 0);
 
+  mark_elements(domain);
   bfam_domain_pxest_adapt_3(domain, NULL, NULL);
 
   bfam_free(subdomainID);
