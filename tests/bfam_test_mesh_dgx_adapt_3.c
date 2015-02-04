@@ -106,7 +106,7 @@ static int build_mesh(MPI_Comm mpicomm)
 
   bfam_domain_pxest_t_3 *domain = bfam_domain_pxest_new_3(mpicomm, conn);
 
-  refine_level = 2;
+  refine_level = 1;
   p8est_refine(domain->pxest, 2, refine_fn, bfam_domain_pxest_init_callback_3);
   p8est_balance(domain->pxest, P8EST_CONNECT_CORNER,
                 bfam_domain_pxest_init_callback_3);
