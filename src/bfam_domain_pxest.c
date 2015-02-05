@@ -1985,6 +1985,10 @@ bfam_domain_pxest_coarsen(bfam_domain_pxest_t *domain,
                     bfam_domain_pxest_quadrant_init,
                     bfam_domain_pxest_quadrant_replace);
 
+  p4est_balance_ext(domain->pxest, BFAM_PXEST_CONNECT,
+                    bfam_domain_pxest_quadrant_init,
+                    bfam_domain_pxest_quadrant_replace);
+
   /* Create subdomain ids and glue ids */
   bfam_domain_pxest_compute_split(old_domain, domain->pxest, BFAM_FLAG_COARSEN,
                                   &new_num_subdomains, &new_subdomain_id,
