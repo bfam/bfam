@@ -191,9 +191,24 @@ int bfam_subdomain_delete_tag(bfam_subdomain_t *thisSubdomain, const char *tag)
   return bfam_critbit0_delete(&thisSubdomain->tags, tag);
 }
 
+static int tag_prefix_match(const char *tag, void *args)
+{
+  return 0;
+}
+
 int bfam_subdomain_has_tag(bfam_subdomain_t *thisSubdomain, const char *tag)
 {
-  return bfam_critbit0_contains(&thisSubdomain->tags, tag);
+  const size_t tlen = strlen(tag);
+  if(tag[tlen-1] == '*')
+  {
+    char newtag[BFAM_BUFSIZ];
+    strncpy(newtag, tag, tlen-1);
+    newtag[tlen-1] = '\0';
+    return 0 == bfam_critbit0_allprefixed(&thisSubdomain->tags, newtag,
+                                          tag_prefix_match,NULL);
+  }
+  else
+    return bfam_critbit0_contains(&thisSubdomain->tags, tag);
 }
 
 static int contains_prefix(const char *value, void *arg)

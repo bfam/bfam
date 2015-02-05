@@ -79,6 +79,13 @@ static void test_insert()
   BFAM_ABORT_IF(numMatchedSubdomains != 1, "Error matching tags2: %jd",
                 (intmax_t)numMatchedSubdomains);
 
+  const char *tags3[] = {"a1*", NULL};
+  bfam_domain_get_subdomains(domain, BFAM_DOMAIN_AND, tags3,
+                             domain->numSubdomains, matchedSubdomains,
+                             &numMatchedSubdomains);
+  BFAM_ABORT_IF(numMatchedSubdomains != 7, "Error matching tags3: %jd",
+                (intmax_t)numMatchedSubdomains);
+
   bfam_critbit0_tree_t ctags1 = {0};
   bfam_critbit0_insert(&ctags1, "a11");
   bfam_critbit0_insert(&ctags1, "a10");
@@ -103,6 +110,36 @@ static void test_insert()
   BFAM_ABORT_IF(numMatchedSubdomains != 1, "Error matching ctags2: %jd",
                 (intmax_t)numMatchedSubdomains);
   bfam_critbit0_clear(&ctags2);
+
+  bfam_critbit0_tree_t ctags3 = {0};
+  bfam_critbit0_insert(&ctags3, "a1*");
+  bfam_domain_get_subdomains_critbit(domain, BFAM_DOMAIN_AND, &ctags3,
+                                     domain->numSubdomains, matchedSubdomains,
+                                     &numMatchedSubdomains);
+  BFAM_ABORT_IF(numMatchedSubdomains != 7, "Error matching ctags3: %jd",
+                (intmax_t)numMatchedSubdomains);
+  bfam_critbit0_clear(&ctags3);
+
+  numMatchedSubdomains = 0;
+  bfam_critbit0_tree_t ctags4 = {0};
+  bfam_critbit0_insert(&ctags4, "*");
+  bfam_domain_get_subdomains_critbit(domain, BFAM_DOMAIN_AND, &ctags4,
+                                     domain->numSubdomains, matchedSubdomains,
+                                     &numMatchedSubdomains);
+  BFAM_ABORT_IF(numMatchedSubdomains != 22, "Error matching ctags4: %jd",
+                (intmax_t)numMatchedSubdomains);
+  bfam_critbit0_clear(&ctags4);
+
+  numMatchedSubdomains = 0;
+  bfam_critbit0_tree_t ctags5 = {0};
+  bfam_critbit0_insert(&ctags5, "random string that's not in there*");
+  bfam_domain_get_subdomains_critbit(domain, BFAM_DOMAIN_AND, &ctags5,
+                                     domain->numSubdomains, matchedSubdomains,
+                                     &numMatchedSubdomains);
+  BFAM_ABORT_IF(numMatchedSubdomains != 0, "Error matching ctags5: %jd",
+                (intmax_t)numMatchedSubdomains);
+  bfam_critbit0_clear(&ctags5);
+
 
   bfam_free(matchedSubdomains);
   // free a domain
