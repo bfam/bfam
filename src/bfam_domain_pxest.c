@@ -1647,7 +1647,8 @@ static int bfam_domain_pxest_quadrant_coarsen(p4est_t *p4est,
     bfam_locidx_t glue_id = ud->glue_id[(f % 2) << (f / 2)];
     for (unsigned int c = 0; c < P4EST_CHILDREN; ++c)
     {
-      if (((c >> (f / 2)) % 2 == f % 2) && (glue_id != ud->glue_id[c]))
+      ud = quadrants[c]->p.user_data;
+      if (((c >> (f / 2)) % 2 == f % 2) && (glue_id != ud->glue_id[f]))
         return 0;
     }
   }
