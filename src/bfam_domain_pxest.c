@@ -1702,7 +1702,8 @@ static void bfam_domain_pxest_quadrant_replace(p4est_t *p4est,
     for (unsigned int f = 0; f < P4EST_FACES; ++f)
     {
       /* grab a parent on the face and use their glue id */
-      out_ud = incoming[(f % 2) << (f / 2)]->p.user_data;
+      unsigned int parent = (f % 2) << (f / 2);
+      out_ud = outgoing[parent]->p.user_data;
       in_ud->glue_id[f] = out_ud->glue_id[f];
     }
   }
