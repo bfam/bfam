@@ -1892,7 +1892,7 @@ bfam_domain_pxest_transfer_fields_volume(bfam_domain_pxest_t *domain_dest,
   /* Transfer Volume Fields */
   bfam_domain_t *dbase_dest = &domain_dest->base;
   bfam_subdomain_t **subdomains_dest =
-      bfam_malloc(dbase_dest->numSubdomains * sizeof(bfam_subdomain_t **));
+      bfam_malloc(dbase_dest->numSubdomains * sizeof(bfam_subdomain_t *));
 
   bfam_subdomain_dgx_transfer_field_data_t fd;
 
