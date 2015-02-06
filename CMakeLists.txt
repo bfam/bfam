@@ -558,10 +558,10 @@ target_link_libraries(bfam_test_critbit bfam)
 
 add_test(bfam_test_critbit_test bfam_test_critbit)
 
-add_executable(bfam_test_interpolation tests/bfam_test_interpolation.c)
-target_link_libraries(bfam_test_interpolation bfam)
+add_executable(bfam_test_bilinear tests/bfam_test_bilinear.c)
+target_link_libraries(bfam_test_bilinear bfam)
 
-add_test(bfam_test_interpolation_test bfam_test_interpolation)
+add_test(bfam_test_bilinear_test bfam_test_bilinear)
 
 add_executable(bfam_test_malloc tests/bfam_test_malloc.c)
 target_link_libraries(bfam_test_malloc bfam)
