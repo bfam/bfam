@@ -9,12 +9,14 @@ math.randomseed(0)
 -- refinement parameters
 data_directory = "data"
 output_prefix = "solution"
+-- output_prefix = "solution_no_sponge"
 
 -- connectivity info
 connectivity = "brick"
 brick =
 {
   nx = 4,
+  -- nx = 4+2*5,
   ny = 1,
   nz = 1,
   bc0 = 1,
@@ -35,7 +37,7 @@ Cy = Ly*brick.ny/2
 Cz = 0
 
 Sw = 0.5*Lx
-Sx = Cx-Sw
+Sx = 2*Lx-Sw
 
 function connectivity_vertices(x, y, z)
   -- if x > 0 and x < brick.nx and
@@ -66,16 +68,12 @@ function element_order(
   x2,y2,z2,x3,y3,z3,
   level, treeid)
 
-  -- V = (x0+x1+x2+x3)/4
-  V = math.abs(x0)
-  V = math.max(V,x1)
-  V = math.max(V,x2)
-  V = math.max(V,x3)
-  N = 4
-  if( math.abs(V) > Cx-0.5*Lx ) then
-    return N, "sponge"
+  xc = (x0+x1+x2+x3)/4
+  if( math.abs(xc) > Sx) then
+    return 4, "sponge -- no output"
+    -- return 4, "elastic -- no output"
   else
-    return N, "elastic"
+    return 4, "elastic"
   end
 end
 
@@ -100,7 +98,7 @@ function v1(x,y,z,t)
 end
 
 function a_sponge(x,y,z,t,xc,yc,zc)
-  return 100*((math.abs(x)-Sx)/Sw)^2
+  return 100*math.max(0,(math.abs(x)-Sx)/Sw)^2
 end
 
 
