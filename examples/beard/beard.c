@@ -93,6 +93,8 @@ const char **friction_rates = NULL;
 const char *slip_weakening_rates[] = {"Dp","Dp1","Dp2","Dp3","Dn",NULL};
 const char *rate_and_state_rates[] = {"Dp","Dp1","Dp2","Dp3","Dn","psi",NULL};
 
+const char *volume_vtk_tags[] = {"elastic","plastic","sponge",NULL};
+
 
 #define BFAM_LOAD_FIELD_RESTRICT_ALIGNED(field,prefix,base,dictionary)         \
 bfam_real_t *restrict field;                                                   \
@@ -1920,19 +1922,19 @@ static void
 domain_add_fields(beard_t *beard, prefs_t *prefs)
 {
 
-  const char *volume[] = {"_volume",NULL};
+  const char *elastic[] = {"elastic*","plastic*","sponge*",NULL};
   bfam_domain_t *domain = (bfam_domain_t*)beard->domain;
   for(int f = 0; elastic_fields[f] != NULL; f++)
   {
-    bfam_domain_add_field (domain, BFAM_DOMAIN_OR, volume, elastic_fields[f]);
-    bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, elastic_fields[f], 0,
+    bfam_domain_add_field (domain, BFAM_DOMAIN_OR, elastic, elastic_fields[f]);
+    bfam_domain_init_field(domain, BFAM_DOMAIN_OR, elastic, elastic_fields[f], 0,
         field_set_val, prefs->L);
   }
   const char *fields_aux[] = {"rho_inv", "Zs", "Zp",NULL};
   for(int f = 0; fields_aux[f] != NULL; f++)
   {
-    bfam_domain_add_field (domain, BFAM_DOMAIN_OR, volume, fields_aux[f]);
-    bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume, fields_aux[f], 0,
+    bfam_domain_add_field (domain, BFAM_DOMAIN_OR, elastic, fields_aux[f]);
+    bfam_domain_init_field(domain, BFAM_DOMAIN_OR, elastic, fields_aux[f], 0,
         field_set_val_aux, NULL);
   }
   const char *sponge[] = {"sponge",NULL};
@@ -1946,18 +1948,18 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
   /* Add plastic fields if we are supposed to */
   if(plastic_fields)
   {
+    const char *plastic[] = {"plastic*",NULL};
+
     lua_State *L = prefs->L;
 #ifdef BFAM_DEBUG
     int top = lua_gettop(L);
 #endif
     lua_getglobal(L,"plastic");
-    bfam_domain_add_tag((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
-        volume, "plastic");
     switch(prefs->plasticity)
     {
       case DUVAUT_LIONS:
         bfam_domain_add_tag((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
-            volume, "Duvaut-Lions");
+            plastic, "Duvaut-Lions");
         break;
       default:
         BFAM_ABORT("Unknown plastic type for adding the tags");
@@ -1965,7 +1967,7 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
 
     for(int f = 0; plastic_fields[f] != NULL; f++)
     {
-      bfam_domain_add_field (domain, BFAM_DOMAIN_OR, volume,
+      bfam_domain_add_field (domain, BFAM_DOMAIN_OR, plastic,
           plastic_fields[f]);
 
       bfam_real_t value = 0;
@@ -1980,7 +1982,7 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
         set_val_extended_args_t args;
         args.fname = fname;
         args.L     = L;
-        bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume,
+        bfam_domain_init_field(domain, BFAM_DOMAIN_OR, plastic,
             plastic_fields[f], 0, field_set_val_extend, &args);
       }
       else
@@ -1996,7 +1998,7 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
               " plastic does not contain `%s',"
               " using default %"BFAM_REAL_PRIe, plastic_fields[f],
               value);
-        bfam_domain_init_field(domain, BFAM_DOMAIN_OR, volume,
+        bfam_domain_init_field(domain, BFAM_DOMAIN_OR, plastic,
             plastic_fields[f], 0, field_set_const, &value);
         lua_pop(L, 1);
       }
@@ -2397,7 +2399,9 @@ field_zero(bfam_locidx_t npoints, const char *name, bfam_real_t time,
 
 void aux_rates (bfam_subdomain_t *thisSubdomain, const char *prefix)
 {
-  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+  if(bfam_subdomain_has_tag(thisSubdomain,"elastic*") ||
+     bfam_subdomain_has_tag(thisSubdomain,"plastic*") ||
+     bfam_subdomain_has_tag(thisSubdomain,"sponge*" ))
   {
     const char *fields[] =
       {"v1","v2","v3","S11","S22","S33","S12","S13","S23",NULL};
@@ -2547,7 +2551,9 @@ void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
 {
   BFAM_ASSERT(rate_prefix);
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
-  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+  if(bfam_subdomain_has_tag(thisSubdomain,"elastic*") ||
+     bfam_subdomain_has_tag(thisSubdomain,"plastic*") ||
+     bfam_subdomain_has_tag(thisSubdomain,"sponge*" ))
   {
     bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
     scale_rates_elastic(sub,rate_prefix,a);
@@ -2668,7 +2674,9 @@ void intra_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
 
   bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*) thisSubdomain;
-  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+  if(bfam_subdomain_has_tag(thisSubdomain,"elastic*") ||
+     bfam_subdomain_has_tag(thisSubdomain,"plastic*") ||
+     bfam_subdomain_has_tag(thisSubdomain,"sponge*" ))
   {
     intra_rhs_elastic(sub->N,sub,rate_prefix,field_prefix,t);
     if(bfam_subdomain_has_tag(thisSubdomain,"sponge"))
@@ -2824,7 +2832,9 @@ void inter_rhs (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
 
   bfam_subdomain_dgx_t *sub =
     (bfam_subdomain_dgx_t*) thisSubdomain;
-  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"));
+  if(bfam_subdomain_has_tag(thisSubdomain,"elastic*") ||
+     bfam_subdomain_has_tag(thisSubdomain,"plastic*") ||
+     bfam_subdomain_has_tag(thisSubdomain,"sponge*" ));
   else if(bfam_subdomain_has_tag(thisSubdomain,"slip weakening"))
   {
     BFAM_ASSERT(rate_prefix);
@@ -3006,7 +3016,9 @@ void add_rates (bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
     const bfam_long_real_t a)
 {
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain,"_subdomain_dgx"));
-  if(bfam_subdomain_has_tag(thisSubdomain,"_volume"))
+  if(bfam_subdomain_has_tag(thisSubdomain,"elastic*") ||
+     bfam_subdomain_has_tag(thisSubdomain,"plastic*") ||
+     bfam_subdomain_has_tag(thisSubdomain,"sponge*" ))
   {
     bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*)thisSubdomain;
     add_rates_elastic(sub,field_prefix_lhs,field_prefix_rhs,rate_prefix,a);
@@ -3671,7 +3683,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
 
     snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,0);
     bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-        volume_tags, prefs->data_directory, output, (0)*dt, elastic_fields,
+        volume_vtk_tags, prefs->data_directory, output, (0)*dt, elastic_fields,
         NULL, NULL, prefs->vtk_binary, prefs->vtk_compress,
         prefs->vtk_num_pnts);
 
@@ -3679,7 +3691,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
     {
       snprintf(output,BFAM_BUFSIZ,"%s_plasticity",prefs->output_prefix);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-          volume_tags, prefs->data_directory, output, (0)*dt, plastic_fields,
+          volume_vtk_tags, prefs->data_directory, output, (0)*dt, plastic_fields,
           NULL, NULL, prefs->vtk_binary, prefs->vtk_compress,
           prefs->vtk_num_pnts);
     }
@@ -3814,7 +3826,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       char output[BFAM_BUFSIZ];
       snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-          volume_tags, prefs->data_directory, output, (s)*dt, fields, NULL,
+          volume_vtk_tags, prefs->data_directory, output, (s)*dt, fields, NULL,
           NULL, prefs->vtk_binary, prefs->vtk_compress, prefs->vtk_num_pnts);
     }
     if(nerr > 0 && s%nerr == 0)
@@ -3828,7 +3840,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
                                 "error_S12", "error_S13", "error_S23", NULL};
       for(int f = 0; err_flds[f] != NULL; f++)
         bfam_domain_init_field((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
-            volume_tags, err_flds[f], s*dt, check_error, &err_args);
+            volume_vtk_tags, err_flds[f], s*dt, check_error, &err_args);
       bfam_real_t error = compute_energy(beard,prefs,s*dt,"error_");
       bfam_real_t new_energy = compute_energy(beard,prefs,s*dt,"");
       BFAM_ROOT_INFO(
@@ -3840,7 +3852,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
         char err_output[BFAM_BUFSIZ];
         snprintf(err_output,BFAM_BUFSIZ,"%s_error_%05d",prefs->output_prefix,s);
         bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-            volume_tags, prefs->data_directory, err_output, (s)*dt, err_flds,
+            volume_vtk_tags, prefs->data_directory, err_output, (s)*dt, err_flds,
             NULL, NULL, prefs->vtk_binary, prefs->vtk_compress,
             prefs->vtk_num_pnts);
         energy = new_energy;
