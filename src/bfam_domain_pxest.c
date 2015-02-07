@@ -2247,7 +2247,6 @@ static void bfam_domain_pxest_transfer_fields(bfam_domain_pxest_t *domain_dst,
  * This coarsens the pxest structure based on information
  * in the subdomain.
  *
- * \warning this leaves the domain in a incomplete state
  */
 static void
 bfam_domain_pxest_coarsen(bfam_domain_pxest_t *domain,
@@ -2291,8 +2290,6 @@ bfam_domain_pxest_coarsen(bfam_domain_pxest_t *domain,
       domain, new_num_subdomains, new_subdomain_id, new_roots, new_N,
       new_glue_id, nodes_transform, user_args);
 
-  /* Get coarsen element children */
-
   /* Transfer fields */
   bfam_domain_pxest_transfer_fields(domain, old_domain);
 
@@ -2311,7 +2308,7 @@ void bfam_domain_pxest_adapt(bfam_domain_pxest_t *domain,
                              bfam_dgx_nodes_transform_t nodes_transform,
                              void *user_args)
 {
-  /* coarsen */
+  /* coarsen and balance */
   bfam_domain_pxest_coarsen(domain, nodes_transform, user_args);
 
   /* split and partition based on guessed elements */
