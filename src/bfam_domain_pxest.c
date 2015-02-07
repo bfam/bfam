@@ -1505,8 +1505,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
         if (ud->N > 0)
           new_subdomain->padapt[new_elem_id] = ud->N;
 
-        new_subdomain->parent_subd_id[new_elem_id] = ud->subd_id;
-        new_subdomain->parent_elem_id[new_elem_id] = ud->elem_id;
+        new_subdomain->q_id[new_elem_id] = k;
 
         ud->N = N[subdomainID[k]];
         ud->subd_id = new_subd_id;
@@ -1609,6 +1608,11 @@ static void bfam_domain_pxest_mark_elements(bfam_domain_pxest_t *domain)
 
       /* reset adaption flags */
       ud->flags = subdomain->hadapt[ud->elem_id];
+
+      BFAM_VERBOSE(
+          "Marking pxest t:%03jd q:%03jd <-- s:%03jd k:%03jd N:%02d h:%02x",
+          (intmax_t)t, (intmax_t)zz, (intmax_t)ud->subd_id,
+          (intmax_t)ud->elem_id, ud->N, ud->flags);
     }
   }
 }
@@ -1632,9 +1636,15 @@ static int bfam_domain_pxest_quadrant_coarsen(p4est_t *p4est,
   bfam_pxest_user_data_t *ud = quadrants[0]->p.user_data;
   bfam_locidx_t root_id = ud->root_id;
 
+  BFAM_VERBOSE("Coarsen Callback: root_id %jd coarsen flag %02x",
+               (intmax_t)root_id, BFAM_FLAG_COARSEN);
+
   for (int k = 0; k < P4EST_CHILDREN; ++k)
   {
     ud = quadrants[k]->p.user_data;
+    BFAM_VERBOSE("Coarsen Callback: child[%d] s:%03jd k:%03jd h:%02x r:%jd", k,
+                 (intmax_t)ud->subd_id, (intmax_t)ud->elem_id, ud->flags,
+                 (intmax_t)ud->root_id);
 
     /* only coarsen if we all want to coarsen */
     if (!(ud->flags & BFAM_FLAG_COARSEN))
@@ -1656,6 +1666,7 @@ static int bfam_domain_pxest_quadrant_coarsen(p4est_t *p4est,
         return 0;
     }
   }
+  BFAM_VERBOSE("  Coarsen!");
   return 1;
 }
 
@@ -1832,16 +1843,16 @@ static void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *old_domain,
 static int bfam_subdomain_dgx_add_fields_iter(const char *key, void *val,
                                               void *arg)
 {
-  bfam_subdomain_dgx_t *sub_dest = arg;
+  bfam_subdomain_dgx_t *sub_dst = arg;
 
   /* Don't add internal fields */
   if (key[0] != '_')
   {
 
-    int retval = bfam_subdomain_field_add((bfam_subdomain_t *)sub_dest, key);
+    int retval = bfam_subdomain_field_add((bfam_subdomain_t *)sub_dst, key);
     BFAM_ABORT_IF(retval == 0, "Out of memory");
     BFAM_VERBOSE("Added field '%s' to subdomain %jd", key,
-                 (intmax_t)sub_dest->base.id);
+                 (intmax_t)sub_dst->base.id);
   }
 
   return 1;
@@ -1849,70 +1860,342 @@ static int bfam_subdomain_dgx_add_fields_iter(const char *key, void *val,
 
 typedef struct
 {
-  bfam_subdomain_dgx_t *subdomain_dest;
+  uint8_t *dst_to_adapt_flags;
+  int8_t *dst_to_dst_chld_id;
+  bfam_locidx_t *dst_to_src_subd_id;
+  bfam_locidx_t *dst_to_src_elem_id;
+
+  int8_t *coarse_dst_to_src_chld_id;
+  bfam_locidx_t *coarse_dst_to_src_subd_id;
+  bfam_locidx_t *coarse_dst_to_src_elem_id;
+} bfam_domain_pxest_transfer_maps_t;
+
+typedef struct
+{
+  bfam_subdomain_dgx_t *subdomain_dst;
   bfam_domain_pxest_t *domain_src;
+  bfam_domain_pxest_transfer_maps_t *maps;
 } bfam_subdomain_dgx_transfer_field_data_t;
 
 static int bfam_subdomain_dgx_transfer_field_iter(const char *key, void *val,
                                                   void *arg)
 {
+  bfam_subdomain_dgx_t *subdomain_src[P4EST_CHILDREN];
+  int8_t chld_id_src[P4EST_CHILDREN];
+  bfam_locidx_t subd_id_src[P4EST_CHILDREN];
+  bfam_locidx_t elem_id_src[P4EST_CHILDREN];
+  bfam_real_t *field_src[P4EST_CHILDREN];
   BFAM_ABORT_IF(val == NULL, "Null pointer for destination field");
   /* Don't transfer internal fields */
   if (key[0] == '_')
     return 1;
 
   bfam_subdomain_dgx_transfer_field_data_t *fd = arg;
-  bfam_real_t *field_dest = val;
+  bfam_real_t *field_dst = val;
   BFAM_VERBOSE("Transfer field '%s' to subdomain %jd (K:%jd)", key,
-               (intmax_t)fd->subdomain_dest->base.id,
-               (intmax_t)fd->subdomain_dest->K);
+               (intmax_t)fd->subdomain_dst->base.id,
+               (intmax_t)fd->subdomain_dst->K);
 
-  for (bfam_locidx_t k = 0; k < fd->subdomain_dest->K; ++k)
+  for (bfam_locidx_t k = 0; k < fd->subdomain_dst->K; ++k)
   {
-    bfam_subdomain_dgx_t *sub_src =
-        (bfam_subdomain_dgx_t *)bfam_domain_get_subdomain_by_num(
-            (bfam_domain_t *)fd->domain_src,
-            fd->subdomain_dest->parent_subd_id[k]);
+    bfam_locidx_t q_id_dst = fd->subdomain_dst->q_id[k];
 
-    bfam_real_t *field_src =
-        bfam_dictionary_get_value_ptr(&sub_src->base.fields, key);
-    BFAM_ABORT_IF(field_src == NULL, "Null pointer for source field");
+    uint8_t flags = fd->maps->dst_to_adapt_flags[q_id_dst];
 
-    /* TODO: Do interpolation or projection */
-    BFAM_VERBOSE(
-        "Transfer '%s' s:%03jd k:%03jd N:%02d -> s:%03jd k:%03jd N:%02d", key,
-        (intmax_t)fd->subdomain_dest->parent_subd_id[k],
-        (intmax_t)fd->subdomain_dest->parent_elem_id[k], sub_src->N,
-        (intmax_t)fd->subdomain_dest->base.id, (intmax_t)k,
-        fd->subdomain_dest->N);
+    BFAM_VERBOSE("Transfer '%s' flags=%02x:", key, flags);
+
+    int num_src = (flags == BFAM_FLAG_COARSEN) ? P4EST_CHILDREN : 1;
+
+    if (flags == BFAM_FLAG_COARSEN)
+    {
+      for (int c = 0; c < num_src; ++c)
+      {
+        bfam_locidx_t k_id = -fd->maps->dst_to_src_subd_id[q_id_dst] - 1;
+        bfam_locidx_t c_id = P4EST_CHILDREN * k_id + c;
+
+        chld_id_src[c] = fd->maps->coarse_dst_to_src_chld_id[c_id];
+        subd_id_src[c] = fd->maps->coarse_dst_to_src_subd_id[c_id];
+        elem_id_src[c] = fd->maps->coarse_dst_to_src_elem_id[c_id];
+      }
+    }
+    else
+    {
+      chld_id_src[0] = -1;
+      subd_id_src[0] = fd->maps->dst_to_src_subd_id[q_id_dst];
+      elem_id_src[0] = fd->maps->dst_to_src_elem_id[q_id_dst];
+    }
+
+    for (int c = 0; c < num_src; ++c)
+    {
+      subdomain_src[c] =
+          (bfam_subdomain_dgx_t *)bfam_domain_get_subdomain_by_num(
+              (bfam_domain_t *)fd->domain_src, subd_id_src[c]);
+      field_src[c] =
+          bfam_dictionary_get_value_ptr(&subdomain_src[c]->base.fields, key);
+      BFAM_ABORT_IF(field_src[c] == NULL, "Null pointer for source field");
+    }
+
+    for (int c = 0; c < num_src; ++c)
+      BFAM_VERBOSE("              s:%03jd k:%03jd c:%2d N:%02d p:%p",
+                   (intmax_t)subd_id_src[c], (intmax_t)elem_id_src[c],
+                   (int)chld_id_src[c], subdomain_src[c]->N,
+                   field_src[c] + elem_id_src[c] * subdomain_src[c]->Np);
+
+    BFAM_VERBOSE(" -----------> s:%03jd k:%03jd c:%2d N:%02d p:%p",
+                 (intmax_t)fd->subdomain_dst->base.id, (intmax_t)k,
+                 fd->maps->dst_to_dst_chld_id[q_id_dst], fd->subdomain_dst->N,
+                 field_dst + k * fd->subdomain_dst->Np);
   }
   return 1;
 }
 
+static int quadrant_compare(const p4est_quadrant_t *quad_dst,
+                            const p4est_quadrant_t *quad_src)
+{
+  if (p4est_quadrant_is_parent(quad_dst, quad_src))
+  {
+    /* h-coarsening */
+    return -1;
+  }
+  else if (p4est_quadrant_is_parent(quad_src, quad_dst))
+  {
+    /* h-refining */
+    return 1;
+  }
+  else if (p4est_quadrant_is_equal(quad_src, quad_dst))
+  {
+    /* h-same */
+    return 0;
+  }
+  else
+  {
+    if (p4est_quadrant_overlaps(quad_dst, quad_src))
+      BFAM_ABORT("Transfer aborted: more than one level of refinement "
+                 "between quadrants");
+    else
+      BFAM_ABORT("Transfer aborted: Strange Things are Afoot at the Circle "
+                 "K, we should never reach here");
+    return 0;
+  }
+}
+
 static void
-bfam_domain_pxest_transfer_fields_volume(bfam_domain_pxest_t *domain_dest,
-                                         bfam_domain_pxest_t *domain_src)
+bfam_domain_pxest_transfer_maps_init(bfam_domain_pxest_transfer_maps_t *maps,
+                                     bfam_domain_pxest_t *domain_dst,
+                                     bfam_domain_pxest_t *domain_src)
+{
+  p4est_t *pxest_dst = domain_dst->pxest;
+  p4est_t *pxest_src = domain_src->pxest;
+
+  p4est_topidx_t t;
+  p4est_locidx_t k_src;
+  p4est_locidx_t k_dst;
+  p4est_locidx_t coarse_k_dst;
+
+  BFAM_ABORT_IF(pxest_dst->first_local_tree != pxest_src->first_local_tree ||
+                    pxest_dst->last_local_tree != pxest_src->last_local_tree,
+                "Transfer aborted: Non-nested domains (Trees don't match)");
+
+  /*
+   * Count coarsened
+   */
+  size_t num_coarsened = 0;
+  for (t = pxest_dst->first_local_tree; t <= pxest_dst->last_local_tree; ++t)
+  {
+    p4est_tree_t *tree_dst = p4est_tree_array_index(pxest_dst->trees, t);
+    p4est_tree_t *tree_src = p4est_tree_array_index(pxest_src->trees, t);
+
+    sc_array_t *quadrants_dst = &tree_dst->quadrants;
+    sc_array_t *quadrants_src = &tree_src->quadrants;
+
+    size_t z_src = 0;
+    for (size_t z_dst = 0; z_dst < quadrants_dst->elem_count;)
+    {
+      BFAM_ASSERT(z_dst < quadrants_dst->elem_count);
+      BFAM_ASSERT(z_src < quadrants_src->elem_count);
+
+      p4est_quadrant_t *quad_dst =
+          p4est_quadrant_array_index(quadrants_dst, z_dst);
+      p4est_quadrant_t *quad_src =
+          p4est_quadrant_array_index(quadrants_src, z_src);
+
+      switch (quadrant_compare(quad_dst, quad_src))
+      {
+      case -1: /* h-coarsened */
+        ++num_coarsened;
+        z_src += P4EST_CHILDREN;
+        z_dst += 1;
+        break;
+      case 1: /* h-refined */
+        z_src += 1;
+        z_dst += P4EST_CHILDREN;
+        break;
+      case 0: /* h-same */
+        z_src += 1;
+        z_dst += 1;
+        break;
+      default:
+        BFAM_ABORT("Never should be reached");
+      }
+    }
+  }
+
+  BFAM_VERBOSE("Building transfer maps with %zd coarsened elements",
+               num_coarsened);
+
+  maps->dst_to_adapt_flags =
+      bfam_malloc_aligned(pxest_dst->local_num_quadrants * sizeof(uint8_t));
+  maps->dst_to_dst_chld_id =
+      bfam_malloc_aligned(pxest_dst->local_num_quadrants * sizeof(int8_t));
+  maps->dst_to_src_subd_id = bfam_malloc_aligned(
+      pxest_dst->local_num_quadrants * sizeof(bfam_locidx_t));
+  maps->dst_to_src_elem_id = bfam_malloc_aligned(
+      pxest_dst->local_num_quadrants * sizeof(bfam_locidx_t));
+
+  maps->coarse_dst_to_src_chld_id =
+      bfam_malloc_aligned(P4EST_CHILDREN * num_coarsened * sizeof(int8_t));
+  maps->coarse_dst_to_src_subd_id = bfam_malloc_aligned(
+      P4EST_CHILDREN * num_coarsened * sizeof(bfam_locidx_t));
+  maps->coarse_dst_to_src_elem_id = bfam_malloc_aligned(
+      P4EST_CHILDREN * num_coarsened * sizeof(bfam_locidx_t));
+
+  /*
+   * Fill Maps
+   */
+  k_src = 0;
+  k_dst = 0;
+  coarse_k_dst = 0;
+  for (t = pxest_dst->first_local_tree; t <= pxest_dst->last_local_tree; ++t)
+  {
+    p4est_tree_t *tree_dst = p4est_tree_array_index(pxest_dst->trees, t);
+    p4est_tree_t *tree_src = p4est_tree_array_index(pxest_src->trees, t);
+
+    sc_array_t *quadrants_dst = &tree_dst->quadrants;
+    sc_array_t *quadrants_src = &tree_src->quadrants;
+
+    size_t z_src = 0;
+    for (size_t z_dst = 0; z_dst < quadrants_dst->elem_count;)
+    {
+      BFAM_ASSERT(z_dst < quadrants_dst->elem_count);
+      BFAM_ASSERT(z_src < quadrants_src->elem_count);
+
+      p4est_quadrant_t *quad_dst =
+          p4est_quadrant_array_index(quadrants_dst, z_dst);
+      p4est_quadrant_t *quad_src =
+          p4est_quadrant_array_index(quadrants_src, z_src);
+
+      BFAM_ASSERT(p4est_quadrant_overlaps(quad_dst, quad_src));
+
+      bfam_pxest_user_data_t *ud_src = quad_src->p.user_data;
+
+      switch (quadrant_compare(quad_dst, quad_src))
+      {
+      case -1: /* h-coarsened */
+        maps->dst_to_adapt_flags[k_dst] = BFAM_FLAG_COARSEN;
+        maps->dst_to_dst_chld_id[k_dst] = p4est_quadrant_child_id(quad_dst);
+
+        /* Store index into coarse maps */
+        maps->dst_to_src_subd_id[k_dst] = -1 - coarse_k_dst;
+        maps->dst_to_src_elem_id[k_dst] = -1 - coarse_k_dst;
+
+        for (int c = 0; c < P4EST_CHILDREN; ++c)
+        {
+          size_t c_id = P4EST_CHILDREN * coarse_k_dst + c;
+          BFAM_ASSERT(c_id < P4EST_CHILDREN * num_coarsened);
+          quad_src = p4est_quadrant_array_index(quadrants_src, z_src + c);
+          ud_src = quad_src->p.user_data;
+
+          BFAM_ASSERT(ud_src->subd_id >= 0);
+          BFAM_ASSERT(ud_src->elem_id >= 0);
+
+          maps->coarse_dst_to_src_chld_id[c_id] =
+              p4est_quadrant_child_id(quad_src);
+          maps->coarse_dst_to_src_subd_id[c_id] = ud_src->subd_id;
+          maps->coarse_dst_to_src_elem_id[c_id] = ud_src->elem_id;
+        }
+
+        coarse_k_dst += 1;
+        k_src += P4EST_CHILDREN;
+        k_dst += 1;
+        z_src += P4EST_CHILDREN;
+        z_dst += 1;
+        break;
+      case 1: /* h-refined */
+        BFAM_ASSERT(ud_src->subd_id >= 0);
+        BFAM_ASSERT(ud_src->elem_id >= 0);
+
+        for (int c = 0; c < P4EST_CHILDREN; ++c)
+        {
+          quad_dst = p4est_quadrant_array_index(quadrants_dst, z_dst);
+
+          maps->dst_to_adapt_flags[k_dst + c] = BFAM_FLAG_REFINE;
+          maps->dst_to_dst_chld_id[k_dst + c] =
+              p4est_quadrant_child_id(quad_dst);
+          maps->dst_to_src_subd_id[k_dst + c] = ud_src->subd_id;
+          maps->dst_to_src_elem_id[k_dst + c] = ud_src->elem_id;
+        }
+        k_src += 1;
+        k_dst += P4EST_CHILDREN;
+        z_src += 1;
+        z_dst += P4EST_CHILDREN;
+        break;
+      case 0: /* h-same */
+        BFAM_ASSERT(ud_src->subd_id >= 0);
+        BFAM_ASSERT(ud_src->elem_id >= 0);
+
+        maps->dst_to_adapt_flags[k_dst] = 0;
+        maps->dst_to_dst_chld_id[k_dst] = p4est_quadrant_child_id(quad_dst);
+        maps->dst_to_src_subd_id[k_dst] = ud_src->subd_id;
+        maps->dst_to_src_elem_id[k_dst] = ud_src->elem_id;
+
+        k_src += 1;
+        k_dst += 1;
+        z_src += 1;
+        z_dst += 1;
+        break;
+      default:
+        BFAM_ABORT("Never should be reached");
+      }
+    }
+  }
+}
+
+static void
+bfam_domain_pxest_transfer_maps_free(bfam_domain_pxest_transfer_maps_t *maps)
+{
+  bfam_free_aligned(maps->dst_to_adapt_flags);
+  bfam_free_aligned(maps->dst_to_dst_chld_id);
+  bfam_free_aligned(maps->dst_to_src_subd_id);
+  bfam_free_aligned(maps->dst_to_src_elem_id);
+  bfam_free_aligned(maps->coarse_dst_to_src_chld_id);
+  bfam_free_aligned(maps->coarse_dst_to_src_subd_id);
+  bfam_free_aligned(maps->coarse_dst_to_src_elem_id);
+}
+
+static void bfam_domain_pxest_transfer_fields_volume(
+    bfam_domain_pxest_t *domain_dst, bfam_domain_pxest_t *domain_src,
+    bfam_domain_pxest_transfer_maps_t *maps)
 {
   /* Transfer Volume Fields */
-  bfam_domain_t *dbase_dest = &domain_dest->base;
-  bfam_subdomain_t **subdomains_dest =
-      bfam_malloc(dbase_dest->numSubdomains * sizeof(bfam_subdomain_t *));
+  bfam_domain_t *dbase_dst = &domain_dst->base;
+  bfam_subdomain_t **subdomains_dst =
+      bfam_malloc(dbase_dst->numSubdomains * sizeof(bfam_subdomain_t *));
 
   bfam_subdomain_dgx_transfer_field_data_t fd;
 
-  bfam_locidx_t num_subdomains_dest = 0;
+  bfam_locidx_t num_subdomains_dst = 0;
 
   const char *volume[] = {"_volume", NULL};
 
-  bfam_domain_get_subdomains(dbase_dest, BFAM_DOMAIN_AND, volume,
-                             dbase_dest->numSubdomains, subdomains_dest,
-                             &num_subdomains_dest);
+  bfam_domain_get_subdomains(dbase_dst, BFAM_DOMAIN_AND, volume,
+                             dbase_dst->numSubdomains, subdomains_dst,
+                             &num_subdomains_dst);
 
-  for (bfam_locidx_t s = 0; s < num_subdomains_dest; ++s)
+  for (bfam_locidx_t s = 0; s < num_subdomains_dst; ++s)
   {
-    bfam_subdomain_dgx_t *sub_dest = (bfam_subdomain_dgx_t *)subdomains_dest[s];
+    bfam_subdomain_dgx_t *sub_dst = (bfam_subdomain_dgx_t *)subdomains_dst[s];
 
-    if (sub_dest->K == 0)
+    if (sub_dst->K == 0)
       continue;
 
     /*
@@ -1920,35 +2203,43 @@ bfam_domain_pxest_transfer_fields_volume(bfam_domain_pxest_t *domain_dest,
      */
     bfam_subdomain_dgx_t *a_sub_src =
         (bfam_subdomain_dgx_t *)bfam_domain_get_subdomain_by_num(
-            (bfam_domain_t *)domain_src, sub_dest->parent_subd_id[0]);
+            (bfam_domain_t *)domain_src,
+            maps->dst_to_src_subd_id[sub_dst->q_id[0]]);
 
     bfam_dictionary_allprefixed_ptr(&a_sub_src->base.fields, "",
                                     &bfam_subdomain_dgx_add_fields_iter,
-                                    sub_dest);
+                                    sub_dst);
 
-    fd.subdomain_dest = sub_dest;
+    fd.subdomain_dst = sub_dst;
     fd.domain_src = domain_src;
+    fd.maps = maps;
 
-    bfam_dictionary_allprefixed_ptr(&sub_dest->base.fields, "",
+    bfam_dictionary_allprefixed_ptr(&sub_dst->base.fields, "",
                                     &bfam_subdomain_dgx_transfer_field_iter,
                                     &fd);
   }
 
-  bfam_free(subdomains_dest);
+  bfam_free(subdomains_dst);
 }
 
 static void
-bfam_domain_pxest_transfer_fields_glue(bfam_domain_pxest_t *domain_dest,
-                                       bfam_domain_pxest_t *domain_src)
+bfam_domain_pxest_transfer_fields_glue(bfam_domain_pxest_t *domain_dst,
+                                       bfam_domain_pxest_t *domain_src,
+                                       bfam_domain_pxest_transfer_maps_t *maps)
 {
   /* TODO Transfer Glue Fields */
 }
 
-static void bfam_domain_pxest_transfer_fields(bfam_domain_pxest_t *domain_dest,
+static void bfam_domain_pxest_transfer_fields(bfam_domain_pxest_t *domain_dst,
                                               bfam_domain_pxest_t *domain_src)
 {
-  bfam_domain_pxest_transfer_fields_volume(domain_dest, domain_src);
-  bfam_domain_pxest_transfer_fields_glue(domain_dest, domain_src);
+  bfam_domain_pxest_transfer_maps_t maps;
+  bfam_domain_pxest_transfer_maps_init(&maps, domain_dst, domain_src);
+
+  bfam_domain_pxest_transfer_fields_volume(domain_dst, domain_src, &maps);
+  bfam_domain_pxest_transfer_fields_glue(domain_dst, domain_src, &maps);
+
+  bfam_domain_pxest_transfer_maps_free(&maps);
 }
 
 /** Coarsen pxest based on subdomains.
@@ -1974,6 +2265,7 @@ bfam_domain_pxest_coarsen(bfam_domain_pxest_t *domain,
 
   /* Grab old subdomains */
   bfam_domain_pxest_t *old_domain = bfam_domain_pxest_base_copy(domain);
+  old_domain->pxest = p4est_copy(domain->pxest, 1);
 
   /* TODO: Drop unneeded memory from old_domain */
 
@@ -1998,6 +2290,8 @@ bfam_domain_pxest_coarsen(bfam_domain_pxest_t *domain,
   bfam_domain_pxest_split_dgx_subdomains(
       domain, new_num_subdomains, new_subdomain_id, new_roots, new_N,
       new_glue_id, nodes_transform, user_args);
+
+  /* Get coarsen element children */
 
   /* Transfer fields */
   bfam_domain_pxest_transfer_fields(domain, old_domain);
