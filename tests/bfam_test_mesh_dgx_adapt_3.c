@@ -88,11 +88,24 @@ static void mark_elements(bfam_domain_pxest_t_3 *domain)
   bfam_domain_get_subdomains(dbase, BFAM_DOMAIN_AND, volume,
                              dbase->numSubdomains, subdomains, &num_subdomains);
 
-  for (bfam_locidx_t s = 0; s < num_subdomains; ++s)
+  for (bfam_locidx_t s = 0; s < num_subdomains / 2; ++s)
   {
     bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t *)subdomains[s];
     for (bfam_locidx_t k = 0; k < sub->K; ++k)
+    {
       sub->padapt[k] = 1;
+      sub->hadapt[k] = BFAM_FLAG_COARSEN;
+    }
+  }
+
+  for (bfam_locidx_t s = num_subdomains / 2; s < num_subdomains; ++s)
+  {
+    bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t *)subdomains[s];
+    for (bfam_locidx_t k = 0; k < sub->K; ++k)
+    {
+      sub->padapt[k] = 2;
+      sub->hadapt[k] = BFAM_FLAG_REFINE;
+    }
   }
 }
 
