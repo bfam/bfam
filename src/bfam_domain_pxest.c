@@ -2334,13 +2334,13 @@ void bfam_domain_pxest_adapt(bfam_domain_pxest_t *domain,
   bfam_domain_pxest_adapt_flag(BFAM_FLAG_COARSEN, domain, nodes_transform,
                                user_args);
 
-  /* split and partition based on guessed elements */
+  /* TODO split and partition based on guessed elements */
 
   /* refine and balance */
   bfam_domain_pxest_adapt_flag(BFAM_FLAG_REFINE, domain, nodes_transform,
                                user_args);
 
-  /* split and partition based on actual elements */
+  /* TODO split and partition based on actual elements */
 }
 
 #else
