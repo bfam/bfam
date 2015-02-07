@@ -1670,6 +1670,22 @@ static int bfam_domain_pxest_quadrant_coarsen(p4est_t *p4est,
   return 1;
 }
 
+static int bfam_domain_pxest_quadrant_refine(p4est_t *p4est,
+                                             p4est_topidx_t which_tree,
+                                             p4est_quadrant_t *quadrant)
+{
+  bfam_pxest_user_data_t *ud = quadrant->p.user_data;
+
+  BFAM_VERBOSE("Refinement Callback: s:%03jd k%03jd h:%02x r:%jd",
+               (intmax_t)ud->subd_id, (intmax_t)ud->elem_id, ud->flags,
+               (intmax_t)ud->root_id);
+
+  if (!(ud->flags & BFAM_FLAG_REFINE))
+    return 0;
+
+  BFAM_VERBOSE("  Refine!");
+  return 1;
+}
 static void bfam_domain_pxest_quadrant_init(p4est_t *p4est,
                                             p4est_topidx_t which_tree,
                                             p4est_quadrant_t *quadrant)
@@ -2249,9 +2265,9 @@ static void bfam_domain_pxest_transfer_fields(bfam_domain_pxest_t *domain_dst,
  *
  */
 static void
-bfam_domain_pxest_coarsen(bfam_domain_pxest_t *domain,
-                          bfam_dgx_nodes_transform_t nodes_transform,
-                          void *user_args)
+bfam_domain_pxest_adapt_flag(uint8_t flags, bfam_domain_pxest_t *domain,
+                             bfam_dgx_nodes_transform_t nodes_transform,
+                             void *user_args)
 {
   bfam_locidx_t new_num_subdomains;
   bfam_locidx_t *new_subdomain_id;
@@ -2272,9 +2288,15 @@ bfam_domain_pxest_coarsen(bfam_domain_pxest_t *domain,
   bfam_domain_init(&domain->base, domain->base.comm);
 
   /* Change pxest order and coarsening */
-  p4est_coarsen_ext(domain->pxest, 0, 0, bfam_domain_pxest_quadrant_coarsen,
-                    bfam_domain_pxest_quadrant_init,
-                    bfam_domain_pxest_quadrant_replace);
+  if (flags & BFAM_FLAG_COARSEN)
+    p4est_coarsen_ext(domain->pxest, 0, 0, bfam_domain_pxest_quadrant_coarsen,
+                      bfam_domain_pxest_quadrant_init,
+                      bfam_domain_pxest_quadrant_replace);
+
+  if (flags & BFAM_FLAG_REFINE)
+    p4est_refine_ext(domain->pxest, 0, -1, bfam_domain_pxest_quadrant_refine,
+                     bfam_domain_pxest_quadrant_init,
+                     bfam_domain_pxest_quadrant_replace);
 
   p4est_balance_ext(domain->pxest, BFAM_PXEST_CONNECT,
                     bfam_domain_pxest_quadrant_init,
@@ -2309,11 +2331,14 @@ void bfam_domain_pxest_adapt(bfam_domain_pxest_t *domain,
                              void *user_args)
 {
   /* coarsen and balance */
-  bfam_domain_pxest_coarsen(domain, nodes_transform, user_args);
+  bfam_domain_pxest_adapt_flag(BFAM_FLAG_COARSEN, domain, nodes_transform,
+                               user_args);
 
   /* split and partition based on guessed elements */
 
   /* refine and balance */
+  bfam_domain_pxest_adapt_flag(BFAM_FLAG_REFINE, domain, nodes_transform,
+                               user_args);
 
   /* split and partition based on actual elements */
 }
