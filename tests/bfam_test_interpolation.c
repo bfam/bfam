@@ -25,67 +25,141 @@ typedef enum
   REFINE,
 } crf_t;
 
-static void init_interplators(interpolator_t *interp_a2b,
-                              interpolator_t *interp_b2a, const int N_a,
+static void init_interpolator(interpolator_t *interp_a2b, const int N_a,
                               const int N_b)
 {
   const bfam_locidx_t num_prj = 5;
-
   const bfam_locidx_t Np_a = N_a + 1;
   const bfam_locidx_t Np_b = N_b + 1;
 
-  /* Create the N_a to N_b pair */
   interp_a2b->N_src = N_a;
   interp_a2b->N_dst = N_b;
   interp_a2b->num_prj = num_prj;
   interp_a2b->prj = bfam_malloc(num_prj * sizeof(bfam_real_t *));
 
-  if (interp_b2a)
-  {
-    interp_b2a->N_src = N_b;
-    interp_b2a->N_dst = N_a;
-    interp_b2a->num_prj = num_prj;
-    interp_b2a->prj = bfam_malloc(num_prj * sizeof(bfam_real_t *));
-  }
-
   /* Storage for the projection operators */
   for (bfam_locidx_t k = 0; k < num_prj; k++)
   {
     if (k == 0 && N_a == N_b)
-    {
       interp_a2b->prj[k] = NULL;
-      if (interp_b2a)
-        interp_b2a->prj[k] = NULL;
-      continue;
-    }
     interp_a2b->prj[k] = bfam_malloc_aligned(Np_a * Np_b * sizeof(bfam_real_t));
-    if (interp_b2a)
-      interp_b2a->prj[k] =
-          bfam_malloc_aligned(Np_a * Np_b * sizeof(bfam_real_t));
   }
+}
+
+static void fill_grid_data(bfam_long_real_t N, bfam_long_real_t Np,
+                           bfam_long_real_t *lr, bfam_long_real_t *lw,
+                           bfam_long_real_t *V, bfam_long_real_t *M)
+{
+  bfam_jacobi_gauss_lobatto_quadrature(0, 0, Np, lr, lw);
+  bfam_jacobi_p_vandermonde(0, 0, N, Np, lr, V);
+  bfam_jacobi_p_mass(0, 0, N, V, M);
+}
+
+/* Build interpolation and projection between space a and g. Space a is the
+ * lower order space and space g is the higher order space.
+ */
+static void fill_interp_proj_data(bfam_locidx_t N_a, bfam_locidx_t N_g,
+                                  bfam_long_real_t *V_a, bfam_long_real_t *M_a,
+                                  bfam_long_real_t *M_g, bfam_long_real_t *lr_g,
+                                  bfam_long_real_t *I_a2g,
+                                  bfam_long_real_t *P_g2a)
+{
+  BFAM_ASSERT(N_g >= N_a);
+  bfam_locidx_t Np_a = N_a + 1;
+  bfam_locidx_t Np_g = N_g + 1;
+
+  bfam_jacobi_p_interpolation(0, 0, N_a, Np_g, lr_g, V_a, I_a2g);
+
+  bfam_long_real_t MP_g2a[Np_g * Np_a];
+  bfam_long_real_t Vt_MP_g2a[Np_g * Np_a];
+  for (bfam_locidx_t n = 0; n < Np_g * Np_a; n++)
+  {
+    MP_g2a[n] = 0;
+    Vt_MP_g2a[n] = 0;
+  }
+
+  /* MP_g2a = M_a * P_g2a = I_a2g^{T} * M_g */
+  /* [Np_a X Np_g] = [Np_a X Np_g] [Np_g X Np_g] */
+  bfam_util_mTmmult(Np_a, Np_g, Np_g, I_a2g, Np_g, M_g, Np_g, MP_g2a, Np_a);
+
+  /* Vt_MP_g2a = V_a^{-1} * P_g2a = V_a^{T} MP_g2a */
+  /* [Np_a X Np_g] = [Np_a X Np_a] [Np_a X Np_g] */
+  bfam_util_mTmmult(Np_a, Np_g, Np_a, V_a, Np_a, MP_g2a, Np_g, Vt_MP_g2a, Np_a);
+
+  /* P_g2a = V_a * V_a^{T} I_a2g^{T} * M_g */
+  /* [Np_a X Np_g] = [Np_a X Np_a] [Np_a X Np_g] */
+  bfam_util_mmmult(Np_a, Np_g, Np_a, V_a, Np_a, Vt_MP_g2a, Np_g, P_g2a, Np_a);
+}
+
+static void fill_hanging_data(bfam_locidx_t N, bfam_locidx_t Np,
+                              bfam_long_real_t *lr_f, bfam_long_real_t *M,
+                              bfam_long_real_t *V, bfam_long_real_t *I_f2t,
+                              bfam_long_real_t *I_f2b, bfam_long_real_t *P_t2f,
+                              bfam_long_real_t *P_b2f)
+{
+  const bfam_long_real_t HALF = BFAM_LONG_REAL(0.5);
+
+  /* Grid for the top and bottom */
+  bfam_long_real_t lr_t[Np];
+  bfam_long_real_t lr_b[Np];
+
+  for (bfam_locidx_t k = 0; k < Np; k++)
+  {
+    lr_t[k] = HALF * (lr_f[k] + 1);
+    lr_b[k] = HALF * (lr_f[k] - 1);
+  }
+
+  /* Mass matrix for the top and bottom */
+  bfam_long_real_t Mh[Np * Np];
+  for (bfam_locidx_t k = 0; k < Np * Np; k++)
+    Mh[k] = HALF * M[k];
+
+  fill_interp_proj_data(N, N, V, M, Mh, lr_t, I_f2t, P_t2f);
+  fill_interp_proj_data(N, N, V, M, Mh, lr_b, I_f2b, P_b2f);
+}
+
+static void create_interpolators(interpolator_t *interp_a2b,
+                                 interpolator_t *interp_b2a, const int N_a,
+                                 const int N_b)
+{
+  /* Figure out the glue space and the number of points */
+  const int N_g = BFAM_MAX(N_a, N_b);
+  const int Np_g = N_g + 1;
+  const bfam_locidx_t Np_a = N_a + 1;
+  const bfam_locidx_t Np_b = N_b + 1;
+
+  /* initialize the interpolators */
+  init_interpolator(interp_a2b, N_a, N_b);
+  if (interp_b2a)
+    init_interpolator(interp_b2a, N_b, N_a);
 
   /* Set up the reference grids for the side a */
   bfam_long_real_t lr_a[Np_a];
   bfam_long_real_t lw_a[Np_a];
   bfam_long_real_t V_a[Np_a * Np_a];
-  bfam_jacobi_gauss_lobatto_quadrature(0, 0, Np_a, lr_a, lw_a);
-  bfam_jacobi_p_vandermonde(0, 0, N_a, Np_a, lr_a, V_a);
+  bfam_long_real_t M_a[Np_a * Np_a];
+  fill_grid_data(N_a, Np_a, lr_a, lw_a, V_a, M_a);
 
   /* Set up the reference grids for the side b */
   bfam_long_real_t lr_b[Np_b];
   bfam_long_real_t lw_b[Np_b];
   bfam_long_real_t V_b[Np_b * Np_b];
-  bfam_jacobi_gauss_lobatto_quadrature(0, 0, Np_b, lr_b, lw_b);
-  bfam_jacobi_p_vandermonde(0, 0, N_b, Np_b, lr_b, V_b);
+  bfam_long_real_t M_b[Np_b * Np_b];
+  fill_grid_data(N_b, Np_b, lr_b, lw_b, V_b, M_b);
 
   /* Set up the reference grids for the glue space */
-  const int N_g = BFAM_MAX(N_a, N_b);
-  const int Np_g = N_g + 1;
   bfam_long_real_t lr_g[Np_g];
   bfam_long_real_t lw_g[Np_g];
   bfam_long_real_t V_g[Np_g * Np_g];
-  bfam_jacobi_gauss_lobatto_quadrature(0, 0, Np_g, lr_g, lw_g);
-  bfam_jacobi_p_vandermonde(0, 0, N_g, Np_g, lr_g, V_g);
+  bfam_long_real_t M_g[Np_g * Np_g];
+  fill_grid_data(N_g, Np_g, lr_g, lw_g, V_g, M_g);
+
+  /* Interpolate to the hanging faces */
+  bfam_long_real_t I_f2t[Np_g * Np_g]; /* full to top */
+  bfam_long_real_t I_f2b[Np_g * Np_g]; /* full to btm */
+  bfam_long_real_t P_t2f[Np_g * Np_g]; /* top  to full*/
+  bfam_long_real_t P_b2f[Np_g * Np_g]; /* btm  to full*/
+  fill_hanging_data(N_g, Np_g, lr_g, M_g, V_g, I_f2t, I_f2b, P_t2f, P_b2f);
 
   /* Interpolate to the intermediate space and projection back */
   bfam_long_real_t *I_a2g = NULL;
@@ -93,8 +167,8 @@ static void init_interplators(interpolator_t *interp_a2b,
   if (N_a < N_g)
   {
     I_a2g = bfam_malloc_aligned(Np_g * Np_a * sizeof(bfam_long_real_t));
-    P_a2g = bfam_malloc_aligned(Np_g * Np_a * sizeof(bfam_long_real_t));
-    bfam_jacobi_p_interpolation(0, 0, N_a, Np_g, lr_g, V_a, I_a2g);
+    P_g2a = bfam_malloc_aligned(Np_g * Np_a * sizeof(bfam_long_real_t));
+    fill_interp_proj_data(N_a, N_g, V_a, M_a, M_g, lr_g, I_a2g, P_g2a);
   }
 
   bfam_long_real_t *I_b2g = NULL;
@@ -102,14 +176,19 @@ static void init_interplators(interpolator_t *interp_a2b,
   if (N_b < N_g)
   {
     I_b2g = bfam_malloc_aligned(Np_g * Np_b * sizeof(bfam_long_real_t));
-    bfam_jacobi_p_interpolation(0, 0, N_b, Np_g, lr_g, V_b, I_b2g);
+    P_g2b = bfam_malloc_aligned(Np_g * Np_b * sizeof(bfam_long_real_t));
+    fill_interp_proj_data(N_b, N_g, V_b, M_b, M_g, lr_g, I_b2g, P_g2b);
   }
 
   /* free the temporary storage */
   if (I_a2g)
     bfam_free_aligned(I_a2g);
+  if (P_g2a)
+    bfam_free_aligned(P_g2a);
   if (I_b2g)
     bfam_free_aligned(I_b2g);
+  if (P_g2b)
+    bfam_free_aligned(P_g2b);
 }
 
 static void interp_2D(const bfam_real_t *src, const int N_src, bfam_real_t *dst,
@@ -128,7 +207,7 @@ static void interp_2D(const bfam_real_t *src, const int N_src, bfam_real_t *dst,
     interpolator_t *interp2 = NULL;
     if (N_src != N_dst)
       interp2 = bfam_malloc(sizeof(interpolator_t));
-    init_interplators(interp, interp2, N_src, N_dst);
+    create_interpolators(interp, interp2, N_src, N_dst);
     int rval = bfam_dictionary_insert_ptr(N2N, str, interp);
     BFAM_ASSERT(rval != 1);
 
@@ -250,7 +329,8 @@ int main(int argc, char *argv[])
   const char *helpText =
       "\n"
       "\n"
-      "  there are four possible options to this program, some of which have\n"
+      "  there are four possible options to this program, some of which "
+      "have\n"
       "  multiple names:\n"
       "\n"
       "    -h -? --help --HELP\n"
