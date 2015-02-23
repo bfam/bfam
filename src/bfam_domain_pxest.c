@@ -2142,7 +2142,7 @@ bfam_domain_pxest_transfer_maps_init(bfam_domain_pxest_transfer_maps_t *maps,
 
         for (int c = 0; c < P4EST_CHILDREN; ++c)
         {
-          quad_dst = p4est_quadrant_array_index(quadrants_dst, z_dst);
+          quad_dst = p4est_quadrant_array_index(quadrants_dst, z_dst + c);
 
           maps->dst_to_adapt_flags[k_dst + c] = BFAM_FLAG_REFINE;
           maps->dst_to_dst_chld_id[k_dst + c] =
