@@ -49,16 +49,18 @@ static void init_interpolator(interpolator_t *interp_a2b, const int N_a,
   {
     if (k == 0 && N_a == N_b)
       interp_a2b->prj[k] = NULL;
-    interp_a2b->prj[k] = bfam_malloc_aligned(Np_a * Np_b * sizeof(bfam_real_t));
+    else
+      interp_a2b->prj[k] =
+          bfam_malloc_aligned(Np_a * Np_b * sizeof(bfam_real_t));
   }
 }
 
-static void fill_grid_data(bfam_long_real_t N, bfam_long_real_t Np,
-                           bfam_long_real_t *lr, bfam_long_real_t *lw,
-                           bfam_long_real_t *V, bfam_long_real_t *M)
+static void fill_grid_data(bfam_locidx_t N, bfam_long_real_t *lr,
+                           bfam_long_real_t *lw, bfam_long_real_t *V,
+                           bfam_long_real_t *M)
 {
-  bfam_jacobi_gauss_lobatto_quadrature(0, 0, Np, lr, lw);
-  bfam_jacobi_p_vandermonde(0, 0, N, Np, lr, V);
+  bfam_jacobi_gauss_lobatto_quadrature(0, 0, N, lr, lw);
+  bfam_jacobi_p_vandermonde(0, 0, N, N + 1, lr, V);
   bfam_jacobi_p_mass(0, 0, N, V, M);
 }
 
@@ -83,6 +85,7 @@ static void fill_interp_proj_data(bfam_locidx_t N_a, bfam_locidx_t N_g,
   {
     MP_g2a[n] = 0;
     Vt_MP_g2a[n] = 0;
+    P_g2a[n] = 0;
   }
 
   /* MP_g2a = M_a * P_g2a = I_a2g^{T} * M_g */
@@ -91,18 +94,29 @@ static void fill_interp_proj_data(bfam_locidx_t N_a, bfam_locidx_t N_g,
 
   /* Vt_MP_g2a = V_a^{-1} * P_g2a = V_a^{T} MP_g2a */
   /* [Np_a X Np_g] = [Np_a X Np_a] [Np_a X Np_g] */
-  bfam_util_mTmmult(Np_a, Np_g, Np_a, V_a, Np_a, MP_g2a, Np_g, Vt_MP_g2a, Np_a);
+  bfam_util_mTmmult(Np_a, Np_g, Np_a, V_a, Np_a, MP_g2a, Np_a, Vt_MP_g2a, Np_a);
 
   /* P_g2a = V_a * V_a^{T} I_a2g^{T} * M_g */
   /* [Np_a X Np_g] = [Np_a X Np_a] [Np_a X Np_g] */
-  bfam_util_mmmult(Np_a, Np_g, Np_a, V_a, Np_a, Vt_MP_g2a, Np_g, P_g2a, Np_a);
+  bfam_util_mmmult(Np_a, Np_g, Np_a, V_a, Np_a, Vt_MP_g2a, Np_a, P_g2a, Np_a);
+
+  /*
+  if (N_g != N_a)
+  {
+    BFAM_INFO("%d -> %d", (int)N_g, (int)N_a);
+    for (int i = 0; i < Np_a; i++)
+      for (int j = 0; j < Np_g; j++)
+        BFAM_INFO("P_g2a[%d][%d] = %+" BFAM_REAL_PRIe, i, j,
+                  (bfam_real_t)P_g2a[i * Np_g + j]);
+  }
+  */
 }
 
 static void fill_hanging_data(bfam_locidx_t N, bfam_locidx_t Np,
                               bfam_long_real_t *lr_f, bfam_long_real_t *M,
-                              bfam_long_real_t *V, bfam_long_real_t *I_f2t,
-                              bfam_long_real_t *I_f2b, bfam_long_real_t *P_t2f,
-                              bfam_long_real_t *P_b2f)
+                              bfam_long_real_t *V, bfam_long_real_t *P_b2f,
+                              bfam_long_real_t *P_t2f, bfam_long_real_t *I_f2b,
+                              bfam_long_real_t *I_f2t)
 {
   const bfam_long_real_t HALF = BFAM_LONG_REAL(0.5);
 
@@ -125,6 +139,43 @@ static void fill_hanging_data(bfam_locidx_t N, bfam_locidx_t Np,
   fill_interp_proj_data(N, N, V, M, Mh, lr_b, I_f2b, P_b2f);
 }
 
+static void multiply_projections(const int N_b, const int N_a, const int N_g,
+                                 bfam_long_real_t *P_g2b,
+                                 bfam_long_real_t *P_g2g,
+                                 bfam_long_real_t *P_a2g, bfam_real_t *P_a2b)
+{
+  const int Np_b = N_b + 1;
+  const int Np_g = N_g + 1;
+  const int Np_a = N_a + 1;
+
+  /* In the case the target is NULL return */
+  if (!P_a2b)
+    return;
+
+  /* First set up the long storage for multiplication */
+
+  bfam_long_real_t tmp[Np_b * Np_a];
+  bfam_long_real_t *l_P = tmp;
+  for (bfam_locidx_t n = 0; n < Np_a * Np_b; n++)
+    tmp[n] = 0;
+  /* No glue to b (thus b is glue) */
+  if (!P_g2b && P_g2g && P_a2g)
+    bfam_util_mmmult(Np_b, Np_a, Np_g, P_g2g, Np_b, P_a2g, Np_g, l_P, Np_b);
+  else if (P_g2b && P_g2g && !P_a2g)
+    bfam_util_mmmult(Np_b, Np_a, Np_g, P_g2b, Np_b, P_g2g, Np_g, l_P, Np_b);
+  else if (!P_g2b && !P_g2g && P_a2g)
+    l_P = P_a2g;
+  else if (!P_g2b && P_g2g && !P_a2g)
+    l_P = P_g2g;
+  else if (P_g2b && !P_g2g && !P_a2g)
+    l_P = P_g2b;
+  else
+    BFAM_ABORT("Case of all NULL or all not NULL is not handled");
+
+  for (bfam_locidx_t n = 0; n < Np_a * Np_b; n++)
+    P_a2b[n] = l_P[n];
+}
+
 static void create_interpolators(interpolator_t *interp_a2b,
                                  interpolator_t *interp_b2a, const int N_a,
                                  const int N_b)
@@ -145,49 +196,57 @@ static void create_interpolators(interpolator_t *interp_a2b,
   bfam_long_real_t lw_a[Np_a];
   bfam_long_real_t V_a[Np_a * Np_a];
   bfam_long_real_t M_a[Np_a * Np_a];
-  fill_grid_data(N_a, Np_a, lr_a, lw_a, V_a, M_a);
+  fill_grid_data(N_a, lr_a, lw_a, V_a, M_a);
 
   /* Set up the reference grids for the side b */
   bfam_long_real_t lr_b[Np_b];
   bfam_long_real_t lw_b[Np_b];
   bfam_long_real_t V_b[Np_b * Np_b];
   bfam_long_real_t M_b[Np_b * Np_b];
-  fill_grid_data(N_b, Np_b, lr_b, lw_b, V_b, M_b);
+  fill_grid_data(N_b, lr_b, lw_b, V_b, M_b);
 
   /* Set up the reference grids for the glue space */
   bfam_long_real_t lr_g[Np_g];
   bfam_long_real_t lw_g[Np_g];
   bfam_long_real_t V_g[Np_g * Np_g];
   bfam_long_real_t M_g[Np_g * Np_g];
-  fill_grid_data(N_g, Np_g, lr_g, lw_g, V_g, M_g);
+  fill_grid_data(N_g, lr_g, lw_g, V_g, M_g);
 
   /* Interpolate to the hanging faces */
-  bfam_long_real_t I_f2t[Np_g * Np_g]; /* full to top */
-  bfam_long_real_t I_f2b[Np_g * Np_g]; /* full to btm */
-  bfam_long_real_t P_t2f[Np_g * Np_g]; /* top  to full*/
-  bfam_long_real_t P_b2f[Np_g * Np_g]; /* btm  to full*/
-  fill_hanging_data(N_g, Np_g, lr_g, M_g, V_g, I_f2t, I_f2b, P_t2f, P_b2f);
+  bfam_long_real_t *prj_g[5];
+  prj_g[0] = NULL;
+  for (bfam_locidx_t k = 1; k < 5; k++)
+    prj_g[k] = bfam_malloc_aligned(sizeof(bfam_long_real_t) * Np_g * Np_g);
+
+  fill_hanging_data(N_g, Np_g, lr_g, M_g, V_g, prj_g[1], prj_g[2], prj_g[3],
+                    prj_g[4]);
 
   /* Interpolate to the intermediate space and projection back */
   bfam_long_real_t *I_a2g = NULL;
   bfam_long_real_t *P_g2a = NULL;
-  if (N_a < N_g)
-  {
-    I_a2g = bfam_malloc_aligned(Np_g * Np_a * sizeof(bfam_long_real_t));
-    P_g2a = bfam_malloc_aligned(Np_g * Np_a * sizeof(bfam_long_real_t));
-    fill_interp_proj_data(N_a, N_g, V_a, M_a, M_g, lr_g, I_a2g, P_g2a);
-  }
-
   bfam_long_real_t *I_b2g = NULL;
   bfam_long_real_t *P_g2b = NULL;
-  if (N_b < N_g)
+  if (N_a < N_g && N_b == N_g)
   {
-    I_b2g = bfam_malloc_aligned(Np_g * Np_b * sizeof(bfam_long_real_t));
-    P_g2b = bfam_malloc_aligned(Np_g * Np_b * sizeof(bfam_long_real_t));
+    I_a2g = bfam_malloc_aligned(sizeof(bfam_long_real_t) * Np_g * Np_a);
+    P_g2a = bfam_malloc_aligned(sizeof(bfam_long_real_t) * Np_g * Np_a);
+    fill_interp_proj_data(N_a, N_g, V_a, M_a, M_g, lr_g, I_a2g, P_g2a);
+  }
+  if (N_a == N_g && N_b < N_g)
+  {
+    I_b2g = bfam_malloc_aligned(sizeof(bfam_long_real_t) * Np_g * Np_b);
+    P_g2b = bfam_malloc_aligned(sizeof(bfam_long_real_t) * Np_g * Np_b);
     fill_interp_proj_data(N_b, N_g, V_b, M_b, M_g, lr_g, I_b2g, P_g2b);
   }
 
-  /* free the temporary storage */
+  for (bfam_locidx_t k = 0; k < 5; k++)
+    multiply_projections(N_b, N_a, N_g, P_g2b, prj_g[k], I_a2g,
+                         interp_a2b->prj[k]);
+  if (interp_b2a)
+    for (bfam_locidx_t k = 0; k < 5; k++)
+      multiply_projections(N_a, N_b, N_g, P_g2a, prj_g[k], I_b2g,
+                           interp_b2a->prj[k]);
+
   if (I_a2g)
     bfam_free_aligned(I_a2g);
   if (P_g2a)
@@ -196,14 +255,18 @@ static void create_interpolators(interpolator_t *interp_a2b,
     bfam_free_aligned(I_b2g);
   if (P_g2b)
     bfam_free_aligned(P_g2b);
+  bfam_free_aligned(prj_g[1]);
+  bfam_free_aligned(prj_g[2]);
+  bfam_free_aligned(prj_g[3]);
+  bfam_free_aligned(prj_g[4]);
 }
 
-static void interp_2D(const bfam_real_t *src, const int N_src, bfam_real_t *dst,
-                      const int N_dst, const crf_t crf,
-                      const bfam_locidx_t child, bfam_dictionary_t *N2N)
+static void interp_1D(const bfam_real_t *src, size_t N_src, bfam_locidx_t c_src,
+                      bfam_real_t *dst, size_t N_dst, bfam_locidx_t c_dst,
+                      const crf_t crf, bfam_dictionary_t *N2N)
 {
   char str[BFAM_BUFSIZ];
-  snprintf(str, BFAM_BUFSIZ, "%d_to_%d", N_src, N_dst);
+  snprintf(str, BFAM_BUFSIZ, "%zu_to_%zu", N_src, N_dst);
 
   interpolator_t *interp =
       (interpolator_t *)bfam_dictionary_get_value_ptr(N2N, str);
@@ -215,38 +278,61 @@ static void interp_2D(const bfam_real_t *src, const int N_src, bfam_real_t *dst,
     if (N_src != N_dst)
       interp2 = bfam_malloc(sizeof(interpolator_t));
     create_interpolators(interp, interp2, N_src, N_dst);
+    BFAM_VERBOSE("Interpolator `%s' created", str);
     int rval = bfam_dictionary_insert_ptr(N2N, str, interp);
     BFAM_ASSERT(rval != 1);
 
     if (interp2)
     {
       char str2[BFAM_BUFSIZ];
-      snprintf(str2, BFAM_BUFSIZ, "%d_to_%d", N_dst, N_src);
+      snprintf(str2, BFAM_BUFSIZ, "%zu_to_%zu", N_dst, N_src);
+      BFAM_VERBOSE("Interpolator `%s' created", str2);
       rval = bfam_dictionary_insert_ptr(N2N, str2, interp2);
       BFAM_ASSERT(rval != 1);
     }
   }
 
+  BFAM_ASSERT(interp);
+
   switch (crf)
   {
   case COARSEN:
-    break;
+  {
+    const bfam_real_t *A = interp->prj[c_src + 1];
+    for (size_t j = 0; j < N_src + 1; ++j)
+      for (size_t i = 0; i < N_dst + 1; ++i)
+        dst[i] += A[j * (N_dst + 1) + i] * src[j];
+  }
+  break;
   case SAME:
     break;
   case REFINE:
-    break;
+  {
+    const bfam_real_t *A = interp->prj[c_dst + 3];
+    for (size_t j = 0; j < N_src + 1; ++j)
+      for (size_t i = 0; i < N_dst + 1; ++i)
+        dst[i] += A[j * (N_dst + 1) + i] * src[j];
+  }
+  break;
   }
 }
 
-typedef bfam_real_t (*polyval_t)(bfam_long_real_t x, bfam_long_real_t y);
+typedef bfam_real_t (*polyval_t)(bfam_long_real_t x, bfam_long_real_t y,
+                                 bfam_long_real_t z);
 
-static bfam_real_t poly1_field(bfam_long_real_t x, bfam_long_real_t y)
+static bfam_real_t poly1_field(bfam_long_real_t x, bfam_long_real_t y,
+                               bfam_long_real_t z)
 {
   return -x - y * x * y;
 }
 
-static int test_coarsen_2d(bfam_dictionary_t *N2N, int NC, int *NF,
-                           polyval_t poly)
+static bfam_real_t poly3_field(bfam_long_real_t x, bfam_long_real_t y,
+                               bfam_long_real_t z)
+{
+  return -x + x * x - 0.5 * x * x * x;
+}
+
+static int test_1d(bfam_dictionary_t *N2N, int NC, int *NF, polyval_t poly)
 {
   int failures = 0;
 
@@ -254,57 +340,66 @@ static int test_coarsen_2d(bfam_dictionary_t *N2N, int NC, int *NF,
   bfam_long_real_t lrC[NC + 1];
   bfam_long_real_t lwC[NC + 1];
   bfam_jacobi_gauss_lobatto_quadrature(0, 0, NC, lrC, lwC);
-  bfam_real_t pC[(NC + 1) * (NC + 1)];
-  bfam_real_t pC_trg[(NC + 1) * (NC + 1)];
-  for (bfam_locidx_t iy = 0; iy <= NC; iy++)
-    for (bfam_locidx_t ix = 0; ix <= NC; ix++)
-    {
-      pC[ix + iy * (NC + 1)] = poly(lrC[ix], lrC[iy]);
-      pC_trg[ix + iy * (NC + 1)] = 0;
-    }
+  bfam_real_t pC[(NC + 1)];
+  bfam_real_t pC_trg[(NC + 1)];
+  for (bfam_locidx_t ix = 0; ix <= NC; ix++)
+  {
+    pC[ix] = poly(lrC[ix], 0, 0);
+    pC_trg[ix] = 0;
+  }
 
   /* Set up the fine data */
-  bfam_long_real_t *lrF[4];
-  bfam_long_real_t *lwF[4];
-  bfam_real_t *pF[4];
-  const bfam_long_real_t x_off[4] = {
-      BFAM_LONG_REAL(-1.0), BFAM_LONG_REAL(1.0), BFAM_LONG_REAL(-1.0),
-      BFAM_LONG_REAL(1.0),
-  };
-  const bfam_long_real_t y_off[4] = {
-      BFAM_LONG_REAL(-1.0), BFAM_LONG_REAL(-1.0), BFAM_LONG_REAL(1.0),
-      BFAM_LONG_REAL(1.0),
-  };
+  bfam_long_real_t *lrF[2];
+  bfam_long_real_t *lwF[2];
+  bfam_real_t *pF[2];
+  bfam_real_t *pF_trg[2];
+  const bfam_long_real_t x_off[2] = {BFAM_LONG_REAL(-1.0), BFAM_LONG_REAL(1.0)};
   const bfam_long_real_t HALF = BFAM_LONG_REAL(0.5);
-
-  for (bfam_locidx_t k = 0; k < 4; k++)
+  for (bfam_locidx_t k = 0; k < 2; k++)
   {
-    pF[k] =
-        bfam_malloc_aligned((NF[k] + 1) * (NF[k] + 1) * sizeof(bfam_real_t));
+    pF[k] = bfam_malloc_aligned((NF[k] + 1) * sizeof(bfam_real_t));
+    pF_trg[k] = bfam_malloc_aligned((NF[k] + 1) * sizeof(bfam_real_t));
     lrF[k] = bfam_malloc_aligned((NF[k] + 1) * sizeof(bfam_long_real_t));
     lwF[k] = bfam_malloc_aligned((NF[k] + 1) * sizeof(bfam_long_real_t));
     bfam_jacobi_gauss_lobatto_quadrature(0, 0, NF[k], lrF[k], lwF[k]);
-    for (bfam_locidx_t iy = 0; iy <= NF[k]; iy++)
-      for (bfam_locidx_t ix = 0; ix <= NF[k]; ix++)
-      {
-        const bfam_long_real_t x = HALF * (lrF[k][ix] + x_off[k]);
-        const bfam_long_real_t y = HALF * (lrF[k][iy] + y_off[k]);
-        pF[k][ix + iy * (NF[k] + 1)] = poly(x, y);
-      }
+    for (bfam_locidx_t ix = 0; ix <= NF[k]; ix++)
+    {
+      const bfam_long_real_t x = HALF * (lrF[k][ix] + x_off[k]);
+      pF[k][ix] = poly(x, 0, 0);
+      pF_trg[k][ix] = 0;
+    }
 
-    interp_2D(pF[k], NF[k], pC_trg, NC, COARSEN, k, N2N);
+    interp_1D(pF[k], NF[k], k, pC_trg, NC, -1, COARSEN, N2N);
+    interp_1D(pC, NC, -1, pF_trg[k], NF[k], k, REFINE, N2N);
+
+    for (bfam_locidx_t n = 0; n < (NF[k] + 1); n++)
+      if (!REAL_APPROX_EQ(pF[k][n], pF_trg[k][n], 1000))
+      {
+        failures++;
+        BFAM_VERBOSE("pF[%d][%d]: got %" BFAM_REAL_PRIe
+                     " and expected %" BFAM_REAL_PRIe,
+                     (int)k, (int)n, pF_trg[k][n], pF[k][n]);
+      }
   }
 
   /* check the interpolation */
-  for (bfam_locidx_t k = 0; k < (NC + 1) * (NC + 1); k++)
-    failures += !REAL_APPROX_EQ(pC[k], pC_trg[k], 1000);
+  for (bfam_locidx_t n = 0; n < (NC + 1); n++)
+    if (!REAL_APPROX_EQ(pC[n], pC_trg[n], 1000))
+    {
+      failures++;
+      BFAM_VERBOSE("pC[%d]: got %" BFAM_REAL_PRIe
+                   " and expected %" BFAM_REAL_PRIe,
+                   (int)n, pC_trg[n], pC[n]);
+    }
 
-  for (bfam_locidx_t k = 0; k < 4; k++)
+  for (bfam_locidx_t k = 0; k < 2; k++)
   {
     bfam_free_aligned(pF[k]);
+    bfam_free_aligned(pF_trg[k]);
     bfam_free_aligned(lrF[k]);
     bfam_free_aligned(lwF[k]);
   }
+
   return failures;
 }
 
@@ -368,10 +463,18 @@ int main(int argc, char *argv[])
   bfam_log_init(0, stdout, logLevel);
   bfam_signal_handler_set();
 
-  int NF[] = {4, 5, 6, 3};
   bfam_dictionary_t N2N;
   bfam_dictionary_init(&N2N);
-  failures += test_coarsen_2d(&N2N, 4, NF, poly1_field);
+
+  // int NF[] = {4, 5, 6, 3};
+  // failures += test_coarsen_2d(&N2N, 4, NF, poly1_field);
+
+  int NF[] = {5, 7};
+  for (int k = 3; k < 9; k++)
+  {
+    failures += test_1d(&N2N, k, NF, poly1_field);
+    failures += test_1d(&N2N, k, NF, poly3_field);
+  }
 
   bfam_dictionary_allprefixed_ptr(&N2N, "", clear_N2N_dict, NULL);
   bfam_dictionary_clear(&N2N);
