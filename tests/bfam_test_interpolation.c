@@ -4,6 +4,13 @@
 #define REAL_APPROX_EQ(x, y, K)                                                \
   BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS, (K)*BFAM_REAL_EPS)
 
+/*
+ * -+-            -+-
+ *  |  Coasen ->   |
+ * -+-             |
+ *  |  <- Refine   |
+ * -+-            -+-
+ */
 typedef struct
 {
   int N_src;
@@ -11,10 +18,10 @@ typedef struct
   bfam_locidx_t num_prj;
   bfam_real_t **prj; /* array of projection operators;
                       * no refinement (NULL is no change in order)
-                      * coarsen from 0
-                      * coarsen from 1
-                      * refine  to   0
-                      * refine  to   1
+                      * coarsen from bottom
+                      * coarsen from top
+                      * refine  to   bottom
+                      * refine  to   top
                       */
 } interpolator_t;
 
