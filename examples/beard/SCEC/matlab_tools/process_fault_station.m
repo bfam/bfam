@@ -93,8 +93,7 @@ if N_data > 0
     if(pdata.n ~= n_sign*data(n).n)
       warning(['Normals maybe discontinuous (rethink averaging)!'...
                'May want to work with tractions directly????'])
-      disp(pdata.n)
-      disp(n_sign*data(n).n)
+      disp(pdata.n-n_sign*data(n).n)
     end
 
 
