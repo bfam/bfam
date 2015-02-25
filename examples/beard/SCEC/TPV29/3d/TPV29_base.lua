@@ -3,7 +3,7 @@ min = math.min
 abs = math.abs
 sqrt = math.sqrt
 -- refinement parameters
-max_level = 2000
+max_level = 30000
 output_prefix = "TPV29_base"
 data_directory = "data"
 elem_order = 4
@@ -185,28 +185,19 @@ v2  = 0
 v3  = 0
 
 -- plasticity parameters
-elastic = {
-  S11_0  = "S11_0_function",
-  S12_0  = 0,
-  S13_0  = "S13_0_function",
-  S22_0  = "S22_0_function",
-  S23_0  = 0,
-  S33_0  = "S33_0_function",
-  pf     = "pf_0_function",
-}
 -- plastic = {
 --   tag = "Duvaut-Lions",
 --   c  = 1.18,   -- plastic cohesion
 --   Tr = 0.05,   -- viscoplastic relaxation time
 --   nu = 0.1680, -- bulk friction
 --   phi = math.atan(0.1680),  -- angle of friction: atan(nu)
---   S11_0  = elastic.S11_0,
---   S12_0  = elastic.S12_0,
---   S13_0  = elastic.S13_0,
---   S22_0  = elastic.S22_0,
---   S23_0  = elastic.S23_0,
---   S33_0  = elastic.S33_0,
---   pf     = elastic.pf   ,
+--   S11_0  = "S11_0_function",
+--   S12_0  = 0,
+--   S13_0  = "S13_0_function",
+--   S22_0  = "S22_0_function",
+--   S23_0  = 0,
+--   S33_0  = "S33_0_function",
+--   pf     = "pf_0_function",
 -- }
 
 -- time stepper to use
@@ -405,18 +396,18 @@ function interp_fault(A,dx,dy)
   ax = ax-(ix-1)
   ay = ay-(iy-1)
 
-  jx = ix + 1
-  jy = iy + 1
+  local jx = ix + 1
+  local jy = iy + 1
 
   ix = max(1,min(ix,A.Nx+1))
   iy = max(1,min(iy,A.Ny+1))
   jx = max(1,min(jx,A.Nx+1))
   jy = max(1,min(jy,A.Ny+1))
 
-  v1 = A.dz[ix][iy]
-  v2 = A.dz[ix][jy]
-  v3 = A.dz[jx][jy]
-  v4 = A.dz[jx][iy]
+  local v1 = A.dz[ix][iy]
+  local v2 = A.dz[ix][jy]
+  local v3 = A.dz[jx][jy]
+  local v4 = A.dz[jx][iy]
 
   dz = (1-ax)*(1-ay)*v1 +
        (1-ax)*(  ay)*v2 +
