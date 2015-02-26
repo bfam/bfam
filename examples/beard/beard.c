@@ -72,6 +72,7 @@ const char *sponge_fields[] = {"a_sponge",NULL};
 const char **plastic_fields = NULL;
 const char *duvaut_lions_plastic_fields[] = {"c","Tr","phi","nu","pf",
   "S11_0", "S12_0", "S13_0", "S22_0", "S23_0", "S33_0", NULL};
+#define DUVAUT_LIONS_TAG "_Duvaut-Lions"
 
 const char **friction_fields = NULL;
 const char *slip_weakening_fields[] = {
@@ -1959,7 +1960,7 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
     {
       case DUVAUT_LIONS:
         bfam_domain_add_tag((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
-            plastic, "Duvaut-Lions");
+            plastic, DUVAUT_LIONS_TAG);
         break;
       default:
         BFAM_ABORT("Unknown plastic type for adding the tags");
@@ -3720,7 +3721,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
         case DUVAUT_LIONS:
           {
             /* get the subdomains being handled by DL plasticity */
-            const char *DL_plastic[] = {"_Duvaut-Lions",NULL};
+            const char *DL_plastic[] = {DUVAUT_LIONS_TAG,NULL};
             bfam_subdomain_t *subs[beard->domain->base.numSubdomains];
             bfam_locidx_t num_subs = 0;
             bfam_domain_get_subdomains((bfam_domain_t*) beard->domain,
