@@ -156,7 +156,8 @@ function element_order(
   x6,y6,z6,x7,y7,z7,
   level, treeid)
 
-  return elem_order
+
+  return elem_order, "plastic"
 end
 
 -- material properties
@@ -184,13 +185,13 @@ plastic = {
   Tr = 0.03,   -- viscoplastic relaxation time
   nu = 0.1934, -- bulk friction
   phi = math.atan(0.1934),  -- angle of friction: atan(nu)
+  pf     = "pf_0_function",
   S11_0  = "S11_0_function",
   S12_0  = 0,
   S13_0  = "S13_0_function",
   S22_0  = "S22_0_function",
   S23_0  = 0,
   S33_0  = "S33_0_function",
-  pf     = "pf_0_function",
 }
 
 -- time stepper to use
