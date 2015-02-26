@@ -81,13 +81,13 @@ const char *slip_weakening_fields[] = {
   "S11_0","S12_0","S13_0","S22_0","S23_0","S33_0",
   "pf_0",
   "Dc", "fs", "fc", "fd", "c0",
-  "Dp","Dp1","Dp2","Dp3","Dn",
+  "Dp","Dp1","Dp2","Dp3","Dn","Trup",
   "Tforce", "Tforce_0", NULL};
 const char *rate_and_state_fields[] = {
   "Tp1_0", "Tp2_0", "Tp3_0", "Tn_0", "Tp1",
   "Tp2", "Tp3", "Tn", "V", "Vp1", "Vp2", "Vp3",
   "S11_0","S12_0","S13_0","S22_0","S23_0","S33_0",
-  "f0", "V0", "a", "b", "L", "psi",
+  "f0", "V0", "a", "b", "L", "psi","Trup",
   "Dp","Dp1","Dp2","Dp3","Dn",NULL};
 
 const char **friction_rates = NULL;
@@ -2227,7 +2227,10 @@ domain_add_fields(beard_t *beard, prefs_t *prefs)
           bfam_domain_add_field (domain, BFAM_DOMAIN_OR, this_glue,
               friction_fields[f]);
 
+
           bfam_real_t value = 0;
+          if(strncmp(friction_fields[f],"Trup",BFAM_BUFSIZ) == 0)
+            value = bfam_real_nan("");
           lua_pushstring(L,friction_fields[f]);
           lua_gettable(L,-2);
           if(lua_isstring(L,-1) && !lua_isnumber(L,-1))
@@ -2569,6 +2572,12 @@ void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
   else if(bfam_subdomain_has_tag(thisSubdomain,"_glue_local"));
   else
     BFAM_ABORT("Unknown subdomain: %s",thisSubdomain->name);
+}
+
+static void
+rupture_time(int N, bfam_subdomain_dgx_t *sub, const char *field_prefix,
+             const bfam_long_real_t t)
+{
 }
 
 static void
@@ -3742,6 +3751,22 @@ run_simulation(beard_t *beard,prefs_t *prefs)
           }
         default:
           BFAM_ABORT("Unknown plastic type for adding the tags");
+      }
+    }
+
+    /* Compute the rupture time */
+    {
+      bfam_subdomain_t *subs[beard->domain->base.numSubdomains];
+      bfam_locidx_t num_subs = 0;
+      bfam_domain_get_subdomains((bfam_domain_t*) beard->domain,
+          BFAM_DOMAIN_OR,friction_tags,beard->domain->base.numSubdomains,
+          subs,&num_subs);
+
+      /* call the return map algorithm on these subdomains */
+      for(bfam_locidx_t n = 0; n < num_subs; n++)
+      {
+        bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*) subs[n];
+        rupture_time(sub->N,sub,"",time);
       }
     }
 
