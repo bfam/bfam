@@ -3713,6 +3713,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
   for(int s = 1; s <= nsteps; s++)
   {
     beard->beard_ts->step(beard->beard_ts,dt);
+    bfam_real_t time = s*dt;
     if(plastic_fields)
     {
       /* Use the return mapping algorithm to handle the plasticity */
@@ -3731,12 +3732,11 @@ run_simulation(beard_t *beard,prefs_t *prefs)
             BFAM_ABORT_IF_NOT(prefs->lsrk_method != BFAM_TS_LSRK_NOOP,
                 "right now plasticity requires LSRK time stepping");
 
-            bfam_ts_lsrk_t *ts = (bfam_ts_lsrk_t*) beard->beard_ts;
             /* call the return map algorithm on these subdomains */
             for(bfam_locidx_t n = 0; n < num_subs; n++)
             {
-              bfam_subdomain_dgx_t *s = (bfam_subdomain_dgx_t*) subs[n];
-              duvaut_lions_return_map(s->N,s,"",ts->t, dt);
+              bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*) subs[n];
+              duvaut_lions_return_map(sub->N,sub,"",time, dt);
             }
             break;
           }
@@ -3747,7 +3747,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
 
     if(ndisp > 0 && s%ndisp == 0)
     {
-      bfam_real_t new_energy = compute_energy(beard,prefs,s*dt,"");
+      bfam_real_t new_energy = compute_energy(beard,prefs,time,"");
       if(initial_energy < 0)
       {
         BFAM_ROOT_INFO("\x1B[%dm"
@@ -3755,7 +3755,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
             " (step %8d of %8d with %10.5"BFAM_REAL_PRIe" sec/step)"
             "\x1B[0m",
             34,
-            s*dt,
+            time,
             s, nsteps,
             (bfam_clock()-first_step)/s);
       }
@@ -3773,7 +3773,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
              "(%10.5"BFAM_REAL_PRIe"sec/step)\n"
             "\x1B[0m",
             color,
-            s*dt,
+            time,
             initial_energy,
             new_energy,
             new_energy/initial_energy,
@@ -3789,7 +3789,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       station_args_t volume_args;
       volume_args.prefs  = prefs;
       volume_args.fields = volume_station_fields;
-      volume_args.time   = (s)*dt;
+      volume_args.time   = time;
       bfam_dictionary_allprefixed_ptr(beard->volume_stations, "",
           &beard_output_stations, &volume_args);
       if(nflush%NFLUSH == 0)
@@ -3801,7 +3801,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       station_args_t fault_args;
       fault_args.prefs  = prefs;
       fault_args.fields = fault_station_fields;
-      fault_args.time   = (s)*dt;
+      fault_args.time   = time;
       bfam_dictionary_allprefixed_ptr(beard->fault_stations, "",
           &beard_output_stations, &fault_args);
 
@@ -3816,7 +3816,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       char output[BFAM_BUFSIZ];
       snprintf(output,BFAM_BUFSIZ,"%s_fault_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-          friction_tags, prefs->data_directory, output, (s)*dt, friction_fields,
+          friction_tags, prefs->data_directory, output, time, friction_fields,
           NULL, NULL, prefs->vtk_binary, prefs->vtk_compress,
           prefs->vtk_num_pnts);
     }
@@ -3827,7 +3827,7 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       char output[BFAM_BUFSIZ];
       snprintf(output,BFAM_BUFSIZ,"%s_%05d",prefs->output_prefix,s);
       bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-          volume_vtk_tags, prefs->data_directory, output, (s)*dt, fields, NULL,
+          volume_vtk_tags, prefs->data_directory, output, time, fields, NULL,
           NULL, prefs->vtk_binary, prefs->vtk_compress, prefs->vtk_num_pnts);
     }
     if(nerr > 0 && s%nerr == 0)
@@ -3841,19 +3841,19 @@ run_simulation(beard_t *beard,prefs_t *prefs)
                                 "error_S12", "error_S13", "error_S23", NULL};
       for(int f = 0; err_flds[f] != NULL; f++)
         bfam_domain_init_field((bfam_domain_t*)beard->domain, BFAM_DOMAIN_OR,
-            volume_vtk_tags, err_flds[f], s*dt, check_error, &err_args);
-      bfam_real_t error = compute_energy(beard,prefs,s*dt,"error_");
-      bfam_real_t new_energy = compute_energy(beard,prefs,s*dt,"");
+            volume_vtk_tags, err_flds[f], time, check_error, &err_args);
+      bfam_real_t error = compute_energy(beard,prefs,time,"error_");
+      bfam_real_t new_energy = compute_energy(beard,prefs,time,"");
       BFAM_ROOT_INFO(
           "time: %"BFAM_REAL_FMTe" error: %"BFAM_REAL_FMTe
           " d_energy: %"BFAM_REAL_FMTe,
-          s*dt, error,(new_energy-energy)/initial_energy);
+          time, error,(new_energy-energy)/initial_energy);
       if(noutput > 0)
       {
         char err_output[BFAM_BUFSIZ];
         snprintf(err_output,BFAM_BUFSIZ,"%s_error_%05d",prefs->output_prefix,s);
         bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
-            volume_vtk_tags, prefs->data_directory, err_output, (s)*dt, err_flds,
+            volume_vtk_tags, prefs->data_directory, err_output, time, err_flds,
             NULL, NULL, prefs->vtk_binary, prefs->vtk_compress,
             prefs->vtk_num_pnts);
         energy = new_energy;
