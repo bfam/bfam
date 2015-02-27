@@ -5,18 +5,18 @@ sqrt = math.sqrt
 -- refinement parameters
 max_level = 30000
 
-output_prefix = "TPV29_base"
+output_prefix = "TPV29_base_larger"
 data_directory = "data"
 elem_order = 4
 h1_targ   = 4*0.1
 r_targ    = 5
-D_targ    = 20
+D_targ    = 30
 hmax_targ = elem_order*2
 -- hmax_targ = h1_targ
 
 -- connectivity info
 connectivity = "brick"
-BUF = 1
+BUF = 2
 brick =
 {
   nx = 2+2*BUF,

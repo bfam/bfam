@@ -12,7 +12,7 @@
 #PBS -m abe
 #PBS -M jekozdon@nps.edu
 # PBS -q beards
-#PBS -l walltime=24:00:00
+#PBS -l walltime=72:00:00
 
 ##########################################
 #                                        #
