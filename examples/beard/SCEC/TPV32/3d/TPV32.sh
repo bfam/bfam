@@ -6,13 +6,13 @@
 # PBS -l hostlist=compute-3-1+compute-3-11+compute-3-13+compute-3-15+compute-3-17+compute-3-19+compute-3-21+compute-3-23+compute-3-25+compute-3-27+compute-3-29+compute-3-3+compute-3-31+compute-3-5+compute-3-7+compute-3-9
 # PBS -l hostlist=compute-7-1+compute-7-11+compute-7-13+compute-7-15+compute-7-17+compute-7-19+compute-7-21+compute-7-23+compute-7-25+compute-7-27+compute-7-29+compute-7-3+compute-7-31+compute-7-33+compute-7-35+compute-7-37+compute-7-39+compute-7-5+compute-7-7+compute-7-9
 # PBS -l hostlist=compute-7-1+compute-7-11+compute-7-13+compute-7-15+compute-7-17+compute-7-19+compute-7-21+compute-7-23+compute-7-25+compute-7-27+compute-7-29+compute-7-3+compute-7-31+compute-7-33+compute-7-35+compute-7-37+compute-7-39+compute-7-7+compute-7-9
-#PBS -l procs=512
+#PBS -l procs=256
 #PBS -l pmem=2gb
 #PBS -l naccesspolicy=singlejob
 #PBS -m abe
 #PBS -M jekozdon@nps.edu
 # PBS -q beards
-#PBS -l walltime=24:00:00
+#PBS -l walltime=48:00:00
 
 ##########################################
 #                                        #
