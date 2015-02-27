@@ -3,7 +3,7 @@ min = math.min
 abs = math.abs
 sqrt = math.sqrt
 -- refinement parameters
-max_level = 300
+max_level = 30000
 height_split = 5
 output_prefix = "TPV32_base"
 data_directory = "data"
@@ -162,7 +162,8 @@ function element_order(
   x6,y6,z6,x7,y7,z7,
   level, treeid)
 
-  return elem_order
+
+  return elem_order, "elastic"
 end
 
 -- material properties
@@ -276,6 +277,7 @@ function time_step_parameters(dt)
   -- noutput    = 1
   -- nfoutput   = 1
 
+  --- return dt,1, 1, 1, 1, 1
   return dt,nsteps, ndisp, noutput, nfoutput, nstations
 end
 

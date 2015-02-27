@@ -4,10 +4,11 @@ abs = math.abs
 sqrt = math.sqrt
 -- refinement parameters
 max_level = 30000
+
 output_prefix = "TPV30_base"
 data_directory = "data"
 elem_order = 4
-h1_targ   = elem_order*0.1
+h1_targ   = 4*0.1
 r_targ    = 5
 D_targ    = 20
 hmax_targ = elem_order*2
@@ -225,10 +226,12 @@ function time_step_parameters(dt)
   nsteps     = tend      / dt
   nstations  = tstations / dt
   nfoutput   = tfout     / dt
-  -- nsteps = 1
+  -- nsteps     = 1
+  -- noutput    = 1
+  -- nfoutput   = 1
 
-  return dt,nsteps, ndisp, noutput, nfoutput, nstations
   --- return dt,1, 1, 1, 1, 1
+  return dt,nsteps, ndisp, noutput, nfoutput, nstations
 end
 
 
