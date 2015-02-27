@@ -387,6 +387,26 @@ function read_fault(filename)
   return A
 end
 
+-- Linear
+-- function interp_basis(x,dx)
+--    local l0 = 1-x
+--    local d0 = 0
+--    local l1 = x
+--    local d1 = 0
+--
+--    return l0,d0,l1,d1
+-- end
+
+-- Hermite
+function interp_basis(x,dx)
+   local l0 =     1     - 3*x^2 + 2*x^3
+   local d0 = dx*(    x - 2*x^2 +   x^3)
+   local l1 =             3*x^2 - 2*x^3
+   local d1 = dx*(         -x^2 +   x^3)
+
+   return l0,d0,l1,d1
+end
+
 function interp_fault(A,dx,dy)
   -- Find the ix and iy on the lower corner
   local ax = (dx-A.dx[1][1])/A.hx
@@ -400,6 +420,18 @@ function interp_fault(A,dx,dy)
   ax = ax-(ix-1)
   ay = ay-(iy-1)
 
+  local lx0
+  local dx0
+  local lx1
+  local dx1
+  local ly0
+  local dy0
+  local ly1
+  local dy1
+
+  lx0,dx0,lx1,dx1 = interp_basis(ax,A.hx)
+  ly0,dy0,ly1,dy1 = interp_basis(ay,A.hy)
+
   local jx = ix + 1
   local jy = iy + 1
 
@@ -408,15 +440,25 @@ function interp_fault(A,dx,dy)
   jx = max(1,min(jx,A.Nx+1))
   jy = max(1,min(jy,A.Ny+1))
 
-  local v1 = A.dz[ix][iy]
-  local v2 = A.dz[ix][jy]
-  local v3 = A.dz[jx][jy]
-  local v4 = A.dz[jx][iy]
+  local f00 = A.dz[ix][iy]
+  local f01 = A.dz[ix][jy]
+  local f11 = A.dz[jx][jy]
+  local f10 = A.dz[jx][iy]
 
-  dz = (1-ax)*(1-ay)*v1 +
-       (1-ax)*(  ay)*v2 +
-       (  ax)*(  ay)*v3 +
-       (  ax)*(1-ay)*v4
+  local fx00 = A.fx[ix][iy]
+  local fx01 = A.fx[ix][jy]
+  local fx11 = A.fx[jx][jy]
+  local fx10 = A.fx[jx][iy]
+
+  local fy00 = A.fy[ix][iy]
+  local fy01 = A.fy[ix][jy]
+  local fy11 = A.fy[jx][jy]
+  local fy10 = A.fy[jx][iy]
+
+  dz = lx0*ly0*f00 + dx0*ly0*fx00 + lx0*dy0*fy00 +
+       lx1*ly0*f10 + dx1*ly0*fx10 + lx1*dy0*fy10 +
+       lx0*ly1*f01 + dx0*ly1*fx01 + lx0*dy1*fy01 +
+       lx1*ly1*f11 + dx1*ly1*fx11 + lx1*dy1*fy11
 
   return dz
 end
