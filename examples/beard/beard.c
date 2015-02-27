@@ -459,6 +459,7 @@ typedef struct prefs
   int  vtk_binary;
   int  vtk_compress;
   int  vtk_num_pnts;
+  int  output_file_fault;
   char default_boundary_tag[BFAM_BUFSIZ];
 
   brick_args_t* brick_args;
@@ -711,6 +712,21 @@ new_prefs(const char *prefs_filename)
         prefs->vtk_num_pnts);
   }
   lua_pop(L, 1);
+
+  /* get output_file_fault */
+  lua_getglobal(L,"output_file_fault");
+  if(lua_isnumber(L, -1))
+  {
+    prefs->output_file_fault = lua_tointeger(L, -1);
+  }
+  else
+  {
+    prefs->output_file_fault = 0;
+    BFAM_ROOT_WARNING("using default 'output_file_fault': %d",
+        prefs->output_file_fault);
+  }
+  lua_pop(L, 1);
+
 
   /* get default boundary tag */
   lua_getglobal(L,"default_boundary_tag");
@@ -2576,8 +2592,34 @@ void scale_rates (bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
 
 static void
 rupture_time(int N, bfam_subdomain_dgx_t *sub, const char *field_prefix,
-             const bfam_long_real_t t)
+             const bfam_long_real_t t, const bfam_real_t Vrup)
 {
+#if  DIM==2
+#define X(order) \
+  case order: beard_dgx_rupture_time_2_##order(N,sub,field_prefix,t,Vrup);\
+              break;
+#elif  DIM==3
+#define X(order) \
+  case order: beard_dgx_rupture_time_3_##order(N,sub,field_prefix,t,Vrup);\
+              break;
+#else
+#error "Bad Dimension"
+#endif
+
+  switch(N)
+  {
+    BFAM_LIST_OF_DGX_NORDERS
+    default:
+#if   DIM==2
+      beard_dgx_rupture_time_2_(N,sub, field_prefix,t, Vrup);
+#elif DIM==3
+      beard_dgx_rupture_time_3_(N,sub, field_prefix,t, Vrup);
+#else
+#error "Bad Dimension"
+#endif
+      break;
+  }
+#undef X
 }
 
 static void
@@ -3719,10 +3761,11 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       34,
       0*dt,
       energy);
+  bfam_real_t time = 0;
   for(int s = 1; s <= nsteps; s++)
   {
     beard->beard_ts->step(beard->beard_ts,dt);
-    bfam_real_t time = s*dt;
+    time = s*dt;
     if(plastic_fields)
     {
       /* Use the return mapping algorithm to handle the plasticity */
@@ -3766,7 +3809,9 @@ run_simulation(beard_t *beard,prefs_t *prefs)
       for(bfam_locidx_t n = 0; n < num_subs; n++)
       {
         bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t*) subs[n];
-        rupture_time(sub->N,sub,"",time);
+
+        /* Vrup is currently hard coded to 0.001*/
+        rupture_time(sub->N,sub,"",time,0.001);
       }
     }
 
@@ -3884,6 +3929,15 @@ run_simulation(beard_t *beard,prefs_t *prefs)
         energy = new_energy;
       }
     }
+  }
+  if(prefs->output_file_fault)
+  {
+      char output[BFAM_BUFSIZ];
+      snprintf(output,BFAM_BUFSIZ,"%s_final_fault",prefs->output_prefix);
+      bfam_vtk_write_file((bfam_domain_t*) beard->domain, BFAM_DOMAIN_OR,
+          friction_tags, prefs->data_directory, output, time, friction_fields,
+          NULL, NULL, prefs->vtk_binary, prefs->vtk_compress,
+          prefs->vtk_num_pnts);
   }
 }
 

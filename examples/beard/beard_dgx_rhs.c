@@ -105,6 +105,8 @@
   BEARD_APPEND_EXPAND_4(beard_dgx_intra_rhs_elastic_,DIM,_,NORDER)
 #define beard_dgx_intra_rhs_sponge \
   BEARD_APPEND_EXPAND_4(beard_dgx_intra_rhs_sponge_,DIM,_,NORDER)
+#define beard_dgx_rupture_time \
+  BEARD_APPEND_EXPAND_4(beard_dgx_rupture_time_,DIM,_,NORDER)
 #define beard_dgx_duvaut_lions_return_map \
   BEARD_APPEND_EXPAND_4(beard_dgx_duvaut_lions_return_map_,DIM,_,NORDER)
 
@@ -784,6 +786,23 @@ beard_massproject_flux(bfam_real_t *Tns,       bfam_real_t *TpS,
         }
       p++;
     }
+}
+
+void beard_dgx_rupture_time(
+    int inN, bfam_subdomain_dgx_t *sub, const char *field_prefix,
+    const bfam_long_real_t t, const bfam_real_t Vrup)
+{
+  GENERIC_INIT(inN,beard_dgx_rupture_time);
+
+  bfam_dictionary_t *fields = &sub->base.fields;
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Trup,field_prefix,"Trup",fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(V   ,field_prefix,"V"   ,fields);
+
+  const bfam_locidx_t num_pts = sub->K * Nfp;
+
+  for(bfam_locidx_t k = 0; k < num_pts; k++)
+    if(isnan(Trup[k]) && V[k] > Vrup)
+      Trup[k] = (bfam_real_t)t;
 }
 
 void beard_dgx_duvaut_lions_return_map(

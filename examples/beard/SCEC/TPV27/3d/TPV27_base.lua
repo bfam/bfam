@@ -205,6 +205,7 @@ tfout      = -1
 tdisp      = 0.01
 tstations  = 0.01
 nerr       = 0
+output_file_fault = 1
 
 function time_step_parameters(dt)
   dt      = 0.5*dt

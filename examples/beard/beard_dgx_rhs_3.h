@@ -10,6 +10,9 @@
   void beard_dgx_intra_rhs_sponge_3_##order(int N,                   \
       bfam_subdomain_dgx_t *sub, const char *rate_prefix,            \
       const char *field_prefix, const bfam_long_real_t t);           \
+  void beard_dgx_rupture_time_3_##order(int N,                       \
+      bfam_subdomain_dgx_t *sub, const char *field_prefix,           \
+      const bfam_long_real_t t, const bfam_real_t Vrup);             \
   void beard_dgx_duvaut_lions_return_map_3_##order(int N,            \
       bfam_subdomain_dgx_t *sub, const char *field_prefix,           \
       const bfam_long_real_t t,  const bfam_long_real_t dt);         \
@@ -70,6 +73,9 @@ void beard_dgx_intra_rhs_elastic_3_(int N,
 void beard_dgx_intra_rhs_sponge_3_(int N,
     bfam_subdomain_dgx_t *sub, const char *rate_prefix,
     const char *field_prefix, const bfam_long_real_t t);
+void beard_dgx_rupture_time_3_(int N, bfam_subdomain_dgx_t *sub,
+    const char *field_prefix, const bfam_long_real_t t,
+    const bfam_real_t Vrup);
 void beard_dgx_duvaut_lions_return_map_3_(int N,
     bfam_subdomain_dgx_t *sub, const char *field_prefix,
     const bfam_long_real_t t,  const bfam_long_real_t dt);
