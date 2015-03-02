@@ -107,6 +107,8 @@ static void mark_elements(bfam_domain_pxest_t_3 *domain)
       sub->hadapt[k] = BFAM_FLAG_REFINE;
     }
   }
+
+  bfam_free(subdomains);
 }
 
 static int build_mesh(MPI_Comm mpicomm)
