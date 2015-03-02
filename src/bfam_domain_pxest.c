@@ -1272,7 +1272,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
 
     bfam_subdomain_add_tag((bfam_subdomain_t *)subdomains[id], "_volume");
     char root_id_tag[BFAM_BUFSIZ];
-    if(roots)
+    if (roots)
       snprintf(root_id_tag, BFAM_BUFSIZ, "_volume_id_%jd", (intmax_t)roots[id]);
     else
       snprintf(root_id_tag, BFAM_BUFSIZ, "_volume_id_0");
