@@ -26,8 +26,15 @@ static void poly0_field(bfam_locidx_t npoints, const char *name,
   BFAM_ASSUME_ALIGNED(z, 32);
   BFAM_ASSUME_ALIGNED(field, 32);
 
+  int *failures = (int *)arg;
   for (bfam_locidx_t n = 0; n < npoints; ++n)
-    field[n] = 10;
+  {
+    const bfam_real_t val = 10;
+    if (failures)
+      (*failures) += !REAL_APPROX_EQ(field[n], val, 1000);
+    else
+      field[n] = val;
+  }
 }
 
 static void poly1_field(bfam_locidx_t npoints, const char *name,
@@ -41,8 +48,15 @@ static void poly1_field(bfam_locidx_t npoints, const char *name,
   BFAM_ASSUME_ALIGNED(z, 32);
   BFAM_ASSUME_ALIGNED(field, 32);
 
+  int *failures = (int *)arg;
   for (bfam_locidx_t n = 0; n < npoints; ++n)
-    field[n] = x[n];
+  {
+    const bfam_real_t val = x[n];
+    if (failures)
+      (*failures) += !REAL_APPROX_EQ(field[n], val, 1000);
+    else
+      field[n] = val;
+  }
 }
 
 static void poly2_field(bfam_locidx_t npoints, const char *name,
@@ -56,8 +70,15 @@ static void poly2_field(bfam_locidx_t npoints, const char *name,
   BFAM_ASSUME_ALIGNED(z, 32);
   BFAM_ASSUME_ALIGNED(field, 32);
 
+  int *failures = (int *)arg;
   for (bfam_locidx_t n = 0; n < npoints; ++n)
-    field[n] = y[n];
+  {
+    const bfam_real_t val = y[n];
+    if (failures)
+      (*failures) += !REAL_APPROX_EQ(field[n], val, 1000);
+    else
+      field[n] = val;
+  }
 }
 
 static void poly3_field(bfam_locidx_t npoints, const char *name,
@@ -71,8 +92,15 @@ static void poly3_field(bfam_locidx_t npoints, const char *name,
   BFAM_ASSUME_ALIGNED(z, 32);
   BFAM_ASSUME_ALIGNED(field, 32);
 
+  int *failures = (int *)arg;
   for (bfam_locidx_t n = 0; n < npoints; ++n)
-    field[n] = z[n];
+  {
+    const bfam_real_t val = z[n];
+    if (failures)
+      (*failures) += !REAL_APPROX_EQ(field[n], val, 1000);
+    else
+      field[n] = val;
+  }
 }
 
 static void mark_elements(bfam_domain_pxest_t_3 *domain)
@@ -214,6 +242,15 @@ static int build_mesh(MPI_Comm mpicomm)
 
   mark_elements(domain);
   bfam_domain_pxest_adapt_3(domain, NULL, NULL);
+
+  bfam_domain_init_field((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, "p0",
+                         0, poly0_field, &failures);
+  bfam_domain_init_field((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, "p1",
+                         0, poly1_field, &failures);
+  bfam_domain_init_field((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, "p2",
+                         0, poly2_field, &failures);
+  bfam_domain_init_field((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, "p3",
+                         0, poly3_field, &failures);
 
   bfam_free(subdomainID);
   bfam_free(N);
