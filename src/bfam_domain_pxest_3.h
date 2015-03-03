@@ -24,6 +24,7 @@
 typedef struct bfam_domain_pxest_3
 {
   bfam_domain_t base;         /** parent domain */
+  bfam_dictionary_t *N2N;     /** Dictionary of projection operators */
   p8est_connectivity_t *conn; /** connectivity for p8est */
   p8est_t *pxest;             /** forest of quadtrees */
 } bfam_domain_pxest_t_3;
