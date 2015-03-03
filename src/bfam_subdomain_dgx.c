@@ -2718,7 +2718,7 @@ static void bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
     subdomain->q_id = bfam_malloc_aligned(K * sizeof(bfam_locidx_t));
     for (bfam_locidx_t k = 0; k < K; ++k)
     {
-      subdomain->hadapt[k] = 0;
+      subdomain->hadapt[k] = BFAM_FLAG_SAME;
       subdomain->padapt[k] = N;
       subdomain->q_id[k] = -1;
     }
