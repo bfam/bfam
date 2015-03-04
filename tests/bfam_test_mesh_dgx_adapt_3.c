@@ -180,8 +180,6 @@ static int build_mesh(MPI_Comm mpicomm)
                 bfam_domain_pxest_init_callback_3);
   p8est_partition(domain->pxest, 1, NULL);
 
-  p8est_vtk_write_file(domain->pxest, NULL, "p8est_mesh");
-
   bfam_locidx_t numSubdomains = 11;
   bfam_locidx_t *subdomainID =
       bfam_malloc(domain->pxest->local_num_quadrants * sizeof(bfam_locidx_t));
@@ -265,11 +263,17 @@ static int build_mesh(MPI_Comm mpicomm)
                          0, poly4_field, NULL);
 
   const char *ps[] = {"p1", "p2", "p3", NULL};
+
+  p8est_vtk_write_file(domain->pxest, NULL, "p8est_mesh_pre");
   bfam_vtk_write_file((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, NULL,
-                      "ps_adapt_pre", 0, ps, NULL, NULL, 0, 0, 0);
+                      "dgx_adapt_3_pre", 0, ps, NULL, NULL, 0, 0, 0);
 
   mark_elements(domain);
   bfam_domain_pxest_adapt_3(domain, NULL, NULL);
+
+  p8est_vtk_write_file(domain->pxest, NULL, "p8est_mesh_post");
+  bfam_vtk_write_file((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, NULL,
+                      "dgx_adapt_3_post", 0, ps, NULL, NULL, 0, 0, 0);
 
   bfam_domain_init_field((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, "p0",
                          0, poly0_field, &failures);
@@ -281,8 +285,6 @@ static int build_mesh(MPI_Comm mpicomm)
                          0, poly3_field, &failures);
   bfam_domain_init_field((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, "p4",
                          0, poly4_field, &failures);
-  bfam_vtk_write_file((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, NULL,
-                      "ps_adapt_post", 0, ps, NULL, NULL, 0, 0, 0);
 
   bfam_free(subdomainID);
   bfam_free(N);
