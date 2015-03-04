@@ -432,10 +432,37 @@ static void interpolate_data_volume(const bfam_real_t *src, int8_t c_src,
   /* In this case we actually need to the do multiplication */
   if (Px)
   {
+    const bfam_locidx_t N1_src = N_src + 1;
+    const bfam_locidx_t N1_dst = N_dst + 1;
+#if DIM == 2
+    const bfam_locidx_t jz = 0;
+    const bfam_locidx_t iz = 0;
+#elif DIM == 3
+    for (bfam_locidx_t jz = 0; jz < N1_src; jz++)
+#endif
+    for (bfam_locidx_t jy = 0; jy < N1_src; jy++)
+      for (bfam_locidx_t jx = 0; jx < N1_src; jx++)
+#if DIM == 3
+        for (bfam_locidx_t iz = 0; iz < N1_dst; iz++)
+#endif
+          for (bfam_locidx_t iy = 0; iy < N1_dst; iy++)
+            for (bfam_locidx_t ix = 0; ix < N1_dst; ix++)
+              dst[ix + iy * N1_dst + iz * N1_dst * N1_dst] +=
+#if DIM == 3
+                  Pz[jz * N1_dst + iz] *
+#endif
+                  Py[jy * N1_dst + iy] * Px[jx * N1_dst + ix] *
+                  src[jx + jy * N1_src + jz * N1_src * N1_src];
   }
   /* In this case we just do a memcopy */
   else
   {
+    BFAM_ASSERT(N_src == N_dst);
+    memcpy(dst, src, sizeof(bfam_real_t) * (N_src + 1) * (N_src + 1)
+#if DIM == 3
+                         * (N_src + 1)
+#endif
+           );
   }
 }
 
