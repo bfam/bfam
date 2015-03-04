@@ -2623,12 +2623,18 @@ static void bfam_domain_pxest_transfer_fields_volume(
       continue;
 
     /*
+     * If the subdomain ID is negative, we need to flip sign and add one since
+     * this is the convention when we are coarsening
+     */
+    bfam_locidx_t dst_sub_id = maps->dst_to_src_subd_id[sub_dst->q_id[0]];
+    dst_sub_id = (dst_sub_id >= 0) ? dst_sub_id : -dst_sub_id + 1;
+
+    /*
      * We assume that all of the parent subdomains have the same fields.
      */
     bfam_subdomain_dgx_t *a_sub_src =
         (bfam_subdomain_dgx_t *)bfam_domain_get_subdomain_by_num(
-            (bfam_domain_t *)domain_src,
-            maps->dst_to_src_subd_id[sub_dst->q_id[0]]);
+            (bfam_domain_t *)domain_src, dst_sub_id);
 
     bfam_dictionary_allprefixed_ptr(&a_sub_src->base.fields, "",
                                     &bfam_subdomain_dgx_add_fields_iter,
