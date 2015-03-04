@@ -174,7 +174,7 @@ static int build_mesh(MPI_Comm mpicomm)
 
   bfam_domain_pxest_t_3 *domain = bfam_domain_pxest_new_3(mpicomm, conn);
 
-  refine_level = 1;
+  refine_level = 2;
   p8est_refine(domain->pxest, 2, refine_fn, bfam_domain_pxest_init_callback_3);
   p8est_balance(domain->pxest, P8EST_CONNECT_CORNER,
                 bfam_domain_pxest_init_callback_3);
@@ -281,6 +281,8 @@ static int build_mesh(MPI_Comm mpicomm)
                          0, poly3_field, &failures);
   bfam_domain_init_field((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, "p4",
                          0, poly4_field, &failures);
+  bfam_vtk_write_file((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, NULL,
+                      "ps_adapt_post", 0, ps, NULL, NULL, 0, 0, 0);
 
   bfam_free(subdomainID);
   bfam_free(N);
