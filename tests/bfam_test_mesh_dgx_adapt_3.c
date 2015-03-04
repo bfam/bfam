@@ -103,6 +103,31 @@ static void poly3_field(bfam_locidx_t npoints, const char *name,
   }
 }
 
+static void poly4_field(bfam_locidx_t npoints, const char *name,
+                        bfam_real_t time, bfam_real_t *restrict x,
+                        bfam_real_t *restrict y, bfam_real_t *restrict z,
+                        struct bfam_subdomain *s, void *arg,
+                        bfam_real_t *restrict field)
+{
+  BFAM_ASSUME_ALIGNED(x, 32);
+  BFAM_ASSUME_ALIGNED(y, 32);
+  BFAM_ASSUME_ALIGNED(z, 32);
+  BFAM_ASSUME_ALIGNED(field, 32);
+
+  int *failures = (int *)arg;
+  for (bfam_locidx_t n = 0; n < npoints; ++n)
+  {
+    const bfam_real_t X = x[n] / 2.5;
+    const bfam_real_t Y = y[n] / 2.5;
+    const bfam_real_t Z = z[n] / 2.5;
+    const bfam_real_t val = X * Y * Z * Z + X * X * Y + Z * Z * Z;
+    if (failures)
+      (*failures) += !REAL_APPROX_EQ(field[n], val, 1000);
+    else
+      field[n] = val;
+  }
+}
+
 static void mark_elements(bfam_domain_pxest_t_3 *domain)
 {
   bfam_domain_t *dbase = &domain->base;
@@ -121,7 +146,7 @@ static void mark_elements(bfam_domain_pxest_t_3 *domain)
     bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t *)subdomains[s];
     for (bfam_locidx_t k = 0; k < sub->K; ++k)
     {
-      sub->padapt[k] = 1;
+      sub->padapt[k] = 8;
       sub->hadapt[k] = BFAM_FLAG_COARSEN;
     }
   }
@@ -131,7 +156,7 @@ static void mark_elements(bfam_domain_pxest_t_3 *domain)
     bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t *)subdomains[s];
     for (bfam_locidx_t k = 0; k < sub->K; ++k)
     {
-      sub->padapt[k] = 2;
+      sub->padapt[k] = 5;
       sub->hadapt[k] = BFAM_FLAG_REFINE;
     }
   }
@@ -175,7 +200,7 @@ static int build_mesh(MPI_Comm mpicomm)
                  (intmax_t)numSubdomains);
   for (bfam_locidx_t id = 0; id < numSubdomains; ++id)
   {
-    N[id] = 3 + id;
+    N[id] = 5 + id;
 
     p4est_gloidx_t first = p4est_partition_cut_gloidx(
         domain->pxest->global_num_quadrants, id, numSubdomains);
@@ -226,6 +251,7 @@ static int build_mesh(MPI_Comm mpicomm)
   bfam_domain_add_field((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, "p1");
   bfam_domain_add_field((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, "p2");
   bfam_domain_add_field((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, "p3");
+  bfam_domain_add_field((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, "p4");
 
   bfam_domain_init_field((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, "p0",
                          0, poly0_field, NULL);
@@ -235,6 +261,8 @@ static int build_mesh(MPI_Comm mpicomm)
                          0, poly2_field, NULL);
   bfam_domain_init_field((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, "p3",
                          0, poly3_field, NULL);
+  bfam_domain_init_field((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, "p4",
+                         0, poly4_field, NULL);
 
   const char *ps[] = {"p1", "p2", "p3", NULL};
   bfam_vtk_write_file((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, NULL,
@@ -251,6 +279,8 @@ static int build_mesh(MPI_Comm mpicomm)
                          0, poly2_field, &failures);
   bfam_domain_init_field((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, "p3",
                          0, poly3_field, &failures);
+  bfam_domain_init_field((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, "p4",
+                         0, poly4_field, &failures);
 
   bfam_free(subdomainID);
   bfam_free(N);
