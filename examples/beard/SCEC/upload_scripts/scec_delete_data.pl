@@ -10,7 +10,7 @@ use warnings;
 
 my $SCEC_CVWS = "http://scecdata.usc.edu/cvws/cgi-bin/cvws.cgi";
 
-$NARGS = $#ARGV+1;
+my $NARGS = $#ARGV+1;
 if ($NARGS != 3 && $NARGS != 4)
 {
   print "Usage:   scec_delete_data.pl USER_NAME PASSWORD PROBLEM_NUMBER\n";
