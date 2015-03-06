@@ -36,6 +36,19 @@ my $PSSWD = $ARGV[$k];
 $k = $k+1;
 my $TPV   = "tpv$ARGV[$k]";
 
+
+print "Confirm the following delete information (y/n):\n";
+print "   user name: $UNAME\n";
+print "   user num:  $URNM\n";
+print "   problem:   $TPV\n";
+
+chomp(my $input = <STDIN>);
+if(lc(substr($input,0,1)) ne 'y')
+{
+  print "cancelling with input: $input\n";
+  exit 0;
+}
+
 my %LIST_DATA = (
   "G1090$URNM" => "Select",
   "u"          => $UNAME,

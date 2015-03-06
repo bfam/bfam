@@ -41,6 +41,20 @@ my $prefix  = $ARGV[$k];
 $k = $k+1;
 my $postfix = $ARGV[$k];
 
+print "Confirm the following upload information (y/n):\n";
+print "   user name: $UNAME\n";
+print "   user num:  $URNM\n";
+print "   problem:   $TPV\n";
+print "   prefix:    $prefix\n";
+print "   postfix:   $postfix\n";
+
+chomp(my $input = <STDIN>);
+if(lc(substr($input,0,1)) ne 'y')
+{
+  print "cancelling with input: $input\n";
+  exit 0;
+}
+
 # Modules with routines for making the browser.
 use LWP::UserAgent;
 use HTTP::Request::Common;
