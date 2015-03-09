@@ -191,7 +191,7 @@ function transform_nodes(x, y, z)
   return x,y,z
 end
 
-function cp(x,y,z,t)
+function cp(x,y,z,t,xc,yc,zc)
   k = 1
   while material.D[k] do
     if material.D[k] > y then
@@ -204,7 +204,7 @@ function cp(x,y,z,t)
   end
   return V
 end
-function cs(x,y,z,t)
+function cs(x,y,z,t,xc,yc,zc)
   k = 1
   while material.D[k] do
     if material.D[k] > y then
@@ -217,7 +217,7 @@ function cs(x,y,z,t)
   end
   return V
 end
-function rho(x,y,z,t)
+function rho(x,y,z,t,xc,yc,zc)
   k = 1
   while material.D[k] do
     if material.D[k] > y then
@@ -230,11 +230,11 @@ function rho(x,y,z,t)
   end
   return V
 end
-function mu(x,y,z,t)
-  return rho(x,y,z,t)*cs(x,y,z,t)^2
+function mu(x,y,z,t,xc,yc,zc)
+  return rho(x,y,z,t,xc,yc,zc)*cs(x,y,z,t,xc,yc,zc)^2
 end
-function lam(x,y,z,t)
-  return rho(x,y,z,t)*cp(x,y,z,t)^2-2*mu(x,y,z,t)
+function lam(x,y,z,t,xc,yc,zc)
+  return rho(x,y,z,t,xc,yc,zc)*cp(x,y,z,t,xc,yc,zc)^2-2*mu(x,y,z,t,xc,yc,zc)
 end
 
 -- field conditions
@@ -337,17 +337,17 @@ volume_stations = {
 
 -- faults
 mu0  = 2.670*3.464^2
-function S11_0_function(x,y,z,t)
-  return -60 * mu(x,y,z,t) / mu0
+function S11_0_function(x,y,z,t,xc,yc,zc)
+  return -60 * mu(x,y,z,t,xc,yc,zc) / mu0
 end
-function S33_0_function(x,y,z,t)
-  return -60 * mu(x,y,z,t) / mu0
+function S33_0_function(x,y,z,t,xc,yc,zc)
+  return -60 * mu(x,y,z,t,xc,yc,zc) / mu0
 end
-function S13_0_function(x,y,z,t)
+function S13_0_function(x,y,z,t,xc,yc,zc)
   r = (min(2,max(1.4,sqrt(x^2 + (y-7.5)^2)))-1.4)/0.6
-  return (30 + 2.475*(1+math.cos(math.pi*r)))*mu(x,y,z,t) / mu0
+  return (30 + 2.475*(1+math.cos(math.pi*r)))*mu(x,y,z,t,xc,yc,zc) / mu0
 end
-function c0_function(x,y,z,t)
+function c0_function(x,y,z,t,xc,yc,zc)
  return 0.425*max(0,2.4-y)
 end
 
