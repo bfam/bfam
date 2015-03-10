@@ -169,6 +169,15 @@ if(OPENCL_FOUND)
   include_directories(${OPENCL_INCLUDE_DIRS})
 endif(OPENCL_FOUND)
 
+##
+## CUDA
+##
+if(CUDA_FOUND)
+  set(BFAM_HAVE_CUDA ON)
+  include_directories(${CUDA_INCLUDE_DIRS})
+endif(CUDA_FOUND)
+
+
 add_executable(bfam_header_gen src/bfam_header_gen.c)
 
 function(FILE2HEADER FILE HEADER)
@@ -391,6 +400,9 @@ endif(OPENCL_FOUND)
 set(bfam_dgx_norders  1  2  3  4  5  6  7  8  9 10
                           11 12 13 14 15 16 17 18 19 20
                           21 22 23 24)
+if(CUDA_FOUND)
+  target_link_libraries(bfam ${CUDA_LIBRARIES})
+endif(CUDA_FOUND)
 
 set(bfam_dgx_norders  1  2  3  4  5  6  7  8  9 10
                      11 12 13 14 15 16 17 18 19 20
@@ -442,6 +454,9 @@ target_link_libraries(bfam_exam_logging bfam)
 
 add_executable(bfam_exam_p4est examples/p4est/bfam_exam_p4est.c)
 target_link_libraries(bfam_exam_p4est bfam)
+
+add_executable(bfam_exam_occa examples/occa/bfam_exam_occa.c)
+target_link_libraries(bfam_exam_occa bfam)
 
 add_executable(bfam_exam_mesh_dgquad examples/mesh/bfam_exam_mesh_dgquad.c)
 target_link_libraries(bfam_exam_mesh_dgquad bfam)
