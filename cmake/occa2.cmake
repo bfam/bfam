@@ -1,7 +1,7 @@
 #
 # Bundled occa2 paths.
 #
-set(OCCA2_BUNDLED_PREFIX "${PROJECT_BINARY_DIR}/third_party/occa2")
+set(OCCA2_BUNDLED_PREFIX "${PROJECT_BINARY_DIR}/third_party/OCCA2")
 set(OCCA2_BUNDLED_LIBRARIES "${OCCA2_BUNDLED_PREFIX}/lib/libocca.so")
 
 set(OCCA2_C_FLAGS "")
@@ -129,21 +129,21 @@ macro(occa2_build)
 
   if ("${PROJECT_BINARY_DIR}" STREQUAL "${PROJECT_SOURCE_DIR}")
     add_custom_command(OUTPUT ${OCCA2_BUNDLED_LIBRARIES}
-      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/third_party/occa2
+      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/third_party/OCCA2
       COMMAND $(MAKE) ${occa2_buildoptions} clean
       COMMAND $(MAKE) ${occa2_buildoptions}
       DEPENDS ${CMAKE_SOURCE_DIR}/CMakeCache.txt
       )
   else()
-    add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/third_party/occa2
-      COMMAND mkdir ${PROJECT_BINARY_DIR}/third_party/occa2
+    add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/third_party/OCCA2
+      COMMAND mkdir ${PROJECT_BINARY_DIR}/third_party/OCCA2
       )
     add_custom_command(OUTPUT ${OCCA2_BUNDLED_LIBRARIES}
-      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/third_party/occa2
-      COMMAND cp -r ${PROJECT_SOURCE_DIR}/third_party/occa2/* .
+      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/third_party/OCCA2
+      COMMAND cp -r ${PROJECT_SOURCE_DIR}/third_party/OCCA2/* .
       COMMAND $(MAKE) ${occa2_buildoptions} clean
       COMMAND $(MAKE) ${occa2_buildoptions}
-      DEPENDS ${PROJECT_BINARY_DIR}/CMakeCache.txt ${PROJECT_BINARY_DIR}/third_party/occa2
+      DEPENDS ${PROJECT_BINARY_DIR}/CMakeCache.txt ${PROJECT_BINARY_DIR}/third_party/OCCA2
       )
   endif()
   add_custom_target(libocca2 DEPENDS ${OCCA2_BUNDLED_LIBRARIES})
