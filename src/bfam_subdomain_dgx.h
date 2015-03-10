@@ -328,11 +328,22 @@ void bfam_subdomain_dgx_add_rates_glue_p_(
     const bfam_long_real_t a, const char **scalars, const char **vectors,
     const char **tensors);
 
+void bfam_subdomain_dgx_interpolate_data_(const bfam_real_t *src, int8_t c_src,
+                                          int N_src, bfam_real_t *dst,
+                                          int8_t c_dst, int N_dst,
+                                          uint8_t flags, bfam_dictionary_t *N2N,
+                                          const int inDIM);
+
 /** free up the memory allocated by the subdomain
  *
  * \param [in,out] subdomain subdomain to clean up
  */
 void bfam_subdomain_dgx_free_(bfam_subdomain_t *subdomain);
+
+/** free the interpolator data put in the interpolation dictionary
+ */
+int bfam_subdomain_dgx_clear_interpolation_dict_(const char *key, void *val,
+                                                 void *args);
 
 #define X(dg_dim)                                                              \
   void bfam_subdomain_dgx_point_interp_fields_##dg_dim(                        \
@@ -392,7 +403,13 @@ void bfam_subdomain_dgx_free_(bfam_subdomain_t *subdomain);
       bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,                 \
       const char *field_prefix_rhs, const char *rate_prefix,                   \
       const bfam_long_real_t a, const char **scalars, const char **vectors,    \
-      const char **tensors);
+      const char **tensors);                                                   \
+  void bfam_subdomain_dgx_interpolate_data_##dg_dim(                           \
+      const bfam_real_t *src, int8_t c_src, int N_src, bfam_real_t *dst,       \
+      int8_t c_dst, int N_dst, uint8_t flags, bfam_dictionary_t *N2N,          \
+      const int inDIM);                                                        \
+  int bfam_subdomain_dgx_clear_interpolation_dict_##dg_dim(                    \
+      const char *key, void *val, void *args);
 BFAM_LIST_OF_DGX_DIMENSIONS
 #undef X
 
