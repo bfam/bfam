@@ -458,11 +458,13 @@ static void interpolate_data_volume(const bfam_real_t *src, int8_t c_src,
   else
   {
     BFAM_ASSERT(N_src == N_dst);
-    memcpy(dst, src, sizeof(bfam_real_t) * (N_src + 1) * (N_src + 1)
+    const size_t bytes = sizeof(bfam_real_t) * (N_src + 1) * (N_src + 1)
 #if DIM == 3
                          * (N_src + 1)
 #endif
-           );
+                         ;
+
+    memcpy(dst, src, bytes);
   }
 }
 
