@@ -39,8 +39,6 @@ function(ispc_compile filename)
 endfunction()
 
 find_package(Git)
-# find_package(BLAS REQUIRED)
-# find_package(LAPACK REQUIRED)
 find_package(MPI REQUIRED)
 
 # Directory where customize cmake files reside
@@ -377,8 +375,6 @@ add_dependencies(bfam build_bundled_libs version)
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_C_LINK_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_Fortran_LINK_FLAGS}")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LAPACK_LINKER_FLAGS}")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${BLAS_LINKER_FLAGS}")
 
 find_library(MATH_LIB m)
 target_link_libraries(bfam ${MPI_C_LIBRARIES}
@@ -386,8 +382,6 @@ target_link_libraries(bfam ${MPI_C_LIBRARIES}
                            ${P4EST_LIBRARIES}
                            ${LUA_LIBRARIES}
                            ${ZLIB_LIBRARIES}
-                           ${LAPACK_LIBRARIES}
-                           ${BLAS_LIBRARIES}
                            ${TIME_LIBRARIES}
                            ${MATH_LIB})
 if(OPENCL_FOUND)
@@ -749,15 +743,6 @@ set(BFAM_COMPILE_LIST
   "             CMAKE_Fortran_FLAGS_RELEASE: ${CMAKE_Fortran_FLAGS_RELEASE}\\\\n"
   "             LUA_LIBRARIES:               ${LUA_LIBRARIES}\\\\n"
   "             LUA_INCLUDE_DIR:             ${LUA_INCLUDE_DIR}\\\\n"
-  "             LUAJIT_INCLUDE:              ${LUAJIT_INCLUDE}\\\\n"
-  "             LUAJIT_LIB:                  ${LUAJIT_LIB}\\\\n"
-  "             LUAJIT_LINK_FLAGS:           ${LUAJIT_LINK_FLAGS}\\\\n"
-  "             BLAS_FOUND:                  ${BLAS_FOUND}\\\\n"
-  "             BLAS_LINKER_FLAGS:           ${BLAS_LINKER_FLAGS}\\\\n"
-  "             BLAS_LIBRARIES:              ${BLAS_LIBRARIES}\\\\n"
-  "             LAPACK_FOUND:                ${LAPACK_FOUND}\\\\n"
-  "             LAPACK_LINKER_FLAGS:         ${LAPACK_LINKER_FLAGS}\\\\n"
-  "             LAPACK_LIBRARIES:            ${LAPACK_LIBRARIES}\\\\n"
   "             OPENCL_FOUND:                ${OPENCL_FOUND}\\\\n"
   "             OPENCL_INCLUDE_DIRS:         ${OPENCL_INCLUDE_DIRS}\\\\n"
   "             OPENCL_LIBRARIES:            ${OPENCL_LIBRARIES}\\\\n"
