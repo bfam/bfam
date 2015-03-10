@@ -341,6 +341,9 @@ include_directories(${ZLIB_INCLUDE_DIRS})
 
 include(p4est)
 
+include(occa2)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OCCA2_CPP_FLAGS} ${OCCA2_C_FLAGS}")
+
 subdirs(third_party)
 
 ##
@@ -388,6 +391,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_Fortran_LINK_FLAGS}"
 find_library(MATH_LIB m)
 target_link_libraries(bfam ${MPI_C_LIBRARIES}
                            ${MPI_Fortran_LIBRARIES}
+                           ${OCCA2_LIBRARIES}
                            ${P4EST_LIBRARIES}
                            ${LUA_LIBRARIES}
                            ${ZLIB_LIBRARIES}
@@ -454,6 +458,7 @@ target_link_libraries(bfam_exam_p4est bfam)
 
 add_executable(bfam_exam_occa examples/occa/bfam_exam_occa.c)
 target_link_libraries(bfam_exam_occa bfam)
+file(COPY examples/occa/addVectors.occa DESTINATION ${CMAKE_BINARY_DIR})
 
 add_executable(bfam_exam_mesh_dgquad examples/mesh/bfam_exam_mesh_dgquad.c)
 target_link_libraries(bfam_exam_mesh_dgquad bfam)
@@ -757,6 +762,11 @@ set(BFAM_COMPILE_LIST
   "             CMAKE_Fortran_FLAGS:         ${CMAKE_Fortran_FLAGS}\\\\n"
   "             CMAKE_Fortran_FLAGS_DEBUG:   ${CMAKE_Fortran_FLAGS_DEBUG}\\\\n"
   "             CMAKE_Fortran_FLAGS_RELEASE: ${CMAKE_Fortran_FLAGS_RELEASE}\\\\n"
+  "             OCCA2_INCLUDE_DIRS:          ${OCCA2_INCLUDE_DIRS}\\\\n"
+  "             OCCA2_LIBRARIES:             ${OCCA2_LIBRARIES}\\\\n"
+  "             OCCA2_C_FLAGS:               ${OCCA2_C_FLAGS}\\\\n"
+  "             OCCA2_CXX_FLAGS:             ${OCCA2_CXX_FLAGS}\\\\n"
+  "             OCCA2_CPP_FLAGS:             ${OCCA2_CPP_FLAGS}\\\\n"
   "             LUA_LIBRARIES:               ${LUA_LIBRARIES}\\\\n"
   "             LUA_INCLUDE_DIR:             ${LUA_INCLUDE_DIR}\\\\n"
   "             OPENCL_FOUND:                ${OPENCL_FOUND}\\\\n"
