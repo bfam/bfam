@@ -50,7 +50,9 @@ set(CMAKE_MODULE_PATH
   ${CMAKE_MODULE_PATH}
 )
 
+find_package(CUDA)
 find_package(OpenCL)
+find_package(OpenMP)
 
 ##
 ## Version Stuff
@@ -759,6 +761,14 @@ set(BFAM_COMPILE_LIST
   "             OPENCL_FOUND:                ${OPENCL_FOUND}\\\\n"
   "             OPENCL_INCLUDE_DIRS:         ${OPENCL_INCLUDE_DIRS}\\\\n"
   "             OPENCL_LIBRARIES:            ${OPENCL_LIBRARIES}\\\\n"
+  "             CUDA_FOUND:                  ${CUDA_FOUND}\\\\n"
+  "             CUDA_VERSION:                ${CUDA_VERSION}\\\\n"
+  "             CUDA_INCLUDE_DIRS:           ${CUDA_INCLUDE_DIRS}\\\\n"
+  "             CUDA_CUDA_LIBRARY:           ${CUDA_CUDA_LIBRARY}\\\\n"
+  "             CUDA_NVCC_EXECUTABLE:        ${CUDA_NVCC_EXECUTABLE}\\\\n"
+  "             OPENMP_FOUND:                ${OPENMP_FOUND}\\\\n"
+  "             OpenMP_C_FLAGS:              ${OpenMP_C_FLAGS}\\\\n"
+  "             OpenMP_CXX_FLAGS:            ${OpenMP_CXX_FLAGS}\\\\n"
   "             MPI_C_FOUND:                 ${MPI_C_FOUND}\\\\n"
   "             MPI_C_COMPILER:              ${MPI_C_COMPILER}\\\\n"
   "             MPI_C_COMPILE_FLAGS:         ${MPI_C_COMPILE_FLAGS}\\\\n"
