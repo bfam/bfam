@@ -226,24 +226,6 @@ extern "C" {
     delete (occa::deviceInfo*) info;
   }
 
-  const char* OCCA_RFUNC occaDeviceMode(occaDevice device){
-    occa::device &device_ = *((occa::device*) device);
-
-    return device_.mode().c_str();
-  }
-
-  void OCCA_RFUNC occaDeviceSetCompiler(occaDevice device,
-                                        const char *compiler){
-    occa::device &device_ = *((occa::device*) device);
-    device_.setCompiler(compiler);
-  }
-
-  void OCCA_RFUNC occaDeviceSetCompilerFlags(occaDevice device,
-                                             const char *compilerFlags){
-    occa::device &device_ = *((occa::device*) device);
-    device_.setCompilerFlags(compilerFlags);
-  }
-
   occaDevice OCCA_RFUNC occaGetDevice(const char *infos){
     occa::device *device = new occa::device();
 
@@ -270,10 +252,51 @@ extern "C" {
     return (occaDevice) device;
   }
 
+  const char* OCCA_RFUNC occaDeviceMode(occaDevice device){
+    occa::device &device_ = *((occa::device*) device);
+
+    return device_.mode().c_str();
+  }
+
+  void OCCA_RFUNC occaDeviceSetCompiler(occaDevice device,
+                                        const char *compiler){
+    occa::device &device_ = *((occa::device*) device);
+    device_.setCompiler(compiler);
+  }
+
+  void OCCA_RFUNC occaDeviceSetCompilerFlags(occaDevice device,
+                                             const char *compilerFlags){
+    occa::device &device_ = *((occa::device*) device);
+    device_.setCompilerFlags(compilerFlags);
+  }
+
   uintptr_t OCCA_RFUNC occaDeviceBytesAllocated(occaDevice device){
     occa::device &device_ = *((occa::device*) device);
 
     return device_.bytesAllocated();
+  }
+
+  occaKernel OCCA_RFUNC occaBuildKernel(occaDevice device,
+                                        const char *str,
+                                        const char *functionName,
+                                        occaKernelInfo info){
+    occa::device &device_  = *((occa::device*) device);
+
+    occa::kernel *kernel = new occa::kernel();
+
+    if(info != occaNoKernelInfo){
+      occa::kernelInfo &info_ = *((occa::kernelInfo*) info);
+
+      *kernel = device_.buildKernel(str,
+                                    functionName,
+                                    info_);
+    }
+    else{
+      *kernel = device_.buildKernel(str,
+                                    functionName);
+    }
+
+    return (occaKernel) kernel;
   }
 
   occaKernel OCCA_RFUNC occaBuildKernelFromSource(occaDevice device,
@@ -293,6 +316,29 @@ extern "C" {
     }
     else{
       *kernel = device_.buildKernelFromSource(filename,
+                                              functionName);
+    }
+
+    return (occaKernel) kernel;
+  }
+
+  occaKernel OCCA_RFUNC occaBuildKernelFromString(occaDevice device,
+                                                  const char *str,
+                                                  const char *functionName,
+                                                  occaKernelInfo info){
+    occa::device &device_  = *((occa::device*) device);
+
+    occa::kernel *kernel = new occa::kernel();
+
+    if(info != occaNoKernelInfo){
+      occa::kernelInfo &info_ = *((occa::kernelInfo*) info);
+
+      *kernel = device_.buildKernelFromString(str,
+                                              functionName,
+                                              info_);
+    }
+    else{
+      *kernel = device_.buildKernelFromString(str,
                                               functionName);
     }
 
@@ -361,18 +407,13 @@ extern "C" {
     return (occaMemory) memory;
   }
 
-  occaMemory OCCA_RFUNC occaDeviceManagedAlloc(occaDevice device,
-                                               uintptr_t bytes,
-                                               void *src){
+  void* OCCA_RFUNC occaDeviceManagedAlloc(occaDevice device,
+                                          uintptr_t bytes,
+                                          void *src){
 
     occa::device &device_ = *((occa::device*) device);
 
-    occaMemory_t *memory = new occaMemory_t();
-
-    memory->type = OCCA_TYPE_MEMORY;
-    memory->mem = device_.managedAlloc(bytes, src);
-
-    return (occaMemory) memory;
+    return device_.managedAlloc(bytes, src);
   }
 
   void* OCCA_RFUNC occaDeviceUvaAlloc(occaDevice device,
@@ -406,17 +447,12 @@ extern "C" {
     return (occaMemory) memory;
   }
 
-  occaMemory OCCA_RFUNC occaDeviceManagedMappedAlloc(occaDevice device,
-                                                     uintptr_t bytes,
-                                                     void *src){
+  void* OCCA_RFUNC occaDeviceManagedMappedAlloc(occaDevice device,
+                                                uintptr_t bytes,
+                                                void *src){
     occa::device &device_ = *((occa::device*) device);
 
-    occaMemory_t *memory = new occaMemory_t();
-
-    memory->type = OCCA_TYPE_MEMORY;
-    memory->mem  = device_.managedMappedAlloc(bytes, src);
-
-    return (occaMemory) memory;
+    return device_.managedMappedAlloc(bytes, src);
   }
 
   void OCCA_RFUNC occaDeviceFlush(occaDevice device){
@@ -722,16 +758,16 @@ extern "C" {
     return memory_.mode().c_str();
   }
 
-  void* OCCA_RFUNC occaMemoryGetMappedPointer(occaMemory memory){
-    occa::memory &memory_ = memory->mem;
-
-    return memory_.getMappedPointer();
-  }
-
   void* OCCA_RFUNC occaMemoryGetMemoryHandle(occaMemory memory){
     occa::memory &memory_ = memory->mem;
 
     return memory_.getMemoryHandle();
+  }
+
+  void* OCCA_RFUNC occaMemoryGetMappedPointer(occaMemory memory){
+    occa::memory &memory_ = memory->mem;
+
+    return memory_.getMappedPointer();
   }
 
   void* OCCA_RFUNC occaMemoryGetTextureHandle(occaMemory memory){
