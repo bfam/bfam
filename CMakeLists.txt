@@ -50,6 +50,24 @@ function(bfam_multiple_build define_name define_vals lib_name lib_src target)
   target_link_libraries(${target} ${lib_name})
 endfunction()
 
+function(bfam_multiple_build_lib define_name define_vals lib_name lib_src deps olist)
+  set(lolist "")
+  foreach(val ${define_vals})
+    set(full_lib_name "${lib_name}_${val}")
+    add_library(${full_lib_name} OBJECT ${lib_src})
+
+    set_target_properties(${full_lib_name} PROPERTIES COMPILE_FLAGS
+      "-D${define_name}=${val}")
+    add_dependencies(${full_lib_name} ${deps})
+
+    set(lolist ${lolist} $<TARGET_OBJECTS:${full_lib_name}>)
+  endforeach()
+
+  add_library(${lib_name} OBJECT ${lib_src})
+  add_dependencies(${lib_name} ${deps})
+  set(${olist} ${${olist}} ${lolist} $<TARGET_OBJECTS:${lib_name}> PARENT_SCOPE)
+endfunction()
+
 function(bfam_multiple_add_flag define_name define_val lib_vals lib_name)
   foreach(val ${lib_vals})
     set(full_lib_name "${lib_name}_${val}")
@@ -368,6 +386,18 @@ include_directories(${MPI_Fortran_INCLUDE_PATH})
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MPI_C_COMPILE_FLAG}")
 set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${MPI_Fortran_COMPILE_FLAG}")
 
+bfam_multiple_build_lib("BFAM_PXEST_DIMENSION" "${pxest_dimensions}"
+  bfam_domain_pxest
+  src/bfam_domain_pxest.c
+  build_bundled_libs
+  mbobjs)
+
+bfam_multiple_build_lib("BFAM_DGX_DIMENSION" "${bfam_dimensions}"
+  bfam_subdomain_dgx
+  src/bfam_subdomain_dgx.c
+  build_bundled_libs
+  mbobjs)
+
 ##
 ## BFAM Library
 ##
@@ -390,6 +420,7 @@ add_library(bfam
                  src/bfam_timestep_adams.c
                  src/bfam_timestep_local_adams.c
                  src/bfam_util.c
+                 ${mbobjs}
            )
 add_dependencies(bfam build_bundled_libs version)
 
@@ -463,15 +494,6 @@ add_executable(blade_3d examples/blade/blade.c)
 set_target_properties(blade_3d PROPERTIES COMPILE_FLAGS
   "-DBLADE_DGX_DIMENSION=3")
 
-bfam_multiple_build("BFAM_PXEST_DIMENSION" "${pxest_dimensions}"
-  bfam_domain_pxest
-  src/bfam_domain_pxest.c
-  bfam)
-
-bfam_multiple_build("BFAM_DGX_DIMENSION" "${bfam_dimensions}"
-  bfam_subdomain_dgx
-  src/bfam_subdomain_dgx.c
-  bfam)
 
 bfam_multiple_build("NORDER" "${bfam_dgx_norders}"
   beard_dgx_rhs_2
