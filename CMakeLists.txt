@@ -548,10 +548,10 @@ target_link_libraries(bfam_test_bilinear bfam)
 
 add_test(bfam_test_bilinear_test bfam_test_bilinear)
 
-add_executable(bfam_test_interpolation tests/bfam_test_interpolation.c)
-target_link_libraries(bfam_test_interpolation bfam)
+add_executable(bfam_test_interpolation_1d tests/bfam_test_interpolation_1d.c)
+target_link_libraries(bfam_test_interpolation_1d bfam)
 
-add_test(bfam_test_interpolation_test bfam_test_interpolation)
+add_test(bfam_test_interpolation_test_1d bfam_test_interpolation_1d)
 
 add_executable(bfam_test_malloc tests/bfam_test_malloc.c)
 target_link_libraries(bfam_test_malloc bfam)
