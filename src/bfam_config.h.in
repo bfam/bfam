@@ -3,6 +3,7 @@
 
 #cmakedefine BFAM_DEBUG
 #cmakedefine BFAM_USE_LONG_DOUBLE
+#cmakedefine BFAM_HAVE_CUDA
 #cmakedefine BFAM_HAVE_OPENCL
 #cmakedefine BFAM_HAVE_SYSEXITS_H
 #cmakedefine BFAM_HAVE_SYS_SYSEXITS_H

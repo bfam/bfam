@@ -704,6 +704,7 @@ add_test(bfam_test_lua_test bfam_test_lua)
 ##
 set(BFAM_COMPILE_LIST
   "             BFAM_DEBUG:                  ${BFAM_DEBUG}\\\\n"
+  "             BFAM_HAVE_CUDA:              ${BFAM_HAVE_CUDA}\\\\n"
   "             BFAM_HAVE_OPENCL:            ${BFAM_HAVE_OPENCL}\\\\n"
   "             BFAM_HAVE_SYSEXITS_H:        ${BFAM_HAVE_SYSEXITS_H}\\\\n"
   "             BFAM_HAVE_SYS_SYSEXITS_H:    ${BFAM_HAVE_SYS_SYSEXITS_H}\\\\n"
