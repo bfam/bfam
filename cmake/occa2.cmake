@@ -1,8 +1,10 @@
 #
 # Bundled occa2 paths.
 #
-set(OCCA2_BUNDLED_PREFIX "${PROJECT_BINARY_DIR}/third_party/OCCA2")
+set(OCCA2_BUNDLED_PREFIX "${CMAKE_INSTALL_PREFIX}")
 set(OCCA2_BUNDLED_LIBRARIES "${OCCA2_BUNDLED_PREFIX}/lib/libocca.so")
+
+set(OCCA2_BUILD_PREFIX "${PROJECT_BINARY_DIR}/third_party/OCCA2")
 
 set(OCCA2_C_FLAGS "")
 set(OCCA2_CXX_FLAGS "")
@@ -109,7 +111,7 @@ message(STATUS "Use occa2 cxx flags: ${OCCA2_CXX_FLAGS}")
 message(STATUS "Use occa2 cpp flags: ${OCCA2_CPP_FLAGS}")
 
 macro(occa2_build)
-  set (occa2_buildoptions "OCCA_DIR='${OCCA2_BUNDLED_PREFIX}'")
+  set (occa2_buildoptions "OCCA_DIR='${OCCA2_BUILD_PREFIX}'")
   set (occa2_cxx "${CMAKE_CXX_COMPILER}")
   set (occa2_cxxflags "")
 
@@ -132,7 +134,9 @@ macro(occa2_build)
       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/third_party/OCCA2
       COMMAND $(MAKE) ${occa2_buildoptions} clean
       COMMAND $(MAKE) ${occa2_buildoptions}
+      COMMAND sh ${PROJECT_SOURCE_DIR}/cmake/install_occa.sh ${CMAKE_INSTALL_PREFIX}
       DEPENDS ${CMAKE_SOURCE_DIR}/CMakeCache.txt
+              ${PROJECT_SOURCE_DIR}/cmake/install_occa.sh
       )
   else()
     add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/third_party/OCCA2
@@ -143,7 +147,9 @@ macro(occa2_build)
       COMMAND cp -r ${PROJECT_SOURCE_DIR}/third_party/OCCA2/* .
       COMMAND $(MAKE) ${occa2_buildoptions} clean
       COMMAND $(MAKE) ${occa2_buildoptions}
+      COMMAND sh ${PROJECT_SOURCE_DIR}/cmake/install_occa.sh ${CMAKE_INSTALL_PREFIX}
       DEPENDS ${PROJECT_BINARY_DIR}/CMakeCache.txt ${PROJECT_BINARY_DIR}/third_party/OCCA2
+              ${PROJECT_SOURCE_DIR}/cmake/install_occa.sh
       )
   endif()
   add_custom_target(libocca2 DEPENDS ${OCCA2_BUNDLED_LIBRARIES})
