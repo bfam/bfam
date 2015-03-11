@@ -119,8 +119,8 @@ macro(p4est_build)
       --enable-mpi --disable-vtk-binary --without-blas
       --without-zlib --without-lua
       --prefix=${P4EST_BUNDLED_PREFIX}
-    BUILD_COMMAND       make
-    INSTALL_COMMAND     make install
+    BUILD_COMMAND       $(MAKE)
+    INSTALL_COMMAND     $(MAKE) install
   )
   add_dependencies(p4est p4est_bundled_libs)
   add_dependencies(build_bundled_libs p4est)
