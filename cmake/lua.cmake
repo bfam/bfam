@@ -50,7 +50,6 @@ macro(lua_build)
     CMAKE_ARGS
       -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_BINARY_DIR}/third_party/lua/install
       -DBUILD_SHARED_LIBS:BOOL=OFF
-      -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
   )
   set_target_properties(lua PROPERTIES EXCLUDE_FROM_ALL ON)
   add_dependencies(build_bundled_libs lua)
