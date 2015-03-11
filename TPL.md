@@ -210,7 +210,11 @@ We include a version of OCCA2 from:
 
     https://github.com/tcew/OCCA2
 
-with the license
+with the command:
+
+    git subtree pull --prefix=third_party/OCCA2 --squash git@github.com:tcew/OCCA2.git master
+
+OCCA2 has  the license:
 
     The MIT License (MIT)
 
