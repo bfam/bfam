@@ -144,6 +144,10 @@ namespace occa {
 
   static const bool useParser = true;
 
+  static const int usingOKL    = (1 << 0);
+  static const int usingOFL    = (1 << 1);
+  static const int usingNative = (1 << 2);
+
   static const int useLoopy  = (1 << 0);
   static const int useFloopy = (1 << 1);
   //==================================
@@ -793,12 +797,6 @@ namespace occa {
               const uintptr_t bytes = 0,
               const uintptr_t offset = 0);
 
-  void memcpy(memory &dest,
-              const memory &src,
-              const uintptr_t bytes = 0,
-              const uintptr_t destOffset = 0,
-              const uintptr_t srcOffset = 0);
-
   void memcpy(void *dest,
               memory &src,
               const uintptr_t bytes = 0,
@@ -814,12 +812,6 @@ namespace occa {
                    const void *src,
                    const uintptr_t bytes = 0,
                    const uintptr_t offset = 0);
-
-  void asyncMemcpy(memory &dest,
-                   const memory &src,
-                   const uintptr_t bytes = 0,
-                   const uintptr_t destOffset = 0,
-                   const uintptr_t srcOffset = 0);
 
   void asyncMemcpy(void *dest,
                    memory &src,
@@ -1411,12 +1403,12 @@ namespace occa {
 
     kernel buildKernelFromString(const std::string &content,
                                  const std::string &functionName,
-                                 const bool useParser);
+                                 const int language = usingOKL);
 
     kernel buildKernelFromString(const std::string &content,
                                  const std::string &functionName,
                                  const kernelInfo &info_ = defaultKernelInfo,
-                                 const bool useParser    = true);
+                                 const int language = usingOKL);
 
     kernel buildKernelFromSource(const std::string &filename,
                                  const std::string &functionName,
