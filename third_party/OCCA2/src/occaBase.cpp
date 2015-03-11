@@ -965,15 +965,6 @@ namespace occa {
     dest.copyFrom(src, bytes, offset);
   }
 
-  void memcpy(memory &dest,
-              const memory &src,
-              const uintptr_t bytes,
-              const uintptr_t destOffset,
-              const uintptr_t srcOffset){
-
-    dest.copyFrom(src, bytes, destOffset, srcOffset);
-  }
-
   void memcpy(void *dest,
               memory &src,
               const uintptr_t bytes,
@@ -997,15 +988,6 @@ namespace occa {
                    const uintptr_t offset){
 
     dest.asyncCopyFrom(src, bytes, offset);
-  }
-
-  void asyncMemcpy(memory &dest,
-                   const memory &src,
-                   const uintptr_t bytes,
-                   const uintptr_t destOffset,
-                   const uintptr_t srcOffset){
-
-    dest.asyncCopyFrom(src, bytes, destOffset, srcOffset);
   }
 
   void asyncMemcpy(void *dest,
@@ -1419,15 +1401,15 @@ namespace occa {
 
   kernel device::buildKernelFromString(const std::string &content,
                                        const std::string &functionName,
-                                       const bool useParser){
+                                       const int language){
 
-    return buildKernelFromString(content, functionName, defaultKernelInfo, useParser);
+    return buildKernelFromString(content, functionName, defaultKernelInfo, language);
   }
 
   kernel device::buildKernelFromString(const std::string &content,
                                        const std::string &functionName,
                                        const kernelInfo &info_,
-                                       const bool useParser){
+                                       const int language){
 
     kernelInfo info = info_;
 
@@ -1441,8 +1423,10 @@ namespace occa {
 
     std::string h_cacheName = prefix + "h_" + cacheName;
 
-    if(useParser)
+    if(language & occa::usingOKL)
       h_cacheName += ".okl";
+    else if(language & occa::usingOFL)
+      h_cacheName += ".ofl";
     else
       h_cacheName += ".occa";
 
