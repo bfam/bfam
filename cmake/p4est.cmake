@@ -3,8 +3,8 @@
 #
 set(P4EST_BUNDLED_PREFIX "${PROJECT_BINARY_DIR}/third_party/p4est/install")
 set(P4EST_BUNDLED_LIBRARIES
-  ${P4EST_BUNDLED_PREFIX}/lib/libp4est${CMAKE_SHARED_LIBRARY_SUFFIX}
-  ${P4EST_BUNDLED_PREFIX}/lib/libsc${CMAKE_SHARED_LIBRARY_SUFFIX}
+  ${P4EST_BUNDLED_PREFIX}/lib/libp4est${CMAKE_STATIC_LIBRARY_SUFFIX}
+  ${P4EST_BUNDLED_PREFIX}/lib/libsc${CMAKE_STATIC_LIBRARY_SUFFIX}
   )
 
 macro(p4est_use_bundled)
@@ -112,7 +112,7 @@ macro(p4est_build)
       "CPPFLAGS=-I${LUA_INCLUDE_DIR} ${zlib_include}"
       "LIBS=${lua_lib} ${zlib_lib}"
       ${p4est_config_args}
-      --enable-mpi --disable-vtk-binary --without-blas
+      --enable-mpi --disable-vtk-binary --without-blas --enable-static --disable-shared
       --without-zlib --without-lua
       --prefix=${P4EST_BUNDLED_PREFIX}
     BUILD_COMMAND       make
