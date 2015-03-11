@@ -764,7 +764,7 @@ function(JOIN VALUES GLUE OUTPUT)
   set (${OUTPUT} "${_TMP_STR}" PARENT_SCOPE)
 endfunction()
 
-join("${BFAM_COMPILE_LIST}" "" BFAM_COMPILE_INFO)
+join("${BFAM_COMPILE_LIST}" "\" \"" BFAM_COMPILE_INFO)
 
 set(slash "\\")
 join("${bfam_dgx_norders}" ") X(" BFAM_DGX_NORDERS_MID)
