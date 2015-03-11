@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 2.8.7)
 project(bfam C Fortran CXX)
 
 include(InstallRequiredSystemLibraries)
-include(FortranCInterface)
 include(CMakePushCheckState)
 
 find_package(Git)
@@ -288,12 +287,6 @@ if(UNIX AND NOT APPLE)
 endif()
 
 check_symbol_exists(mach_absolute_time "mach/mach_time.h" BFAM_HAVE_MACH_ABSOLUTE_TIME)
-
-##
-## Map Fortran SYMBOLS we need
-##
-FortranCInterface_HEADER(bfam_f2c.h MACRO_NAMESPACE "BFAM_" SYMBOL_NAMESPACE "BFAM_"
-  SYMBOLS DSTEQR)
 
 ##
 ## Third-Party Libs
