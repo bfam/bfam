@@ -2,9 +2,17 @@
 # Bundled p4est paths.
 #
 set(P4EST_BUNDLED_PREFIX "${PROJECT_BINARY_DIR}/third_party/p4est/install")
+
+# Work around static build issues on Darwin
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  set(P4EST_LIBRARY_SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}")
+else()
+  set(P4EST_LIBRARY_SUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
+endif()
+
 set(P4EST_BUNDLED_LIBRARIES
-  ${P4EST_BUNDLED_PREFIX}/lib/libp4est${CMAKE_STATIC_LIBRARY_SUFFIX}
-  ${P4EST_BUNDLED_PREFIX}/lib/libsc${CMAKE_STATIC_LIBRARY_SUFFIX}
+  ${P4EST_BUNDLED_PREFIX}/lib/libp4est${P4EST_LIBRARY_SUFFIX}
+  ${P4EST_BUNDLED_PREFIX}/lib/libsc${P4EST_LIBRARY_SUFFIX}
   )
 
 macro(p4est_use_bundled)
@@ -88,6 +96,10 @@ macro(p4est_build)
     set(p4est_config_args "")
   endif("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
 
+  if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(p4est_config_args ${p4est_config_args} --enable-static --disable-shared)
+  endif()
+
   foreach(dir ${ZLIB_INCLUDE_DIRS})
     set(zlib_include "${zlib_include} -I${dir}")
   endforeach()
@@ -112,7 +124,7 @@ macro(p4est_build)
       "CPPFLAGS=-I${LUA_INCLUDE_DIR} ${zlib_include}"
       "LIBS=${lua_lib} ${zlib_lib}"
       ${p4est_config_args}
-      --enable-mpi --disable-vtk-binary --without-blas --enable-static --disable-shared
+      --enable-mpi --disable-vtk-binary --without-blas
       --without-zlib --without-lua
       --prefix=${P4EST_BUNDLED_PREFIX}
     BUILD_COMMAND       make
