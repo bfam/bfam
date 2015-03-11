@@ -311,8 +311,12 @@ include_directories(${ZLIB_INCLUDE_DIRS})
 
 include(p4est)
 
-include(occa2)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OCCA2_CPP_FLAGS} ${OCCA2_C_FLAGS}")
+option(WITH_OCCA "Compile with occa" ON)
+if(WITH_OCCA)
+  set(BFAM_HAVE_OCCA ON)
+  include(occa2)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OCCA2_CPP_FLAGS} ${OCCA2_C_FLAGS}")
+endif()
 
 subdirs(third_party)
 
@@ -706,6 +710,7 @@ set(BFAM_COMPILE_LIST
   "             BFAM_DEBUG:                  ${BFAM_DEBUG}\\\\n"
   "             BFAM_HAVE_CUDA:              ${BFAM_HAVE_CUDA}\\\\n"
   "             BFAM_HAVE_OPENCL:            ${BFAM_HAVE_OPENCL}\\\\n"
+  "             BFAM_HAVE_OCCA:              ${BFAM_HAVE_OCCA}\\\\n"
   "             BFAM_HAVE_SYSEXITS_H:        ${BFAM_HAVE_SYSEXITS_H}\\\\n"
   "             BFAM_HAVE_SYS_SYSEXITS_H:    ${BFAM_HAVE_SYS_SYSEXITS_H}\\\\n"
   "             CMAKE_C_COMPILER:            ${CMAKE_C_COMPILER}\\\\n"
