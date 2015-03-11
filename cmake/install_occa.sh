@@ -6,7 +6,7 @@ set -x
 
 mkdir -p "$1"/lib "$1"/include
 cp lib/libocca.so "$1"/lib
-if [ `uname` == "Darwin" ]; then
+if [ `uname` = "Darwin" ]; then
   # install_name_tool -id '@rpath/libocca.so' "$1"/lib/libocca.so
   install_name_tool -id "$1"/lib/libocca.so "$1"/lib/libocca.so
 fi
