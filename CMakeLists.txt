@@ -20,6 +20,49 @@ find_package(OpenCL)
 find_package(OpenMP)
 
 ##
+## mulit-build variables
+##
+set(bfam_dgx_norders  1  2  3  4  5  6  7  8  9 10
+                     11 12 13 14 15 16 17 18 19 20
+                     21 22 23 24)
+
+set(pxest_dimensions 2 3)
+
+set(bfam_dimensions  0 1 2 3)
+
+##
+## Functions
+##
+function(bfam_multiple_build define_name define_vals lib_name lib_src target)
+  foreach(val ${define_vals})
+    set(full_lib_name "${lib_name}_${val}")
+    add_library(${full_lib_name} ${lib_src})
+
+    set_target_properties(${full_lib_name} PROPERTIES COMPILE_FLAGS
+      "-D${define_name}=${val}")
+
+    target_link_libraries(${full_lib_name} bfam)
+    target_link_libraries(${target} ${full_lib_name})
+  endforeach()
+
+  add_library(${lib_name} ${lib_src})
+  target_link_libraries(${lib_name} bfam)
+  target_link_libraries(${target} ${lib_name})
+endfunction()
+
+function(bfam_multiple_add_flag define_name define_val lib_vals lib_name)
+  foreach(val ${lib_vals})
+    set(full_lib_name "${lib_name}_${val}")
+
+    set_property(TARGET ${full_lib_name} APPEND_STRING PROPERTY
+      COMPILE_FLAGS " -D${define_name}=${define_val}")
+  endforeach()
+
+  set_property(TARGET ${lib_name} APPEND_STRING PROPERTY
+    COMPILE_FLAGS " -D${define_name}=${define_val}")
+endfunction()
+
+##
 ## Version Stuff
 ##
 if(GIT_FOUND)
@@ -369,44 +412,6 @@ endif(OPENCL_FOUND)
 if(CUDA_FOUND)
   target_link_libraries(bfam ${CUDA_LIBRARIES})
 endif(CUDA_FOUND)
-
-set(bfam_dgx_norders  1  2  3  4  5  6  7  8  9 10
-                     11 12 13 14 15 16 17 18 19 20
-                     21 22 23 24)
-
-set(pxest_dimensions 2 3)
-
-set(bfam_dimensions  0 1 2 3)
-
-function(bfam_multiple_build define_name define_vals lib_name lib_src target)
-  foreach(val ${define_vals})
-    set(full_lib_name "${lib_name}_${val}")
-    add_library(${full_lib_name} ${lib_src})
-
-    set_target_properties(${full_lib_name} PROPERTIES COMPILE_FLAGS
-      "-D${define_name}=${val}")
-
-    target_link_libraries(${full_lib_name} bfam)
-    target_link_libraries(${target} ${full_lib_name})
-  endforeach()
-
-  add_library(${lib_name} ${lib_src})
-  target_link_libraries(${lib_name} bfam)
-  target_link_libraries(${target} ${lib_name})
-endfunction()
-
-function(bfam_multiple_add_flag define_name define_val lib_vals lib_name)
-  foreach(val ${lib_vals})
-    set(full_lib_name "${lib_name}_${val}")
-
-    set_property(TARGET ${full_lib_name} APPEND_STRING PROPERTY
-      COMPILE_FLAGS " -D${define_name}=${define_val}")
-  endforeach()
-
-  set_property(TARGET ${lib_name} APPEND_STRING PROPERTY
-    COMPILE_FLAGS " -D${define_name}=${define_val}")
-
-endfunction()
 
 
 ##
@@ -775,6 +780,14 @@ join("${pxest_dimensions}" ") X(" BFAM_PXEST_DIMENSIONS_MID)
 ##
 configure_file(${CMAKE_SOURCE_DIR}/src/bfam_config.h.in
                ${CMAKE_BINARY_DIR}/bfam_config.h)
+
+##
+## Installing things
+##
+install(DIRECTORY src/ DESTINATION include FILES_MATCHING PATTERN "*.h")
+install(FILES ${CMAKE_BINARY_DIR}/bfam_config.h DESTINATION include)
+install(TARGETS bfam DESTINATION lib EXPORT bfam-targets)
+install(EXPORT bfam-targets NAMESPACE bfam_ DESTINATION lib/bfam)
 
 # Set the CPack options
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "bfam")
