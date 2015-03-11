@@ -1,7 +1,7 @@
 #
 # Bundled p4est paths.
 #
-set(P4EST_BUNDLED_PREFIX "${PROJECT_BINARY_DIR}/third_party/p4est/install")
+set(P4EST_BUNDLED_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
 set(P4EST_LIBRARY_SUFFIX "${CMAKE_STATIC_LIBRARY_SUFFIX}")
 

@@ -3,7 +3,7 @@ include (ExternalProject)
 #
 # Bundled lua paths.
 #
-set(LUA_BUNDLED_PREFIX "${PROJECT_BINARY_DIR}/third_party/lua/install")
+set(LUA_BUNDLED_PREFIX "${CMAKE_INSTALL_PREFIX}")
 set(LUA_BUNDLED_LIB    "${LUA_BUNDLED_PREFIX}/lib/liblua.a")
 
 macro(lua_use_bundled)
@@ -48,12 +48,11 @@ macro(lua_build)
     URL                 ${CMAKE_SOURCE_DIR}/third_party/lua-5.2.3.tar.gz
     URL_MD5             fa17304d9d80870d19eb4461e962c2ee
     CMAKE_ARGS
-      -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_BINARY_DIR}/third_party/lua/install
+      -DCMAKE_INSTALL_PREFIX:STRING=${LUA_BUNDLED_PREFIX}
       -DBUILD_SHARED_LIBS:BOOL=OFF
   )
   set_target_properties(lua PROPERTIES EXCLUDE_FROM_ALL ON)
   add_dependencies(build_bundled_libs lua)
-  add_dependencies(p4est_bundled_libs lua)
 endmacro()
 
 

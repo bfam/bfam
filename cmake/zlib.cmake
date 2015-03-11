@@ -3,7 +3,7 @@ include (ExternalProject)
 #
 # Bundled zlib paths.
 #
-set(ZLIB_BUNDLED_PREFIX "${PROJECT_BINARY_DIR}/third_party/zlib/install")
+set(ZLIB_BUNDLED_PREFIX "${CMAKE_INSTALL_PREFIX}")
 set(ZLIB_BUNDLED_LIB    "${ZLIB_BUNDLED_PREFIX}/lib/libz.a")
 
 macro(zlib_use_bundled)
@@ -50,7 +50,7 @@ macro(zlib_build)
     URL_MD5             60df6a37c56e7c1366cca812414f7b85
     PATCH_COMMAND       ${zlib_patch_command}
     CMAKE_ARGS
-      -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_BINARY_DIR}/third_party/zlib/install
+      -DCMAKE_INSTALL_PREFIX:STRING=${ZLIB_BUNDLED_PREFIX}
       -DBUILD_SHARED_LIBS:BOOL=OFF
   )
   set_target_properties(zlib PROPERTIES EXCLUDE_FROM_ALL ON)
