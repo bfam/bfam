@@ -804,10 +804,17 @@ configure_file(${CMAKE_SOURCE_DIR}/src/bfam_config.h.in
                ${CMAKE_BINARY_DIR}/bfam_config.h)
 
 ##
+## Write Makefile export file
+##
+configure_file(${CMAKE_SOURCE_DIR}/src/bfam.mk.in
+               ${CMAKE_BINARY_DIR}/bfam.mk)
+
+##
 ## Installing things
 ##
 install(DIRECTORY src/ DESTINATION include FILES_MATCHING PATTERN "*.h")
 install(FILES ${CMAKE_BINARY_DIR}/bfam_config.h DESTINATION include)
+install(FILES ${CMAKE_BINARY_DIR}/bfam.mk DESTINATION lib/bfam)
 install(TARGETS bfam DESTINATION lib EXPORT bfam-targets)
 install(EXPORT bfam-targets NAMESPACE bfam_ DESTINATION lib/bfam)
 
