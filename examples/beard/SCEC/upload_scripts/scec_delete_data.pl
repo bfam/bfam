@@ -58,9 +58,6 @@ my %LIST_DATA = (
   "o"          => "1005"
 );
 
-# It's a good habit to always use the strict module.
-use strict;
-
 # Modules with routines for making the browser.
 use LWP::UserAgent;
 use HTTP::Request::Common;
