@@ -34,6 +34,8 @@
 
 #include <inttypes.h>
 
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <execinfo.h>
 #include <errno.h>

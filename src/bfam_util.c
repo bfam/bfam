@@ -1,5 +1,6 @@
 #include <bfam_base.h>
 #include <bfam_util.h>
+#include <bfam_log.h>
 
 void bfam_util_strcsl(char *str, const char **list)
 {
@@ -351,4 +352,38 @@ int bfam_ipow(int base, int exp)
   }
 
   return result;
+}
+
+/*
+ * This uses a posix compilent solution from:
+ *   https://www.securecoding.cert.org/confluence/display/c/FIO19-C.+Do+not+use+fseek%28%29+and+ftell%28%29+to+compute+the+size+of+a+regular+file
+ */
+size_t bfam_file_size(const char *filename)
+{
+  struct stat stbuf;
+  int fd, err;
+
+  fd = open(filename, O_RDONLY);
+  if (fd == -1)
+  {
+    BFAM_LERROR("Error opening file: %s", filename);
+    BFAM_ABORT("Failed open");
+  }
+
+  if ((fstat(fd, &stbuf) != 0) || (!S_ISREG(stbuf.st_mode)))
+  {
+    BFAM_LERROR("Error determining size of the file: %s", filename);
+    BFAM_ABORT("Failed fstat");
+  }
+
+  BFAM_ASSERT(stbuf.st_size >= 0);
+
+  err = close(fd);
+  if (err)
+  {
+    BFAM_LERROR("Error closing file: %s", filename);
+    BFAM_ABORT("Failed close");
+  }
+
+  return (size_t)stbuf.st_size;
 }
