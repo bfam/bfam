@@ -18,6 +18,9 @@ if ($NARGS < 4)
   exit;
 }
 
+my $IMG_W = "1600";
+my $IMG_H = "1600";
+
 my $UNAME = $ARGV[0];
 
 my $PSSWD = $ARGV[1];
@@ -103,8 +106,8 @@ if ($Page->is_success)
         "p"=>$PSSWD,
         "m"=>$TPV,
         "o"=>"1005",
-        "ppr"=>"1600",
-        "ppc"=>"1600",
+        "ppr"=>$IMG_H,
+        "ppc"=>$IMG_W,
         "plw"=>"1",
         "psu"=>"1",
         "mus"=>$USERS,
@@ -132,8 +135,8 @@ if ($Page->is_success)
         "p"=>$PSSWD,
         "m"=>$TPV,
         "o"=>"1005",
-        "ppr"=>"1600",
-        "ppc"=>"1600",
+        "ppr"=>$IMG_H,
+        "ppc"=>$IMG_W,
         "plw"=>"1",
         "psu"=>"1",
         "mus"=>$USERS,
