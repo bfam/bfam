@@ -114,7 +114,7 @@ if ($Page->is_success)
         "mss"=>$station
       );
 
-      my $filename = $station."_".$datatype.".gif";
+      my $filename = $TPV."_".$station."_".$datatype.".gif";
       print "Downloading station: $filename\n";
       my $PageDownload = $Browser->request(POST $SCEC_CVWS,\%DOWNLOAD_CMD);
       foreach (split(/\n/,$PageDownload->content))
