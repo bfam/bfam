@@ -187,6 +187,10 @@ int bfam_ipow(int base, int exp);
  */
 size_t bfam_util_file_size(const char *filename);
 
+/** Read the contents of a file into a string.
+ */
+char *bfam_util_read_file(const char *filename, size_t *len);
+
 /** Given a MPI Comm this returns the host rank.
  *
  * The host rank is the rank of the process in the list of processes that

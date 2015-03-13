@@ -389,6 +389,40 @@ size_t bfam_util_file_size(const char *filename)
   return (size_t)stbuf.st_size;
 }
 
+char *bfam_util_read_file(const char *filename, size_t *len)
+{
+  size_t readsize;
+  char *buffer;
+  size_t filesize = bfam_util_file_size(filename);
+  FILE *stream = fopen(filename, "r");
+  if (!stream)
+  {
+    BFAM_LERROR("Error opening the file: %s", filename);
+    BFAM_ABORT("Failed fopen");
+  }
+
+  buffer = bfam_malloc(filesize + 1);
+  readsize = fread(buffer, sizeof(char), filesize, stream);
+  buffer[filesize] = '\0';
+
+  if (readsize != filesize)
+  {
+    BFAM_LERROR("Error determining reading the file: %s", filename);
+    BFAM_ABORT("Failed fread");
+  }
+
+  if (fclose(stream))
+  {
+    BFAM_LERROR("Error closing the file: %s", filename);
+    BFAM_ABORT("Failed fclose");
+  }
+
+  if (len)
+    *len = filesize;
+
+  return buffer;
+}
+
 int bfam_util_get_host_rank(MPI_Comm comm)
 {
   int host_rank, rank, size, length;
