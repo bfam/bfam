@@ -410,6 +410,7 @@ add_library(bfam
                  src/bfam_gopt.c
                  src/bfam_jacobi.c
                  src/bfam_log.c
+                 src/bfam_lua.c
                  src/bfam_opencl.c
                  src/bfam_version.c
                  src/bfam_subdomain.c

@@ -7,6 +7,7 @@
 #include <bfam_critbit.h>
 #include <bfam_dictionary.h>
 #include <bfam_log.h>
+#include <bfam_lua.h>
 #include <bfam_gopt.h>
 #include <bfam_jacobi.h>
 #include <bfam_opencl.h>
