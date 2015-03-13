@@ -88,6 +88,16 @@ int bfam_dictionary_insert_locidx(bfam_dictionary_t *d, const char *key,
   return bfam_dictionary_insert(d, key, val_str);
 }
 
+int bfam_dictionary_delete(bfam_dictionary_t *d, const char *key)
+{
+  const size_t keylen = strlen(key);
+  char *val = bfam_dictionary_get_value(d, key);
+  if (val == NULL)
+    return 0;
+  const char *keyval = val - keylen;
+  return bfam_critbit0_delete(&(d->t), keyval);
+}
+
 int bfam_dictionary_get_value_handle(const char *keyval, void *arg)
 {
   char *key = (char *)((void **)arg)[0];

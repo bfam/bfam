@@ -48,6 +48,19 @@ int bfam_dictionary_contains(bfam_dictionary_t *d, const char *u);
 int bfam_dictionary_insert(bfam_dictionary_t *d, const char *key,
                            const char *val);
 
+/** Delete key and value pair into a dictionary
+ *
+ * It takes a dictionary, \a d, and possibly mutates it such that a \c NULL
+ * terminated string, \a key  is not member on exit.
+ *
+ * \param [in,out] d dictionary
+ * \param [in] key possible key
+ * \returns:
+ *   $\cases{ 0 &if {\rm key not found} \cr
+ *            1 &if {\it key deleted} }$.
+ */
+int bfam_dictionary_delete(bfam_dictionary_t *d, const char *key);
+
 /** Inserting key and value pair where value is a pointer into a dictionary
  *
  * It takes a dictionary, \a d, and possibly mutates it such that a \c NULL

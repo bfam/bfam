@@ -150,6 +150,30 @@ static void test_contains_locidx()
   bfam_dictionary_clear(&dict);
 }
 
+static void test_contains_delete()
+{
+  bfam_dictionary_t dict;
+  bfam_dictionary_init(&dict);
+
+  static const char *keys[] = {"@^1", "@2", "^3", "@^44", NULL};
+
+  static const int values[] = {1, 2, 3, 44};
+
+  for (unsigned i = 0; keys[i]; ++i)
+    bfam_dictionary_insert_int(&dict, keys[i], values[i]);
+
+  for (unsigned i = 0; keys[i]; ++i)
+  {
+    if (1 != bfam_dictionary_delete(&dict, keys[i]))
+      BFAM_ABORT("delete fail");
+  }
+
+  if (0 != bfam_dictionary_delete(&dict, "crap"))
+    BFAM_ABORT("non delete fail");
+
+  bfam_dictionary_clear(&dict);
+}
+
 int main(int argc, char *argv[])
 {
   test_contains();
