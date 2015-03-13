@@ -72,6 +72,14 @@ int bfam_dictionary_insert_ptr(bfam_dictionary_t *d, const char *key,
   return bfam_dictionary_insert(d, key, val_str);
 }
 
+int bfam_dictionary_insert_int(bfam_dictionary_t *d, const char *key,
+                               const int val)
+{
+  char val_str[BFAM_BUFSIZ];
+  snprintf(val_str, BFAM_BUFSIZ, "%d", val);
+  return bfam_dictionary_insert(d, key, val_str);
+}
+
 int bfam_dictionary_insert_locidx(bfam_dictionary_t *d, const char *key,
                                   const bfam_locidx_t val)
 {
@@ -124,6 +132,16 @@ void *bfam_dictionary_get_value_ptr(bfam_dictionary_t *d, const char *key)
   void *val_ptr = NULL;
   sscanf(val_str, "%p", &val_ptr);
   return val_ptr;
+}
+
+int bfam_dictionary_get_value_int(bfam_dictionary_t *d, const char *key,
+                                  int *val)
+{
+  char *val_str = bfam_dictionary_get_value(d, key);
+  if (val_str == NULL)
+    return 0;
+  int n = sscanf(val_str, "%d", val);
+  return n;
 }
 
 int bfam_dictionary_get_value_locidx(bfam_dictionary_t *d, const char *key,
