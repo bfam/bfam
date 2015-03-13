@@ -183,6 +183,6 @@ int bfam_ipow(int base, int exp);
 
 /** Read the contents of a file into a string
  */
-size_t bfam_file_size(const char *filename);
+size_t bfam_util_file_size(const char *filename);
 
 #endif

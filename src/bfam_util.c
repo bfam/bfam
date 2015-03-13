@@ -358,7 +358,7 @@ int bfam_ipow(int base, int exp)
  * This uses a posix compilent solution from:
  *   https://www.securecoding.cert.org/confluence/display/c/FIO19-C.+Do+not+use+fseek%28%29+and+ftell%28%29+to+compute+the+size+of+a+regular+file
  */
-size_t bfam_file_size(const char *filename)
+size_t bfam_util_file_size(const char *filename)
 {
   struct stat stbuf;
   int fd, err;
