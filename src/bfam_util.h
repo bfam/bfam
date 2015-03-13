@@ -1,6 +1,8 @@
 #ifndef BFAM_UTIL_H
 #define BFAM_UTIL_H
 
+#include <bfam_base.h>
+
 /** Creates a comma separated list of strings.
  *
  * \param [out] str  comma separated list of strings
@@ -184,5 +186,12 @@ int bfam_ipow(int base, int exp);
 /** Read the contents of a file into a string
  */
 size_t bfam_util_file_size(const char *filename);
+
+/** Given a MPI Comm this returns the host rank.
+ *
+ * The host rank is the rank of the process in the list of processes that
+ * have the same MPI processor name.
+ */
+int bfam_util_get_host_rank(MPI_Comm comm);
 
 #endif

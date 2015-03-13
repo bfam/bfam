@@ -1,6 +1,7 @@
 #include <bfam_base.h>
 #include <bfam_util.h>
 #include <bfam_log.h>
+#include <bfam_dictionary.h>
 
 void bfam_util_strcsl(char *str, const char **list)
 {
@@ -386,4 +387,54 @@ size_t bfam_util_file_size(const char *filename)
   }
 
   return (size_t)stbuf.st_size;
+}
+
+int bfam_util_get_host_rank(MPI_Comm comm)
+{
+  int host_rank, rank, size, length;
+  char name[MPI_MAX_PROCESSOR_NAME];
+
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  MPI_Get_processor_name(name, &length);
+
+  int *host_ranks = bfam_malloc(size * sizeof(int));
+  char *allnames = bfam_malloc(size * MPI_MAX_PROCESSOR_NAME * sizeof(char));
+
+  BFAM_MPI_CHECK(MPI_Allgather(name, MPI_MAX_PROCESSOR_NAME, MPI_CHAR, allnames,
+                               MPI_MAX_PROCESSOR_NAME, MPI_CHAR, comm));
+
+  bfam_dictionary_t hosts;
+  bfam_dictionary_init(&hosts);
+
+  for (int h = 0; h < size; ++h)
+  {
+    const char *key = allnames + h * MPI_MAX_PROCESSOR_NAME;
+    int hr = 0;
+    if (bfam_dictionary_get_value_int(&hosts, key, &hr))
+    {
+      ++hr;
+      if (1 != bfam_dictionary_delete(&hosts, key))
+        BFAM_ABORT("get host rank dictionary delete fail");
+    }
+    if (2 != bfam_dictionary_insert_int(&hosts, key, hr))
+      BFAM_ABORT("get host rank dictionary insert fail");
+
+    host_ranks[h] = hr;
+  }
+
+  BFAM_ROOT_VERBOSE("-----------Host Ranks----------");
+  for (int h = 0; h < size; ++h)
+  {
+    BFAM_ROOT_VERBOSE("  host_rank[%3d] = %2d", h, host_ranks[h]);
+  }
+  BFAM_ROOT_VERBOSE("-------------------------------");
+
+  host_rank = host_ranks[rank];
+
+  bfam_dictionary_clear(&hosts);
+  bfam_free(allnames);
+  bfam_free(host_ranks);
+
+  return host_rank;
 }
