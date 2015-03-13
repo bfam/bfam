@@ -183,7 +183,7 @@ void bfam_util_linear_blend(bfam_real_t *restrict x, bfam_real_t *restrict y,
  */
 int bfam_ipow(int base, int exp);
 
-/** Read the contents of a file into a string
+/** Get file size in bytes.
  */
 size_t bfam_util_file_size(const char *filename);
 
