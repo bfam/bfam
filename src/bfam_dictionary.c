@@ -84,7 +84,7 @@ int bfam_dictionary_get_value_handle(const char *keyval, void *arg)
 {
   char *key = (char *)((void **)arg)[0];
   char **val = (char **)((void **)arg)[1];
-  int keylen = strlen(key);
+  const size_t keylen = strlen(key);
 
   *val = (char *)&keyval[keylen];
 
