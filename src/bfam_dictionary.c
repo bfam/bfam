@@ -94,7 +94,7 @@ int bfam_dictionary_delete(bfam_dictionary_t *d, const char *key)
   char *val = bfam_dictionary_get_value(d, key);
   if (val == NULL)
     return 0;
-  const char *keyval = val - keylen;
+  const char *keyval = val - keylen - 1;
   return bfam_critbit0_delete(&(d->t), keyval);
 }
 

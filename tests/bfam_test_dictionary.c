@@ -179,6 +179,7 @@ int main(int argc, char *argv[])
   test_contains();
   test_contains_ptr();
   test_contains_locidx();
+  test_contains_delete();
 
   return EXIT_SUCCESS;
 }
