@@ -4,7 +4,7 @@
 #include <bfam_base.h>
 
 /*
- * Som of the following functions were modified from the code at:
+ * Some of the following functions were modified from the code at:
  *
  *    http://windrealm.org/tutorials/reading-a-lua-configuration-file-from-c.php
  */
