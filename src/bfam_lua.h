@@ -4,6 +4,20 @@
 #include <bfam_base.h>
 
 /*
+ * Helper function for calling a lua function. Based on generic call function of
+ * Listing 25.4-25.6 of
+ * @book{Ierusalimschy2006Lua,
+ *  author = {Ierusalimschy, Roberto},
+ *  title = {Programming in Lua, Second Edition},
+ *  year = {2006},
+ *  isbn = {8590379825},
+ *  publisher = {Lua.Org},
+ * }
+ */
+int bfam_lua_global_function_call(lua_State *L, const char *name,
+                                  const char *sig, ...);
+
+/*
  * Some of the following functions were modified from the code at:
  *
  *    http://windrealm.org/tutorials/reading-a-lua-configuration-file-from-c.php
