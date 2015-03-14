@@ -76,8 +76,8 @@ char *bfam_lua_expr_string(lua_State *L, const char *expr, const char *def)
     lua_pop(L, 1);
   }
 
-  char *s = bfam_malloc((len+1)*sizeof(char));
-  strncpy(s, r, len+1);
+  char *s = bfam_malloc((len + 1) * sizeof(char));
+  strncpy(s, r, len + 1);
   s[len] = '\0';
 
   return s;
