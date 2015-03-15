@@ -40,7 +40,11 @@
 #define bfam_domain_pxest_init_callback                                        \
   BFAM_APPEND_EXPAND(bfam_domain_pxest_init_callback_, DIM)
 #define bfam_domain_pxest_new BFAM_APPEND_EXPAND(bfam_domain_pxest_new_, DIM)
+#define bfam_domain_pxest_new_ext                                              \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_new_ext_, DIM)
 #define bfam_domain_pxest_init BFAM_APPEND_EXPAND(bfam_domain_pxest_init_, DIM)
+#define bfam_domain_pxest_init_ext                                             \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_init_ext_, DIM)
 #define bfam_domain_pxest_free BFAM_APPEND_EXPAND(bfam_domain_pxest_free_, DIM)
 #define bfam_subdomain_dgx_new BFAM_APPEND_EXPAND(bfam_subdomain_dgx_new_, DIM)
 #define bfam_subdomain_dgx_interpolate_data                                    \
@@ -84,16 +88,36 @@ bfam_domain_pxest_t *bfam_domain_pxest_new(MPI_Comm domComm,
   return newDomain;
 }
 
+bfam_domain_pxest_t *bfam_domain_pxest_new_ext(MPI_Comm domComm,
+                                               p4est_connectivity_t *conn,
+                                               p4est_locidx_t min_quadrants,
+                                               int min_level, int fill_uniform)
+{
+  bfam_domain_pxest_t *newDomain = bfam_malloc(sizeof(bfam_domain_pxest_t));
+  bfam_domain_pxest_init_ext(newDomain, domComm, conn, min_quadrants, min_level,
+                             fill_uniform);
+  return newDomain;
+}
+
 void bfam_domain_pxest_init(bfam_domain_pxest_t *domain, MPI_Comm domComm,
                             p4est_connectivity_t *conn)
+{
+  bfam_domain_pxest_init_ext(domain, domComm, conn, 0, 0, 1);
+}
+
+void bfam_domain_pxest_init_ext(bfam_domain_pxest_t *domain, MPI_Comm domComm,
+                                p4est_connectivity_t *conn,
+                                p4est_locidx_t min_quadrants, int min_level,
+                                int fill_uniform)
 {
   bfam_pxest_user_data_t default_user_data = {0};
   bfam_domain_init(&domain->base, domComm);
 
   domain->conn = conn;
   domain->pxest =
-      p4est_new(domComm, conn, sizeof(bfam_pxest_user_data_t),
-                bfam_domain_pxest_init_callback, &default_user_data);
+      p4est_new_ext(domComm, conn, min_quadrants, min_level, fill_uniform,
+                    sizeof(bfam_pxest_user_data_t),
+                    bfam_domain_pxest_init_callback, &default_user_data);
   domain->N2N = bfam_malloc(sizeof(bfam_dictionary_t));
   bfam_dictionary_init(domain->N2N);
 }

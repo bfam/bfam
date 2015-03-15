@@ -43,6 +43,30 @@ typedef struct bfam_domain_pxest_3
 bfam_domain_pxest_t_3 *bfam_domain_pxest_new_3(MPI_Comm domComm,
                                                p8est_connectivity_t *conn);
 
+/** create a pxest managed domain
+ *
+ * \warning It is the callers responsibility to ensure that
+ *          \a domComm and \a conn are freed after this domain is.
+ *
+ * \param [in]  domComm         pointer to the communicator for the domain
+ * \param [in]  conn            pointer to the pxest connectivity for the domain
+ * \param [in]  min_quadrants   Minimum initial quadrants per processor.
+ *                              Makes the refinement pattern mpisize-specific.
+ * \param [in]  min_level       The forest is refined at least to this level.
+ *                              May be negative or 0, then it has no effect.
+ * \param [in]  fill_uniform    If true, fill the forest with a uniform mesh
+ *                              instead of the coarsest possible one.
+ *                              The latter is partition-specific so that
+ *                              is usually not a good idea.
+*
+ * \return the newly created pxest managed domain
+ */
+bfam_domain_pxest_t_3 *bfam_domain_pxest_new_ext_3(MPI_Comm domComm,
+                                                   p8est_connectivity_t *conn,
+                                                   p4est_locidx_t min_quadrants,
+                                                   int min_level,
+                                                   int fill_uniform);
+
 /** initializes a domain
  *
  * \param [in,out] domain  pointer to the pxest managed domain
@@ -51,6 +75,27 @@ bfam_domain_pxest_t_3 *bfam_domain_pxest_new_3(MPI_Comm domComm,
  */
 void bfam_domain_pxest_init_3(bfam_domain_pxest_t_3 *domain, MPI_Comm domComm,
                               p8est_connectivity_t *conn);
+
+/** initializes a domain
+ *
+ * \param [in,out] domain          pointer to the pxest managed domain
+ * \param [in]     domComm         pointer to the communicator for the domain
+ * \param [in]     conn            pointer to the pxest connectivity for the
+ *                                 domain
+ * \param [in]     min_quadrants   Minimum initial quadrants per processor.
+ *                                 Makes the refinement pattern
+ *                                 mpisize-specific.
+ * \param [in]     min_level       The forest is refined at least to this level.
+ *                                 May be negative or 0, then it has no effect.
+ * \param [in]     fill_uniform    If true, fill the forest with a uniform mesh
+ *                                 instead of the coarsest possible one.
+ *                                 The latter is partition-specific so that
+ *                                 is usually not a good idea.
+ */
+void bfam_domain_pxest_init_ext_3(bfam_domain_pxest_t_3 *domain,
+                                  MPI_Comm domComm, p8est_connectivity_t *conn,
+                                  p4est_locidx_t min_quadrants, int min_level,
+                                  int fill_uniform);
 
 /** Clean up domain
  *
