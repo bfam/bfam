@@ -14,7 +14,19 @@ int bfam_lua_global_function_call(lua_State *L, const char *name,
 
   va_start(vl, sig);
 
-  lua_getglobal(L, name);
+  char buf[BFAM_LUA_MAX_COMMAND_LEN];
+  /* Assign the Lua expression to a Lua global variable. */
+  snprintf(buf, BFAM_LUA_MAX_COMMAND_LEN, BFAM_LUA_EVALEXP_VAR "=%s", name);
+  if (!luaL_dostring(L, buf))
+  {
+    /* Get the value of the global varibable */
+    lua_getglobal(L, BFAM_LUA_EVALEXP_VAR);
+  }
+  else
+  {
+    BFAM_ROOT_WARNING("function `%s' not found in lua file", name);
+    return 1;
+  }
 
   if (!lua_isfunction(L, -1))
   {
