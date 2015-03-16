@@ -242,6 +242,7 @@ typedef long double bfam_long_real_t;
 
 #define BFAM_LONG_REAL_EPS LDBL_EPSILON
 #define BFAM_LONG_REAL_MIN LDBL_MIN
+#define BFAM_LONG_REAL_MAX LDBL_MAX
 #else
 typedef double bfam_long_real_t;
 #define BFAM_LONG_REAL(x) x
@@ -262,6 +263,7 @@ typedef double bfam_long_real_t;
 
 #define BFAM_LONG_REAL_EPS DBL_EPSILON
 #define BFAM_LONG_REAL_MIN DBL_MIN
+#define BFAM_LONG_REAL_MAX DBL_MAX
 #endif
 #define BFAM_LONG_REAL_PI (4 * BFAM_LONG_REAL_ATAN(1))
 
@@ -291,6 +293,7 @@ typedef double bfam_real_t;
 
 #define BFAM_REAL_EPS DBL_EPSILON
 #define BFAM_REAL_MIN DBL_MIN
+#define BFAM_REAL_MAX DBL_MAX
 
 #define BFAM_REAL_VTK "Float64"
 #define BFAM_REAL_FMTe "24.16e"
