@@ -283,6 +283,7 @@ typedef double bfam_real_t;
 #define BFAM_REAL_NAN(x) nan(x)
 
 #define BFAM_REAL_ABS fabs
+#define BFAM_REAL_ISFINITE isfinite
 #define BFAM_REAL_SQRT sqrt
 #define BFAM_REAL_EXP exp
 #define BFAM_REAL_COS cos

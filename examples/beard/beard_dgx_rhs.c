@@ -283,6 +283,8 @@ beard_dgx_rs_arcsinh_newton(bfam_real_t *V_ptr, bfam_real_t *T_ptr,
 
   /* Compute the initial function value */
   bfam_real_t G = phi - eta*V + Tn*a*BFAM_REAL_ASINH(A*V);
+
+  BFAM_ASSERT(BFAM_REAL_ISFINITE(G));
   if(G < 0)
     Vmax = V;
   else if(G > 0)
@@ -317,6 +319,8 @@ beard_dgx_rs_arcsinh_newton(bfam_real_t *V_ptr, bfam_real_t *T_ptr,
     {
       *V_ptr = V;
       *T_ptr = -Tn*a*BFAM_REAL_ASINH(A*V);
+      BFAM_ASSERT(BFAM_REAL_ISFINITE(*V_ptr));
+      BFAM_ASSERT(BFAM_REAL_ISFINITE(*T_ptr));
       return 0;
     }
 
@@ -2418,9 +2422,12 @@ void beard_dgx_inter_rhs_ageing_law_interface(
       Tp2[iG]   = TpS_g[3*pnt+1] + Tp2_0[iG];
       Tp3[iG]   = TpS_g[3*pnt+2] + Tp3_0[iG];
 
-      const bfam_real_t theta =
-        (L[iG]/V0[iG])*BFAM_REAL_EXP((psi[iG]-f0[iG])/b[iG]);
-      dpsi[iG] += b[iG]*(1.0/theta-V[iG]/L[iG]);
+      if(b[iG] > 0)
+      {
+        const bfam_real_t theta =
+          (L[iG]/V0[iG])*BFAM_REAL_EXP((psi[iG]-f0[iG])/b[iG]);
+        dpsi[iG] += b[iG]*(1.0/theta-V[iG]/L[iG]);
+      }
       /* dpsi[iG] += (b[iG]/theta)*(1-V[iG]*theta/L[iG]); */
 
       /* substract off the grid values */
