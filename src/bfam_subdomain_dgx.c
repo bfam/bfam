@@ -3546,7 +3546,7 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,
 bfam_subdomain_dgx_t *BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_new_,
                                          BFAM_DGX_DIMENSION)(
     const bfam_locidx_t id, const bfam_locidx_t uid, const char *name,
-    const int N_m, const int N_p, const bfam_locidx_t rank_m,
+    const int N_m, const int N_p, const int N_g, const bfam_locidx_t rank_m,
     const bfam_locidx_t rank_p, const bfam_locidx_t id_m,
     const bfam_locidx_t id_p, bfam_subdomain_dgx_t *sub_m,
     bfam_locidx_t *ktok_m, const bfam_locidx_t K,
@@ -3564,8 +3564,8 @@ bfam_subdomain_dgx_t *BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_new_,
       bfam_malloc(sizeof(bfam_subdomain_dgx_t));
 
   BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
-      newSubdomain, id, uid, name, N_m, N_p, rank_m, rank_p, id_m, id_p, sub_m,
-      ktok_m, K, mapping, inDIM);
+      newSubdomain, id, uid, name, N_m, N_p, N_g, rank_m, rank_p, id_m, id_p,
+      sub_m, ktok_m, K, mapping, inDIM);
   return newSubdomain;
 }
 
@@ -3649,7 +3649,7 @@ static void bfam_subdomain_dgx_glue_generic_init(
 void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
     bfam_subdomain_dgx_t *subdomain, const bfam_locidx_t id,
     const bfam_locidx_t uid, const char *name, const int N_m, const int N_p,
-    const bfam_locidx_t rank_m, const bfam_locidx_t rank_p,
+    const int N_g, const bfam_locidx_t rank_m, const bfam_locidx_t rank_p,
     const bfam_locidx_t id_m, const bfam_locidx_t id_p,
     bfam_subdomain_dgx_t *sub_m, bfam_locidx_t *ktok_m, const bfam_locidx_t K,
     bfam_subdomain_face_map_entry_t *mapping, const int inDIM)
@@ -3661,8 +3661,7 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
   BFAM_ASSERT(DIM == inDIM);
   BFAM_ASSERT(DIM > 0);
 
-  bfam_subdomain_dgx_generic_init(subdomain, id, uid, name, BFAM_MAX(N_m, N_p),
-                                  K, inDIM);
+  bfam_subdomain_dgx_generic_init(subdomain, id, uid, name, N_g, K, inDIM);
 
 #ifdef BFAM_DEBUG
   {
@@ -3840,7 +3839,7 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
       glue_m->projection[i][n] = (bfam_real_t)projection[i][n];
   }
 
-  glue_p->same_order = (N_p == N_m);
+  glue_p->same_order = (N_p == N) && (N_m == N);
   glue_p->EToEp = bfam_malloc_aligned(K * sizeof(bfam_locidx_t));
   glue_p->EToHp = bfam_malloc_aligned(K * sizeof(int8_t));
   glue_p->EToEm = bfam_malloc_aligned(K * sizeof(bfam_locidx_t));

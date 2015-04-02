@@ -1377,9 +1377,9 @@ void bfam_domain_pxest_split_dgx_subdomains(
       }
 
       bfam_subdomain_dgx_t *glue = bfam_subdomain_dgx_glue_new(
-          id, glueid, glueName, N[id_m], N[id_p], rank_m, rank_p,
-          sign_p * (id_m + 1), sign_p * (id_p + 1), subdomains[id_m], ktosubk,
-          Kglue, ifmapping + ifk, DIM - 1);
+          id, glueid, glueName, N[id_m], N[id_p], BFAM_MAX(N[id_m], N[id_p]),
+          rank_m, rank_p, sign_p * (id_m + 1), sign_p * (id_p + 1),
+          subdomains[id_m], ktosubk, Kglue, ifmapping + ifk, DIM - 1);
 
       bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue");
       bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue_local");
@@ -1438,8 +1438,9 @@ void bfam_domain_pxest_split_dgx_subdomains(
              (intmax_t)id, (intmax_t)id_m, (intmax_t)id_p, (intmax_t)glueid);
 
     bfam_subdomain_dgx_t *glue = bfam_subdomain_dgx_glue_new(
-        id, glueid, glueName, N[id_m], N[id_p], rank_m, rank_p, id_m + 1,
-        id_p + 1, subdomains[id_m], ktosubk, Kglue, bfmapping + bfk, DIM - 1);
+        id, glueid, glueName, N[id_m], N[id_p], BFAM_MAX(N[id_m], N[id_p]),
+        rank_m, rank_p, id_m + 1, id_p + 1, subdomains[id_m], ktosubk, Kglue,
+        bfmapping + bfk, DIM - 1);
 
     bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue");
     bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue_boundary");
@@ -1493,8 +1494,9 @@ void bfam_domain_pxest_split_dgx_subdomains(
              (intmax_t)id, (intmax_t)id_m, (intmax_t)id_p, (intmax_t)glueid);
 
     bfam_subdomain_dgx_t *glue = bfam_subdomain_dgx_glue_new(
-        id, glueid, glueName, N[id_m], ghostN[gid_p], rank_m, rank_p, id_m + 1,
-        id_p + 1, subdomains[id_m], ktosubk, Kglue, pfmapping + pfk, DIM - 1);
+        id, glueid, glueName, N[id_m], ghostN[gid_p],
+        BFAM_MAX(N[id_m], ghostN[id_p]), rank_m, rank_p, id_m + 1, id_p + 1,
+        subdomains[id_m], ktosubk, Kglue, pfmapping + pfk, DIM - 1);
 
     bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue");
     bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue_parallel");

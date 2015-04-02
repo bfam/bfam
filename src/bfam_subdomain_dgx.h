@@ -216,6 +216,7 @@ void bfam_subdomain_dgx_init_(bfam_subdomain_dgx_t *subdomain,
  *                             dimension
  * \param [in]     N_p         plus  side polynomial order of elements in each
  *                             dimension
+ * \param [in]     N_g         polynomial order of each element in this glue
  * \param [in]     rank_m      minus side processor rank
  * \param [in]     rank_p      plus  side processor rank
  * \param [in]     id_m        minus side subdomain id
@@ -231,7 +232,7 @@ void bfam_subdomain_dgx_init_(bfam_subdomain_dgx_t *subdomain,
  */
 bfam_subdomain_dgx_t *bfam_subdomain_dgx_glue_new_(
     const bfam_locidx_t id, const bfam_locidx_t uid, const char *name,
-    const int N_m, const int N_p, const bfam_locidx_t rank_m,
+    const int N_m, const int N_p, const int N_g, const bfam_locidx_t rank_m,
     const bfam_locidx_t rank_p, const bfam_locidx_t id_m,
     const bfam_locidx_t id_p, bfam_subdomain_dgx_t *sub_m,
     bfam_locidx_t *ktok_m, const bfam_locidx_t K,
@@ -247,6 +248,7 @@ bfam_subdomain_dgx_t *bfam_subdomain_dgx_glue_new_(
  *                              dimension
  * \param [in]     N_p          plus  side polynomial order of elements in each
  *                              dimension
+ * \param [in]     N_g          polynomial order of each element in this glue
  * \param [in]     rank_m       minus side processor rank
  * \param [in]     rank_p       plus  side processor rank
  * \param [in]     id_m         minus side subdomain id
@@ -261,7 +263,7 @@ bfam_subdomain_dgx_t *bfam_subdomain_dgx_glue_new_(
 void bfam_subdomain_dgx_glue_init_(
     bfam_subdomain_dgx_t *subdomain, const bfam_locidx_t id,
     const bfam_locidx_t uid, const char *name, const int N_m, const int N_p,
-    const bfam_locidx_t rank_m, const bfam_locidx_t rank_p,
+    const int N_g, const bfam_locidx_t rank_m, const bfam_locidx_t rank_p,
     const bfam_locidx_t id_m, const bfam_locidx_t id_p,
     bfam_subdomain_dgx_t *sub_m, bfam_locidx_t *ktok_m, const bfam_locidx_t K,
     bfam_subdomain_face_map_entry_t *mapping, const int inDIM);
@@ -386,7 +388,7 @@ int bfam_subdomain_dgx_clear_interpolation_dict_(const char *key, void *val,
   void bfam_subdomain_dgx_free_##dg_dim(bfam_subdomain_t *subdomain);          \
   bfam_subdomain_dgx_t *bfam_subdomain_dgx_glue_new_##dg_dim(                  \
       const bfam_locidx_t id, const bfam_locidx_t uid, const char *name,       \
-      const int N_m, const int N_p, const bfam_locidx_t rank_m,                \
+      const int N_m, const int N_p, const int N_g, const bfam_locidx_t rank_m, \
       const bfam_locidx_t rank_p, const bfam_locidx_t id_m,                    \
       const bfam_locidx_t id_p, bfam_subdomain_dgx_t *sub_m,                   \
       bfam_locidx_t *ktok_m, const bfam_locidx_t K,                            \
@@ -394,7 +396,7 @@ int bfam_subdomain_dgx_clear_interpolation_dict_(const char *key, void *val,
   void bfam_subdomain_dgx_glue_init_##dg_dim(                                  \
       bfam_subdomain_dgx_t *subdomain, const bfam_locidx_t id,                 \
       const bfam_locidx_t uid, const char *name, const int N_m, const int N_p, \
-      const bfam_locidx_t rank_m, const bfam_locidx_t rank_p,                  \
+      const int N_g, const bfam_locidx_t rank_m, const bfam_locidx_t rank_p,   \
       const bfam_locidx_t id_m, const bfam_locidx_t id_p,                      \
       bfam_subdomain_dgx_t *sub_m, bfam_locidx_t *ktok_m,                      \
       const bfam_locidx_t K, bfam_subdomain_face_map_entry_t *mapping,         \
