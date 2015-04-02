@@ -145,13 +145,16 @@ void bfam_domain_pxest_quad_to_glueid_3(p4est_t *pxest,
  *                               if \c NULL it will be ignored.
  * \param [in] nodes_transform   user callback function to allow the user to
  *                               further transform the nodal locations
- * \param [in] user_args         user argument for nodes_transform
+ * \param [in] nt_user_args      user argument for nodes_transform
+ * \param [in] glue_order        user callback function to allow the user to
+ *                               set the order of the glue grids
+ * \param [in] go_user_args      user argument for glue_order
  */
 void bfam_domain_pxest_split_dgx_subdomains_3(
     bfam_domain_pxest_t_3 *domain, bfam_locidx_t numSubdomains,
     bfam_locidx_t *subdomainID, bfam_locidx_t *roots, int *N,
     bfam_locidx_t *glueID, bfam_dgx_nodes_transform_t nodes_transform,
-    void *user_args);
+    void *nt_user_args, bfam_glue_order_t glue_order, void *go_user_args);
 
 /** Adapt the mesh.
  *
@@ -162,11 +165,15 @@ void bfam_domain_pxest_split_dgx_subdomains_3(
  *                               domain
  * \param [in] nodes_transform   user callback function to allow the user to
  *                               further transform the nodal locations
- * \param [in] user_args         user argument for nodes_transform
+ * \param [in] nt_user_args      user argument for nodes_transform
+ * \param [in] glue_order        user callback function to allow the user to
+ *                               set the order of the glue grids
+ * \param [in] go_user_args      user argument for glue_order
  */
 void bfam_domain_pxest_adapt_3(bfam_domain_pxest_t_3 *domain,
                                bfam_dgx_nodes_transform_t nodes_transform,
-                               void *user_args);
+                               void *nt_user_args, bfam_glue_order_t glue_order,
+                               void *go_user_args);
 
 /** Callback for p4est user data init function.
  */

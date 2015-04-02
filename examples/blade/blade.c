@@ -732,7 +732,7 @@ split_domain(blade_t *blade, prefs_t *prefs)
 
   /* Last argument is NULL since we don't need user specified glues for blade */
   bfam_domain_pxest_split_dgx_subdomains(domain, data.max_N, sub_ids, NULL, N,
-      NULL, NULL, NULL);
+      NULL, NULL, NULL, NULL, NULL);
 
   bfam_free(sub_ids);
   bfam_free(N);

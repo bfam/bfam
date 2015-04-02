@@ -448,6 +448,9 @@ typedef void (*bfam_dgx_nodes_transform_t)(const bfam_locidx_t num_Vi,
                                            bfam_long_real_t **lxi,
                                            void *user_args);
 
+typedef int (*bfam_glue_order_t)(const int N_m, const int N_p,
+                                 const bfam_locidx_t uid, void *user_args);
+
 /** Abort function.
  *
  * This call will abort the program.

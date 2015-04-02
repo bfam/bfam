@@ -1107,7 +1107,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
     bfam_domain_pxest_t *domain, bfam_locidx_t numSubdomains,
     bfam_locidx_t *subdomainID, bfam_locidx_t *roots, int *N,
     bfam_locidx_t *glueID, bfam_dgx_nodes_transform_t nodes_transform,
-    void *user_args)
+    void *nt_user_args, bfam_glue_order_t glue_order, void *go_user_args)
 {
   BFAM_ROOT_LDEBUG("Begin splitting p4est domain into subdomains.");
   const int HF = P4EST_HALF * P4EST_FACES;
@@ -1306,7 +1306,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
     const bfam_long_real_t *Vi[] = {VX, VY, VZ};
     subdomains[id] = bfam_subdomain_dgx_new(
         id, -1, name[id], N[id], Nv, DIM, Vi, subK[id], EToV[id], EToE[id],
-        EToF[id], nodes_transform, user_args, DIM);
+        EToF[id], nodes_transform, nt_user_args, DIM);
 
     bfam_subdomain_add_tag((bfam_subdomain_t *)subdomains[id], "_volume");
     char root_id_tag[BFAM_BUFSIZ];
@@ -2332,7 +2332,8 @@ static void bfam_domain_pxest_transfer_fields(bfam_domain_pxest_t *domain_dst,
 static void
 bfam_domain_pxest_adapt_flag(uint8_t flags, bfam_domain_pxest_t *domain,
                              bfam_dgx_nodes_transform_t nodes_transform,
-                             void *user_args)
+                             void *nt_user_args, bfam_glue_order_t glue_order,
+                             void *go_user_args)
 {
   bfam_locidx_t new_num_subdomains;
   bfam_locidx_t *new_subdomain_id;
@@ -2375,7 +2376,7 @@ bfam_domain_pxest_adapt_flag(uint8_t flags, bfam_domain_pxest_t *domain,
   /* Split domains */
   bfam_domain_pxest_split_dgx_subdomains(
       domain, new_num_subdomains, new_subdomain_id, new_roots, new_N,
-      new_glue_id, nodes_transform, user_args);
+      new_glue_id, nodes_transform, nt_user_args, glue_order, go_user_args);
 
   /* Transfer fields */
   bfam_domain_pxest_transfer_fields(domain, old_domain);
@@ -2393,17 +2394,18 @@ bfam_domain_pxest_adapt_flag(uint8_t flags, bfam_domain_pxest_t *domain,
 
 void bfam_domain_pxest_adapt(bfam_domain_pxest_t *domain,
                              bfam_dgx_nodes_transform_t nodes_transform,
-                             void *user_args)
+                             void *nt_user_args, bfam_glue_order_t glue_order,
+                             void *go_user_args)
 {
   /* coarsen and balance */
   bfam_domain_pxest_adapt_flag(BFAM_FLAG_COARSEN, domain, nodes_transform,
-                               user_args);
+                               nt_user_args, glue_order, go_user_args);
 
   /* TODO split and partition based on guessed elements */
 
   /* refine and balance */
   bfam_domain_pxest_adapt_flag(BFAM_FLAG_REFINE, domain, nodes_transform,
-                               user_args);
+                               nt_user_args, glue_order, go_user_args);
 
   /* TODO split and partition based on actual elements */
 }

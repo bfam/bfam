@@ -1618,14 +1618,14 @@ split_domain(beard_t *beard, prefs_t *prefs)
   if(lua_isfunction(prefs->L,-1))
   {
     bfam_domain_pxest_split_dgx_subdomains(domain, num_sub, sub_ids, root, N,
-        glue_ids,&transform_nodes,prefs);
+        glue_ids,&transform_nodes,prefs, NULL, NULL);
   }
   else
   {
     BFAM_ROOT_WARNING("function `%s' not found in lua file",
         "transform_nodes");
     bfam_domain_pxest_split_dgx_subdomains(domain, num_sub, sub_ids, root, N,
-        glue_ids,NULL,NULL);
+        glue_ids,NULL,NULL, NULL, NULL);
   }
   lua_pop(prefs->L,1);
   BFAM_ASSERT(lua_gettop(prefs->L)==0);
