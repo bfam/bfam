@@ -3682,7 +3682,9 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
 #endif
 
   BFAM_ABORT_IF(N_g < N_m || N_g < N_p,
-                "glue space must currently be a higher order space");
+                "glue space must currently be a higher order space"
+                " N_g = %d, N_m = %d, N_p = %d",
+                N_g, N_m, N_p);
 
   subdomain->base.field_minus_add = bfam_subdomain_dgx_glue_field_minus_add;
   subdomain->base.field_plus_add = bfam_subdomain_dgx_glue_field_plus_add;

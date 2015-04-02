@@ -1495,7 +1495,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
 
     bfam_subdomain_dgx_t *glue = bfam_subdomain_dgx_glue_new(
         id, glueid, glueName, N[id_m], ghostN[gid_p],
-        BFAM_MAX(N[id_m], ghostN[id_p]), rank_m, rank_p, id_m + 1, id_p + 1,
+        BFAM_MAX(N[id_m], ghostN[gid_p]), rank_m, rank_p, id_m + 1, id_p + 1,
         subdomains[id_m], ktosubk, Kglue, pfmapping + pfk, DIM - 1);
 
     bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue");
