@@ -206,7 +206,7 @@ static void multiply_projections(const int N_b, const int N_a, const int N_g,
     BFAM_ABORT("Case of all NULL or all not NULL is not handled");
 
   for (bfam_locidx_t n = 0; n < Np_a * Np_b; n++)
-    P_a2b[n] = l_P[n];
+    P_a2b[n] = (bfam_real_t)l_P[n];
 }
 
 static void create_interpolators(interpolator_t *interp_a2b,
@@ -639,10 +639,11 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_add_rates_glue_p_,
                         BFAM_DGX_DIMENSION)(
     bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,
     const char *field_prefix_rhs, const char *rate_prefix,
-    const bfam_long_real_t a, const char **scalars, const char **vectors,
+    const bfam_long_real_t a_l, const char **scalars, const char **vectors,
     const char **tensors)
 {
 
+  const bfam_real_t a = (bfam_real_t)a_l;
   bfam_locidx_t num_pts = sub->K * sub->Np;
 
   for (int s = 0; scalars[s] != NULL; s++)
@@ -2087,7 +2088,7 @@ bfam_subdomain_dgx_field_init(bfam_subdomain_t *subdomain, const char *name,
   BFAM_ABORT_IF(field == NULL, "Init: Field %s not found in subdomain %s", name,
                 subdomain->name);
 
-  size_t fieldLength = s->Np * s->K;
+  bfam_locidx_t fieldLength = s->Np * s->K;
 
   bfam_real_t *restrict x0 =
       bfam_dictionary_get_value_ptr(&subdomain->fields, "_grid_x0");
@@ -2897,8 +2898,8 @@ static void bfam_subdomain_dgx_buildmaps(
     for (int8_t f1 = 0; f1 < Nfaces; ++f1)
     {
       bfam_locidx_t k2 = EToE[Nfaces * k1 + f1];
-      int8_t f2 = EToF[Nfaces * k1 + f1] % Nfaces;
-      int8_t o = EToF[Nfaces * k1 + f1] / Nfaces;
+      int8_t f2 = (int8_t)(EToF[Nfaces * k1 + f1] % Nfaces);
+      int8_t o = (int8_t)(EToF[Nfaces * k1 + f1] / Nfaces);
 
       for (int n = 0; n < Nfp; ++n)
       {
@@ -3112,7 +3113,7 @@ static void bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
     for (bfam_locidx_t k = 0; k < K; ++k)
     {
       subdomain->hadapt[k] = BFAM_FLAG_SAME;
-      subdomain->padapt[k] = N;
+      subdomain->padapt[k] = (int8_t)N;
       subdomain->q_id[k] = -1;
     }
   }
@@ -3691,14 +3692,14 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
   subdomain->base.glue_m = bfam_malloc(sizeof(bfam_subdomain_dgx_glue_data_t));
   bfam_subdomain_dgx_glue_data_t *glue_m =
       (bfam_subdomain_dgx_glue_data_t *)subdomain->base.glue_m;
-  bfam_subdomain_dgx_glue_generic_init(glue_m, rank_m, id_m, imaxabs(id_m) - 1,
-                                       sub_m, DIM);
+  bfam_subdomain_dgx_glue_generic_init(
+      glue_m, rank_m, id_m, (bfam_locidx_t)(imaxabs(id_m) - 1), sub_m, DIM);
 
   subdomain->base.glue_p = bfam_malloc(sizeof(bfam_subdomain_dgx_glue_data_t));
   bfam_subdomain_dgx_glue_data_t *glue_p =
       (bfam_subdomain_dgx_glue_data_t *)subdomain->base.glue_p;
-  bfam_subdomain_dgx_glue_generic_init(glue_p, rank_p, id_p, imaxabs(id_p) - 1,
-                                       NULL, DIM);
+  bfam_subdomain_dgx_glue_generic_init(
+      glue_p, rank_p, id_p, (bfam_locidx_t)(imaxabs(id_p) - 1), NULL, DIM);
 
   const int N = subdomain->N;
   const int Nrp = N + 1;
