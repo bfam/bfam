@@ -1557,6 +1557,17 @@ static void init_tree_to_glueid(beard_t *beard, prefs_t *prefs,
   BFAM_ASSERT(top == lua_gettop(L));
 }
 
+static int glue_order(const int N_m, const int N_p, const bfam_locidx_t uid,
+                      void *args)
+{
+  prefs_t *prefs = (prefs_t *)args;
+  lua_State *L = prefs->L;
+  int N_g;
+  lua_global_function_call(L, 0, "glue_order", "iii>i", N_m, N_p, (int)uid,
+                           &N_g);
+  return N_g;
+}
+
 static void transform_nodes(const bfam_locidx_t num_Vi,
                             const bfam_locidx_t num_pnts,
                             bfam_long_real_t **lxi, void *args)
@@ -1668,20 +1679,34 @@ static void split_domain(beard_t *beard, prefs_t *prefs)
   bfam_domain_pxest_quad_to_glueid(domain->pxest, tree_ids, glue_ids);
 
   BFAM_ASSERT(lua_gettop(prefs->L) == 0);
+
   lua_getglobal(prefs->L, "transform_nodes");
+  bfam_dgx_nodes_transform_t nodes_transform_fptr = NULL;
+  void *nt_user_args = NULL;
   if (lua_isfunction(prefs->L, -1))
   {
-    bfam_domain_pxest_split_dgx_subdomains(domain, num_sub, sub_ids, root, N,
-                                           glue_ids, &transform_nodes, prefs,
-                                           NULL, NULL);
+    nodes_transform_fptr = &transform_nodes;
+    nt_user_args = prefs;
   }
   else
-  {
     BFAM_ROOT_WARNING("function `%s' not found in lua file", "transform_nodes");
-    bfam_domain_pxest_split_dgx_subdomains(domain, num_sub, sub_ids, root, N,
-                                           glue_ids, NULL, NULL, NULL, NULL);
-  }
   lua_pop(prefs->L, 1);
+
+  lua_getglobal(prefs->L, "glue_order");
+  bfam_glue_order_t glue_order_fptr = NULL;
+  void *go_user_args = NULL;
+  if (lua_isfunction(prefs->L, -1))
+  {
+    glue_order_fptr = &glue_order;
+    go_user_args = prefs;
+  }
+  else
+    BFAM_ROOT_WARNING("function `%s' not found in lua file", "glue_order");
+  lua_pop(prefs->L, 1);
+
+  bfam_domain_pxest_split_dgx_subdomains(
+      domain, num_sub, sub_ids, root, N, glue_ids, nodes_transform_fptr,
+      nt_user_args, glue_order_fptr, go_user_args);
   BFAM_ASSERT(lua_gettop(prefs->L) == 0);
 
   bfam_dictionary_allprefixed(&root_dict, "", dict_to_volume_tag, domain);
