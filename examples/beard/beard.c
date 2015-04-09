@@ -136,6 +136,16 @@ inverse_linear(bfam_real_t *r,
 }
 #endif
 
+// Function that we will expose to lua
+static int L_jn (lua_State *L)
+{
+    int     n = luaL_checknumber(L, 1);
+    double  d  = luaL_checknumber(L, 2);
+    lua_pushnumber(L, jn(n,d)); // Push the result
+    return 1;   // number of results
+}
+
+
 static void inverse_bilinear_normal(bfam_real_t *interp_coeff,
                                     const bfam_real_t x, const bfam_real_t y,
                                     const bfam_real_t z, const bfam_real_t nx,
@@ -672,6 +682,9 @@ static prefs_t *new_prefs(const char *prefs_filename)
     BFAM_LERROR("cannot run configuration file: `%s'", lua_tostring(L, -1));
 
   prefs->L = L;
+  lua_pushcfunction(L, L_jn);
+  lua_setglobal(L, "jn");
+
 
   BFAM_ASSERT(lua_gettop(L) == 0);
 
