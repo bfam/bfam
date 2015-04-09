@@ -6,7 +6,7 @@ output_prefix = "convex_cylinder"
 data_directory = "data"
 elem_order = 4
 max_level = 600
-min_level = 0
+min_level = 5
 
 mesh_file = "/home/jekozdon/codes/bfam/examples/beard/SurfaceWaves/convex_cylinder.inp"
 
@@ -31,15 +31,53 @@ function connectivity_vertices(xin, yin, zin)
 end
 
 function transform_nodes(x, y, z)
-  if     abs(x) < abs(y) and y >  c1 then
+  local x1 = x
+  local y1 = y
+  local  s = 0
+  local  r = sqrt(x^2+y^2)
+  local x2 = 0
+  local y2 = 0
+
+  if     abs(x) <= abs(y) and y >= c1 then
     -- NORTH
-  elseif abs(x) < abs(y) and y < -c1 then
+    s = (y-c1)/(c2-c1)
+
+    x1 = (c1/y)*x
+    y1 = c1
+
+    x2 = x/r
+    y2 = y/r
+  elseif abs(x) <= abs(y) and y <= -c1 then
     -- SOUTH
-  elseif abs(y) < abs(x) and x >  c1 then
-    -- EAST
-  elseif abs(y) < abs(x) and x < -c1 then
+    s = (abs(y)-c1)/(c2-c1)
+
+    x1 = -(c1/y)*x
+    y1 = -c1
+
+    x2 = x/r
+    y2 = y/r
+  elseif abs(y) <= abs(x) and x >=  c1 then
     -- WEST
+    s = (x-c1)/(c2-c1)
+
+    x1 = c1
+    y1 = (c1/x)*y
+
+    x2 = x/r
+    y2 = y/r
+  elseif abs(y) <= abs(x) and x <= -c1 then
+    -- EAST
+    s = (abs(x)-c1)/(c2-c1)
+
+    x1 = -c1
+    y1 = -(c1/x)*y
+
+    x2 = x/r
+    y2 = y/r
   end
+
+  x = (1-s)*x1 + s*x2
+  y = (1-s)*y1 + s*y2
 
   return x, y, z
 end
