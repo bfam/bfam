@@ -7,8 +7,9 @@ sin = math.sin
 output_prefix = "convex_cylinder"
 data_directory = "data"
 elem_order = 4
-max_level = 600
-min_level = 3
+max_level = 0
+min_level = 0
+static_refinement=3
 
 mesh_file = "/home/jekozdon/codes/bfam/examples/beard/SurfaceWaves/convex_cylinder.inp"
 
@@ -135,14 +136,28 @@ lam = 1
 rho = 1
 cp  = sqrt((lam+2*mu)/rho)
 cs  = sqrt(mu/rho)
+omega = 6.712844035888430
+CW = {
+  omega = omega,
+  BI    = 0.259859421131935,
+  A     = 1,
+  n     = 6,
+  Ka = omega/cp,
+  Kb = omega/cs,
+}
+
 
 -- time stepper to use
 lsrk_method  = "KC54"
 
 tend   = 1
-tout   = 0.1
-tdisp  = 0.01
-nerr   = 0
+tout   = -1
+tdisp  = tend
+-- nerr   = 0
+function nerr(dt)
+  return terr/dt
+end
+terr  = tend
 
 T = tout
 
@@ -181,16 +196,6 @@ glue_info = {
   bc_rigid,
 }
 
-
-omega = 6.712844035888430
-CW = {
-  omega = omega,
-  BI    = 0.259859421131935,
-  A     = 1,
-  n     = 6,
-  Ka = omega/cp,
-  Kb = omega/cs,
-}
 
 
 
@@ -314,4 +319,20 @@ end
 function S12(x,y,z,t)
   local ux_x, ux_y, uy_x, uy_y = CW_deriv_prelims(x,y,z,t)
   return mu*(ux_y+uy_x);
+end
+
+function v3(x,y,z,t)
+  return 0
+end
+
+function S33(x,y,z,t)
+  return 0
+end
+
+function S23(x,y,z,t)
+  return 0
+end
+
+function S13(x,y,z,t)
+  return 0
 end
