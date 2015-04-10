@@ -1,12 +1,14 @@
 pi   = math.pi
 sqrt = math.sqrt
 abs  = math.abs
+cos = math.cos
+sin = math.sin
 
 output_prefix = "convex_cylinder"
 data_directory = "data"
 elem_order = 4
 max_level = 600
-min_level = 5
+min_level = 3
 
 mesh_file = "/home/jekozdon/codes/bfam/examples/beard/SurfaceWaves/convex_cylinder.inp"
 
@@ -128,28 +130,17 @@ function element_order(
 end
 
 -- material properties
-cs = 1
-cp = 2
+mu  = 1
+lam = 1
 rho = 1
-mu  = rho*cs^2
-lam = rho*cp^2-2*mu
-
--- field conditions
-S11 = 0
-S22 = 0
-S33 = 0
-S12 = 0
-S13 = 0
-S23 = 0
-v1  = 0
-v2  = 0
-v3  = 0
+cp  = sqrt((lam+2*mu)/rho)
+cs  = sqrt(mu/rho)
 
 -- time stepper to use
 lsrk_method  = "KC54"
 
 tend   = 1
-tout   = 1
+tout   = 0.1
 tdisp  = 0.01
 nerr   = 0
 
@@ -189,3 +180,138 @@ glue_info = {
   bc_free,
   bc_rigid,
 }
+
+
+omega = 6.712844035888430
+CW = {
+  omega = omega,
+  BI    = 0.259859421131935,
+  A     = 1,
+  n     = 6,
+  Ka = omega/cp,
+  Kb = omega/cs,
+}
+
+
+
+-- field conditions
+S11 = 0
+S22 = 0
+S33 = 0
+S12 = 0
+S13 = 0
+S23 = 0
+v2  = 0
+v3  = 0
+
+function CW_prelims(x,y,z,t)
+  local r = sqrt(x^2+y^2)
+  if r == 0 then
+    return 0,0,0,0
+  end
+
+  local S = math.atan2(y,x)
+
+  local A  = CW.A
+  local BI = CW.BI
+  local n  = CW.n
+  local Ka = CW.Ka
+  local Kb = CW.Kb
+
+
+
+  local q1 =  A*Ka/2*(jn(n-1,Ka*r)-jn(n+1,Ka*r));
+  local q2 =-BI*(n/r)*jn(n,Kb*r);
+  local w1 = A*(n/r)*jn(n,Ka*r);
+  local w2 = -BI*Kb/2*(jn(n-1,Kb*r)-jn(n+1,Kb*r));
+
+  local W = w1+w2;
+  local Q = q1+q2;
+  return r,S,W,Q
+end
+
+function djn(n,r)
+  return 0.5*(jn(n-1,r) - jn(n+1,r))
+end
+function CW_deriv_prelims(x,y,z,t)
+  local r,S,W,Q = CW_prelims(x,y,z,t)
+  local A  = CW.A
+  local BI = CW.BI
+  local n  = CW.n
+  local Ka = CW.Ka
+  local Kb = CW.Kb
+
+  local r_x = x/r
+  local r_y = y/r
+  local S_x = -y/r^2
+  local S_y =  x/r^2
+
+  local q1_r =  A*Ka^2/2*(djn(n-1,Ka*r)-djn(n+1,Ka*r));
+  local q2_r = BI*(n/r^2)*jn(n,Kb*r) - Kb*BI*(n/r)*djn(n,Kb*r);
+  local w1_r =-A*(n/r^2)*jn(n,Ka*r) + Ka*A*(n/r)*djn(n,Ka*r);
+  local w2_r = -BI*Kb^2/2*(djn(n-1,Kb*r)-djn(n+1,Kb*r));
+
+  if r== 0 then
+    r_x = 0
+    r_y = 0
+    S_x = 0
+    S_y = 0
+    q2_r = 0
+    w1_r = 0
+  end
+
+  local Q_r = q1_r+q2_r;
+  local W_r = w1_r+w2_r;
+  local ux_S =   -Q*cos(n*S + omega*t)*sin(S) + n*W*sin(S)*cos(n*S + omega*t) -
+                n*Q*sin(n*S + omega*t)*cos(S) +    W*cos(S)*sin(n*S + omega*t);
+  local ux_Q = cos(S) * cos(omega*t+n*S);
+  local ux_W = sin(S) * sin(omega*t+n*S);
+  local ux_r = ux_Q * Q_r + ux_W * W_r;
+
+  local ux_x = ux_r*r_x + ux_S*S_x;
+  local ux_y = ux_r*r_y + ux_S*S_y;
+
+  local uy_S =    Q*cos(S)*cos(n*S + omega*t) - n*W*cos(S)*cos(n*S + omega*t) -
+               n*Q*sin(S)*sin(n*S + omega*t) +    W*sin(S)*sin(n*S + omega*t);
+
+  local uy_Q = sin(S) * cos(omega*t+n*S);
+  local uy_W = - cos(S) * sin(omega*t+n*S);
+  local uy_r = uy_Q * Q_r + uy_W * W_r;
+
+  local uy_x = uy_r*r_x + uy_S*S_x;
+  local uy_y = uy_r*r_y + uy_S*S_y;
+
+  return ux_x, ux_y, uy_x, uy_y
+end
+
+
+function v1(x,y,z,t)
+  local r,S,W,Q = CW_prelims(x,y,z,t)
+  local omega   = CW.omega
+  local n       = CW.n
+  return -omega * cos(S)*Q * sin(omega*t+n*S) +
+          omega * sin(S)*W * cos(omega*t+n*S)
+end
+
+function v2(x,y,z,t)
+  local r,S,W,Q = CW_prelims(x,y,z,t)
+  local omega   = CW.omega
+  local n       = CW.n
+  return -omega * sin(S)*Q * sin(omega*t+n*S) -
+          omega * cos(S)*W * cos(omega*t+n*S)
+end
+
+function S11(x,y,z,t)
+  local ux_x, ux_y, uy_x, uy_y = CW_deriv_prelims(x,y,z,t)
+  return lam*(ux_x + uy_y) + 2*mu*ux_x;
+end
+
+function S22(x,y,z,t)
+  local ux_x, ux_y, uy_x, uy_y = CW_deriv_prelims(x,y,z,t)
+  return lam*(ux_x + uy_y) + 2*mu*uy_y;
+end
+
+function S12(x,y,z,t)
+  local ux_x, ux_y, uy_x, uy_y = CW_deriv_prelims(x,y,z,t)
+  return mu*(ux_y+uy_x);
+end
