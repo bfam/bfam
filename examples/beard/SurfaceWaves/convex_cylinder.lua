@@ -131,27 +131,43 @@ function element_order(
 end
 
 -- material properties
-mu  = 1
+MU = {1,0.1,0.01,0.001}
+
+OMEGA = {{6.712844035888430,10.598136345660269,13.113329869474558,16.021054935234528,17.730944523371178},
+         {2.174059402269135, 3.475669329435217, 4.373718805991318, 5.375869130532646, 6.404312117277238},
+         {0.690252461874728, 1.104283873555503, 1.392820917483943, 1.707902134335568, 2.031628962752277},
+         {0.218370110186628, 0.349373578609341, 0.440766027573439, 0.540340250707020, 0.642652150833394}}
+
+BI = {{0.259859421131935    ,0.551757806713995    ,-1.111726166772277    ,0.958432243767886    ,-0.732513991983086    },
+      {0.008979356435568    ,0.061797475082992    ,-0.195334916685379    ,0.716217080313942    ,-1.855812650827352    },
+      {1.800969171774775e-05,1.608778558352172e-04,-5.996559491070863e-04,0.002791241585515    ,-0.010369491587158    },
+      {1.946610327968597e-08,1.791032555369920e-07,-6.806632052120861e-07,3.250907109941674e-06,-1.252501580039413e-05}}
+
+KI = 1
+KJ = 1
+
+mu    = MU[KI]
+
 lam = 1
 rho = 1
 cp  = sqrt((lam+2*mu)/rho)
 cs  = sqrt(mu/rho)
-omega = 6.712844035888430
 CW = {
-  omega = omega,
-  BI    = 0.259859421131935,
+  omega = OMEGA[KI][KJ],
+  bi    = BI[KI][KJ],
   A     = 1,
   n     = 6,
-  Ka = omega/cp,
-  Kb = omega/cs,
+  Ka = OMEGA[KI][KJ]/cp,
+  Kb = OMEGA[KI][KJ]/cs,
 }
 
 
 -- time stepper to use
 lsrk_method  = "KC54"
 
-tend   = 1
-tout   = -1
+tend   = 2*pi/CW.omega
+tend = 2
+tout   = tend
 tdisp  = tend
 -- nerr   = 0
 function nerr(dt)
@@ -218,7 +234,7 @@ function CW_prelims(x,y,z,t)
   local S = math.atan2(y,x)
 
   local A  = CW.A
-  local BI = CW.BI
+  local bi = CW.bi
   local n  = CW.n
   local Ka = CW.Ka
   local Kb = CW.Kb
@@ -226,9 +242,9 @@ function CW_prelims(x,y,z,t)
 
 
   local q1 =  A*Ka/2*(jn(n-1,Ka*r)-jn(n+1,Ka*r));
-  local q2 =-BI*(n/r)*jn(n,Kb*r);
+  local q2 =-bi*(n/r)*jn(n,Kb*r);
   local w1 = A*(n/r)*jn(n,Ka*r);
-  local w2 = -BI*Kb/2*(jn(n-1,Kb*r)-jn(n+1,Kb*r));
+  local w2 = -bi*Kb/2*(jn(n-1,Kb*r)-jn(n+1,Kb*r));
 
   local W = w1+w2;
   local Q = q1+q2;
@@ -238,13 +254,15 @@ end
 function djn(n,r)
   return 0.5*(jn(n-1,r) - jn(n+1,r))
 end
+
 function CW_deriv_prelims(x,y,z,t)
   local r,S,W,Q = CW_prelims(x,y,z,t)
-  local A  = CW.A
-  local BI = CW.BI
-  local n  = CW.n
-  local Ka = CW.Ka
-  local Kb = CW.Kb
+  local A     = CW.A
+  local bi    = CW.bi
+  local n     = CW.n
+  local Ka    = CW.Ka
+  local Kb    = CW.Kb
+  local omega = CW.omega
 
   local r_x = x/r
   local r_y = y/r
@@ -252,9 +270,9 @@ function CW_deriv_prelims(x,y,z,t)
   local S_y =  x/r^2
 
   local q1_r =  A*Ka^2/2*(djn(n-1,Ka*r)-djn(n+1,Ka*r));
-  local q2_r = BI*(n/r^2)*jn(n,Kb*r) - Kb*BI*(n/r)*djn(n,Kb*r);
+  local q2_r = bi*(n/r^2)*jn(n,Kb*r) - Kb*bi*(n/r)*djn(n,Kb*r);
   local w1_r =-A*(n/r^2)*jn(n,Ka*r) + Ka*A*(n/r)*djn(n,Ka*r);
-  local w2_r = -BI*Kb^2/2*(djn(n-1,Kb*r)-djn(n+1,Kb*r));
+  local w2_r = -bi*Kb^2/2*(djn(n-1,Kb*r)-djn(n+1,Kb*r));
 
   if r== 0 then
     r_x = 0
@@ -267,7 +285,7 @@ function CW_deriv_prelims(x,y,z,t)
 
   local Q_r = q1_r+q2_r;
   local W_r = w1_r+w2_r;
-  local ux_S =   -Q*cos(n*S + omega*t)*sin(S) + n*W*sin(S)*cos(n*S + omega*t) -
+  local ux_S =   -Q*cos(n*S + omega*t)*sin(S) +  n*W*sin(S)*cos(n*S + omega*t) -
                 n*Q*sin(n*S + omega*t)*cos(S) +    W*cos(S)*sin(n*S + omega*t);
   local ux_Q = cos(S) * cos(omega*t+n*S);
   local ux_W = sin(S) * sin(omega*t+n*S);
@@ -326,7 +344,8 @@ function v3(x,y,z,t)
 end
 
 function S33(x,y,z,t)
-  return 0
+  local ux_x, ux_y, uy_x, uy_y = CW_deriv_prelims(x,y,z,t)
+  return lam*(ux_x + uy_y)
 end
 
 function S23(x,y,z,t)
