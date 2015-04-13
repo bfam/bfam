@@ -40,6 +40,20 @@ function connectivity_vertices(x, y, z)
   return xout,yout,zout
 end
 
+function transform_nodes(x, y, z)
+  mx = 1
+  my = 1
+  Ax = 4
+  Ay = 4
+  xk = 2*mx*math.pi*x/(Lx*brick.nx)
+  yk = 2*my*math.pi*y/(Ly*brick.ny)
+
+  x = x + Ax*math.sin(xk)*math.sin(yk);
+  y = y - Ay*math.sin(xk)*math.sin(yk);
+
+  return x, y, z
+end
+
 function refinement_function(
   x0,y0,z0,x1,y1,z1,
   x2,y2,z2,x3,y3,z3,
