@@ -4093,7 +4093,7 @@ static void run_simulation(beard_t *beard, prefs_t *prefs)
       bfam_real_t new_energy = compute_energy(beard, prefs, time, "");
       BFAM_ROOT_INFO("time: %" BFAM_REAL_FMTe " error: %" BFAM_REAL_FMTe
                      " d_energy: %" BFAM_REAL_FMTe,
-                     time, error, (new_energy - energy) / initial_energy);
+                     time, error, (new_energy - initial_energy) / initial_energy);
       if (noutput > 0)
       {
         char err_output[BFAM_BUFSIZ];
