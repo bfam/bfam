@@ -839,12 +839,11 @@ static prefs_t *new_prefs(const char *prefs_filename)
   }
   lua_pop(L, 1);
 
-  BFAM_ABORT_IF_NOT(
-      (prefs->lsrk_method != BFAM_TS_LSRK_NOOP &&
-       prefs->adams_method == BFAM_TS_ADAMS_NOOP)||
-          (prefs->lsrk_method == BFAM_TS_LSRK_NOOP &&
-           prefs->adams_method != BFAM_TS_ADAMS_NOOP),
-      "must have either LSRK or ADAMS time stepper");
+  BFAM_ABORT_IF_NOT((prefs->lsrk_method != BFAM_TS_LSRK_NOOP &&
+                     prefs->adams_method == BFAM_TS_ADAMS_NOOP) ||
+                        (prefs->lsrk_method == BFAM_TS_LSRK_NOOP &&
+                         prefs->adams_method != BFAM_TS_ADAMS_NOOP),
+                    "must have either LSRK or ADAMS time stepper");
 
   /* get the connectivity type */
   lua_getglobal(L, "mesh_file");
@@ -2637,7 +2636,7 @@ void scale_rates_friction(bfam_subdomain_dgx_t *sub, const char *rate_prefix,
 }
 
 void scale_rates(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                 const bfam_long_real_t a)
+                 const bfam_long_real_t a, void *user_data)
 {
   BFAM_ASSERT(rate_prefix);
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain, "_subdomain_dgx"));
@@ -2806,7 +2805,7 @@ static void intra_rhs_sponge(int N, bfam_subdomain_dgx_t *sub,
 
 void intra_rhs(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
                const char *minus_rate_prefix, const char *field_prefix,
-               const bfam_long_real_t t)
+               const bfam_long_real_t t, void *user_data)
 {
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain, "_subdomain_dgx"));
 
@@ -2984,7 +2983,7 @@ void inter_rhs_interface(int N, bfam_subdomain_dgx_t *sub,
 
 void inter_rhs(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
                const char *minus_rate_prefix, const char *field_prefix,
-               const bfam_long_real_t t)
+               const bfam_long_real_t t, void *user_data)
 {
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain, "_subdomain_dgx"));
 
@@ -3184,7 +3183,7 @@ void add_rates_glue_p(bfam_subdomain_t *thisSubdomain,
 
 void add_rates(bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
                const char *field_prefix_rhs, const char *rate_prefix,
-               const bfam_long_real_t a)
+               const bfam_long_real_t a, void *user_data)
 {
   BFAM_ASSERT(bfam_subdomain_has_tag(thisSubdomain, "_subdomain_dgx"));
   if (bfam_subdomain_has_tag(thisSubdomain, "elastic*") ||

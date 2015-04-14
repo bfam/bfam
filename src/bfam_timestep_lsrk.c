@@ -7,6 +7,7 @@ typedef struct bfam_ts_allprefix
 {
   bfam_ts_lsrk_t *ts;
   bfam_long_real_t arg;
+  void *user_data;
   const char *rate_prefix;
   const char *field_prefix_lhs;
   const char *field_prefix_rhs;
@@ -16,7 +17,7 @@ static int bfam_ts_lsrk_scale_rates(const char *key, void *val, void *arg)
 {
   bfam_ts_lsrk_allprefix_t *data = (bfam_ts_lsrk_allprefix_t *)arg;
   bfam_subdomain_t *sub = (bfam_subdomain_t *)val;
-  data->ts->scale_rates(sub, data->rate_prefix, data->arg);
+  data->ts->scale_rates(sub, data->rate_prefix, data->arg, data->user_data);
   return 1;
 }
 
@@ -25,7 +26,7 @@ static int bfam_ts_lsrk_intra_rhs(const char *key, void *val, void *arg)
   bfam_ts_lsrk_allprefix_t *data = (bfam_ts_lsrk_allprefix_t *)arg;
   bfam_subdomain_t *sub = (bfam_subdomain_t *)val;
   data->ts->intra_rhs(sub, data->rate_prefix, data->rate_prefix,
-                      data->field_prefix_rhs, data->arg);
+                      data->field_prefix_rhs, data->arg, data->user_data);
   return 1;
 }
 
@@ -34,7 +35,7 @@ static int bfam_ts_lsrk_inter_rhs(const char *key, void *val, void *arg)
   bfam_ts_lsrk_allprefix_t *data = (bfam_ts_lsrk_allprefix_t *)arg;
   bfam_subdomain_t *sub = (bfam_subdomain_t *)val;
   data->ts->inter_rhs(sub, data->rate_prefix, data->rate_prefix,
-                      data->field_prefix_rhs, data->arg);
+                      data->field_prefix_rhs, data->arg, data->user_data);
   return 1;
 }
 
@@ -43,7 +44,7 @@ static int bfam_ts_lsrk_add_rates(const char *key, void *val, void *arg)
   bfam_ts_lsrk_allprefix_t *data = (bfam_ts_lsrk_allprefix_t *)arg;
   bfam_subdomain_t *sub = (bfam_subdomain_t *)val;
   data->ts->add_rates(sub, data->field_prefix_lhs, data->field_prefix_rhs,
-                      data->rate_prefix, data->arg);
+                      data->rate_prefix, data->arg, data->user_data);
   return 1;
 }
 
@@ -59,6 +60,7 @@ static void bfam_ts_lsrk_step_extended(bfam_ts_t *a_ts, bfam_long_real_t dt,
   data.rate_prefix = rate_prefix;
   data.field_prefix_lhs = field_prefix_lhs;
   data.field_prefix_rhs = field_prefix_rhs;
+  data.user_data = user_data;
 
   for (int s = 0; s < ts->nStages; s++)
   {

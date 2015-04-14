@@ -7,6 +7,7 @@ typedef struct bfam_ts_allprefix
 {
   bfam_ts_adams_t *ts;
   bfam_long_real_t dt;
+  void *user_data;
 } bfam_ts_adams_allprefix_t;
 
 bfam_ts_adams_t *
@@ -29,7 +30,7 @@ static inline int bfam_ts_adams_do_update(bfam_subdomain_t *sub,
                                           const bfam_long_real_t *A,
                                           const bfam_ts_adams_t *ts,
                                           const bfam_long_real_t dt,
-                                          const int nStages)
+                                          const int nStages, void *user_data)
 {
   BFAM_LDEBUG("BFAM_TS_ADAMS_DO_UPDATE");
 
@@ -45,7 +46,7 @@ static inline int bfam_ts_adams_do_update(bfam_subdomain_t *sub,
              (ts->currentStage + ts->nStages - k) % ts->nStages);
     BFAM_LDEBUG("Adams step: stage %d of %d using prefix %s", k, nStages,
                 prefix);
-    ts->add_rates(sub, "", "", prefix, dt * A[k]);
+    ts->add_rates(sub, "", "", prefix, dt * A[k], user_data);
   }
   return 1;
 }
@@ -61,7 +62,7 @@ static int bfam_ts_adams_update(const char *key, void *val, void *arg)
   case 1:
   {
     bfam_long_real_t A[1] = {BFAM_LONG_REAL(1.0)};
-    bfam_ts_adams_do_update(sub, A, ts, data->dt, 1);
+    bfam_ts_adams_do_update(sub, A, ts, data->dt, 1, data->user_data);
   }
   break;
   case 2:
@@ -70,7 +71,7 @@ static int bfam_ts_adams_update(const char *key, void *val, void *arg)
         BFAM_LONG_REAL(3.0) / BFAM_LONG_REAL(2.0),
         BFAM_LONG_REAL(-1.0) / BFAM_LONG_REAL(2.0),
     };
-    bfam_ts_adams_do_update(sub, A, ts, data->dt, 2);
+    bfam_ts_adams_do_update(sub, A, ts, data->dt, 2, data->user_data);
   }
   break;
   case 3:
@@ -80,7 +81,7 @@ static int bfam_ts_adams_update(const char *key, void *val, void *arg)
         BFAM_LONG_REAL(-4.0) / BFAM_LONG_REAL(3.0),
         BFAM_LONG_REAL(5.0) / BFAM_LONG_REAL(12.0),
     };
-    bfam_ts_adams_do_update(sub, A, ts, data->dt, 3);
+    bfam_ts_adams_do_update(sub, A, ts, data->dt, 3, data->user_data);
   }
   break;
   case 4:
@@ -91,7 +92,7 @@ static int bfam_ts_adams_update(const char *key, void *val, void *arg)
         BFAM_LONG_REAL(37.0) / BFAM_LONG_REAL(24.0),
         BFAM_LONG_REAL(-3.0) / BFAM_LONG_REAL(8.0),
     };
-    bfam_ts_adams_do_update(sub, A, ts, data->dt, 4);
+    bfam_ts_adams_do_update(sub, A, ts, data->dt, 4, data->user_data);
   }
   break;
   default:
@@ -108,8 +109,8 @@ static int bfam_ts_adams_intra_rhs(const char *key, void *val, void *arg)
   snprintf(prefix, BFAM_BUFSIZ, "%s%d_", BFAM_ADAMS_PREFIX,
            data->ts->currentStage % data->ts->nStages);
   BFAM_LDEBUG("Adams intra: using prefix %s", prefix);
-  data->ts->scale_rates(sub, prefix, 0);
-  data->ts->intra_rhs(sub, prefix, prefix, "", data->ts->t);
+  data->ts->scale_rates(sub, prefix, 0, data->user_data);
+  data->ts->intra_rhs(sub, prefix, prefix, "", data->ts->t, data->user_data);
   return 1;
 }
 
@@ -121,7 +122,7 @@ static int bfam_ts_adams_inter_rhs(const char *key, void *val, void *arg)
   snprintf(prefix, BFAM_BUFSIZ, "%s%d_", BFAM_ADAMS_PREFIX,
            data->ts->currentStage % data->ts->nStages);
   BFAM_LDEBUG("Adams inter: using prefix %s", prefix);
-  data->ts->inter_rhs(sub, prefix, prefix, "", data->ts->t);
+  data->ts->inter_rhs(sub, prefix, prefix, "", data->ts->t, data->user_data);
   return 1;
 }
 
@@ -134,6 +135,7 @@ static void bfam_ts_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt,
   bfam_ts_adams_allprefix_t data;
   data.ts = ts;
   data.dt = dt;
+  data.user_data = user_data;
 
   /*
    * start the communication
