@@ -30,25 +30,10 @@ typedef struct bfam_ts_adams
   /* LSRK method for initialization */
   bfam_ts_lsrk_t *lsrk;
 
-  /* scale rates function */
-  void (*scale_rates)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                      const bfam_long_real_t a);
-
-  /* compute rhs that does not require communication */
-  void (*intra_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                    const char *minus_rate_prefix, const char *field_prefix,
-                    const bfam_long_real_t t);
-
-  /* compute rhs that does require communication */
-  void (*inter_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                    const char *minus_rate_prefix, const char *field_prefix,
-                    const bfam_long_real_t t);
-
-  /* add the rates to the fields: q_lhs := q_rhs + a*dq */
-  /* NOTE: should handle case of in place addition */
-  void (*add_rates)(bfam_subdomain_t *thisSubdomain,
-                    const char *field_prefix_lhs, const char *field_prefix_rhs,
-                    const char *rate_prefix, const bfam_long_real_t a);
+  scale_rates_t scale_rates;
+  intra_rhs_t intra_rhs;
+  inter_rhs_t inter_rhs;
+  add_rates_t add_rates;
 } bfam_ts_adams_t;
 
 typedef enum bfam_ts_adams_method
@@ -84,25 +69,14 @@ typedef enum bfam_ts_adams_method
  *
  * \return the newly created low storage RK time stepper
  */
-bfam_ts_adams_t *bfam_ts_adams_new(
-    bfam_domain_t *dom, bfam_ts_adams_method_t method,
-    bfam_domain_match_t subdom_match, const char **subdom_tags,
-    bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
-    int mpitag, void *comm_data,
-    void (*aux_rates)(bfam_subdomain_t *thisSubdomain, const char *prefix),
-    void (*scale_rates)(bfam_subdomain_t *thisSubdomain,
-                        const char *rate_prefix, const bfam_long_real_t a),
-    void (*intra_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                      const char *minus_rate_prefix, const char *field_prefix,
-                      const bfam_long_real_t t),
-    void (*inter_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                      const char *minus_rate_prefix, const char *field_prefix,
-                      const bfam_long_real_t t),
-    void (*add_rates)(bfam_subdomain_t *thisSubdomain,
-                      const char *field_prefix_lhs,
-                      const char *field_prefix_rhs, const char *rate_prefix,
-                      const bfam_long_real_t a),
-    const int RK_init);
+bfam_ts_adams_t *
+bfam_ts_adams_new(bfam_domain_t *dom, bfam_ts_adams_method_t method,
+                  bfam_domain_match_t subdom_match, const char **subdom_tags,
+                  bfam_domain_match_t comm_match, const char **comm_tags,
+                  MPI_Comm mpicomm, int mpitag, void *comm_data,
+                  aux_rates_t aux_rates, scale_rates_t scale_rates,
+                  intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
+                  add_rates_t add_rates, const int RK_init);
 
 /** initialize an Adams scheme
  *
@@ -127,25 +101,15 @@ bfam_ts_adams_t *bfam_ts_adams_new(
  * \param [in]  RK_init          boolean which if true signifies using LSRK to
  *                               init Adams method
  */
-void bfam_ts_adams_init(
-    bfam_ts_adams_t *ts, bfam_domain_t *dom, bfam_ts_adams_method_t method,
-    bfam_domain_match_t subdom_match, const char **subdom_tags,
-    bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
-    int mpitag, void *comm_data,
-    void (*aux_rates)(bfam_subdomain_t *thisSubdomain, const char *prefix),
-    void (*scale_rates)(bfam_subdomain_t *thisSubdomain,
-                        const char *rate_prefix, const bfam_long_real_t a),
-    void (*intra_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                      const char *minus_rate_prefix, const char *field_prefix,
-                      const bfam_long_real_t t),
-    void (*inter_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                      const char *minus_rate_prefix, const char *field_prefix,
-                      const bfam_long_real_t t),
-    void (*add_rates)(bfam_subdomain_t *thisSubdomain,
-                      const char *field_prefix_lhs,
-                      const char *field_prefix_rhs, const char *rate_prefix,
-                      const bfam_long_real_t a),
-    const int RK_init);
+void bfam_ts_adams_init(bfam_ts_adams_t *ts, bfam_domain_t *dom,
+                        bfam_ts_adams_method_t method,
+                        bfam_domain_match_t subdom_match,
+                        const char **subdom_tags,
+                        bfam_domain_match_t comm_match, const char **comm_tags,
+                        MPI_Comm mpicomm, int mpitag, void *comm_data,
+                        aux_rates_t aux_rates, scale_rates_t scale_rates,
+                        intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
+                        add_rates_t add_rates, const int RK_init);
 
 /** free an Adams scheme
  *

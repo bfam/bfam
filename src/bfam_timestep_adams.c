@@ -9,25 +9,14 @@ typedef struct bfam_ts_allprefix
   bfam_long_real_t dt;
 } bfam_ts_adams_allprefix_t;
 
-bfam_ts_adams_t *bfam_ts_adams_new(
-    bfam_domain_t *dom, bfam_ts_adams_method_t method,
-    bfam_domain_match_t subdom_match, const char **subdom_tags,
-    bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
-    int mpitag, void *comm_data,
-    void (*aux_rates)(bfam_subdomain_t *thisSubdomain, const char *prefix),
-    void (*scale_rates)(bfam_subdomain_t *thisSubdomain,
-                        const char *rate_prefix, const bfam_long_real_t a),
-    void (*intra_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                      const char *minus_rate_prefix, const char *field_prefix,
-                      const bfam_long_real_t t),
-    void (*inter_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                      const char *minus_rate_prefix, const char *field_prefix,
-                      const bfam_long_real_t t),
-    void (*add_rates)(bfam_subdomain_t *thisSubdomain,
-                      const char *field_prefix_lhs,
-                      const char *field_prefix_rhs, const char *rate_prefix,
-                      const bfam_long_real_t a),
-    const int RK_init)
+bfam_ts_adams_t *
+bfam_ts_adams_new(bfam_domain_t *dom, bfam_ts_adams_method_t method,
+                  bfam_domain_match_t subdom_match, const char **subdom_tags,
+                  bfam_domain_match_t comm_match, const char **comm_tags,
+                  MPI_Comm mpicomm, int mpitag, void *comm_data,
+                  aux_rates_t aux_rates, scale_rates_t scale_rates,
+                  intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
+                  add_rates_t add_rates, const int RK_init)
 {
   bfam_ts_adams_t *newTS = bfam_malloc(sizeof(bfam_ts_adams_t));
   bfam_ts_adams_init(newTS, dom, method, subdom_match, subdom_tags, comm_match,
@@ -202,25 +191,15 @@ static void bfam_ts_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt,
   ts->t += dt;
 }
 
-void bfam_ts_adams_init(
-    bfam_ts_adams_t *ts, bfam_domain_t *dom, bfam_ts_adams_method_t method,
-    bfam_domain_match_t subdom_match, const char **subdom_tags,
-    bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
-    int mpitag, void *comm_data,
-    void (*aux_rates)(bfam_subdomain_t *thisSubdomain, const char *prefix),
-    void (*scale_rates)(bfam_subdomain_t *thisSubdomain,
-                        const char *rate_prefix, const bfam_long_real_t a),
-    void (*intra_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                      const char *minus_rate_prefix, const char *field_prefix,
-                      const bfam_long_real_t t),
-    void (*inter_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                      const char *minus_rate_prefix, const char *field_prefix,
-                      const bfam_long_real_t t),
-    void (*add_rates)(bfam_subdomain_t *thisSubdomain,
-                      const char *field_prefix_lhs,
-                      const char *field_prefix_rhs, const char *rate_prefix,
-                      const bfam_long_real_t a),
-    const int RK_init)
+void bfam_ts_adams_init(bfam_ts_adams_t *ts, bfam_domain_t *dom,
+                        bfam_ts_adams_method_t method,
+                        bfam_domain_match_t subdom_match,
+                        const char **subdom_tags,
+                        bfam_domain_match_t comm_match, const char **comm_tags,
+                        MPI_Comm mpicomm, int mpitag, void *comm_data,
+                        aux_rates_t aux_rates, scale_rates_t scale_rates,
+                        intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
+                        add_rates_t add_rates, const int RK_init)
 {
   BFAM_LDEBUG("ADAMS INIT");
 

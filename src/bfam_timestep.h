@@ -12,6 +12,38 @@ struct bfam_ts;
 typedef void (*bfam_ts_step_t)(struct bfam_ts *ts, bfam_long_real_t dt,
                                void *user_data);
 
+typedef void (*step_extended_t)(struct bfam_ts *a_ts, bfam_long_real_t dt,
+                                const char *rate_prefix,
+                                const char *field_prefix_lhs,
+                                const char *field_prefix_rhs, void *user_data);
+
+/* scale rates function */
+typedef void (*scale_rates_t)(bfam_subdomain_t *thisSubdomain,
+                              const char *rate_prefix,
+                              const bfam_long_real_t a);
+
+/* compute rhs that does not require communication */
+typedef void (*intra_rhs_t)(bfam_subdomain_t *thisSubdomain,
+                            const char *rate_prefix,
+                            const char *minus_rate_prefix,
+                            const char *field_prefix, const bfam_long_real_t t);
+
+/* compute rhs that does require communication */
+typedef void (*inter_rhs_t)(bfam_subdomain_t *thisSubdomain,
+                            const char *rate_prefix,
+                            const char *minus_rate_prefix,
+                            const char *field_prefix, const bfam_long_real_t t);
+
+/* add the rates to the fields: q_lhs := q_rhs + a*dq */
+/* NOTE: should handle case of in place addition */
+typedef void (*add_rates_t)(bfam_subdomain_t *thisSubdomain,
+                            const char *field_prefix_lhs,
+                            const char *field_prefix_rhs,
+                            const char *rate_prefix, const bfam_long_real_t a);
+
+typedef void (*aux_rates_t)(bfam_subdomain_t *thisSubdomain,
+                            const char *prefix);
+
 typedef struct bfam_ts
 {
   bfam_domain_t *domain; /**< my domain */

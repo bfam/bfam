@@ -112,24 +112,14 @@ static void bfam_ts_lsrk_step(bfam_ts_t *a_ts, bfam_long_real_t dt,
   bfam_ts_lsrk_step_extended(a_ts, dt, BFAM_LSKR_PREFIX, "", "", user_data);
 }
 
-bfam_ts_lsrk_t *bfam_ts_lsrk_new(
-    bfam_domain_t *dom, bfam_ts_lsrk_method_t method,
-    bfam_domain_match_t subdom_match, const char **subdom_tags,
-    bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
-    int mpitag, void *comm_data,
-    void (*aux_rates)(bfam_subdomain_t *thisSubdomain, const char *prefix),
-    void (*scale_rates)(bfam_subdomain_t *thisSubdomain,
-                        const char *rate_prefix, const bfam_long_real_t a),
-    void (*intra_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                      const char *minus_rate_prefix, const char *field_prefix,
-                      const bfam_long_real_t t),
-    void (*inter_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                      const char *minus_rate_prefix, const char *field_prefix,
-                      const bfam_long_real_t t),
-    void (*add_rates)(bfam_subdomain_t *thisSubdomain,
-                      const char *field_prefix_lhs,
-                      const char *field_prefix_rhs, const char *rate_prefix,
-                      const bfam_long_real_t a))
+bfam_ts_lsrk_t *
+bfam_ts_lsrk_new(bfam_domain_t *dom, bfam_ts_lsrk_method_t method,
+                 bfam_domain_match_t subdom_match, const char **subdom_tags,
+                 bfam_domain_match_t comm_match, const char **comm_tags,
+                 MPI_Comm mpicomm, int mpitag, void *comm_data,
+                 aux_rates_t aux_rates, scale_rates_t scale_rates,
+                 intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
+                 add_rates_t add_rates)
 {
   bfam_ts_lsrk_t *newTS = bfam_malloc(sizeof(bfam_ts_lsrk_t));
   bfam_ts_lsrk_init(newTS, dom, method, subdom_match, subdom_tags, comm_match,
@@ -138,24 +128,14 @@ bfam_ts_lsrk_t *bfam_ts_lsrk_new(
   return newTS;
 }
 
-void bfam_ts_lsrk_init(
-    bfam_ts_lsrk_t *ts, bfam_domain_t *dom, bfam_ts_lsrk_method_t method,
-    bfam_domain_match_t subdom_match, const char **subdom_tags,
-    bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
-    int mpitag, void *comm_data,
-    void (*aux_rates)(bfam_subdomain_t *thisSubdomain, const char *prefix),
-    void (*scale_rates)(bfam_subdomain_t *thisSubdomain,
-                        const char *rate_prefix, const bfam_long_real_t a),
-    void (*intra_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                      const char *minus_rate_prefix, const char *field_prefix,
-                      const bfam_long_real_t t),
-    void (*inter_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                      const char *minus_rate_prefix, const char *field_prefix,
-                      const bfam_long_real_t t),
-    void (*add_rates)(bfam_subdomain_t *thisSubdomain,
-                      const char *field_prefix_lhs,
-                      const char *field_prefix_rhs, const char *rate_prefix,
-                      const bfam_long_real_t a))
+void bfam_ts_lsrk_init(bfam_ts_lsrk_t *ts, bfam_domain_t *dom,
+                       bfam_ts_lsrk_method_t method,
+                       bfam_domain_match_t subdom_match,
+                       const char **subdom_tags, bfam_domain_match_t comm_match,
+                       const char **comm_tags, MPI_Comm mpicomm, int mpitag,
+                       void *comm_data, aux_rates_t aux_rates,
+                       scale_rates_t scale_rates, intra_rhs_t intra_rhs,
+                       inter_rhs_t inter_rhs, add_rates_t add_rates)
 {
   bfam_ts_lsrk_init_extended(ts, dom, method, subdom_match, subdom_tags,
                              comm_match, comm_tags, mpicomm, mpitag, comm_data,
@@ -167,21 +147,9 @@ bfam_ts_lsrk_t *bfam_ts_lsrk_new_extended(
     bfam_domain_t *dom, bfam_ts_lsrk_method_t method,
     bfam_domain_match_t subdom_match, const char **subdom_tags,
     bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
-    int mpitag, void *comm_data,
-    void (*aux_rates)(bfam_subdomain_t *thisSubdomain, const char *prefix),
-    void (*scale_rates)(bfam_subdomain_t *thisSubdomain,
-                        const char *rate_prefix, const bfam_long_real_t a),
-    void (*intra_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                      const char *minus_rate_prefix, const char *field_prefix,
-                      const bfam_long_real_t t),
-    void (*inter_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                      const char *minus_rate_prefix, const char *field_prefix,
-                      const bfam_long_real_t t),
-    void (*add_rates)(bfam_subdomain_t *thisSubdomain,
-                      const char *field_prefix_lhs,
-                      const char *field_prefix_rhs, const char *rate_prefix,
-                      const bfam_long_real_t a),
-    int make_rates)
+    int mpitag, void *comm_data, aux_rates_t aux_rates,
+    scale_rates_t scale_rates, intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
+    add_rates_t add_rates, int make_rates)
 {
   bfam_ts_lsrk_t *newTS = bfam_malloc(sizeof(bfam_ts_lsrk_t));
   bfam_ts_lsrk_init_extended(newTS, dom, method, subdom_match, subdom_tags,
@@ -195,21 +163,9 @@ void bfam_ts_lsrk_init_extended(
     bfam_ts_lsrk_t *ts, bfam_domain_t *dom, bfam_ts_lsrk_method_t method,
     bfam_domain_match_t subdom_match, const char **subdom_tags,
     bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
-    int mpitag, void *comm_data,
-    void (*aux_rates)(bfam_subdomain_t *thisSubdomain, const char *prefix),
-    void (*scale_rates)(bfam_subdomain_t *thisSubdomain,
-                        const char *rate_prefix, const bfam_long_real_t a),
-    void (*intra_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                      const char *minus_rate_prefix, const char *field_prefix,
-                      const bfam_long_real_t t),
-    void (*inter_rhs)(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
-                      const char *minus_rate_prefix, const char *field_prefix,
-                      const bfam_long_real_t t),
-    void (*add_rates)(bfam_subdomain_t *thisSubdomain,
-                      const char *field_prefix_lhs,
-                      const char *field_prefix_rhs, const char *rate_prefix,
-                      const bfam_long_real_t a),
-    int make_rates)
+    int mpitag, void *comm_data, aux_rates_t aux_rates,
+    scale_rates_t scale_rates, intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
+    add_rates_t add_rates, int make_rates)
 {
   BFAM_LDEBUG("LSRK INIT");
 
