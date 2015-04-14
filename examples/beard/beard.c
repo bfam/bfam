@@ -137,14 +137,13 @@ inverse_linear(bfam_real_t *r,
 #endif
 
 // Function that we will expose to lua
-static int L_jn (lua_State *L)
+static int L_jn(lua_State *L)
 {
-    int     n = luaL_checknumber(L, 1);
-    double  d  = luaL_checknumber(L, 2);
-    lua_pushnumber(L, jn(n,d)); // Push the result
-    return 1;   // number of results
+  int n = luaL_checknumber(L, 1);
+  double d = luaL_checknumber(L, 2);
+  lua_pushnumber(L, jn(n, d)); // Push the result
+  return 1;                    // number of results
 }
-
 
 static void inverse_bilinear_normal(bfam_real_t *interp_coeff,
                                     const bfam_real_t x, const bfam_real_t y,
@@ -684,7 +683,6 @@ static prefs_t *new_prefs(const char *prefs_filename)
   prefs->L = L;
   lua_pushcfunction(L, L_jn);
   lua_setglobal(L, "jn");
-
 
   BFAM_ASSERT(lua_gettop(L) == 0);
 
@@ -4087,7 +4085,8 @@ static void run_simulation(beard_t *beard, prefs_t *prefs)
       bfam_real_t new_energy = compute_energy(beard, prefs, time, "");
       BFAM_ROOT_INFO("time: %" BFAM_REAL_FMTe " error: %" BFAM_REAL_FMTe
                      " d_energy: %" BFAM_REAL_FMTe,
-                     time, error, (new_energy - initial_energy) / initial_energy);
+                     time, error,
+                     (new_energy - initial_energy) / initial_energy);
       if (noutput > 0)
       {
         char err_output[BFAM_BUFSIZ];
