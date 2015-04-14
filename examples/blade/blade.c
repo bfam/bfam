@@ -1851,7 +1851,7 @@ run_simulation(blade_t *blade,prefs_t *prefs)
   BFAM_ASSERT(blade->blade_ts);
   for(int s = 1; s <= nsteps; s++)
   {
-    blade->blade_ts->step(blade->blade_ts,dt);
+    blade->blade_ts->step(blade->blade_ts,dt,prefs);
     if(s%ndisp == 0)
     {
       bfam_real_t new_energy = compute_energy(blade,prefs,s*dt,"");

@@ -136,7 +136,8 @@ static int bfam_ts_adams_inter_rhs(const char *key, void *val, void *arg)
   return 1;
 }
 
-void bfam_ts_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
+static void bfam_ts_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt,
+                               void *user_data)
 {
   /* cast to the proper type */
   bfam_ts_adams_t *ts = (bfam_ts_adams_t *)a_ts;
@@ -179,7 +180,8 @@ void bfam_ts_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
              (ts->currentStage + 1) % ts->nStages);
     BFAM_LDEBUG("Adams step: RK rate rate_prefix %s", rate_prefix);
     BFAM_ASSERT(ts->lsrk->step_extended);
-    ts->lsrk->step_extended((bfam_ts_t *)ts->lsrk, dt, rate_prefix, "", "");
+    ts->lsrk->step_extended((bfam_ts_t *)ts->lsrk, dt, rate_prefix, "", "",
+                            user_data);
     if (ts->numSteps + 2 >= ts->nStages)
     {
       bfam_ts_lsrk_free(ts->lsrk);

@@ -477,7 +477,8 @@ static int bfam_ts_local_adams_update(const char *key, void *val, void *arg)
   return 1;
 }
 
-static void bfam_ts_local_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
+static void bfam_ts_local_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt,
+                                     void *user_data)
 {
   bfam_ts_local_adams_t *ts = (bfam_ts_local_adams_t *)a_ts;
   bfam_locidx_t num_steps = 1 << (ts->numLevels - 1);

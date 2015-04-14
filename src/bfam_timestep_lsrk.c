@@ -47,10 +47,11 @@ static int bfam_ts_lsrk_add_rates(const char *key, void *val, void *arg)
   return 1;
 }
 
-void bfam_ts_lsrk_step_extended(bfam_ts_t *a_ts, bfam_long_real_t dt,
-                                const char *rate_prefix,
-                                const char *field_prefix_lhs,
-                                const char *field_prefix_rhs)
+static void bfam_ts_lsrk_step_extended(bfam_ts_t *a_ts, bfam_long_real_t dt,
+                                       const char *rate_prefix,
+                                       const char *field_prefix_lhs,
+                                       const char *field_prefix_rhs,
+                                       void *user_data)
 {
   bfam_ts_lsrk_t *ts = (bfam_ts_lsrk_t *)a_ts;
   bfam_ts_lsrk_allprefix_t data;
@@ -105,9 +106,10 @@ void bfam_ts_lsrk_step_extended(bfam_ts_t *a_ts, bfam_long_real_t dt,
   ts->t += ts->C[ts->nStages] * dt;
 }
 
-void bfam_ts_lsrk_step(bfam_ts_t *a_ts, bfam_long_real_t dt)
+static void bfam_ts_lsrk_step(bfam_ts_t *a_ts, bfam_long_real_t dt,
+                              void *user_data)
 {
-  bfam_ts_lsrk_step_extended(a_ts, dt, BFAM_LSKR_PREFIX, "", "");
+  bfam_ts_lsrk_step_extended(a_ts, dt, BFAM_LSKR_PREFIX, "", "", user_data);
 }
 
 bfam_ts_lsrk_t *bfam_ts_lsrk_new(

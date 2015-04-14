@@ -47,7 +47,7 @@ typedef struct bfam_ts_lsrk
 
   void (*step_extended)(bfam_ts_t *a_ts, bfam_long_real_t dt,
                         const char *rate_prefix, const char *field_prefix_lhs,
-                        const char *field_prefix_rhs);
+                        const char *field_prefix_rhs, void *user_data);
 } bfam_ts_lsrk_t;
 
 typedef enum bfam_ts_lsrk_method

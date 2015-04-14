@@ -3950,7 +3950,7 @@ static void run_simulation(beard_t *beard, prefs_t *prefs)
   bfam_real_t time = 0;
   for (int s = 1; s <= nsteps; s++)
   {
-    beard->beard_ts->step(beard->beard_ts, dt);
+    beard->beard_ts->step(beard->beard_ts, dt, prefs);
     time = s * dt;
     if (plastic_fields)
     {

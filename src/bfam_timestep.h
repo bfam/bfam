@@ -9,6 +9,9 @@
  */
 struct bfam_ts;
 
+typedef void (*bfam_ts_step_t)(struct bfam_ts *ts, bfam_long_real_t dt,
+                               void *user_data);
+
 typedef struct bfam_ts
 {
   bfam_domain_t *domain; /**< my domain */
@@ -16,7 +19,7 @@ typedef struct bfam_ts
   bfam_long_real_t tmp; /* field forces alignment of pointer. Better soln?*/
 
   /* do a step of size dt with time stepper ts*/
-  void (*step)(struct bfam_ts *ts, bfam_long_real_t dt);
+  bfam_ts_step_t step;
 } bfam_ts_t;
 
 /** initialize a time step routine
