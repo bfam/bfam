@@ -23,9 +23,13 @@
       5, 5, 6, 4, 3,
 **
 ********************************** S I D E S E T S **********************************
-*ELSET, ELSET=SS1_E1
-      1, 2, 3, 4,
-*SURFACE, NAME=SS1
-SS1_E1, E1
+*ELSET, ELSET=SS2_E1
+      1, 2, 3
+*SURFACE, NAME=SS2
+SS2_E1, E1
+*ELSET, ELSET=SS4_E1
+      4,
+*SURFACE, NAME=SS4
+SS4_E1, E1
 *END PART
 ********************************** E N D   P A R T S **********************************

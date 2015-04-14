@@ -12,6 +12,7 @@ min_level = 0
 static_refinement=1
 
 mesh_file = "/home/jekozdon/codes/bfam/examples/beard/SurfaceWaves/convex_cylinder.inp"
+glueid_treeid_faceid = mesh_file
 
 default_boundary_tag = "free surface"
 
@@ -206,14 +207,17 @@ bc_rigid = {
   tag  = "rigid wall",
 }
 
+bc_exact = {
+  type = "boundary",
+  tag  = "user defined",
+}
+
 glue_info = {
   bc_nonreflect,
   bc_free,
   bc_rigid,
+  bc_exact,
 }
-
-
-
 
 -- field conditions
 S11 = 0
@@ -354,4 +358,17 @@ end
 
 function S13(x,y,z,t)
   return 0
+end
+
+function user_bc(x,y,z,t,uid)
+  local l_v1  = v1 (x,y,z,t)
+  local l_v2  = v2 (x,y,z,t)
+  local l_v3  = v3 (x,y,z,t)
+  local l_S11 = S11(x,y,z,t)
+  local l_S22 = S22(x,y,z,t)
+  local l_S33 = S33(x,y,z,t)
+  local l_S12 = S12(x,y,z,t)
+  local l_S13 = S13(x,y,z,t)
+  local l_S23 = S23(x,y,z,t)
+  return l_v1, l_v2, l_v3, l_S11, l_S22, l_S33, l_S12, l_S13, l_S23
 end
