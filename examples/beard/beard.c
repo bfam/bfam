@@ -1,4 +1,5 @@
 #include <bfam.h>
+#include "beard_base.h"
 
 #ifdef BEARD_DGX_DIMENSION
 
@@ -2887,19 +2888,20 @@ void intra_rhs(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
 
 void inter_rhs_boundary(int N, bfam_subdomain_dgx_t *sub,
                         const char *rate_prefix, const char *field_prefix,
-                        const bfam_long_real_t t, const bfam_real_t R)
+                        const bfam_long_real_t t, const bfam_real_t R,
+                        beard_user_bc_t user_bc_func, void *user_data)
 {
 #if DIM == 2
 #define X(order)                                                               \
   case order:                                                                  \
     beard_dgx_inter_rhs_boundary_2_##order(N, sub, rate_prefix, field_prefix,  \
-                                           t, R);                              \
+                                           t, R, user_bc_func, user_data);     \
     break;
 #elif DIM == 3
 #define X(order)                                                               \
   case order:                                                                  \
     beard_dgx_inter_rhs_boundary_3_##order(N, sub, rate_prefix, field_prefix,  \
-                                           t, R);                              \
+                                           t, R, user_bc_func, user_data);     \
     break;
 #else
 #error "bad dimension"
@@ -2910,9 +2912,11 @@ void inter_rhs_boundary(int N, bfam_subdomain_dgx_t *sub,
     BFAM_LIST_OF_DGX_NORDERS
   default:
 #if DIM == 2
-    beard_dgx_inter_rhs_boundary_2_(N, sub, rate_prefix, field_prefix, t, R);
+    beard_dgx_inter_rhs_boundary_2_(N, sub, rate_prefix, field_prefix, t, R,
+                                    user_bc_func, user_data);
 #elif DIM == 3
-    beard_dgx_inter_rhs_boundary_3_(N, sub, rate_prefix, field_prefix, t, R);
+    beard_dgx_inter_rhs_boundary_3_(N, sub, rate_prefix, field_prefix, t, R,
+                                    user_bc_func, user_data);
 #else
 #error "bad dimension"
 #endif
@@ -3066,19 +3070,25 @@ void inter_rhs(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
   {
     BFAM_ASSERT(minus_rate_prefix);
     inter_rhs_boundary(((bfam_subdomain_dgx_t *)sub->base.glue_m->sub_m)->N,
-                       sub, minus_rate_prefix, field_prefix, t, 0);
+                       sub, minus_rate_prefix, field_prefix, t, 0, NULL, NULL);
   }
   else if (bfam_subdomain_has_tag(thisSubdomain, "free surface"))
   {
     BFAM_ASSERT(minus_rate_prefix);
     inter_rhs_boundary(((bfam_subdomain_dgx_t *)sub->base.glue_m->sub_m)->N,
-                       sub, minus_rate_prefix, field_prefix, t, 1);
+                       sub, minus_rate_prefix, field_prefix, t, 1, NULL, NULL);
   }
   else if (bfam_subdomain_has_tag(thisSubdomain, "rigid"))
   {
     BFAM_ASSERT(minus_rate_prefix);
     inter_rhs_boundary(((bfam_subdomain_dgx_t *)sub->base.glue_m->sub_m)->N,
-                       sub, minus_rate_prefix, field_prefix, t, -1);
+                       sub, minus_rate_prefix, field_prefix, t, -1, NULL, NULL);
+  }
+  else if (bfam_subdomain_has_tag(thisSubdomain, "user defined"))
+  {
+    BFAM_ASSERT(minus_rate_prefix);
+    inter_rhs_boundary(((bfam_subdomain_dgx_t *)sub->base.glue_m->sub_m)->N,
+                       sub, minus_rate_prefix, field_prefix, t, -1, NULL, NULL);
   }
   else if (bfam_subdomain_has_tag(thisSubdomain, "_glue_parallel") ||
            bfam_subdomain_has_tag(thisSubdomain, "_glue_local"))

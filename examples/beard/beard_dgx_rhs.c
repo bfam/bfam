@@ -596,7 +596,12 @@ static inline void beard_dgx_add_boundary_flux(
     const bfam_real_t *S13, const bfam_real_t *S23, bfam_real_t *dv1,
     bfam_real_t *dv2, bfam_real_t *dv3, bfam_real_t *dS11, bfam_real_t *dS22,
     bfam_real_t *dS33, bfam_real_t *dS12, bfam_real_t *dS13, bfam_real_t *dS23,
-    bfam_real_t R)
+    bfam_real_t R, bfam_long_real_t t, const bfam_real_t *x1,
+    const bfam_real_t *x2,
+#if DIM == 3
+    const bfam_real_t *x3,
+#endif
+    bfam_locidx_t uid, beard_user_bc_t user_bc_func, void *user_data)
 {
   GENERIC_INIT(inN, beard_dgx_add_boundary_flux);
 
@@ -629,20 +634,41 @@ static inline void beard_dgx_add_boundary_flux(
     vpM[1] = vpM[1] - vnM * nM[1];
     BEARD_D3_OP(vpM[2] = vpM[2] - vnM * nM[2]);
 
-    /* First remove what we already did */
-    const bfam_real_t ZsP = ZsM;
-    const bfam_real_t ZpP = ZpM;
+    /* First we call the user function if there is one */
+    bfam_real_t TpP[] = {0, 0, 0};
+    bfam_real_t TnP = 0;
 
-    const bfam_real_t TpP[] = {R * TpM[0], R * TpM[1], R * TpM[2]};
-    const bfam_real_t TnP = -R * TnM;
+    bfam_real_t vpP[] = {0, 0, 0};
+    bfam_real_t vnP = 0;
+    if (user_bc_func)
+    {
+      const bfam_real_t xM[] = {x1[f], x2[f], BEARD_D3_AP(0, +x3[f])};
+      R = user_bc_func(uid, t, xM, nM, TpP, &TnP, vpP, &vnP, user_data);
+    }
 
-    const bfam_real_t vpP[] = {R * vpM[0], R * vpM[1], R * vpM[2]};
-    const bfam_real_t vnP = -R * vnM;
+    for (bfam_locidx_t k = 0; k < 3; k++)
+    {
+      TpP[k] += R * TpM[k];
+      vpP[k] += R * vpM[k];
+    }
+    TnP -= R * TnM;
+    vnP -= R * vnM;
+
+#if 0
+    bfam_real_t TpP[] = {R * TpM[0], R * TpM[1], R * TpM[2]};
+    bfam_real_t TnP = -R * TnM;
+
+    bfam_real_t vpP[] = {R * vpM[0], R * vpM[1], R * vpM[2]};
+    bfam_real_t vnP = -R * vnM;
+#endif
 
     bfam_real_t TnS;
     bfam_real_t TpS[3];
     bfam_real_t vnS;
     bfam_real_t vpS[3];
+
+    bfam_real_t ZsP = ZsM;
+    bfam_real_t ZpP = ZpM;
 
     BEARD_STATE(&TnS, TpS, &vnS, vpS, TnM, TnP, TpM, TpP, vnM, vnP, vpM, vpP,
                 ZpM, ZpP, ZsM, ZsP);
@@ -1494,7 +1520,8 @@ void beard_dgx_add_rates(int inN, bfam_subdomain_dgx_t *sub,
 void beard_dgx_inter_rhs_boundary(int inN, bfam_subdomain_dgx_t *sub_g,
                                   const char *rate_prefix,
                                   const char *field_prefix,
-                                  const bfam_long_real_t t, const bfam_real_t R)
+                                  const bfam_long_real_t t, const bfam_real_t R,
+                                  beard_user_bc_t user_bc_func, void *user_data)
 {
   GENERIC_INIT(inN, beard_dgx_inter_rhs_boundary);
 
@@ -1507,6 +1534,11 @@ void beard_dgx_inter_rhs_boundary(int inN, bfam_subdomain_dgx_t *sub_g,
   BFAM_ASSERT(glue_p != NULL);
   bfam_dictionary_t *fields = &sub_m->base.fields;
   bfam_dictionary_t *fields_face = &sub_m->base.fields_face;
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x1, field_prefix, "_grid_x0", fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x2, field_prefix, "_grid_x1", fields);
+  BEARD_D3_OP(
+      BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x3, field_prefix, "_grid_x2", fields));
 
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1, field_prefix, "v1", fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2, field_prefix, "v2", fields);
@@ -1562,13 +1594,17 @@ void beard_dgx_inter_rhs_boundary(int inN, bfam_subdomain_dgx_t *sub_g,
                           S22, S33, S12, S13, S23, dv1, dv2, dv3, dS11, dS22,
                           dS33, dS12, dS13, dS23);
 
-    beard_dgx_add_boundary_flux(N, face, e, sub_m->vmapM, n1, n2,
+    beard_dgx_add_boundary_flux(
+        N, face, e, sub_m->vmapM, n1, n2,
 #if DIM == 3
-                                n3,
+        n3,
 #endif
-                                Zs, Zp, mu, rhoi, lam, sJ, JI, wi, v1, v2, v3,
-                                S11, S22, S33, S12, S13, S23, dv1, dv2, dv3,
-                                dS11, dS22, dS33, dS12, dS13, dS23, R);
+        Zs, Zp, mu, rhoi, lam, sJ, JI, wi, v1, v2, v3, S11, S22, S33, S12, S13,
+        S23, dv1, dv2, dv3, dS11, dS22, dS33, dS12, dS13, dS23, R, t, x1, x2,
+#if DIM == 3
+        x3,
+#endif
+        sub_g->base.uid, user_bc_func, user_data);
   }
 }
 
