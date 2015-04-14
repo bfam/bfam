@@ -462,18 +462,6 @@ struct adams_table
       {NULL, BFAM_TS_ADAMS_NOOP},
 };
 
-struct local_adams_table
-{
-  const char *name;
-  bfam_ts_local_adams_method_t local_adams_method;
-} local_adams_table[] = {
-      {"Adams 1", BFAM_TS_LOCAL_ADAMS_1},
-      {"Adams 2", BFAM_TS_LOCAL_ADAMS_2},
-      {"Adams 3", BFAM_TS_LOCAL_ADAMS_3},
-      {"Adams 4", BFAM_TS_LOCAL_ADAMS_4},
-      {NULL, BFAM_TS_LOCAL_ADAMS_NOOP},
-};
-
 typedef struct brick_args
 {
   bfam_locidx_t nx;
@@ -515,9 +503,6 @@ typedef struct prefs
 
   bfam_ts_adams_method_t adams_method;
   char adams_name[BFAM_BUFSIZ];
-
-  bfam_ts_local_adams_method_t local_adams_method;
-  char local_adams_name[BFAM_BUFSIZ];
 
   plastic_type_t plasticity;
 } prefs_t;
@@ -854,53 +839,12 @@ static prefs_t *new_prefs(const char *prefs_filename)
   }
   lua_pop(L, 1);
 
-  prefs->local_adams_method = BFAM_TS_LOCAL_ADAMS_NOOP;
-  lua_getglobal(L, "local_adams_method");
-  if (lua_isstring(L, -1))
-  {
-    prefs->local_adams_method = local_adams_table[0].local_adams_method;
-    strncpy(prefs->local_adams_name, local_adams_table[0].name, BFAM_BUFSIZ);
-    if (lua_isstring(L, -1))
-    {
-      int i;
-      const char *local_adams_name = lua_tostring(L, -1);
-      for (i = 0; local_adams_table[i].name != NULL; ++i)
-      {
-        if (strcmp(local_adams_name, local_adams_table[i].name) == 0)
-          break;
-      }
-
-      if (local_adams_table[i].name == NULL)
-        BFAM_ROOT_WARNING("invalid local adams method name: `%s';"
-                          " using default %s",
-                          local_adams_name, prefs->local_adams_name);
-      else
-      {
-        prefs->local_adams_method = local_adams_table[i].local_adams_method;
-        strncpy(prefs->local_adams_name, local_adams_table[i].name,
-                BFAM_BUFSIZ);
-      }
-    }
-    else
-    {
-      BFAM_ROOT_WARNING("`local_adams method' not found, using default: %s",
-                        prefs->local_adams_name);
-    }
-    BFAM_ASSERT(prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP);
-  }
-  lua_pop(L, 1);
-
   BFAM_ABORT_IF_NOT(
       (prefs->lsrk_method != BFAM_TS_LSRK_NOOP &&
-       prefs->adams_method == BFAM_TS_ADAMS_NOOP &&
-       prefs->local_adams_method == BFAM_TS_LOCAL_ADAMS_NOOP) ||
+       prefs->adams_method == BFAM_TS_ADAMS_NOOP)||
           (prefs->lsrk_method == BFAM_TS_LSRK_NOOP &&
-           prefs->adams_method != BFAM_TS_ADAMS_NOOP &&
-           prefs->local_adams_method == BFAM_TS_LOCAL_ADAMS_NOOP) ||
-          (prefs->lsrk_method == BFAM_TS_LSRK_NOOP &&
-           prefs->adams_method == BFAM_TS_ADAMS_NOOP &&
-           prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP),
-      "must have either LSRK, ADAMS, or LOCAL time stepper");
+           prefs->adams_method != BFAM_TS_ADAMS_NOOP),
+      "must have either LSRK or ADAMS time stepper");
 
   /* get the connectivity type */
   lua_getglobal(L, "mesh_file");
@@ -994,9 +938,6 @@ static void print_prefs(prefs_t *prefs)
     BFAM_ROOT_INFO(" Low Storage Time Stepper = %s", prefs->lsrk_name);
   if (prefs->adams_method != BFAM_TS_ADAMS_NOOP)
     BFAM_ROOT_INFO(" Adams-Bashforth Scheme   = %s", prefs->adams_name);
-  if (prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
-    BFAM_ROOT_INFO(" Local Adams-Bashforth Scheme   = %s",
-                   prefs->local_adams_name);
   if (prefs->brick_args != NULL)
   {
     BFAM_ROOT_INFO(" brick arguments");
@@ -3266,8 +3207,7 @@ void add_rates(bfam_subdomain_t *thisSubdomain, const char *field_prefix_lhs,
     BFAM_ABORT("Unknown subdomain: %s", thisSubdomain->name);
 }
 
-static void init_time_stepper(beard_t *beard, prefs_t *prefs,
-                              bfam_locidx_t num_lvl)
+static void init_time_stepper(beard_t *beard, prefs_t *prefs)
 {
   beard->comm_args = bfam_malloc(sizeof(bfam_subdomain_comm_args_t));
   bfam_subdomain_comm_args_t *args = beard->comm_args;
@@ -3308,13 +3248,6 @@ static void init_time_stepper(beard_t *beard, prefs_t *prefs,
         timestep_tags, BFAM_DOMAIN_OR, glue, beard->mpicomm, 10,
         beard->comm_args, &aux_rates, &scale_rates, &intra_rhs, &inter_rhs,
         &add_rates, lua_get_global_int(prefs->L, "RK_init", 1));
-  else if (prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
-    beard->beard_ts = (bfam_ts_t *)bfam_ts_local_adams_new(
-        (bfam_domain_t *)beard->domain, prefs->local_adams_method, num_lvl,
-        BFAM_DOMAIN_OR, timestep_tags, BFAM_DOMAIN_OR, glue, beard->mpicomm, 10,
-        beard->comm_args, &aux_rates, &glue_rates, &scale_rates, &intra_rhs,
-        &inter_rhs, &add_rates, &add_rates_glue_p,
-        lua_get_global_int(prefs->L, "RK_init", 1));
 }
 
 static void compute_subdomain_dt(bfam_locidx_t npoints, const char *name,
@@ -3650,61 +3583,6 @@ static int beard_open_fault_stations(const char *key, void *val, void *in_args)
   return beard_output_stations(key, val, args);
 }
 
-static void time_level_comm_info(bfam_subdomain_t *thisSubdomain,
-                                 size_t *send_sz, size_t *recv_sz,
-                                 void *comm_args)
-{
-  BFAM_ASSERT(comm_args);
-  *send_sz += sizeof(int);
-  *recv_sz += sizeof(int);
-}
-
-static void time_level_put_send_buffer(bfam_subdomain_t *thisSubdomain,
-                                       void *buffer, size_t send_sz,
-                                       void *comm_args)
-{
-  /* just some sanity check */
-  BFAM_ASSERT(send_sz == sizeof(int));
-  BFAM_ASSERT(comm_args);
-  BFAM_ASSERT(thisSubdomain->glue_m);
-  BFAM_ASSERT(thisSubdomain->glue_m->sub_m);
-
-  /* determine the level of the minus side and add tag to minus side */
-  bfam_subdomain_comm_args_t *args = (bfam_subdomain_comm_args_t *)comm_args;
-  BFAM_ASSERT(args->user_data);
-  int max_lvl = *(int *)args->user_data;
-
-  int lvl = 0;
-  char tag[BFAM_BUFSIZ];
-  for (; lvl <= max_lvl; lvl++)
-  {
-    bfam_ts_local_adams_fill_level_tag(tag, BFAM_BUFSIZ, lvl);
-    if (bfam_subdomain_has_tag(thisSubdomain->glue_m->sub_m, tag))
-      break;
-  }
-  BFAM_ABORT_IF(lvl > max_lvl, "glue %s: "
-                               "max number of levels searched in minus side %s "
-                               "and no level tag found",
-                thisSubdomain->name, thisSubdomain->glue_m->sub_m->name);
-
-  bfam_subdomain_minus_add_tag(thisSubdomain, tag);
-
-  /* store the level */
-  *(int *)buffer = lvl;
-}
-
-static void time_level_get_recv_buffer(bfam_subdomain_t *thisSubdomain,
-                                       void *buffer, size_t recv_sz,
-                                       void *comm_args)
-{
-  BFAM_ASSERT(comm_args);
-  BFAM_ASSERT(recv_sz == sizeof(int));
-  int lvl = *(int *)buffer;
-  char tag[BFAM_BUFSIZ];
-  bfam_ts_local_adams_fill_level_tag(tag, BFAM_BUFSIZ, lvl);
-  bfam_subdomain_plus_add_tag(thisSubdomain, tag);
-}
-
 static bfam_real_t compute_domain_dt(beard_t *beard, prefs_t *prefs,
                                      const char *volume[], const char *glue[],
                                      int *nsteps_ptr, int *ndisp_ptr,
@@ -3762,90 +3640,9 @@ static bfam_real_t compute_domain_dt(beard_t *beard, prefs_t *prefs,
                             volume, err_flds[f]);
   }
 
-  bfam_locidx_t num_time_lvl = 0;
-  if (prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
-  {
-    bfam_real_t max_ldt = dt;
-
-    bfam_long_real_t dt_fudge =
-        (bfam_long_real_t)dt / (bfam_long_real_t)min_global_dt;
-
-    int max_time_level = lua_get_global_int(prefs->L, "max_time_level", 32);
-    for (bfam_locidx_t s = 0; s < numSubdomains; ++s)
-    {
-      ldt[s] = (bfam_real_t)dt_fudge * ldt[s];
-
-      /* keep double time_step until the level is big enough */
-      bfam_locidx_t time_level = 0;
-      if (ldt[s] != INFINITY)
-        for (; (1 << (time_level + 1)) * dt < ldt[s]; time_level++)
-          ;
-      time_level = BFAM_MIN(time_level, max_time_level);
-      BFAM_ASSERT(time_level >= 0);
-
-      char tag[BFAM_BUFSIZ];
-      bfam_ts_local_adams_fill_level_tag(tag, BFAM_BUFSIZ, time_level);
-      bfam_subdomain_add_tag(subdomains[s], tag);
-
-      /* set this guys real dt */
-      ldt[s] = dt * (1 << time_level);
-
-      BFAM_INFO("For %s is time level %d with local dt %" BFAM_REAL_FMTe,
-                subdomains[s]->name, time_level, ldt[s]);
-
-      max_ldt = BFAM_MAX(max_ldt, ldt[s]);
-
-      num_time_lvl = BFAM_MAX(num_time_lvl, time_level + 1);
-    }
-    BFAM_INFO("local number of time levels %" BFAM_LOCIDX_PRId, num_time_lvl);
-
-    BFAM_INFO("max local dt is %" BFAM_REAL_FMTe, max_ldt);
-
-    BFAM_MPI_CHECK(MPI_Allreduce(MPI_IN_PLACE, &num_time_lvl, 1,
-                                 BFAM_LOCIDX_MPI, MPI_MAX, beard->mpicomm));
-
-    dt = (1 << (num_time_lvl - 1)) * dt;
-
-    BFAM_INFO("number of time levels %" BFAM_LOCIDX_PRId
-              " for global dt %" BFAM_REAL_FMTe,
-              num_time_lvl, dt);
-
-    bfam_communicator_t level_comm;
-
-    bfam_subdomain_comm_args_t level_args;
-    const char *level_NULL[] = {NULL};
-    level_args.scalars_m = level_NULL;
-    level_args.vectors_m = level_NULL;
-    level_args.vector_components_m = level_NULL;
-    level_args.tensors_m = level_NULL;
-    level_args.tensor_components_m = level_NULL;
-    level_args.face_scalars_m = level_NULL;
-
-    level_args.scalars_p = level_NULL;
-    level_args.vectors_p = level_NULL;
-    level_args.vector_components_p = level_NULL;
-    level_args.tensors_p = level_NULL;
-    level_args.tensor_components_p = level_NULL;
-    level_args.face_scalars_p = level_NULL;
-
-    level_args.user_comm_info = time_level_comm_info;
-    level_args.user_put_send_buffer = time_level_put_send_buffer;
-    level_args.user_get_recv_buffer = time_level_get_recv_buffer;
-    level_args.user_data = &num_time_lvl;
-
-    level_args.user_prefix_function = NULL;
-
-    bfam_communicator_init(&level_comm, (bfam_domain_t *)beard->domain,
-                           BFAM_DOMAIN_OR, glue, beard->mpicomm, 10,
-                           &level_args);
-    bfam_communicator_start(&level_comm);
-    bfam_communicator_finish(&level_comm);
-    bfam_communicator_free(&level_comm);
-  }
-
   bfam_free(subdomains);
 
-  init_time_stepper(beard, prefs, num_time_lvl);
+  init_time_stepper(beard, prefs);
 
   return dt;
 }
@@ -4159,8 +3956,6 @@ static void shave_beard(beard_t *beard, prefs_t *prefs)
     bfam_ts_lsrk_free((bfam_ts_lsrk_t *)beard->beard_ts);
   if (prefs->adams_method != BFAM_TS_ADAMS_NOOP)
     bfam_ts_adams_free((bfam_ts_adams_t *)beard->beard_ts);
-  if (prefs->local_adams_method != BFAM_TS_LOCAL_ADAMS_NOOP)
-    bfam_ts_local_adams_free((bfam_ts_local_adams_t *)beard->beard_ts);
   bfam_free(beard->beard_ts);
   bfam_domain_pxest_free(beard->domain);
   bfam_free(beard->domain);
