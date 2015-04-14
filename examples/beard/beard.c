@@ -3008,15 +3008,35 @@ static bfam_real_t lua_user_bc(bfam_locidx_t uid, bfam_long_real_t t,
                     "should be a function that takes (x,y,z,t,uid) "
                     "and returns v1, v2, v3, S11, S22, S33, S12, S13, S23");
 
-  Tp[0] = n[0] * S11 + n[1] * S12 + n[2] * S13;
-  Tp[1] = n[0] * S12 + n[1] * S22 + n[2] * S23;
-  Tp[2] = n[0] * S13 + n[1] * S23 + n[2] * S33;
-  Tn[0] = Tp[0] * n[0] + Tp[1] * n[1] + Tp[2] * n[2];
+  const bfam_real_t nP[] = {-n[0], -n[1], -n[2]};
+  Tp[0] = nP[0] * S11 + nP[1] * S12 + nP[2] * S13;
+  Tp[1] = nP[0] * S12 + nP[1] * S22 + nP[2] * S23;
+  Tp[2] = nP[0] * S13 + nP[1] * S23 + nP[2] * S33;
+  Tn[0] = Tp[0] * nP[0] + Tp[1] * nP[1] + Tp[2] * nP[2];
 
-  vn[0] = n[0] * v1 + n[1] * v2 + n[2] * v3;
-  vp[0] = v1 - vn[0] * n[0];
-  vp[1] = v2 - vn[0] * n[1];
-  vp[2] = v3 - vn[0] * n[2];
+  Tp[0] = Tp[0] - Tn[0] * nP[0];
+  Tp[1] = Tp[1] - Tn[0] * nP[1];
+  Tp[2] = Tp[2] - Tn[0] * nP[2];
+
+#if 0
+  BFAM_INFO("::::::::::::::");
+  BFAM_INFO("X :: %+" BFAM_REAL_PRIe " :: %+" BFAM_REAL_PRIe
+            " :: %+" BFAM_REAL_PRIe,
+            x[0], x[1], x[0]*x[0] + x[1]*x[1]);
+
+  BFAM_INFO("N :: %+" BFAM_REAL_PRIe " :: %+" BFAM_REAL_PRIe
+            " :: %+" BFAM_REAL_PRIe,
+            nP[0], nP[1], nP[0] * nP[0] + nP[1] * nP[1]);
+
+  BFAM_INFO("S :: %+" BFAM_REAL_PRIe " :: %+" BFAM_REAL_PRIe
+            " :: %+" BFAM_REAL_PRIe " :: %+" BFAM_REAL_PRIe,
+            Tp[0], Tp[1], Tp[2], Tn[0]);
+#endif
+
+  vn[0] = nP[0] * v1 + nP[1] * v2 + nP[2] * v3;
+  vp[0] = v1 - vn[0] * nP[0];
+  vp[1] = v2 - vn[0] * nP[1];
+  vp[2] = v3 - vn[0] * nP[2];
 
   return 0;
 }

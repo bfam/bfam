@@ -642,7 +642,7 @@ static inline void beard_dgx_add_boundary_flux(
     bfam_real_t vnP = 0;
     if (user_bc_func)
     {
-      const bfam_real_t xM[] = {x1[f], x2[f], BEARD_D3_AP(0, +x3[f])};
+      const bfam_real_t xM[] = {x1[iM], x2[iM], BEARD_D3_AP(0, +x3[iM])};
       R = user_bc_func(uid, t, xM, nM, TpP, &TnP, vpP, &vnP, user_data);
     }
 
@@ -1535,11 +1535,6 @@ void beard_dgx_inter_rhs_boundary(int inN, bfam_subdomain_dgx_t *sub_g,
   bfam_dictionary_t *fields = &sub_m->base.fields;
   bfam_dictionary_t *fields_face = &sub_m->base.fields_face;
 
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x1, field_prefix, "_grid_x0", fields);
-  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x2, field_prefix, "_grid_x1", fields);
-  BEARD_D3_OP(
-      BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x3, field_prefix, "_grid_x2", fields));
-
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v1, field_prefix, "v1", fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v2, field_prefix, "v2", fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(v3, field_prefix, "v3", fields);
@@ -1568,6 +1563,10 @@ void beard_dgx_inter_rhs_boundary(int inN, bfam_subdomain_dgx_t *sub_g,
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(Zp, "", "Zp", fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(J, "", "_grid_J", fields);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(JI, "", "_grid_JI", fields);
+
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x1, "", "_grid_x0", fields);
+  BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x2, "", "_grid_x1", fields);
+  BEARD_D3_OP(BFAM_LOAD_FIELD_RESTRICT_ALIGNED(x3, "", "_grid_x2", fields));
 
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(n1, "", "_grid_nx0", fields_face);
   BFAM_LOAD_FIELD_RESTRICT_ALIGNED(n2, "", "_grid_nx1", fields_face);
