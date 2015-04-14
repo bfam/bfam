@@ -839,11 +839,12 @@ static prefs_t *new_prefs(const char *prefs_filename)
   }
   lua_pop(L, 1);
 
-  BFAM_ABORT_IF_NOT((prefs->lsrk_method != BFAM_TS_LSRK_NOOP &&
-                     prefs->adams_method == BFAM_TS_ADAMS_NOOP) ||
-                        (prefs->lsrk_method == BFAM_TS_LSRK_NOOP &&
-                         prefs->adams_method != BFAM_TS_ADAMS_NOOP),
-                    "must have either LSRK or ADAMS time stepper");
+  BFAM_ABORT_IF_NOT(
+      (prefs->lsrk_method != BFAM_TS_LSRK_NOOP &&
+       prefs->adams_method == BFAM_TS_ADAMS_NOOP)||
+          (prefs->lsrk_method == BFAM_TS_LSRK_NOOP &&
+           prefs->adams_method != BFAM_TS_ADAMS_NOOP),
+      "must have either LSRK or ADAMS time stepper");
 
   /* get the connectivity type */
   lua_getglobal(L, "mesh_file");
