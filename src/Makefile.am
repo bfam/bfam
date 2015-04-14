@@ -29,7 +29,6 @@ src/bfam_subdomain_dgx.h \
 src/bfam_subdomain.h \
 src/bfam_timestep_adams.h \
 src/bfam_timestep.h \
-src/bfam_timestep_local_adams.h \
 src/bfam_timestep_lsrk.h \
 src/bfam_util.h \
 src/bfam_version.h \

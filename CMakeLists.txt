@@ -419,7 +419,6 @@ add_library(bfam
                  src/bfam_timestep.c
                  src/bfam_timestep_lsrk.c
                  src/bfam_timestep_adams.c
-                 src/bfam_timestep_local_adams.c
                  src/bfam_util.c
                  ${mbobjs}
            )
