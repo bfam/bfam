@@ -48,13 +48,13 @@
 *ELSET, ELSET=SS2_E4
     4
 ****** SS4 = time dependent BC *****
-*ELSET, ELSET=SS2_E1
+*ELSET, ELSET=SS4_E1
     1, 2, 3
-*ELSET, ELSET=SS2_E2
+*ELSET, ELSET=SS4_E2
     3, 4, 5
-*ELSET, ELSET=SS2_E3
+*ELSET, ELSET=SS4_E3
     5, 6, 7
-*ELSET, ELSET=SS2_E4
+*ELSET, ELSET=SS4_E4
     7, 8, 1
 *END PART
 ********************************** E N D   P A R T S **********************************

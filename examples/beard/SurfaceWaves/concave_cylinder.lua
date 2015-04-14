@@ -12,6 +12,7 @@ min_level = 0
 static_refinement=3
 
 mesh_file = "/home/jekozdon/codes/bfam/examples/beard/SurfaceWaves/concave_cylinder.inp"
+glueid_treeid_faceid = mesh_file
 
 default_boundary_tag = "free surface"
 
@@ -123,36 +124,17 @@ function element_order(
 end
 
 -- material properties
-
-OMEGA_R = {  0.495719213980678,  1.376300729324809,  2.247966737740946,   3.122343319168747,   4.000739349461448,   4.883072039743391,   5.768949287751974}
-OMEGA_I = {  0.482489802859255,  0.562001476905459,  0.595314872100875,   0.610590759912388,   0.616417207729038,   0.616677688937145,   0.613435428254969}
-B_R     =  {-0.119481693313368, -0.433288418131060, -0.908447005479862,  -1.634838389505964,  -2.741262468068052,  -4.415934969322963,  -6.934676718614770}
-B_I     =  {-2.996924150548532, -4.741971316305029, -7.300093250067868, -11.096286394747006, -16.740023608389567, -25.126574554563344, -37.575882485238743}
-
-KI = 1
-
 mu  = 1
 lam = 1
 rho = 1
 cp  = sqrt((lam+2*mu)/rho)
 cs  = sqrt(mu/rho)
-CW = {
-  omega_r = OMEGA_R[KI],
-  omega_i = OMEGA_I[KI],
-  b_y     = B_R[KI],
-  b_i     = B_I[KI],
-  A     = 1,
-  n       = KI+1,
-  Ka = OMEGA[KI][KJ]/cp,
-  Kb = OMEGA[KI][KJ]/cs,
-}
-
 
 -- time stepper to use
 lsrk_method  = "KC54"
 
-tend   = 2*pi/CW.omega
-tend = 2
+tend   = 2*pi
+tend   = 2
 tout   = tend
 tdisp  = tend
 -- nerr   = 0
@@ -195,137 +177,37 @@ bc_rigid = {
   tag  = "rigid wall",
 }
 
+bc_exact = {
+  type = "boundary",
+  tag  = "user defined",
+}
+
 glue_info = {
   bc_nonreflect,
   bc_free,
   bc_rigid,
+  bc_exact,
 }
 
-
-
-
 -- field conditions
-S11 = 0
-S22 = 0
-S33 = 0
-S12 = 0
-S13 = 0
-S23 = 0
-v2  = 0
-v3  = 0
-
-function CW_prelims(x,y,z,t)
-  local r = sqrt(x^2+y^2)
-  if r == 0 then
-    return 0,0,0,0
-  end
-
-  local S = math.atan2(y,x)
-
-  local A  = CW.A
-  local bi = CW.bi
-  local n  = CW.n
-  local Ka = CW.Ka
-  local Kb = CW.Kb
-
-
-
-  local q1 =  A*Ka/2*(jn(n-1,Ka*r)-jn(n+1,Ka*r));
-  local q2 =-bi*(n/r)*jn(n,Kb*r);
-  local w1 = A*(n/r)*jn(n,Ka*r);
-  local w2 = -bi*Kb/2*(jn(n-1,Kb*r)-jn(n+1,Kb*r));
-
-  local W = w1+w2;
-  local Q = q1+q2;
-  return r,S,W,Q
-end
-
-function djn(n,r)
-  return 0.5*(jn(n-1,r) - jn(n+1,r))
-end
-
-function CW_deriv_prelims(x,y,z,t)
-  local r,S,W,Q = CW_prelims(x,y,z,t)
-  local A     = CW.A
-  local bi    = CW.bi
-  local n     = CW.n
-  local Ka    = CW.Ka
-  local Kb    = CW.Kb
-  local omega = CW.omega
-
-  local r_x = x/r
-  local r_y = y/r
-  local S_x = -y/r^2
-  local S_y =  x/r^2
-
-  local q1_r =  A*Ka^2/2*(djn(n-1,Ka*r)-djn(n+1,Ka*r));
-  local q2_r = bi*(n/r^2)*jn(n,Kb*r) - Kb*bi*(n/r)*djn(n,Kb*r);
-  local w1_r =-A*(n/r^2)*jn(n,Ka*r) + Ka*A*(n/r)*djn(n,Ka*r);
-  local w2_r = -bi*Kb^2/2*(djn(n-1,Kb*r)-djn(n+1,Kb*r));
-
-  if r== 0 then
-    r_x = 0
-    r_y = 0
-    S_x = 0
-    S_y = 0
-    q2_r = 0
-    w1_r = 0
-  end
-
-  local Q_r = q1_r+q2_r;
-  local W_r = w1_r+w2_r;
-  local ux_S =   -Q*cos(n*S + omega*t)*sin(S) +  n*W*sin(S)*cos(n*S + omega*t) -
-                n*Q*sin(n*S + omega*t)*cos(S) +    W*cos(S)*sin(n*S + omega*t);
-  local ux_Q = cos(S) * cos(omega*t+n*S);
-  local ux_W = sin(S) * sin(omega*t+n*S);
-  local ux_r = ux_Q * Q_r + ux_W * W_r;
-
-  local ux_x = ux_r*r_x + ux_S*S_x;
-  local ux_y = ux_r*r_y + ux_S*S_y;
-
-  local uy_S =    Q*cos(S)*cos(n*S + omega*t) - n*W*cos(S)*cos(n*S + omega*t) -
-               n*Q*sin(S)*sin(n*S + omega*t) +    W*sin(S)*sin(n*S + omega*t);
-
-  local uy_Q = sin(S) * cos(omega*t+n*S);
-  local uy_W = - cos(S) * sin(omega*t+n*S);
-  local uy_r = uy_Q * Q_r + uy_W * W_r;
-
-  local uy_x = uy_r*r_x + uy_S*S_x;
-  local uy_y = uy_r*r_y + uy_S*S_y;
-
-  return ux_x, ux_y, uy_x, uy_y
-end
-
-
 function v1(x,y,z,t)
-  local r,S,W,Q = CW_prelims(x,y,z,t)
-  local omega   = CW.omega
-  local n       = CW.n
-  return -omega * cos(S)*Q * sin(omega*t+n*S) +
-          omega * sin(S)*W * cos(omega*t+n*S)
+  return 0
 end
 
 function v2(x,y,z,t)
-  local r,S,W,Q = CW_prelims(x,y,z,t)
-  local omega   = CW.omega
-  local n       = CW.n
-  return -omega * sin(S)*Q * sin(omega*t+n*S) -
-          omega * cos(S)*W * cos(omega*t+n*S)
+  return 0
 end
 
 function S11(x,y,z,t)
-  local ux_x, ux_y, uy_x, uy_y = CW_deriv_prelims(x,y,z,t)
-  return lam*(ux_x + uy_y) + 2*mu*ux_x;
+  return 0
 end
 
 function S22(x,y,z,t)
-  local ux_x, ux_y, uy_x, uy_y = CW_deriv_prelims(x,y,z,t)
-  return lam*(ux_x + uy_y) + 2*mu*uy_y;
+  return 0
 end
 
 function S12(x,y,z,t)
-  local ux_x, ux_y, uy_x, uy_y = CW_deriv_prelims(x,y,z,t)
-  return mu*(ux_y+uy_x);
+  return 0
 end
 
 function v3(x,y,z,t)
@@ -333,8 +215,7 @@ function v3(x,y,z,t)
 end
 
 function S33(x,y,z,t)
-  local ux_x, ux_y, uy_x, uy_y = CW_deriv_prelims(x,y,z,t)
-  return lam*(ux_x + uy_y)
+  return 0
 end
 
 function S23(x,y,z,t)
