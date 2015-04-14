@@ -1270,7 +1270,13 @@ static int glueid_read_file(FILE *fid, bfam_locidx_t *tree_to_glueid,
   int reading_side_set = 0;
   int glueid = -1;
   int faceid = -1;
+#if DIM == 3
   int abq_to_p4est[] = {4, 5, 2, 1, 3, 0};
+#elif DIM == 2
+  int abq_to_p4est[] = {2, 1, 3, 0};
+#else
+#error "Bad Dimension"
+#endif
 
   for (;;)
   {
