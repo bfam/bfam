@@ -2981,6 +2981,46 @@ void inter_rhs_interface(int N, bfam_subdomain_dgx_t *sub,
 #undef X
 }
 
+static bfam_real_t lua_user_bc(bfam_locidx_t uid, bfam_long_real_t t,
+                               const bfam_real_t *x, const bfam_real_t *n,
+                               bfam_real_t *Tp, bfam_real_t *Tn,
+                               bfam_real_t *vp, bfam_real_t *vn,
+                               void *user_data)
+{
+  prefs_t *prefs = (prefs_t *)user_data;
+
+  bfam_real_t v1;
+  bfam_real_t v2;
+  bfam_real_t v3;
+  bfam_real_t S11;
+  bfam_real_t S22;
+  bfam_real_t S33;
+  bfam_real_t S12;
+  bfam_real_t S13;
+  bfam_real_t S23;
+
+  int result =
+      lua_global_function_call(prefs->L, 0, "user_bc", "rrrri>rrrrrrrrr", x[0],
+                               x[1], x[2], (bfam_real_t)t, (int)uid, &v1, &v2,
+                               &v3, &S11, &S22, &S33, &S12, &S13, &S23);
+  BFAM_ABORT_IF_NOT(result == 0,
+                    "problem with lua call to 'user_bc'"
+                    "should be a function that takes (x,y,z,t,uid) "
+                    "and returns v1, v2, v3, S11, S22, S33, S12, S13, S23");
+
+  Tp[0] = n[0] * S11 + n[1] * S12 + n[2] * S13;
+  Tp[1] = n[0] * S12 + n[1] * S22 + n[2] * S23;
+  Tp[2] = n[0] * S13 + n[1] * S23 + n[2] * S33;
+  Tn[0] = Tp[0] * n[0] + Tp[1] * n[1] + Tp[2] * n[2];
+
+  vn[0] = n[0] * v1 + n[1] * v2 + n[2] * v3;
+  vp[0] = v1 - vn[0] * n[0];
+  vp[1] = v2 - vn[0] * n[1];
+  vp[2] = v3 - vn[0] * n[2];
+
+  return 0;
+}
+
 void inter_rhs(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
                const char *minus_rate_prefix, const char *field_prefix,
                const bfam_long_real_t t, void *user_data)
@@ -3028,7 +3068,8 @@ void inter_rhs(bfam_subdomain_t *thisSubdomain, const char *rate_prefix,
   {
     BFAM_ASSERT(minus_rate_prefix);
     inter_rhs_boundary(((bfam_subdomain_dgx_t *)sub->base.glue_m->sub_m)->N,
-                       sub, minus_rate_prefix, field_prefix, t, -1, NULL, NULL);
+                       sub, minus_rate_prefix, field_prefix, t, -1, lua_user_bc,
+                       user_data);
   }
   else if (bfam_subdomain_has_tag(thisSubdomain, "_glue_parallel") ||
            bfam_subdomain_has_tag(thisSubdomain, "_glue_local"))
