@@ -504,9 +504,6 @@ namespace occa {
     nestedKernelCount = 0;
 
     preferredDimSize_ = 0;
-
-    startTime = (void*) new cl_event;
-    endTime   = (void*) new cl_event;
   }
 
   template <>
@@ -530,9 +527,6 @@ namespace occa {
     }
 
     preferredDimSize_ = k.preferredDimSize_;
-
-    startTime = k.startTime;
-    endTime   = k.endTime;
   }
 
   template <>
@@ -556,9 +550,6 @@ namespace occa {
     }
 
     preferredDimSize_ = k.preferredDimSize_;
-
-    *((cl_event*) startTime) = *((cl_event*) k.startTime);
-    *((cl_event*) endTime)   = *((cl_event*) k.endTime);
 
     return *this;
   }
@@ -677,42 +668,6 @@ namespace occa {
   }
 
 #include "operators/occaOpenCLKernelOperators.cpp"
-
-  template <>
-  double kernel_t<OpenCL>::timeTaken(){
-    cl_event &startEvent = *((cl_event*) startTime);
-    cl_event &endEvent   = *((cl_event*) endTime);
-
-    cl_ulong start, end;
-
-    clGetEventProfilingInfo(startEvent, CL_PROFILING_COMMAND_END,
-                            sizeof(cl_ulong), &start,
-                            NULL);
-
-    clGetEventProfilingInfo(endEvent, CL_PROFILING_COMMAND_START,
-                            sizeof(cl_ulong), &end,
-                            NULL);
-
-    return 1.0e-9*(end - start);
-  }
-
-  template <>
-  double kernel_t<OpenCL>::timeTakenBetween(void *start, void *end){
-    cl_event &startEvent = *((cl_event*) start);
-    cl_event &endEvent   = *((cl_event*) end);
-
-    cl_ulong start_, end_;
-
-    clGetEventProfilingInfo(startEvent, CL_PROFILING_COMMAND_END,
-                            sizeof(cl_ulong), &start_,
-                            NULL);
-
-    clGetEventProfilingInfo(endEvent, CL_PROFILING_COMMAND_START,
-                            sizeof(cl_ulong), &end_,
-                            NULL);
-
-    return 1.0e-9*(end_ - start_);
-  }
 
   template <>
   void kernel_t<OpenCL>::free(){
@@ -1170,7 +1125,7 @@ namespace occa {
     salt << "OpenCL"
          << data_.platform << '-' << data_.device
          << info_.salt()
-         << parser::version
+         << parserVersion
          << compilerEnvScript
          << compiler
          << compilerFlags;
@@ -1234,12 +1189,14 @@ namespace occa {
 
   template <>
   void device_t<OpenCL>::flush(){
-    clFlush(*((cl_command_queue*) currentStream));
+    OCCA_CL_CHECK("Device: Flush",
+                  clFlush(*((cl_command_queue*) currentStream)));
   }
 
   template <>
   void device_t<OpenCL>::finish(){
-    clFinish(*((cl_command_queue*) currentStream));
+    OCCA_CL_CHECK("Device: Finish",
+                  clFinish(*((cl_command_queue*) currentStream)));
   }
 
   template <>
@@ -1249,7 +1206,8 @@ namespace occa {
 
   template <>
   void device_t<OpenCL>::waitFor(streamTag tag){
-    clWaitForEvents(1, &(tag.clEvent));
+    OCCA_CL_CHECK("Device: Waiting For Tag",
+                  clWaitForEvents(1, &(tag.clEvent)));
   }
 
   template <>
@@ -1284,9 +1242,11 @@ namespace occa {
     streamTag ret;
 
 #ifdef CL_VERSION_1_2
-    clEnqueueMarkerWithWaitList(stream, 0, NULL, &(ret.clEvent));
+    OCCA_CL_CHECK("Device: Tagging Stream",
+                  clEnqueueMarkerWithWaitList(stream, 0, NULL, &(ret.clEvent)));
 #else
-    clEnqueueMarker(stream, &(ret.clEvent));
+    OCCA_CL_CHECK("Device: Tagging Stream",
+                  clEnqueueMarker(stream, &(ret.clEvent)));
 #endif
 
     return ret;
@@ -1294,10 +1254,9 @@ namespace occa {
 
   template <>
   double device_t<OpenCL>::timeBetween(const streamTag &startTag, const streamTag &endTag){
-    cl_command_queue &stream = *((cl_command_queue*) currentStream);
     cl_ulong start, end;
 
-    clFinish(stream);
+    finish();
 
     OCCA_CL_CHECK ("Device: Time Between Tags (Start)",
                    clGetEventProfilingInfo(startTag.clEvent  ,
@@ -1311,8 +1270,11 @@ namespace occa {
                                            sizeof(cl_ulong),
                                            &end, NULL) );
 
-    clReleaseEvent(startTag.clEvent);
-    clReleaseEvent(endTag.clEvent);
+    OCCA_CL_CHECK("Device: Time Between Tags (Freeing start tag)",
+                  clReleaseEvent(startTag.clEvent));
+
+    OCCA_CL_CHECK("Device: Time Between Tags (Freeing end tag)",
+                  clReleaseEvent(endTag.clEvent));
 
     return (double) (1.0e-9 * (double)(end - start));
   }

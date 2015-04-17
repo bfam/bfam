@@ -4,6 +4,16 @@
 /* Testing " '
 */
 
+#define BOXIFY(x)                               \
+  {                                             \
+    if ((x) >= 0.5)                             \
+      x -= 1.0;                                 \
+    else if ((x) < -0.5)                        \
+      x += 1.0;                                 \
+  }
+
+typedef int blah234;
+
 // 0.9899*sqrt(8.0*log(10.0))/(PI*freq);
 const tFloat hat_t0 = 1.3523661426929/freq; /* Testing 3 */
 const tFloat &hat_t1 = hat_t0;
@@ -39,6 +49,10 @@ occaKernel void fd2d(tFloat *u1,
   int lDimY = lDimX;
   int lDimZ = lDimX + lDimY;
 
+  double2 s[2];
+
+  BOXIFY(s[i].x);
+
   /*
     for(int n = 0; n < bDimX; ++n; tile(lDimX)){
     }
@@ -66,6 +80,9 @@ occaKernel void fd2d(tFloat *u1,
           const int tx = bx * lDimX + lx;
           const int ty = by * lDimY + ly;
 
+          float2 sj, si;
+          float2 s = sj - si;
+
           Lu[0] = WR_MIN(Lu[tx], Lu[tx+512]);
 
           int y1, y2;
@@ -88,7 +105,7 @@ occaKernel void fd2d(tFloat *u1,
           const int id = ty*w + tx;
 
           float *__u1 = &u1[bDimX];
-          float *__u2 = (&(u1[bDimX]));
+          float *__u2 = (float*) (&(u1[bDimX]));
 
           float data = tex1[0][0];
           tex1[0][0] = data;

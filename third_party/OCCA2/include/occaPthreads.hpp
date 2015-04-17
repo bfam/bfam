@@ -8,7 +8,7 @@
 #  include <pthread.h>
 #  include <dlfcn.h>
 #else
-#  include "vs/pthread.h"
+#  include "vs/pthread.hpp"
 #endif
 
 #include <sys/types.h>
@@ -121,12 +121,6 @@ namespace occa {
 
   template <>
   int kernel_t<Pthreads>::preferredDimSize();
-
-  template <>
-  double kernel_t<Pthreads>::timeTaken();
-
-  template <>
-  void kernel_t<Pthreads>::free();
   //==================================
 
 

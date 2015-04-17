@@ -7,6 +7,7 @@
 #include "occaParserNodes.hpp"
 #include "occaParserTypes.hpp"
 #include "occaParserStatement.hpp"
+#include "occaParserMagic.hpp"
 #include "occaTools.hpp"
 
 namespace occa {
@@ -15,8 +16,6 @@ namespace occa {
 
     class parserBase {
     public:
-      static const int version = 100;
-
       std::string filename;
 
       bool parsingC;
@@ -36,6 +35,7 @@ namespace occa {
       //---[ Warnings ]-----------------
       bool warnForMissingBarriers;
       bool warnForBarrierConditionals;
+      bool magicEnabled;
       //================================
 
       parserBase();
@@ -113,8 +113,9 @@ namespace occa {
 
       bool statementHasOccaStuff(statement &s);
 
-      void markKernelFunctions(statement &s);
+      void splitTileOccaFors(statement &s);
 
+      void markKernelFunctions();
       void labelNativeKernels();
 
       void setupCudaVariables(statement &s);
@@ -237,6 +238,7 @@ namespace occa {
 
     void initKeywords(const bool parsingC = true);
     void initFortranKeywords();
+    //==============================================
 
     //---[ OCCA Loop Info ]-------------
     class occaLoopInfo {
@@ -244,8 +246,10 @@ namespace occa {
       statement *sInfo;
       bool parsingC;
 
+      occaLoopInfo();
+
       occaLoopInfo(statement &s,
-                   const bool parsingC_,
+                   const bool parsingC_ = true,
                    const std::string &tag = "");
 
       void lookForLoopFrom(statement &s,
@@ -274,7 +278,6 @@ namespace occa {
       std::string getSetupExpression();
     };
     //==================================
-    //==============================================
   };
 
   // Just to ignore the namespace

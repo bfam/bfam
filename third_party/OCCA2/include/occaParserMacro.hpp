@@ -3,6 +3,7 @@
 
 #include "occaParserDefines.hpp"
 #include "occaParserTools.hpp"
+#include "occaParserNodes.hpp"
 
 namespace occa {
   namespace parserNS {
@@ -27,6 +28,7 @@ namespace occa {
 
     extern opTypeMap_t opPrecedence;
     extern opLevelMap_t opLevelMap[17];
+    extern bool opLevelL2R[17];
     //==============================================
 
 
@@ -56,13 +58,41 @@ namespace occa {
       int type;
 
       typeHolder();
+      typeHolder(const typeHolder &th);
       typeHolder(const std::string strValue, int type_ = noType);
+      typeHolder(const int int__);
+      typeHolder(const bool bool__);
+      typeHolder(const char char__);
+      typeHolder(const long long__);
+      typeHolder(const short short__);
+      typeHolder(const float float__);
+      typeHolder(const double double__);
+
+      typeHolder& operator = (const typeHolder &th);
+      typeHolder& operator = (const std::string &str);
+      typeHolder& operator = (const int int__);
+      typeHolder& operator = (const bool bool__);
+      typeHolder& operator = (const char char__);
+      typeHolder& operator = (const long long__);
+      typeHolder& operator = (const short short__);
+      typeHolder& operator = (const float float__);
+      typeHolder& operator = (const double double__);
+
+      bool operator == (const typeHolder &th) const;
+      bool operator != (const typeHolder &th) const;
+
+      bool operator <  (const typeHolder &th) const;
+      bool operator <= (const typeHolder &th) const;
+      bool operator >= (const typeHolder &th) const;
+      bool operator >  (const typeHolder &th) const;
 
       bool isAFloat() const;
 
       bool boolValue() const;
       long longValue() const;
       double doubleValue() const;
+
+      void convertTo(int type_);
 
       void setLongValue(const long &l);
       void setDoubleValue(const double &d);
@@ -72,18 +102,33 @@ namespace occa {
 
     std::ostream& operator << (std::ostream &out, const typeHolder &th);
 
-    int typePrecedence(const typeHolder a, const typeHolder b);
+    int typePrecedence(typeHolder &a, typeHolder &b);
 
-    typeHolder applyOperator(std::string op, const typeHolder a);
+    typeHolder applyOperator(std::string op, const std::string &a_);
+    typeHolder applyOperator(std::string op, typeHolder &a);
 
-    typeHolder applyOperator(const typeHolder a,
+    typeHolder applyOperator(const std::string &a_,
                              std::string op,
-                             const typeHolder b);
+                             const std::string &b_);
 
-    typeHolder applyOperator(const typeHolder a,
+    typeHolder applyOperator(typeHolder &a,
                              std::string op,
-                             const typeHolder b,
-                             const typeHolder c);
+                             typeHolder &b);
+
+    typeHolder applyOperator(const std::string &a_,
+                             std::string op,
+                             const std::string &b_,
+                             const std::string &c_);
+
+    typeHolder applyOperator(typeHolder &a,
+                             std::string op,
+                             typeHolder &b,
+                             typeHolder &c);
+
+    typeHolder evaluateString(const std::string &str);
+    typeHolder evaluateString(const char *c);
+
+    typeHolder evaluateNode(strNode *nodeRoot);
     //==============================================
 
 

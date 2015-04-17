@@ -262,7 +262,7 @@ namespace occa {
     }
 
     //---[ Qualifier Info ]-------------
-    bool qualifierInfo::has(const std::string &qName) const {
+    bool qualifierInfo::has(const std::string &qName){
       for(int i = 0; i < qualifierCount; ++i){
         if(qualifiers[i] == qName)
           return true;
@@ -271,7 +271,7 @@ namespace occa {
       return false;
     }
 
-    const std::string& qualifierInfo::get(const int pos) const {
+    std::string& qualifierInfo::get(const int pos){
       OCCA_CHECK((0 <= pos) && (pos < qualifierCount),
                  "There are only ["
                  << qualifierCount << "] qualifiers (asking for ["
@@ -442,6 +442,8 @@ namespace occa {
 
       if(leftQualifiers.has("typedef"))
         return loadTypedefFrom(expRoot, leafPos);
+
+      baseType = this;
 
       if((leafPos < expRoot.leafCount) &&
          (expRoot[leafPos].info & expType::unknown)){
@@ -759,8 +761,6 @@ namespace occa {
       v.leftQualifiers  = leftQualifiers.clone();
       v.rightQualifiers = rightQualifiers.clone();
 
-      v.stackPointersUsed = stackPointersUsed;
-
       if(stackPointerCount){
         v.stackExpRoots = new expNode[stackPointerCount];
 
@@ -807,6 +807,7 @@ namespace occa {
     int varInfo::loadFrom(expNode &expRoot,
                           int leafPos,
                           varInfo *varHasType){
+
       if(expRoot.leafCount <= leafPos)
         return leafPos;
 
@@ -828,6 +829,7 @@ namespace occa {
     int varInfo::loadTypeFrom(expNode &expRoot,
                               int leafPos,
                               varInfo *varHasType){
+
       if(expRoot.leafCount <= leafPos)
         return leafPos;
 
@@ -950,9 +952,17 @@ namespace occa {
       }
 
       if(leaf->info & (expType::unknown  |
-                       expType::variable |
+                       expType::varInfo  |
                        expType::function)){
-        name = leaf->value;
+
+        if(leaf->info & expType::varInfo){
+          if(baseType)
+            name = leaf->getVarInfo().name;
+          else
+            return leafPos;
+        }
+        else
+          name = leaf->value;
 
         int sLeafPos = leaf->whichLeafAmI();
 
@@ -1638,19 +1648,19 @@ namespace occa {
 
 
     //---[ Variable Info ]------------
-    int varInfo::leftQualifierCount() const {
+    int varInfo::leftQualifierCount(){
       return leftQualifiers.qualifierCount;
     }
 
-    int varInfo::rightQualifierCount() const {
+    int varInfo::rightQualifierCount(){
       return rightQualifiers.qualifierCount;
     }
 
-    bool varInfo::hasQualifier(const std::string &qName) const {
+    bool varInfo::hasQualifier(const std::string &qName){
       return leftQualifiers.has(qName);
     }
 
-    bool varInfo::hasRightQualifier(const std::string &qName) const {
+    bool varInfo::hasRightQualifier(const std::string &qName){
       return rightQualifiers.has(qName);
     }
 
@@ -1670,20 +1680,24 @@ namespace occa {
       rightQualifiers.remove(qName);
     }
 
-    const std::string& varInfo::getLeftQualifier(const int pos) const {
+    std::string& varInfo::getLeftQualifier(const int pos){
       return leftQualifiers.get(pos);
     }
 
-    const std::string& varInfo::getRightQualifier(const int pos) const {
+    std::string& varInfo::getRightQualifier(const int pos){
       return rightQualifiers.get(pos);
     }
 
-    const std::string& varInfo::getLastLeftQualifier() const {
+    std::string& varInfo::getLastLeftQualifier(){
       return leftQualifiers.get(leftQualifiers.qualifierCount - 1);
     }
 
-    const std::string& varInfo::getLastRightQualifier() const {
+    std::string& varInfo::getLastRightQualifier(){
       return rightQualifiers.get(rightQualifiers.qualifierCount - 1);
+    }
+
+    int varInfo::pointerDepth(){
+      return (pointerCount + stackPointerCount);
     }
 
     expNode& varInfo::stackSizeExpNode(const int pos){
@@ -1727,7 +1741,7 @@ namespace occa {
     }
     //================================
 
-    bool varInfo::isConst() const {
+    bool varInfo::isConst(){
       const int qCount = leftQualifiers.qualifierCount;
 
       for(int i = 0; i < qCount; ++i){
@@ -2025,9 +2039,9 @@ namespace occa {
         statement &s = *(sVec[sDep.sID]);
 
         for(int v = 0; v < varCount; ++v){
-          varInfo &var = sDep[v];
+          varInfo *var = &(sDep[v]);
 
-          if(&var != NULL){
+          if(var != NULL){
             varDepGraph vdg(sDep[v], s, idMap);
 
             vdg.addFullDependencyMap(depMap, idMap, sVec);

@@ -1,4 +1,5 @@
 #include "occaParserNodes.hpp"
+#include "occaParserTools.hpp"
 
 namespace occa {
   namespace parserNS {
@@ -129,7 +130,7 @@ namespace occa {
       n->right = this;
     }
 
-    strNode* strNode::clone() const {
+    strNode* strNode::clone(){
       const strNode *nodePos = this;
 
       strNode *newNodeRoot = cloneNode();
@@ -146,7 +147,7 @@ namespace occa {
       return newNodeRoot;
     }
 
-    strNode* strNode::cloneTo(strNode *n) const {
+    strNode* strNode::cloneTo(strNode *n){
       const strNode *nodePos = this;
 
       strNode *newNodeRoot = cloneNode();
@@ -164,7 +165,7 @@ namespace occa {
       return newNodeRoot;
     }
 
-    strNode* strNode::cloneNode() const {
+    strNode* strNode::cloneNode(){
       strNode *newNode = new strNode();
 
       newNode->value = value;
@@ -179,7 +180,7 @@ namespace occa {
       return newNode;
     }
 
-    strNode::operator std::string () const {
+    strNode::operator std::string (){
       return value;
     }
 

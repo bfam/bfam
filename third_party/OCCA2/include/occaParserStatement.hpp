@@ -14,7 +14,7 @@ namespace occa {
 
     //---[ Exp Node ]-------------------------------
     namespace expType {
-      static const int root            = (1 << 0);
+      static const int root            = 0;
 
       static const int LCR             = (7 << 1);
       static const int LR              = (5 << 1);
@@ -45,6 +45,7 @@ namespace occa {
       static const int occaFor         = (1 << 24);
       static const int checkSInfo      = (1 << 25);
 
+      static const int hasInfo         = (3 << 26);
       static const int varInfo         = (1 << 26);
       static const int typeInfo        = (1 << 27);
 
@@ -72,6 +73,9 @@ namespace occa {
     namespace statementFlag {
       static const int updateByNumber     = (1 << 0);
       static const int updateByUnderscore = (1 << 1);
+
+      static const int printEverything    = (int) -1;
+      static const int printSubStatements = (1 << 0);
     };
 
     class varInfo;
@@ -108,16 +112,17 @@ namespace occa {
       expNode(statement &s);
       expNode(expNode &up_);
 
+      bool operator == (expNode &e);
+
+      fnvOutput_t hash();
+      bool sameAs(expNode &e, const bool nestedSearch = true);
+
       inline expNode& operator [] (const int i){
         if(0 <= i)
           return *leaves[i];
         else
           return *leaves[leafCount + i];
       }
-
-      //---[ Find Statement ]-----------
-      int getStatementType();
-      //================================
 
       void loadFromNode(strNode *&nodePos, const bool parsingC = true);
 
@@ -205,23 +210,23 @@ namespace occa {
       void mergeThrows();
 
       // [++]i
-      int mergeLeftUnary(const int leafPos);
+      int mergeLeftUnary(const int leafPos, const bool leftToRight);
 
       // i[++]
-      int mergeRightUnary(const int leafPos);
+      int mergeRightUnary(const int leafPos, const bool leftToRight);
 
       // a [+] b
-      int mergeBinary(const int leafPos);
+      int mergeBinary(const int leafPos, const bool leftToRight);
 
       // a [?] b : c
-      int mergeTernary(const int leafPos);
+      int mergeTernary(const int leafPos, const bool leftToRight);
 
       //---[ Custom Type Info ]---------
-      bool qualifierEndsWithStar() const;
+      bool qualifierEndsWithStar();
 
-      bool typeEndsWithStar() const;
+      bool typeEndsWithStar();
 
-      bool hasAnArrayQualifier(const int pos = 0) const;
+      bool hasAnArrayQualifier(const int pos = 0);
 
       void mergeFortranArrays();
 
@@ -250,16 +255,24 @@ namespace occa {
 
       static void freeFlatHandle(expNode &flatRoot);
 
+      expNode* makeCsvFlatHandle();
+
       void addNode(const int info_ = 0, const int pos = -1);
       void addNode(const int info_, const std::string &value_, const int pos = -1);
       void addNodes(const int info_, const int pos_, const int count = 1);
 
       void addNode(expNode &node_, const int pos_ = -1);
 
+      void reserve(const int count);
       void reserveAndShift(const int pos, const int count = 1);
 
+      void setLeaf(expNode &leaf, const int pos);
+
       varInfo& addVarInfoNode();
-      varInfo& addVarInfoNode(const int pos);
+      varInfo& addVarInfoNode(const int pos_);
+
+      void putVarInfo(varInfo &var);
+      void putVarInfo(const int pos, varInfo &var);
 
       typeInfo& addTypeInfoNode();
       typeInfo& addTypeInfoNode(const int pos);
@@ -267,42 +280,43 @@ namespace occa {
       bool hasVariable();
 
       varInfo& getVarInfo();
-      const varInfo& cGetVarInfo() const;
-
-      varInfo& getVarInfo(const int pos);
-      const varInfo& cGetVarInfo(const int pos) const;
+      varInfo& getVarInfo(const int pos_);
 
       void setVarInfo(varInfo &var);
-      void setVarInfo(const int pos, varInfo &var);
+      void setVarInfo(const int pos_, varInfo &var);
 
       typeInfo& getTypeInfo();
-      const typeInfo& cGetTypeInfo() const;
-
       typeInfo& getTypeInfo(const int pos);
-      const typeInfo& cGetTypeInfo(const int pos) const;
 
       void removeNodes(const int pos, const int count = 1);
       void removeNode(const int pos = 0);
 
-      void convertTo(const int info_ = 0);
-
-      bool hasQualifier(const std::string &qualifier) const;
-
-      void addQualifier(const std::string &qualifier, const int pos = 0);
-      void addPostQualifier(const std::string &qualifier, const int pos = 0);
+      bool hasQualifier(const std::string &qualifier);
 
       void removeQualifier(const std::string &qualifier);
 
       void changeType(const std::string &newType);
 
-      int getVariableCount() const;
-      bool variableHasInit(const int pos) const;
+      int getVariableCount();
+      bool variableHasInit(const int pos);
 
-      expNode* getVariableNode(const int pos) const;
-      expNode* getVariableInfoNode(const int pos) const;
-      expNode* getVariableInitNode(const int pos) const;
+      expNode* getVariableNode(const int pos);
+      expNode* getVariableInfoNode(const int pos);
+      expNode* getVariableOpNode(const int pos);
+      expNode* getVariableInitNode(const int pos);
 
-      std::string getVariableName(const int pos = 0) const;
+      std::string getVariableName(const int pos = 0);
+
+      int getUpdatedVariableCount();
+      bool updatedVariableIsSet(const int pos);
+
+      expNode* getUpdatedNode(const int pos);
+      expNode* getUpdatedVariableInfoNode(const int pos);
+      expNode* getUpdatedVariableOpNode(const int pos);
+      expNode* getUpdatedVariableSetNode(const int pos);
+
+      int getVariableBracketCount();
+      expNode* getVariableBracket(const int pos);
 
       //  ---[ Node-based ]--------
       std::string getMyVariableName();
@@ -313,8 +327,15 @@ namespace occa {
       //  =========================
       //================================
 
+
+      //---[ Analysis Info ]------------
+      bool valueIsKnown(const strToStrMap_t &stsMap = strToStrMap_t());
+      typeHolder calculateValue(const strToStrMap_t &stsMap = strToStrMap_t()); // Assumes (valueIsKnown() == true)
+      //================================
+
       void freeLeaf(const int leafPos);
       void free();
+      void freeThis();
 
       void print(const std::string &tab = "");
       void printOn(std::ostream &out,
@@ -371,7 +392,7 @@ namespace occa {
 
       statement* makeSubStatement();
 
-      std::string getTab() const;
+      std::string getTab();
 
       //---[ Find Statement ]-----------
       void labelStatement(strNode *&nodeRoot,
@@ -409,17 +430,18 @@ namespace occa {
       void addType(typeInfo &type);
       void addTypedef(const std::string &typedefName);
 
-      bool nodeHasQualifier(strNode *n) const;
-      bool nodeHasSpecifier(strNode *n) const;
-      bool nodeHasDescriptor(strNode *n) const;
+      bool nodeHasQualifier(strNode *n);
+      bool nodeHasSpecifier(strNode *n);
+      bool nodeHasDescriptor(strNode *n);
 
-      typeInfo* hasTypeInScope(const std::string &typeName) const;
+      typeInfo* hasTypeInScope(const std::string &typeName);
+      typeInfo* hasTypeInLocalScope(const std::string &typeName);
 
-      varInfo* hasVariableInScope(const std::string &varName) const;
-      varInfo* hasVariableInLocalScope(const std::string &varName) const;
+      varInfo* hasVariableInScope(const std::string &varName);
+      varInfo* hasVariableInLocalScope(const std::string &varName);
 
-      bool hasDescriptorVariable(const std::string descriptor) const;
-      bool hasDescriptorVariableInScope(const std::string descriptor) const;
+      bool hasDescriptorVariable(const std::string descriptor);
+      bool hasDescriptorVariableInScope(const std::string descriptor);
 
       //---[ Loading ]------------------
       void loadAllFromNode(strNode *nodeRoot, const bool parsingC = true);
@@ -545,9 +567,14 @@ namespace occa {
       bool hasBarrier();
       bool hasStatementWithBarrier();
 
+      // Guaranteed to work with statements under a globalScope
+      statement& greatestCommonStatement(statement &s);
+
       unsigned int distToForLoop();
       unsigned int distToOccaForLoop();
       unsigned int distToStatementType(const int info_);
+
+      bool insideOf(statement &s);
 
       void setStatementIdMap(statementIdMap_t &idMap);
 
@@ -610,7 +637,7 @@ namespace occa {
 
       void swapExpWith(statement &s);
 
-      bool hasQualifier(const std::string &qualifier) const;
+      bool hasQualifier(const std::string &qualifier);
       void addQualifier(const std::string &qualifier, const int pos = 0);
       void removeQualifier(const std::string &qualifier);
 
@@ -642,11 +669,10 @@ namespace occa {
                                  idDepMap_t &depMap);
 
       varInfo& getDeclarationVarInfo(const int pos);
-      const varInfo& cGetDeclarationVarInfo(const int pos) const ;
       expNode* getDeclarationVarNode(const int pos);
       std::string getDeclarationVarName(const int pos);
       expNode* getDeclarationVarInitNode(const int pos);
-      int getDeclarationVarCount() const;
+      int getDeclarationVarCount();
 
       varInfo* getFunctionVar();
       void setFunctionVar(varInfo &var);
@@ -663,13 +689,16 @@ namespace occa {
       void addFunctionArg(const int pos, varInfo &var);
 
       expNode* getForStatement(const int pos);
-      int getForStatementCount() const;
+      int getForStatementCount();
       //================================
 
       // autoMode: Handles newlines and tabs
       std::string prettyString(strNode *nodeRoot,
                                const std::string &tab_ = "",
-                               const bool autoMode = true) const;
+                               const bool autoMode = true);
+
+      std::string toString(const int flags = (statementFlag::printSubStatements));
+      std::string onlyThisToString();
 
       operator std::string();
     };

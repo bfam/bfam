@@ -1,4 +1,5 @@
 #include "occaParserMacro.hpp"
+#include "occaParser.hpp"
 
 namespace occa {
   namespace parserNS {
@@ -20,6 +21,7 @@ namespace occa {
 
     opTypeMap_t opPrecedence;
     opLevelMap_t opLevelMap[17];
+    bool opLevelL2R[17];
     //==============================================
 
 
@@ -90,6 +92,11 @@ namespace occa {
       type = noType;
     }
 
+    typeHolder::typeHolder(const typeHolder &th){
+      type = th.type;
+      value.double_ = th.value.double_;
+    }
+
     typeHolder::typeHolder(const std::string strValue, int type_){
       if(type_ == noType){
         if( occa::isAnInt(strValue.c_str()) )
@@ -114,6 +121,169 @@ namespace occa {
         OCCA_CHECK(false,
                    "Value not set\n");
       }
+    }
+
+    typeHolder::typeHolder(const int int__){
+      *this = int__;
+    }
+
+    typeHolder::typeHolder(const bool bool__){
+      *this = bool__;
+    }
+
+    typeHolder::typeHolder(const char char__){
+      *this = char__;
+    }
+
+    typeHolder::typeHolder(const long long__){
+      *this = long__;
+    }
+
+    typeHolder::typeHolder(const short short__){
+      *this = short__;
+    }
+
+    typeHolder::typeHolder(const float float__){
+      *this = float__;
+    }
+
+    typeHolder::typeHolder(const double double__){
+      *this = double__;
+    }
+
+    typeHolder& typeHolder::operator = (const typeHolder &th){
+      type = th.type;
+      value.double_ = th.value.double_;
+
+      return *this;
+    }
+
+    typeHolder& typeHolder::operator = (const std::string &str){
+      *this = typeHolder(str);
+
+      return *this;
+    }
+
+    typeHolder& typeHolder::operator = (const int int__){
+      value.int_ = int__;
+      type       = intType;
+
+      return *this;
+    }
+
+    typeHolder& typeHolder::operator = (const bool bool__){
+      value.bool_ = bool__;
+      type        = boolType;
+
+      return *this;
+    }
+
+    typeHolder& typeHolder::operator = (const char char__){
+      value.char_ = char__;
+      type        = charType;
+
+      return *this;
+    }
+
+    typeHolder& typeHolder::operator = (const long long__){
+      value.long_ = long__;
+      type        = longType;
+
+      return *this;
+    }
+
+    typeHolder& typeHolder::operator = (const short short__){
+      value.short_ = short__;
+      type        = shortType;
+
+      return *this;
+    }
+
+    typeHolder& typeHolder::operator = (const float float__){
+      value.float_ = float__;
+      type        = floatType;
+
+      return *this;
+    }
+
+    typeHolder& typeHolder::operator = (const double double__){
+      value.double_ = double__;
+      type          = doubleType;
+
+      return *this;
+    }
+
+
+    bool typeHolder::operator == (const typeHolder &th) const {
+      int maxType = ((type > th.type) ?
+                     th.type          :
+                     type);
+
+      switch(maxType){
+      case intType   : return (longValue()   == th.longValue()  ); break;
+      case boolType  : return (boolValue()   == th.boolValue()  ); break;
+      case charType  : return (longValue()   == th.longValue()  ); break;
+      case longType  : return (longValue()   == th.longValue()  ); break;
+      case shortType : return (longValue()   == th.longValue()  ); break;
+      case floatType : return (doubleValue() == th.doubleValue()); break;
+      case doubleType: return (doubleValue() == th.doubleValue()); break;
+      default:
+        OCCA_CHECK(false,
+                   "Value not set\n");
+        return false;
+      }
+    }
+
+    bool typeHolder::operator != (const typeHolder &th) const {
+      return !(*this == th);
+    }
+
+    bool typeHolder::operator < (const typeHolder &th) const {
+      int maxType = ((type > th.type) ?
+                     th.type          :
+                     type);
+
+      switch(maxType){
+      case intType   : return (longValue()   < th.longValue()  ); break;
+      case boolType  : return (boolValue()   < th.boolValue()  ); break;
+      case charType  : return (longValue()   < th.longValue()  ); break;
+      case longType  : return (longValue()   < th.longValue()  ); break;
+      case shortType : return (longValue()   < th.longValue()  ); break;
+      case floatType : return (doubleValue() < th.doubleValue()); break;
+      case doubleType: return (doubleValue() < th.doubleValue()); break;
+      default:
+        OCCA_CHECK(false,
+                   "Value not set\n");
+        return false;
+      }
+    }
+
+    bool typeHolder::operator <= (const typeHolder &th) const {
+      int maxType = ((type > th.type) ?
+                     th.type          :
+                     type);
+
+      switch(maxType){
+      case intType   : return (longValue()   <= th.longValue()  ); break;
+      case boolType  : return (boolValue()   <= th.boolValue()  ); break;
+      case charType  : return (longValue()   <= th.longValue()  ); break;
+      case longType  : return (longValue()   <= th.longValue()  ); break;
+      case shortType : return (longValue()   <= th.longValue()  ); break;
+      case floatType : return (doubleValue() <= th.doubleValue()); break;
+      case doubleType: return (doubleValue() <= th.doubleValue()); break;
+      default:
+        OCCA_CHECK(false,
+                   "Value not set\n");
+        return false;
+      }
+    }
+
+    bool typeHolder::operator >= (const typeHolder &th) const {
+      return !(*this < th);
+    }
+
+    bool typeHolder::operator > (const typeHolder &th) const {
+      return !(*this <= th);
     }
 
     bool typeHolder::isAFloat() const {
@@ -180,6 +350,41 @@ namespace occa {
       }
     }
 
+    void typeHolder::convertTo(int type_){
+      if(isAFloat()){
+        double oldValue = doubleValue();
+
+        switch(type_){
+        case intType   : value.int_    = (int)    oldValue; break;
+        case boolType  : value.bool_   = (bool)   oldValue; break;
+        case charType  : value.char_   = (char)   oldValue; break;
+        case longType  : value.long_   = (long)   oldValue; break;
+        case shortType : value.short_  = (short)  oldValue; break;
+        case floatType : value.float_  = (float)  oldValue; break;
+        case doubleType: value.double_ = (double) oldValue; break;
+        default:
+          OCCA_CHECK(false,
+                     "Value not set\n");
+        }
+      }
+      else{
+        long oldValue = longValue();
+
+        switch(type_){
+        case intType   : value.int_    = (int)    oldValue; break;
+        case boolType  : value.bool_   = (bool)   oldValue; break;
+        case charType  : value.char_   = (char)   oldValue; break;
+        case longType  : value.long_   = (long)   oldValue; break;
+        case shortType : value.short_  = (short)  oldValue; break;
+        case floatType : value.float_  = (float)  oldValue; break;
+        case doubleType: value.double_ = (double) oldValue; break;
+        default:
+          OCCA_CHECK(false,
+                     "Value not set\n");
+        }
+      }
+    }
+
     void typeHolder::setLongValue(const long &l){
       switch(type){
       case intType   : value.int_    = (int)    l; break;
@@ -235,11 +440,16 @@ namespace occa {
       return out;
     }
 
-    int typePrecedence(const typeHolder a, const typeHolder b){
+    int typePrecedence(typeHolder &a, typeHolder &b){
       return ((a.type < b.type) ? b.type : a.type);
     }
 
-    typeHolder applyOperator(std::string op, const typeHolder a){
+    typeHolder applyOperator(std::string op, const std::string &a_){
+      typeHolder a(a_);
+      return applyOperator(op, a);
+    }
+
+    typeHolder applyOperator(std::string op, typeHolder &a){
       typeHolder ret;
 
       if(op == "!"){
@@ -271,54 +481,62 @@ namespace occa {
       return ret;
     }
 
-    typeHolder applyOperator(const typeHolder a,
+    typeHolder applyOperator(const std::string &a_,
                              std::string op,
-                             const typeHolder b){
+                             const std::string &b_){
+      typeHolder a(a_), b(b_);
+
+      return applyOperator(a, op, b);
+    }
+
+    typeHolder applyOperator(typeHolder &a,
+                             std::string op,
+                             typeHolder &b){
+
       typeHolder ret;
-      ret.type  = typePrecedence(a,b);
-      ret.value = a.value;
+      ret.type = typePrecedence(a,b);
 
       const bool aIsFloat = a.isAFloat();
       const bool bIsFloat = b.isAFloat();
 
       if(op == "+"){
         if(bIsFloat)
-          ret.setDoubleValue(ret.doubleValue() + b.doubleValue());
+          ret.setDoubleValue(a.doubleValue() + b.doubleValue());
         else{
           if(aIsFloat)
-            ret.setDoubleValue(ret.doubleValue() + b.longValue());
+            ret.setDoubleValue(a.doubleValue() + b.longValue());
           else
-            ret.setLongValue(ret.longValue() + b.longValue());
+            ret.setLongValue(a.longValue() + b.longValue());
         }
       }
       else if(op == "-"){
         if(bIsFloat)
-          ret.setDoubleValue(ret.doubleValue() - b.doubleValue());
+          ret.setDoubleValue(a.doubleValue() - b.doubleValue());
         else{
           if(aIsFloat)
-            ret.setDoubleValue(ret.doubleValue() - b.longValue());
+            ret.setDoubleValue(a.doubleValue() - b.longValue());
           else
-            ret.setLongValue(ret.longValue() - b.longValue());
+            ret.setLongValue(a.longValue() - b.longValue());
         }
       }
       else if(op == "*"){
         if(bIsFloat)
-          ret.setDoubleValue(ret.doubleValue() * b.doubleValue());
+          ret.setDoubleValue(a.doubleValue() * b.doubleValue());
         else{
           if(aIsFloat)
-            ret.setDoubleValue(ret.doubleValue() * b.longValue());
+            ret.setDoubleValue(a.doubleValue() * b.longValue());
           else
-            ret.setLongValue(ret.longValue() * b.longValue());
+            ret.setLongValue(a.longValue() * b.longValue());
         }
       }
       else if(op == "/"){
         if(bIsFloat)
-          ret.setDoubleValue(ret.doubleValue() / b.doubleValue());
+          ret.setDoubleValue(a.doubleValue() / b.doubleValue());
         else{
           if(aIsFloat)
-            ret.setDoubleValue(ret.doubleValue() / b.longValue());
+            ret.setDoubleValue(a.doubleValue() / b.longValue());
           else
-            ret.setLongValue(ret.longValue() / b.longValue());
+            ret.setLongValue(a.longValue() / b.longValue());
         }
       }
 
@@ -326,48 +544,48 @@ namespace occa {
         ret.type = a.type;
 
         if(bIsFloat)
-          ret.setDoubleValue(ret.doubleValue() + b.doubleValue());
+          ret.setDoubleValue(a.doubleValue() + b.doubleValue());
         else{
           if(aIsFloat)
-            ret.setDoubleValue(ret.doubleValue() + b.longValue());
+            ret.setDoubleValue(a.doubleValue() + b.longValue());
           else
-            ret.setLongValue(ret.longValue() + b.longValue());
+            ret.setLongValue(a.longValue() + b.longValue());
         }
       }
       else if(op == "-="){
         ret.type = a.type;
 
         if(bIsFloat)
-          ret.setDoubleValue(ret.doubleValue() - b.doubleValue());
+          ret.setDoubleValue(a.doubleValue() - b.doubleValue());
         else{
           if(aIsFloat)
-            ret.setDoubleValue(ret.doubleValue() - b.longValue());
+            ret.setDoubleValue(a.doubleValue() - b.longValue());
           else
-            ret.setLongValue(ret.longValue() - b.longValue());
+            ret.setLongValue(a.longValue() - b.longValue());
         }
       }
       else if(op == "*="){
         ret.type = a.type;
 
         if(bIsFloat)
-          ret.setDoubleValue(ret.doubleValue() * b.doubleValue());
+          ret.setDoubleValue(a.doubleValue() * b.doubleValue());
         else{
           if(aIsFloat)
-            ret.setDoubleValue(ret.doubleValue() * b.longValue());
+            ret.setDoubleValue(a.doubleValue() * b.longValue());
           else
-            ret.setLongValue(ret.longValue() * b.longValue());
+            ret.setLongValue(a.longValue() * b.longValue());
         }
       }
       else if(op == "/="){
         ret.type = a.type;
 
         if(bIsFloat)
-          ret.setDoubleValue(ret.doubleValue() / b.doubleValue());
+          ret.setDoubleValue(a.doubleValue() / b.doubleValue());
         else{
           if(aIsFloat)
-            ret.setDoubleValue(ret.doubleValue() / b.longValue());
+            ret.setDoubleValue(a.doubleValue() / b.longValue());
           else
-            ret.setLongValue(ret.longValue() / b.longValue());
+            ret.setLongValue(a.longValue() / b.longValue());
         }
       }
 
@@ -484,7 +702,7 @@ namespace occa {
         OCCA_CHECK(!aIsFloat,
                    "Cannot apply [" << a << " << " << b << "] where " << a << " is [float]");
 
-        ret.setLongValue(ret.longValue() << b.longValue());
+        ret.setLongValue(a.longValue() << b.longValue());
       }
       else if(op == ">>"){
         OCCA_CHECK(!bIsFloat,
@@ -493,7 +711,7 @@ namespace occa {
         OCCA_CHECK(!aIsFloat,
                    "Cannot apply [" << a << " >> " << b << "] where " << a << " is [float]");
 
-        ret.setLongValue(ret.longValue() >> b.longValue());
+        ret.setLongValue(a.longValue() >> b.longValue());
       }
       else if(op == "^"){
         OCCA_CHECK(!bIsFloat,
@@ -502,7 +720,7 @@ namespace occa {
         OCCA_CHECK(!aIsFloat,
                    "Cannot apply [" << a << " ^ " << b << "] where " << a << " is [float]");
 
-        ret.setLongValue(ret.longValue() ^ b.longValue());
+        ret.setLongValue(a.longValue() ^ b.longValue());
       }
       else if(op == "|"){
         OCCA_CHECK(!bIsFloat,
@@ -511,7 +729,7 @@ namespace occa {
         OCCA_CHECK(!aIsFloat,
                    "Cannot apply [" << a << " | " << b << "] where " << a << " is [float]");
 
-        ret.setLongValue(ret.longValue() | b.longValue());
+        ret.setLongValue(a.longValue() | b.longValue());
       }
       else if(op == "&"){
         OCCA_CHECK(!bIsFloat,
@@ -520,7 +738,7 @@ namespace occa {
         OCCA_CHECK(!aIsFloat,
                    "Cannot apply [" << a << " & " << b << "] where " << a << " is [float]");
 
-        ret.setLongValue(ret.longValue() & b.longValue());
+        ret.setLongValue(a.longValue() & b.longValue());
       }
       else if(op == "%"){
         OCCA_CHECK(!bIsFloat,
@@ -529,7 +747,7 @@ namespace occa {
         OCCA_CHECK(!aIsFloat,
                    "Cannot apply [" << a << " % " << b << "] where " << a << " is [float]");
 
-        ret.setLongValue(ret.longValue() % b.longValue());
+        ret.setLongValue(a.longValue() % b.longValue());
       }
 
       else if(op == "&&")
@@ -544,7 +762,7 @@ namespace occa {
         OCCA_CHECK(!aIsFloat,
                    "Cannot apply [" << a << " %= " << b << "] where " << a << " is [float]");
 
-        ret.setLongValue(ret.longValue() % b.longValue());
+        ret.setLongValue(a.longValue() % b.longValue());
       }
       else if(op == "&="){
         OCCA_CHECK(!bIsFloat,
@@ -553,7 +771,7 @@ namespace occa {
         OCCA_CHECK(!aIsFloat,
                    "Cannot apply [" << a << " &= " << b << "] where " << a << " is [float]");
 
-        ret.setLongValue(ret.longValue() & b.longValue());
+        ret.setLongValue(a.longValue() & b.longValue());
       }
       else if(op == "^="){
         OCCA_CHECK(!bIsFloat,
@@ -562,7 +780,7 @@ namespace occa {
         OCCA_CHECK(!aIsFloat,
                    "Cannot apply [" << a << " ^= " << b << "] where " << a << " is [float]");
 
-        ret.setLongValue(ret.longValue() ^ b.longValue());
+        ret.setLongValue(a.longValue() ^ b.longValue());
       }
       else if(op == "|="){
         OCCA_CHECK(!bIsFloat,
@@ -571,7 +789,7 @@ namespace occa {
         OCCA_CHECK(!aIsFloat,
                    "Cannot apply [" << a << " |= " << b << "] where " << a << " is [float]");
 
-        ret.setLongValue(ret.longValue() | b.longValue());
+        ret.setLongValue(a.longValue() | b.longValue());
       }
       else if(op == ">>="){
         OCCA_CHECK(!bIsFloat,
@@ -580,7 +798,7 @@ namespace occa {
         OCCA_CHECK(!aIsFloat,
                    "Cannot apply [" << a << " >>= " << b << "] where " << a << " is [float]");
 
-        ret.setLongValue(ret.longValue() >> b.longValue());
+        ret.setLongValue(a.longValue() >> b.longValue());
       }
       else if(op == "<<="){
         OCCA_CHECK(!bIsFloat,
@@ -589,16 +807,25 @@ namespace occa {
         OCCA_CHECK(!aIsFloat,
                    "Cannot apply [" << a << " <<= " << b << "] where " << a << " is [float]");
 
-        ret.setLongValue(ret.longValue() << b.longValue());
+        ret.setLongValue(a.longValue() << b.longValue());
       }
 
       return ret;
     }
 
-    typeHolder applyOperator(const typeHolder a,
+    typeHolder applyOperator(const std::string &a_,
                              std::string op,
-                             const typeHolder b,
-                             const typeHolder c){
+                             const std::string &b_,
+                             const std::string &c_){
+      typeHolder a(a_), b(b_), c(c_);
+
+      return applyOperator(a, op, b, c);
+    }
+
+    typeHolder applyOperator(typeHolder &a,
+                             std::string op,
+                             typeHolder &b,
+                             typeHolder &c){
       bool pickC;
 
       if(a.isAFloat())
@@ -610,6 +837,176 @@ namespace occa {
         return c;
       else
         return b;
+    }
+
+    typeHolder evaluateString(const std::string &str){
+      return evaluateString(str.c_str());
+    }
+
+    typeHolder evaluateString(const char *c){
+      skipWhitespace(c);
+
+      if(*c == '\0')
+        return typeHolder("false");
+
+      strNode *lineNode = new strNode(c);
+      strip(lineNode->value);
+
+      strNode *labelNodeRoot = labelCode(lineNode);
+      strNode *labelNodePos  = labelNodeRoot;
+
+      // Check if a variable snuck in
+      while(labelNodePos){
+        if(labelNodePos->info & unknownVariable)
+          return typeHolder("false");
+
+        labelNodePos = labelNodePos->right;
+      }
+
+      return evaluateNode(labelNodeRoot);
+    }
+
+    typeHolder evaluateNode(strNode *nodeRoot){
+      if(nodeRoot == NULL)
+        return typeHolder("0");
+
+      if((nodeRoot->info  & presetValue) &&
+         (nodeRoot->right == NULL)){
+
+        return typeHolder(*nodeRoot);
+      }
+
+      strNode *labelNodePos = nodeRoot;
+
+      while(labelNodePos){
+        if(labelNodePos->down){
+          labelNodePos->value = evaluateNode(labelNodePos->down);
+          labelNodePos->info  = presetValue;
+        }
+
+        if(labelNodePos->right == NULL)
+          break;
+
+        labelNodePos = labelNodePos->right;
+      }
+
+      strNode *minOpNode;
+      int minPrecedence, minOpType;
+
+      labelNodePos = nodeRoot;
+
+      while(true){
+        minOpNode     = NULL;
+        minPrecedence = 100;
+        minOpType     = -1;
+
+        while(labelNodePos){
+          if(labelNodePos->info & operatorType){
+            int opType = (labelNodePos->info & operatorType);
+
+            opType &= ~qualifierType;
+
+            if(opType & unitaryOperatorType){
+              if((opType & binaryOperatorType) && // + and - operators
+                 (labelNodePos->left)          &&
+                 (labelNodePos->left->info & presetValue)){
+
+                opType = binaryOperatorType;
+              }
+              else if((opType & rUnitaryOperatorType) &&
+                      (labelNodePos->left)            &&
+                      (labelNodePos->left->info & presetValue)){
+
+                opType = rUnitaryOperatorType;
+              }
+              else if((opType & lUnitaryOperatorType) &&
+                      (labelNodePos->right)           &&
+                      (labelNodePos->right->info & presetValue)){
+
+                opType = lUnitaryOperatorType;
+              }
+              else
+                opType &= ~unitaryOperatorType;
+            }
+
+            const int opP = opPrecedence[opHolder(labelNodePos->value,
+                                                  opType)];
+
+            if(opP < minPrecedence){
+              minOpType     = opType;
+              minOpNode     = labelNodePos;
+              minPrecedence = opP;
+            }
+          }
+
+          labelNodePos = labelNodePos->right;
+        }
+
+        if(minOpNode == NULL){
+          if(nodeRoot && (nodeRoot->right == NULL))
+            return typeHolder(*nodeRoot);
+
+          OCCA_CHECK(false,
+                     "5. Error on:\n"
+                     << *(nodeRoot));
+        }
+        else{
+          if(minOpType & unitaryOperatorType){
+            if(minOpType & lUnitaryOperatorType){
+              std::string op = minOpNode->value;
+              std::string a  = minOpNode->right->value;
+
+              minOpNode->value = applyOperator(op, a);
+              minOpNode->info  = presetValue;
+
+              minOpNode->right->pop();
+            }
+            else if(minOpType & rUnitaryOperatorType){
+              OCCA_CHECK(false,
+                         "Postfix operator [" << *minOpNode << "] cannot be used in a macro");
+            }
+          }
+          else if(minOpType & binaryOperatorType){
+            minOpNode = minOpNode->left;
+
+            std::string a  = minOpNode->value;
+            std::string op = minOpNode->right->value;
+            std::string b  = minOpNode->right->right->value;
+
+            minOpNode->value = applyOperator(a, op, b);
+            minOpNode->info  = presetValue;
+
+            minOpNode->right->pop();
+            minOpNode->right->pop();
+          }
+          else if(minOpType & ternaryOperatorType){
+            minOpNode = minOpNode->left;
+
+            std::string a  = minOpNode->value;
+            std::string op = minOpNode->right->value;
+            std::string b  = minOpNode->right->right->value;
+            std::string c  = minOpNode->right->right->right->right->value;
+
+            minOpNode->value = applyOperator(a, op, b, c);
+            minOpNode->info  = presetValue;
+
+            minOpNode->right->pop();
+            minOpNode->right->pop();
+            minOpNode->right->pop();
+            minOpNode->right->pop();
+          }
+        }
+
+        if(nodeRoot->right == NULL)
+          return typeHolder(*nodeRoot);
+
+        labelNodePos = nodeRoot;
+      }
+
+      // Shouldn't get here
+      typeHolder th(nodeRoot->value);
+
+      return th;
     }
     //==============================================
 

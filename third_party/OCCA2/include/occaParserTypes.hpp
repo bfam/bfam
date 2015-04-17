@@ -3,7 +3,6 @@
 
 #include "occaParserDefines.hpp"
 #include "occaParserNodes.hpp"
-#include "occaParserStatement.hpp"
 
 namespace occa {
   class parsedKernelInfo;
@@ -68,8 +67,8 @@ namespace occa {
                                 strNode *nodePos);
 
       //---[ Qualifier Info ]-----------
-      bool has(const std::string &qName) const;
-      const std::string& get(const int pos) const;
+      bool has(const std::string &qName);
+      std::string& get(const int pos);
 
       void add(const std::string &qName,
                int pos = -1);
@@ -271,11 +270,11 @@ namespace occa {
       //================================
 
       //---[ Variable Info ]------------
-      int leftQualifierCount() const;
-      int rightQualifierCount() const;
+      int leftQualifierCount();
+      int rightQualifierCount();
 
-      bool hasQualifier(const std::string &qName) const;
-      bool hasRightQualifier(const std::string &qName) const;
+      bool hasQualifier(const std::string &qName);
+      bool hasRightQualifier(const std::string &qName);
 
       void addQualifier(const std::string &qName,
                         int pos = -1);
@@ -286,11 +285,13 @@ namespace occa {
       void removeQualifier(const std::string &qName);
       void removeRightQualifier(const std::string &qName);
 
-      const std::string& getLeftQualifier(const int pos) const;
-      const std::string& getRightQualifier(const int pos) const;
+      std::string& getLeftQualifier(const int pos);
+      std::string& getRightQualifier(const int pos);
 
-      const std::string& getLastLeftQualifier() const;
-      const std::string& getLastRightQualifier() const;
+      std::string& getLastLeftQualifier();
+      std::string& getLastRightQualifier();
+
+      int pointerDepth();
 
       expNode& stackSizeExpNode(const int pos);
       void removeStackPointers();
@@ -300,13 +301,28 @@ namespace occa {
       void addArgument(const int pos, varInfo &arg);
       //================================
 
-      bool isConst() const;
+      bool isConst();
 
       std::string toString(const bool printType = true);
 
       operator std::string ();
 
       friend std::ostream& operator << (std::ostream &out, varInfo &var);
+    };
+    //============================================
+
+
+    //---[ Function Info Class ]------------------
+    class funcInfo {
+    public:
+      varInfo *var;
+
+      int argCount;
+      expNode *args;
+
+      bool usesTemplate;
+      int tArgCount;
+      typeInfo *tArgs;
     };
     //============================================
 

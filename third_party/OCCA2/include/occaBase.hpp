@@ -42,8 +42,15 @@
 #  endif
 #endif
 
-#if OCCA_CUDA_ENABLED
+#if (OCCA_CUDA_ENABLED)
 #  include <cuda.h>
+#endif
+
+#if (OCCA_HSA_ENABLED)
+#  if   (OCCA_OS & LINUX_OS)
+#  elif (OCCA_OS & OSX_OS)
+#  else
+#  endif
 #endif
 
 namespace occa {
@@ -66,6 +73,8 @@ namespace occa {
   class kernelDatabase;
 
   //---[ Globals & Flags ]------------
+  extern const int parserVersion;
+
   extern kernelInfo defaultKernelInfo;
 
   extern const int autoDetect;
@@ -157,29 +166,33 @@ namespace occa {
   static const occa::mode OpenMP   = (1 << 21);
   static const occa::mode OpenCL   = (1 << 22);
   static const occa::mode CUDA     = (1 << 23);
-  static const occa::mode Pthreads = (1 << 24);
-  static const occa::mode COI      = (1 << 25);
+  static const occa::mode HSA      = (1 << 24);
+  static const occa::mode Pthreads = (1 << 25);
+  static const occa::mode COI      = (1 << 26);
 
   static const int onChipModes = (Serial |
                                   OpenMP |
                                   Pthreads);
 
   static const int offChipModes = (OpenCL |
-                                   CUDA);
+                                   CUDA   |
+                                   HSA);
 
   static const occa::mode SerialIndex   = 0;
   static const occa::mode OpenMPIndex   = 1;
   static const occa::mode OpenCLIndex   = 2;
   static const occa::mode CUDAIndex     = 3;
-  static const occa::mode PthreadsIndex = 4;
-  static const occa::mode COIIndex      = 5;
-  static const int modeCount = 5;
+  static const occa::mode HSAIndex      = 4;
+  static const occa::mode PthreadsIndex = 5;
+  static const occa::mode COIIndex      = 6;
+  static const int modeCount = 6;
 
   inline std::string modeToStr(const occa::mode &m){
     if(m & Serial)   return "Serial";
     if(m & OpenMP)   return "OpenMP";
     if(m & OpenCL)   return "OpenCL";
     if(m & CUDA)     return "CUDA";
+    if(m & HSA)      return "HSA";
     if(m & Pthreads) return "Pthreads";
     if(m & COI)      return "COI";
 
@@ -195,6 +208,7 @@ namespace occa {
     if(upStr == "OPENMP")   return OpenMP;
     if(upStr == "OPENCL")   return OpenCL;
     if(upStr == "CUDA")     return CUDA;
+    if(upStr == "HSA")      return HSA;
     if(upStr == "PTHREADS") return Pthreads;
     if(upStr == "COI")      return COI;
 
@@ -218,6 +232,7 @@ namespace occa {
     if(info_ & OpenMP)   ret += std::string(count++ ? ", " : "") + "OpenMP";
     if(info_ & OpenCL)   ret += std::string(count++ ? ", " : "") + "OpenCL";
     if(info_ & CUDA)     ret += std::string(count++ ? ", " : "") + "CUDA";
+    if(info_ & HSA)      ret += std::string(count++ ? ", " : "") + "HSA";
     if(info_ & Pthreads) ret += std::string(count++ ? ", " : "") + "Pthreads";
     if(info_ & COI)      ret += std::string(count++ ? ", " : "") + "COI";
 
@@ -249,96 +264,22 @@ namespace occa {
     }
   };
 
-  static const argInfo platformID("platformID");
-  static const argInfo deviceID("deviceID");
+  extern const argInfo platformID;
+  extern const argInfo deviceID;
 
-  static const argInfo schedule("schedule");
-  static const argInfo chunk("chunk");
+  extern const argInfo schedule;
+  extern const argInfo chunk;
 
-  static const argInfo threadCount("threadCount");
-  static const argInfo pinnedCores("pinnedCores");
+  extern const argInfo threadCount;
+  extern const argInfo pinnedCores;
 
   class argInfoMap {
   public:
     std::map<std::string, std::string> iMap;
 
-    inline argInfoMap(){}
+    argInfoMap();
 
-    inline argInfoMap(const std::string &infos){
-      if(infos.size() == 0)
-        return;
-
-      parserNS::strNode *n;
-
-      n = parserNS::splitContent(infos);
-      n = parserNS::labelCode(n);
-
-      while(n){
-        std::string &info = n->value;
-        std::string value;
-
-        n = n->right;
-
-        if((info != "mode")        &&
-           (info != "UVA")         &&
-           (info != "platformID")  &&
-           (info != "deviceID")    &&
-           (info != "schedule")    &&
-           (info != "chunk")       &&
-           (info != "threadCount") &&
-           (info != "schedule")    &&
-           (info != "pinnedCores")){
-
-          std::cout << "Flag [" << info << "] is not available, skipping it\n";
-
-          while(n && (n->value != ","))
-            n = n->right;
-
-          if(n)
-            n = n->right;
-
-          continue;
-        }
-
-        if(n == NULL)
-          break;
-
-        if(n->value == "=")
-          n = n->right;
-
-        while(n && (n->value != ",")){
-          std::string &v = n->value;
-
-          occa::strip(v);
-
-          if(v.size()){
-            if(segmentPair(v[0]) == 0){
-              value += v;
-              value += ' ';
-            }
-            else if(n->down){
-              std::string dv = n->down->toString();
-              occa::strip(dv);
-
-              value += dv;
-              value += ' ';
-            }
-          }
-
-          n = n->right;
-        }
-
-        if(n)
-          n = n->right;
-
-        occa::strip(value);
-
-        iMap[info] = value;
-
-        info  = "";
-        value = "";
-      }
-    }
+    inline argInfoMap(const std::string &infos);
 
     inline bool has(const std::string &info){
       return (iMap.find(info) != iMap.end());
@@ -394,16 +335,7 @@ namespace occa {
       }
     }
 
-    friend inline std::ostream& operator << (std::ostream &out, const argInfoMap &m){
-      std::map<std::string,std::string>::const_iterator it = m.iMap.begin();
-
-      while(it != m.iMap.end()){
-        out << it->first << " = " << it->second << '\n';
-        ++it;
-      }
-
-      return out;
-    }
+    friend std::ostream& operator << (std::ostream &out, const argInfoMap &m);
   };
 
   template <>
@@ -555,6 +487,8 @@ namespace occa {
 #if OCCA_CUDA_ENABLED
     CUevent cuEvent;
 #endif
+#if OCCA_HSA_ENABLED
+#endif
   };
 
   struct textureInfo_t {
@@ -620,8 +554,6 @@ namespace occa {
 
     int preferredDimSize_;
 
-    void *startTime, *endTime;
-
     int dims;
     dim inner, outer;
 
@@ -649,9 +581,6 @@ namespace occa {
     virtual int preferredDimSize() = 0;
 
 #include "operators/occaVirtualOperatorDeclarations.hpp"
-
-    virtual double timeTaken() = 0;
-    virtual double timeTakenBetween(void *start, void *end) = 0;
 
     virtual void free() = 0;
   };
@@ -689,9 +618,6 @@ namespace occa {
     int preferredDimSize();
 
 #include "operators/occaOperatorDeclarations.hpp"
-
-    double timeTaken();
-    double timeTakenBetween(void *start, void *end);
 
     void free();
   };
@@ -738,9 +664,6 @@ namespace occa {
     void runFromArguments();
 
 #include "operators/occaOperatorDeclarations.hpp"
-
-    double timeTaken();
-    double timeTakenBetween(void *start, void *end);
 
     void free();
   };
@@ -1094,6 +1017,12 @@ namespace occa {
   };
 #endif
 
+#if OCCA_HSA_ENABLED
+  namespace hsa {
+    occa::device wrapDevice();
+  };
+#endif
+
 #if OCCA_COI_ENABLED
   namespace coi {
     occa::device wrapDevice(COIENGINE coiDevice);
@@ -1184,6 +1113,10 @@ namespace occa {
 
 #if OCCA_CUDA_ENABLED
     friend occa::device cuda::wrapDevice(CUdevice device, CUcontext context);
+#endif
+
+#if OCCA_HSA_ENABLED
+    friend occa::device hsa::wrapDevice(CUdevice device, CUcontext context);
 #endif
 
 #if OCCA_COI_ENABLED
@@ -1291,6 +1224,10 @@ namespace occa {
 
 #if OCCA_CUDA_ENABLED
     friend occa::device cuda::wrapDevice(CUdevice device, CUcontext context);
+#endif
+
+#if OCCA_HSA_ENABLED
+    friend occa::device hsa::wrapDevice(CUdevice device, CUcontext context);
 #endif
 
 #if OCCA_COI_ENABLED
@@ -1443,6 +1380,10 @@ namespace occa {
 
 #if OCCA_CUDA_ENABLED
     friend occa::device cuda::wrapDevice(CUdevice device, CUcontext context);
+#endif
+
+#if OCCA_HSA_ENABLED
+    friend occa::device hsa::wrapDevice(CUdevice device, CUcontext context);
 #endif
 
 #if OCCA_COI_ENABLED
