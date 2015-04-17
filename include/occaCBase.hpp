@@ -18,6 +18,15 @@
 #  include <cuda.h>
 #endif
 
+#if (OCCA_HSA_ENABLED)
+#  if   (OCCA_OS & LINUX_OS)
+#  elif (OCCA_OS & OSX_OS)
+#  else
+#  endif
+#endif
+
+#include "occaDefines.hpp"
+
 #if (OCCA_OS & (LINUX_OS | OSX_OS))
 #  define OCCA_RFUNC
 #  define OCCA_LFUNC
@@ -227,8 +236,6 @@ extern "C" {
                                                          uintptr_t itemsX, uintptr_t itemsY, uintptr_t itemsZ,
                                                          uintptr_t groupsX, uintptr_t groupsY, uintptr_t groupsZ);
 
-  OCCA_LFUNC double OCCA_RFUNC occaKernelTimeTaken(occaKernel kernel);
-
   OCCA_LFUNC occaArgumentList OCCA_RFUNC occaCreateArgumentList();
 
   OCCA_LFUNC void OCCA_RFUNC occaArgumentListClear(occaArgumentList list);
@@ -288,6 +295,10 @@ extern "C" {
 
 #if OCCA_CUDA_ENABLED
   OCCA_LFUNC occaDevice OCCA_RFUNC occaWrapCudaDevice(CUdevice device, CUcontext context);
+#endif
+
+#if OCCA_HSA_ENABLED
+  OCCA_LFUNC occaDevice OCCA_RFUNC occaWrapHSADevice();
 #endif
 
 #if OCCA_COI_ENABLED

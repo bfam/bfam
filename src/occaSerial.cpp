@@ -514,9 +514,6 @@ namespace occa {
 
     nestedKernelCount = 0;
     nestedKernels     = NULL;
-
-    startTime = (void*) new double;
-    endTime   = (void*) new double;
   }
 
   template <>
@@ -535,9 +532,6 @@ namespace occa {
 
     for(int i = 0; i < nestedKernelCount; ++i)
       nestedKernels[i] = k.nestedKernels[i];
-
-    startTime = k.startTime;
-    endTime   = k.endTime;
   }
 
   template <>
@@ -556,9 +550,6 @@ namespace occa {
 
     for(int i = 0; i < nestedKernelCount; ++i)
       nestedKernels[i] = k.nestedKernels[i];
-
-    *((double*) startTime) = *((double*) k.startTime);
-    *((double*) endTime)   = *((double*) k.endTime);
 
     return *this;
   }
@@ -647,7 +638,7 @@ namespace occa {
             << " /D MC_CL_EXE"
             << ' '    << dHandle->compilerFlags
             << ' '    << info.flags
-            << " /I"  << occaDir << "\\include"     // NBN: /include
+            << " /I"  << occaDir << "\\include"
             << ' '    << iCachedBinary
             << " /link " << occaLib << ptLib << " /OUT:" << cachedBinary
             << std::endl;
@@ -706,22 +697,6 @@ namespace occa {
   }
 
 #include "operators/occaSerialKernelOperators.cpp"
-
-  template <>
-  double kernel_t<Serial>::timeTaken(){
-    const double &start = *((double*) startTime);
-    const double &end   = *((double*) endTime);
-
-    return 1.0e3*(end - start);
-  }
-
-  template <>
-  double kernel_t<Serial>::timeTakenBetween(void *start, void *end){
-    const double &start_ = *((double*) start);
-    const double &end_   = *((double*) end);
-
-    return 1.0e3*(end_ - start_);
-  }
 
   template <>
   void kernel_t<Serial>::free(){
@@ -1049,7 +1024,7 @@ namespace occa {
 
     salt << "Serial"
          << info_.salt()
-         << parser::version
+         << parserVersion
          << compilerEnvScript
          << compiler
          << compilerFlags;
@@ -1138,12 +1113,11 @@ namespace occa {
     else
       OCCA_CHECK(false, "sizeof(void*) is not equal to 4 or 8");
 
-    // NBN: adjusted path
-#  if      (1800 == _MSC_VER)
+#  if      (OCCA_VS_VERSION == 1800)
     char *visualStudioTools = getenv("VS120COMNTOOLS");   // MSVC++ 12.0 - Visual Studio 2013
-#  elif    (1700 == _MSC_VER)
+#  elif    (OCCA_VS_VERSION == 1700)
     char *visualStudioTools = getenv("VS110COMNTOOLS");   // MSVC++ 11.0 - Visual Studio 2012
-#  else // (1600 == _MSC_VER)
+#  else // (OCCA_VS_VERSION == 1600)
     char *visualStudioTools = getenv("VS100COMNTOOLS");   // MSVC++ 10.0 - Visual Studio 2010
 #  endif
 

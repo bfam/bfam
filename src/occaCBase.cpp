@@ -477,14 +477,21 @@ extern "C" {
 
   occaStream OCCA_RFUNC occaDeviceCreateStream(occaDevice device){
     occa::device &device_ = *((occa::device*) device);
+    occaStream *stream = new occaStream;
 
-    return (occaStream) device_.createStream();
+    *stream =  device_.createStream();
+
+    return (occaStream) stream;
   }
 
   occaStream OCCA_RFUNC occaDeviceGetStream(occaDevice device){
     occa::device &device_ = *((occa::device*) device);
 
-    return (occaStream) device_.getStream();
+    occaStream *stream = new occaStream;
+
+    *stream = device_.getStream();
+
+    return (occaStream) stream;
   }
 
   void OCCA_RFUNC occaDeviceSetStream(occaDevice device, occaStream stream){
@@ -522,6 +529,8 @@ extern "C" {
     occa::stream &stream_ = *((occa::stream*) stream);
 
     device_.freeStream(stream_);
+
+    delete (occa::stream*) stream;
   }
 
   void OCCA_RFUNC occaDeviceFree(occaDevice device){
@@ -577,13 +586,6 @@ extern "C" {
     kernel_.setWorkingDims(dims,
                            occa::dim(itemsX, itemsY, itemsZ),
                            occa::dim(groupsX, groupsY, groupsZ));
-  }
-
-
-  double OCCA_RFUNC occaKernelTimeTaken(occaKernel kernel){
-    occa::kernel &kernel_ = *((occa::kernel*) kernel);
-
-    return kernel_.timeTaken();
   }
 
   occaArgumentList OCCA_RFUNC occaCreateArgumentList(){
@@ -720,6 +722,16 @@ extern "C" {
     occa::device *device_ = new occa::device();
 
     *device_ = occa::cuda::wrapDevice(device, context);
+
+    return (occaDevice) device_;
+  }
+#endif
+
+#if OCCA_HSA_ENABLED
+  occaDevice OCCA_RFUNC occaWrapHSADevice(){
+    occa::device *device_ = new occa::device();
+
+    *device_ = occa::hsa::wrapDevice();
 
     return (occaDevice) device_;
   }
