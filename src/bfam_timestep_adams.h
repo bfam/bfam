@@ -66,6 +66,7 @@ typedef enum bfam_ts_adams_method
  * \param [in]  add_rates        function handle to add rates routine
  * \param [in]  RK_init          boolean which if true signifies using LSRK to
  *                               init Adams method
+ * \param [in]  user_data        pointer to data to be passed to aux_rates
  *
  * \return the newly created low storage RK time stepper
  */
@@ -76,7 +77,7 @@ bfam_ts_adams_new(bfam_domain_t *dom, bfam_ts_adams_method_t method,
                   MPI_Comm mpicomm, int mpitag, void *comm_data,
                   aux_rates_t aux_rates, scale_rates_t scale_rates,
                   intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
-                  add_rates_t add_rates, const int RK_init);
+                  add_rates_t add_rates, const int RK_init, void *user_data);
 
 /** initialize an Adams scheme
  *
@@ -100,16 +101,15 @@ bfam_ts_adams_new(bfam_domain_t *dom, bfam_ts_adams_method_t method,
  * \param [in]  add_rates        function handle to add rates routine
  * \param [in]  RK_init          boolean which if true signifies using LSRK to
  *                               init Adams method
+ * \param [in]  user_data        pointer to data to be passed to aux_rates
  */
-void bfam_ts_adams_init(bfam_ts_adams_t *ts, bfam_domain_t *dom,
-                        bfam_ts_adams_method_t method,
-                        bfam_domain_match_t subdom_match,
-                        const char **subdom_tags,
-                        bfam_domain_match_t comm_match, const char **comm_tags,
-                        MPI_Comm mpicomm, int mpitag, void *comm_data,
-                        aux_rates_t aux_rates, scale_rates_t scale_rates,
-                        intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
-                        add_rates_t add_rates, const int RK_init);
+void bfam_ts_adams_init(
+    bfam_ts_adams_t *ts, bfam_domain_t *dom, bfam_ts_adams_method_t method,
+    bfam_domain_match_t subdom_match, const char **subdom_tags,
+    bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
+    int mpitag, void *comm_data, aux_rates_t aux_rates,
+    scale_rates_t scale_rates, intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
+    add_rates_t add_rates, const int RK_init, void *user_data);
 
 /** free an Adams scheme
  *

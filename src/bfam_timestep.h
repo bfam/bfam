@@ -44,8 +44,8 @@ typedef void (*add_rates_t)(bfam_subdomain_t *thisSubdomain,
                             const char *rate_prefix, const bfam_long_real_t a,
                             void *user_data);
 
-typedef void (*aux_rates_t)(bfam_subdomain_t *thisSubdomain,
-                            const char *prefix);
+typedef void (*aux_rates_t)(bfam_subdomain_t *thisSubdomain, const char *prefix,
+                            void *user_data);
 
 typedef struct bfam_ts
 {

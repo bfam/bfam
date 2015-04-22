@@ -17,12 +17,13 @@ bfam_ts_adams_new(bfam_domain_t *dom, bfam_ts_adams_method_t method,
                   MPI_Comm mpicomm, int mpitag, void *comm_data,
                   aux_rates_t aux_rates, scale_rates_t scale_rates,
                   intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
-                  add_rates_t add_rates, const int RK_init)
+                  add_rates_t add_rates, const int RK_init, void *user_data)
 {
   bfam_ts_adams_t *newTS = bfam_malloc(sizeof(bfam_ts_adams_t));
   bfam_ts_adams_init(newTS, dom, method, subdom_match, subdom_tags, comm_match,
                      comm_tags, mpicomm, mpitag, comm_data, aux_rates,
-                     scale_rates, intra_rhs, inter_rhs, add_rates, RK_init);
+                     scale_rates, intra_rhs, inter_rhs, add_rates, RK_init,
+                     user_data);
   return newTS;
 }
 
@@ -193,15 +194,13 @@ static void bfam_ts_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt,
   ts->t += dt;
 }
 
-void bfam_ts_adams_init(bfam_ts_adams_t *ts, bfam_domain_t *dom,
-                        bfam_ts_adams_method_t method,
-                        bfam_domain_match_t subdom_match,
-                        const char **subdom_tags,
-                        bfam_domain_match_t comm_match, const char **comm_tags,
-                        MPI_Comm mpicomm, int mpitag, void *comm_data,
-                        aux_rates_t aux_rates, scale_rates_t scale_rates,
-                        intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
-                        add_rates_t add_rates, const int RK_init)
+void bfam_ts_adams_init(
+    bfam_ts_adams_t *ts, bfam_domain_t *dom, bfam_ts_adams_method_t method,
+    bfam_domain_match_t subdom_match, const char **subdom_tags,
+    bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
+    int mpitag, void *comm_data, aux_rates_t aux_rates,
+    scale_rates_t scale_rates, intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
+    add_rates_t add_rates, const int RK_init, void *user_data)
 {
   BFAM_LDEBUG("ADAMS INIT");
 
@@ -249,7 +248,7 @@ void bfam_ts_adams_init(bfam_ts_adams_t *ts, bfam_domain_t *dom,
       ts->lsrk = bfam_ts_lsrk_new_extended(
           dom, BFAM_TS_LSRK_KC54, subdom_match, subdom_tags, comm_match,
           comm_tags, mpicomm, mpitag, comm_data, aux_rates, scale_rates,
-          intra_rhs, inter_rhs, add_rates, 0);
+          intra_rhs, inter_rhs, add_rates, 0, user_data);
     }
 
     break;
@@ -267,7 +266,7 @@ void bfam_ts_adams_init(bfam_ts_adams_t *ts, bfam_domain_t *dom,
       ts->lsrk = bfam_ts_lsrk_new_extended(
           dom, BFAM_TS_LSRK_FE, subdom_match, subdom_tags, comm_match,
           comm_tags, mpicomm, mpitag, comm_data, aux_rates, scale_rates,
-          intra_rhs, inter_rhs, add_rates, 0);
+          intra_rhs, inter_rhs, add_rates, 0, user_data);
     }
 
     break;
@@ -288,7 +287,7 @@ void bfam_ts_adams_init(bfam_ts_adams_t *ts, bfam_domain_t *dom,
       ts->lsrk = bfam_ts_lsrk_new_extended(
           dom, BFAM_TS_LSRK_HEUN, subdom_match, subdom_tags, comm_match,
           comm_tags, mpicomm, mpitag, comm_data, aux_rates, scale_rates,
-          intra_rhs, inter_rhs, add_rates, 0);
+          intra_rhs, inter_rhs, add_rates, 0, user_data);
     }
 
     break;
@@ -313,7 +312,7 @@ void bfam_ts_adams_init(bfam_ts_adams_t *ts, bfam_domain_t *dom,
       ts->lsrk = bfam_ts_lsrk_new_extended(
           dom, BFAM_TS_LSRK_KC54, subdom_match, subdom_tags, comm_match,
           comm_tags, mpicomm, mpitag, comm_data, aux_rates, scale_rates,
-          intra_rhs, inter_rhs, add_rates, 0);
+          intra_rhs, inter_rhs, add_rates, 0, user_data);
     }
 
     break;
@@ -335,7 +334,7 @@ void bfam_ts_adams_init(bfam_ts_adams_t *ts, bfam_domain_t *dom,
     {
       char aux_rates_name[BFAM_BUFSIZ];
       snprintf(aux_rates_name, BFAM_BUFSIZ, "%s%d_", BFAM_ADAMS_PREFIX, n);
-      aux_rates(subs[s], aux_rates_name);
+      aux_rates(subs[s], aux_rates_name, user_data);
     }
   }
 

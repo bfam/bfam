@@ -60,6 +60,7 @@ typedef enum bfam_ts_lsrk_method
  * \param [in]  intra_rhs        function handle to intra RHS routine
  * \param [in]  inter_rhs        function handle to inter RHS routine
  * \param [in]  add_rates        function handle to add rates routine
+ * \param [in]  user_data        pointer to data to be passed to aux_rates
  *
  * \return the newly created low storage RK time stepper
  */
@@ -70,7 +71,7 @@ bfam_ts_lsrk_new(bfam_domain_t *dom, bfam_ts_lsrk_method_t method,
                  MPI_Comm mpicomm, int mpitag, void *comm_data,
                  aux_rates_t aux_rates, scale_rates_t scale_rates,
                  intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
-                 add_rates_t add_rates);
+                 add_rates_t add_rates, void *user_data);
 
 /** initialize a low storage RK scheme
  *
@@ -92,6 +93,7 @@ bfam_ts_lsrk_new(bfam_domain_t *dom, bfam_ts_lsrk_method_t method,
  * \param [in]  intra_rhs        function handle to intra RHS routine
  * \param [in]  inter_rhs        function handle to inter RHS routine
  * \param [in]  add_rates        function handle to add rates routine
+ * \param [in]  user_data        pointer to data to be passed to aux_rates
  */
 void bfam_ts_lsrk_init(bfam_ts_lsrk_t *ts, bfam_domain_t *dom,
                        bfam_ts_lsrk_method_t method,
@@ -100,7 +102,8 @@ void bfam_ts_lsrk_init(bfam_ts_lsrk_t *ts, bfam_domain_t *dom,
                        const char **comm_tags, MPI_Comm mpicomm, int mpitag,
                        void *comm_data, aux_rates_t aux_rates,
                        scale_rates_t scale_rates, intra_rhs_t intra_rhs,
-                       inter_rhs_t inter_rhs, add_rates_t add_rates);
+                       inter_rhs_t inter_rhs, add_rates_t add_rates,
+                       void *user_data);
 
 /** create a low storage RK scheme
  *
@@ -122,6 +125,7 @@ void bfam_ts_lsrk_init(bfam_ts_lsrk_t *ts, bfam_domain_t *dom,
  * \param [in]  inter_rhs        function handle to inter RHS routine
  * \param [in]  add_rates        function handle to add rates routine
  * \param [in]  make_rates       boolean for whether LSRK should make rates
+ * \param [in]  user_data        pointer to data to be passed to aux_rates
  *
  * \return the newly created low storage RK time stepper
  */
@@ -131,7 +135,7 @@ bfam_ts_lsrk_t *bfam_ts_lsrk_new_extended(
     bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
     int mpitag, void *comm_data, aux_rates_t aux_rates,
     scale_rates_t scale_rates, intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
-    add_rates_t add_rates, int make_rates);
+    add_rates_t add_rates, int make_rates, void *user_data);
 
 /** initialize a low storage RK scheme
  *
@@ -154,6 +158,7 @@ bfam_ts_lsrk_t *bfam_ts_lsrk_new_extended(
  * \param [in]  inter_rhs        function handle to inter RHS routine
  * \param [in]  add_rates        function handle to add rates routine
  * \param [in]  make_rates       boolean for whether LSRK should make rates
+ * \param [in]  user_data        pointer to data to be passed to aux_rates
  */
 void bfam_ts_lsrk_init_extended(
     bfam_ts_lsrk_t *ts, bfam_domain_t *dom, bfam_ts_lsrk_method_t method,
@@ -161,7 +166,7 @@ void bfam_ts_lsrk_init_extended(
     bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
     int mpitag, void *comm_data, aux_rates_t aux_rates,
     scale_rates_t scale_rates, intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
-    add_rates_t add_rates, int make_rates);
+    add_rates_t add_rates, int make_rates, void *user_data);
 
 /** free a low storage RK scheme
  *

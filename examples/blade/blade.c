@@ -1164,7 +1164,7 @@ static void field_zero(bfam_locidx_t npoints, const char *name,
     field[n] = 0;
 }
 
-void aux_rates(bfam_subdomain_t *thisSubdomain, const char *prefix)
+void aux_rates(bfam_subdomain_t *thisSubdomain, const char *prefix, void *ud)
 {
   if (bfam_subdomain_has_tag(thisSubdomain, "_volume"))
   {
@@ -1475,13 +1475,13 @@ static void init_time_stepper(blade_t *blade, prefs_t *prefs)
         (bfam_domain_t *)blade->domain, prefs->lsrk_method, BFAM_DOMAIN_OR,
         timestep_tags, BFAM_DOMAIN_OR, glue, blade->mpicomm, 10,
         blade->comm_args, &aux_rates, &scale_rates, &intra_rhs, &inter_rhs,
-        &add_rates);
+        &add_rates, NULL);
   else if (prefs->adams_method != BFAM_TS_ADAMS_NOOP)
     blade->blade_ts = (bfam_ts_t *)bfam_ts_adams_new(
         (bfam_domain_t *)blade->domain, prefs->adams_method, BFAM_DOMAIN_OR,
         timestep_tags, BFAM_DOMAIN_OR, glue, blade->mpicomm, 10,
         blade->comm_args, &aux_rates, &scale_rates, &intra_rhs, &inter_rhs,
-        &add_rates, lua_get_global_int(prefs->L, "RK_init", 1));
+        &add_rates, lua_get_global_int(prefs->L, "RK_init", 1), NULL);
 }
 
 static bfam_real_t compute_domain_dt(blade_t *blade, prefs_t *prefs,

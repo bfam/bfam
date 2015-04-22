@@ -121,12 +121,12 @@ bfam_ts_lsrk_new(bfam_domain_t *dom, bfam_ts_lsrk_method_t method,
                  MPI_Comm mpicomm, int mpitag, void *comm_data,
                  aux_rates_t aux_rates, scale_rates_t scale_rates,
                  intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
-                 add_rates_t add_rates)
+                 add_rates_t add_rates, void *user_data)
 {
   bfam_ts_lsrk_t *newTS = bfam_malloc(sizeof(bfam_ts_lsrk_t));
   bfam_ts_lsrk_init(newTS, dom, method, subdom_match, subdom_tags, comm_match,
                     comm_tags, mpicomm, mpitag, comm_data, aux_rates,
-                    scale_rates, intra_rhs, inter_rhs, add_rates);
+                    scale_rates, intra_rhs, inter_rhs, add_rates, user_data);
   return newTS;
 }
 
@@ -137,12 +137,13 @@ void bfam_ts_lsrk_init(bfam_ts_lsrk_t *ts, bfam_domain_t *dom,
                        const char **comm_tags, MPI_Comm mpicomm, int mpitag,
                        void *comm_data, aux_rates_t aux_rates,
                        scale_rates_t scale_rates, intra_rhs_t intra_rhs,
-                       inter_rhs_t inter_rhs, add_rates_t add_rates)
+                       inter_rhs_t inter_rhs, add_rates_t add_rates,
+                       void *user_data)
 {
   bfam_ts_lsrk_init_extended(ts, dom, method, subdom_match, subdom_tags,
                              comm_match, comm_tags, mpicomm, mpitag, comm_data,
                              aux_rates, scale_rates, intra_rhs, inter_rhs,
-                             add_rates, 1);
+                             add_rates, 1, user_data);
 }
 
 bfam_ts_lsrk_t *bfam_ts_lsrk_new_extended(
@@ -151,13 +152,13 @@ bfam_ts_lsrk_t *bfam_ts_lsrk_new_extended(
     bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
     int mpitag, void *comm_data, aux_rates_t aux_rates,
     scale_rates_t scale_rates, intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
-    add_rates_t add_rates, int make_rates)
+    add_rates_t add_rates, int make_rates, void *user_data)
 {
   bfam_ts_lsrk_t *newTS = bfam_malloc(sizeof(bfam_ts_lsrk_t));
   bfam_ts_lsrk_init_extended(newTS, dom, method, subdom_match, subdom_tags,
                              comm_match, comm_tags, mpicomm, mpitag, comm_data,
                              aux_rates, scale_rates, intra_rhs, inter_rhs,
-                             add_rates, make_rates);
+                             add_rates, make_rates, user_data);
   return newTS;
 }
 
@@ -167,7 +168,7 @@ void bfam_ts_lsrk_init_extended(
     bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
     int mpitag, void *comm_data, aux_rates_t aux_rates,
     scale_rates_t scale_rates, intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
-    add_rates_t add_rates, int make_rates)
+    add_rates_t add_rates, int make_rates, void *user_data)
 {
   BFAM_LDEBUG("LSRK INIT");
 
@@ -209,7 +210,7 @@ void bfam_ts_lsrk_init_extended(
     BFAM_ABORT_IF_NOT(rval != 1, "Issue adding subdomain %s", subs[s]->name);
 
     if (make_rates)
-      aux_rates(subs[s], BFAM_LSKR_PREFIX);
+      aux_rates(subs[s], BFAM_LSKR_PREFIX, user_data);
   }
 
   /*
