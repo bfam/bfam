@@ -124,7 +124,7 @@ static void bfam_ts_lsrk_step_extended(bfam_ts_t *a_ts, bfam_long_real_t dt,
 
     if (ts->update_soln)
     {
-      data.arg = ts->A[s];
+      data.arg = ts->A[(s + 1) % ts->nStages];
       data.arg2 = ts->B[s] * dt;
       bfam_dictionary_allprefixed_ptr(&ts->elems, "", &bfam_ts_lsrk_update_soln,
                                       &data);
