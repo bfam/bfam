@@ -7,6 +7,7 @@ typedef struct bfam_ts_allprefix
 {
   bfam_ts_lsrk_t *ts;
   bfam_long_real_t arg;
+  bfam_long_real_t arg2;
   void *user_data;
   const char *rate_prefix;
   const char *field_prefix_lhs;
@@ -36,6 +37,16 @@ static int bfam_ts_lsrk_inter_rhs(const char *key, void *val, void *arg)
   bfam_subdomain_t *sub = (bfam_subdomain_t *)val;
   data->ts->inter_rhs(sub, data->rate_prefix, data->rate_prefix,
                       data->field_prefix_rhs, data->arg, data->user_data);
+  return 1;
+}
+
+static int bfam_ts_lsrk_update_soln(const char *key, void *val, void *arg)
+{
+  bfam_ts_lsrk_allprefix_t *data = (bfam_ts_lsrk_allprefix_t *)arg;
+  bfam_subdomain_t *sub = (bfam_subdomain_t *)val;
+  data->ts->update_soln(sub, data->field_prefix_lhs, data->field_prefix_rhs,
+                        data->rate_prefix, data->arg, data->arg2,
+                        data->user_data);
   return 1;
 }
 
@@ -75,9 +86,12 @@ static void bfam_ts_lsrk_step_extended(bfam_ts_t *a_ts, bfam_long_real_t dt,
     /*
      * scale the rate
      */
-    data.arg = ts->A[s];
-    bfam_dictionary_allprefixed_ptr(&ts->elems, "", &bfam_ts_lsrk_scale_rates,
-                                    &data);
+    if (ts->scale_rates)
+    {
+      data.arg = ts->A[s];
+      bfam_dictionary_allprefixed_ptr(&ts->elems, "", &bfam_ts_lsrk_scale_rates,
+                                      &data);
+    }
 
     /*
      * do the intra work
@@ -101,9 +115,20 @@ static void bfam_ts_lsrk_step_extended(bfam_ts_t *a_ts, bfam_long_real_t dt,
     /*
      * add the rate
      */
-    data.arg = ts->B[s] * dt;
-    bfam_dictionary_allprefixed_ptr(&ts->elems, "", &bfam_ts_lsrk_add_rates,
-                                    &data);
+    if (ts->add_rates)
+    {
+      data.arg = ts->B[s] * dt;
+      bfam_dictionary_allprefixed_ptr(&ts->elems, "", &bfam_ts_lsrk_add_rates,
+                                      &data);
+    }
+
+    if (ts->update_soln)
+    {
+      data.arg = ts->A[s];
+      data.arg2 = ts->B[s] * dt;
+      bfam_dictionary_allprefixed_ptr(&ts->elems, "", &bfam_ts_lsrk_update_soln,
+                                      &data);
+    }
   }
   ts->t += ts->C[ts->nStages] * dt;
 }
@@ -130,6 +155,23 @@ bfam_ts_lsrk_new(bfam_domain_t *dom, bfam_ts_lsrk_method_t method,
   return newTS;
 }
 
+bfam_ts_lsrk_t *
+bfam_ts_lsrk_new_up(bfam_domain_t *dom, bfam_ts_lsrk_method_t method,
+                    bfam_domain_match_t subdom_match, const char **subdom_tags,
+                    bfam_domain_match_t comm_match, const char **comm_tags,
+                    MPI_Comm mpicomm, int mpitag, void *comm_data,
+                    update_soln_t update_soln, aux_rates_t aux_rates,
+                    intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
+                    void *user_data)
+{
+  bfam_ts_lsrk_t *newTS = bfam_malloc(sizeof(bfam_ts_lsrk_t));
+  bfam_ts_lsrk_init_extended(newTS, dom, method, subdom_match, subdom_tags,
+                             comm_match, comm_tags, mpicomm, mpitag, comm_data,
+                             update_soln, aux_rates, NULL, intra_rhs, inter_rhs,
+                             NULL, 1, user_data);
+  return newTS;
+}
+
 void bfam_ts_lsrk_init(bfam_ts_lsrk_t *ts, bfam_domain_t *dom,
                        bfam_ts_lsrk_method_t method,
                        bfam_domain_match_t subdom_match,
@@ -142,7 +184,7 @@ void bfam_ts_lsrk_init(bfam_ts_lsrk_t *ts, bfam_domain_t *dom,
 {
   bfam_ts_lsrk_init_extended(ts, dom, method, subdom_match, subdom_tags,
                              comm_match, comm_tags, mpicomm, mpitag, comm_data,
-                             aux_rates, scale_rates, intra_rhs, inter_rhs,
+                             NULL, aux_rates, scale_rates, intra_rhs, inter_rhs,
                              add_rates, 1, user_data);
 }
 
@@ -157,7 +199,7 @@ bfam_ts_lsrk_t *bfam_ts_lsrk_new_extended(
   bfam_ts_lsrk_t *newTS = bfam_malloc(sizeof(bfam_ts_lsrk_t));
   bfam_ts_lsrk_init_extended(newTS, dom, method, subdom_match, subdom_tags,
                              comm_match, comm_tags, mpicomm, mpitag, comm_data,
-                             aux_rates, scale_rates, intra_rhs, inter_rhs,
+                             NULL, aux_rates, scale_rates, intra_rhs, inter_rhs,
                              add_rates, make_rates, user_data);
   return newTS;
 }
@@ -166,11 +208,17 @@ void bfam_ts_lsrk_init_extended(
     bfam_ts_lsrk_t *ts, bfam_domain_t *dom, bfam_ts_lsrk_method_t method,
     bfam_domain_match_t subdom_match, const char **subdom_tags,
     bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
-    int mpitag, void *comm_data, aux_rates_t aux_rates,
-    scale_rates_t scale_rates, intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
-    add_rates_t add_rates, int make_rates, void *user_data)
+    int mpitag, void *comm_data, update_soln_t update_soln,
+    aux_rates_t aux_rates, scale_rates_t scale_rates, intra_rhs_t intra_rhs,
+    inter_rhs_t inter_rhs, add_rates_t add_rates, int make_rates,
+    void *user_data)
 {
   BFAM_LDEBUG("LSRK INIT");
+
+  BFAM_ABORT_IF_NOT(
+      (!update_soln && scale_rates && add_rates) ||
+          (update_soln && !scale_rates && !add_rates),
+      "Need to set either update_soln OR add_rates and scale_rates");
 
   /*
    * set up some preliminaries
@@ -192,6 +240,7 @@ void bfam_ts_lsrk_init_extended(
   /*
    * store the function calls
    */
+  ts->update_soln = update_soln;
   ts->scale_rates = scale_rates;
   ts->intra_rhs = intra_rhs;
   ts->inter_rhs = inter_rhs;

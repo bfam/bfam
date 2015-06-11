@@ -44,6 +44,15 @@ typedef void (*add_rates_t)(bfam_subdomain_t *thisSubdomain,
                             const char *rate_prefix, const bfam_long_real_t a,
                             void *user_data);
 
+/* add and scale the rates: q_lhs := a*q_rhs + dt*dq
+ *                          dq    := b*dq
+ */
+typedef void (*update_soln_t)(bfam_subdomain_t *thisSubdomain,
+                              const char *field_prefix_lhs,
+                              const char *field_prefix_rhs,
+                              const char *rate_prefix, const bfam_long_real_t a,
+                              const bfam_long_real_t dt_b, void *user_data);
+
 typedef void (*aux_rates_t)(bfam_subdomain_t *thisSubdomain, const char *prefix,
                             void *user_data);
 
