@@ -97,6 +97,9 @@ namespace occa {
                                                 const std::string &functionName_);
 
   template <>
+  uintptr_t kernel_t<COI>::maximumInnerDimSize();
+
+  template <>
   int kernel_t<COI>::preferredDimSize();
 
   template <>
@@ -219,13 +222,13 @@ namespace occa {
   void device_t<COI>::waitFor(streamTag tag);
 
   template <>
-  stream device_t<COI>::createStream();
+  stream_t device_t<COI>::createStream();
 
   template <>
-  void device_t<COI>::freeStream(stream s);
+  void device_t<COI>::freeStream(stream_t s);
 
   template <>
-  stream device_t<COI>::wrapStream(void *handle_);
+  stream_t device_t<COI>::wrapStream(void *handle_);
 
   template <>
   streamTag device_t<COI>::tagStream();

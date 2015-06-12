@@ -222,6 +222,11 @@ namespace occa {
     return buildFromBinary(cache, functionName);
   }
 
+  template <>
+  uintptr_t kernel_t<Pthreads>::maximumInnerDimSize(){
+    return ((uintptr_t) -1);
+  }
+
   // [-] Missing
   template <>
   int kernel_t<Pthreads>::preferredDimSize(){
@@ -828,15 +833,15 @@ namespace occa {
   }
 
   template <>
-  stream device_t<Pthreads>::createStream(){
+  stream_t device_t<Pthreads>::createStream(){
     return NULL;
   }
 
   template <>
-  void device_t<Pthreads>::freeStream(stream s){}
+  void device_t<Pthreads>::freeStream(stream_t s){}
 
   template <>
-  stream device_t<Pthreads>::wrapStream(void *handle_){
+  stream_t device_t<Pthreads>::wrapStream(void *handle_){
     return NULL;
   }
 

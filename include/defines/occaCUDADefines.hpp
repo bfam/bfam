@@ -118,16 +118,17 @@
 
 
 //---[ Atomics ]----------------------------------
-#define occaAtomicAdd(PTR, UPDATE)  atomicAdd
-#define occaAtomicSub(PTR, UPDATE)  atomicSub
-#define occaAtomicSwap(PTR, UPDATE) atomicExch
-#define occaAtomicInc(PTR, UPDATE)  atomicInc
-#define occaAtomicDec(PTR, UPDATE)  atomicDec
-#define occaAtomicMin(PTR, UPDATE)  atomicMin
-#define occaAtomicMax(PTR, UPDATE)  atomicMax
-#define occaAtomicAnd(PTR, UPDATE)  atomicAnd
-#define occaAtomicOr(PTR, UPDATE)   atomicOr
-#define occaAtomicXor(PTR, UPDATE)  atomicXor
+#define occaAtomicAdd(PTR, UPDATE)       atomicAdd(PTR, UPDATE)
+#define occaAtomicSub(PTR, UPDATE)       atomicSub(PTR, UPDATE)
+#define occaAtomicSwap(PTR, UPDATE)      atomicExch(PTR, UPDATE)
+#define occaAtomicInc(PTR, UPDATE)       atomicInc(PTR, UPDATE)
+#define occaAtomicDec(PTR, UPDATE)       atomicDec(PTR, UPDATE)
+#define occaAtomicMin(PTR, UPDATE)       atomicMin(PTR, UPDATE)
+#define occaAtomicMax(PTR, UPDATE)       atomicMax(PTR, UPDATE)
+#define occaAtomicAnd(PTR, UPDATE)       atomicAnd(PTR, UPDATE)
+#define occaAtomicOr(PTR, UPDATE)        atomicOr(PTR, UPDATE)
+#define occaAtomicXor(PTR, UPDATE)       atomicXor(PTR, UPDATE)
+#define occaAtomicCAS(PTR, COMP, UPDATE) atomicCAS(PTR, COMP, UPDATE)
 
 #define occaAtomicAdd64  occaAtomicAdd
 #define occaAtomicSub64  occaAtomicSub
@@ -236,6 +237,13 @@ __device__ inline double occaCuda_atan(const double x){ return atan(x);  }
 #define occaAtan       occaCuda_atan
 #define occaFastAtan   occaCuda_atan
 #define occaNativeAtan occaCuda_atan
+
+__device__ inline float  occaCuda_atan2(const float y, const float x){  return atan2f(y,x); }
+__device__ inline double occaCuda_atan2(const double y, const double x){ return atan2(y,x);  }
+
+#define occaAtan2       occaCuda_atan2
+#define occaFastAtan2   occaCuda_atan2
+#define occaNativeAtan2 occaCuda_atan2
 
 __device__ inline float  occaCuda_tanh(const float x){  return tanhf(x); }
 __device__ inline double occaCuda_tanh(const double x){ return tanh(x);  }
