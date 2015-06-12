@@ -207,7 +207,8 @@ namespace occa {
 
     nestedKernelCount = 0;
 
-    preferredDimSize_ = 0;
+    maximumInnerDimSize_ = 0;
+    preferredDimSize_    = 0;
   }
 
   template <>
@@ -422,6 +423,23 @@ namespace occa {
                     cuModuleGetFunction(&data_.function, data_.module, functionName.c_str()));
 
     return this;
+  }
+
+  template <>
+  uintptr_t kernel_t<CUDA>::maximumInnerDimSize(){
+    if(maximumInnerDimSize_)
+      return maximumInnerDimSize_;
+
+    OCCA_EXTRACT_DATA(CUDA, Kernel);
+
+    int maxSize;
+
+    OCCA_CUDA_CHECK("Kernel: Getting Maximum Inner-Dim Size",
+                    cuFuncGetAttribute(&maxSize, CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK, data_.function));
+
+    maximumInnerDimSize_ = (uintptr_t) maxSize;
+
+    return maximumInnerDimSize_;
   }
 
   template <>
@@ -1062,7 +1080,7 @@ namespace occa {
   }
 
   template <>
-  stream device_t<CUDA>::createStream(){
+  stream_t device_t<CUDA>::createStream(){
     CUstream *retStream = new CUstream;
 
     OCCA_CUDA_CHECK("Device: createStream",
@@ -1072,14 +1090,14 @@ namespace occa {
   }
 
   template <>
-  void device_t<CUDA>::freeStream(stream s){
+  void device_t<CUDA>::freeStream(stream_t s){
     OCCA_CUDA_CHECK("Device: freeStream",
                     cuStreamDestroy( *((CUstream*) s) ));
     delete (CUstream*) s;
   }
 
   template <>
-  stream device_t<CUDA>::wrapStream(void *handle_){
+  stream_t device_t<CUDA>::wrapStream(void *handle_){
     return handle_;
   }
 
@@ -1210,10 +1228,12 @@ namespace occa {
                                        const uintptr_t bytes){
     memory_v *mem = new memory_t<CUDA>;
 
-    // CUdeviceptr ~ void*
+    CUdeviceptr &cuPtr = *(new CUdeviceptr);
+    mem->handle  = &cuPtr;
+
     mem->dHandle = this;
     mem->size    = bytes;
-    mem->handle = &handle_;
+    cuPtr        = (CUdeviceptr) handle_;
 
     mem->isAWrapper = true;
 
@@ -1250,7 +1270,7 @@ namespace occa {
     memory_v *mem = new memory_t<CUDA>;
 
     mem->dHandle = this;
-    mem->handle  = new CUdeviceptr;
+    mem->handle  = new CUdeviceptr*;
     mem->size    = bytes;
 
     OCCA_CUDA_CHECK("Device: malloc",

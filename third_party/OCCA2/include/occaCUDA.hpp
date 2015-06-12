@@ -117,6 +117,9 @@ namespace occa {
                                                   const std::string &functionName_);
 
   template <>
+  uintptr_t kernel_t<CUDA>::maximumInnerDimSize();
+
+  template <>
   int kernel_t<CUDA>::preferredDimSize();
 
   template <>
@@ -239,13 +242,13 @@ namespace occa {
   void device_t<CUDA>::waitFor(streamTag tag);
 
   template <>
-  stream device_t<CUDA>::createStream();
+  stream_t device_t<CUDA>::createStream();
 
   template <>
-  void device_t<CUDA>::freeStream(stream s);
+  void device_t<CUDA>::freeStream(stream_t s);
 
   template <>
-  stream device_t<CUDA>::wrapStream(void *handle_);
+  stream_t device_t<CUDA>::wrapStream(void *handle_);
 
   template <>
   streamTag device_t<CUDA>::tagStream();

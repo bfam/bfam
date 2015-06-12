@@ -24,7 +24,7 @@ namespace occa {
 
   //---[ UVA ]------------------------
   ptrRangeMap_t uvaMap;
-  memoryArray_t uvaDirtyMemory;
+  memoryVector_t uvaDirtyMemory;
 
   bool hasUvaEnabledByDefault(){
     return uvaEnabledByDefault_f;
@@ -69,17 +69,128 @@ namespace occa {
     return ((a != b) && (a.start < b.start));
   }
 
-  // uvaPtrInfo_t::uvaPtrInfo_t(){
-  // }
+  uvaPtrInfo_t::uvaPtrInfo_t() :
+    mem(NULL) {}
 
-  // uvaPtrInfo_t::uvaPtrInfo_t(occa::memory_v *mem){
-  // }
+  uvaPtrInfo_t::uvaPtrInfo_t(void *ptr){
+    ptrRangeMap_t::iterator it = uvaMap.find(ptr);
 
-  // occa::device uvaPtrInfo_t::getDevice(){
-  // }
+    if(it != uvaMap.end())
+      mem = (it->second);
+    else
+      mem = (occa::memory_v*) ptr; // Defaults to ptr being a memory_v
+  }
 
-  // occa::memory uvaPtrInfo_t::getMemory(){
-  // }
+  uvaPtrInfo_t::uvaPtrInfo_t(occa::memory_v *mem_) :
+    mem(mem_) {}
+
+  uvaPtrInfo_t::uvaPtrInfo_t(const uvaPtrInfo_t &upi) :
+    mem(upi.mem) {}
+
+  uvaPtrInfo_t& uvaPtrInfo_t::operator = (const uvaPtrInfo_t &upi){
+    mem = upi.mem;
+
+    return *this;
+  }
+
+  occa::device uvaPtrInfo_t::getDevice(){
+    occa::memory m(mem);
+
+    return occa::device(m.getOccaDeviceHandle());
+  }
+
+  occa::memory uvaPtrInfo_t::getMemory(){
+    return occa::memory(mem);
+  }
+
+  occa::memory_v* uvaToMemory(void *ptr){
+    ptrRangeMap_t::iterator it = uvaMap.find(ptr);
+
+    if(it == uvaMap.end())
+      return NULL;
+
+    return it->second;
+  }
+
+  void syncToDevice(void *ptr, const uintptr_t bytes){
+    occa::memory_v *mem = uvaToMemory(ptr);
+
+    if(mem == NULL)
+      return;
+
+    if(!mem->dHandle->fakesUva())
+      memcpy(mem->handle, mem->uvaPtr, bytes);
+    else
+      occa::memory(mem).syncToDevice(bytes);
+  }
+
+  void syncFromDevice(void *ptr, const uintptr_t bytes){
+    occa::memory_v *mem = uvaToMemory(ptr);
+
+    if(mem == NULL)
+      return;
+
+    if(!mem->dHandle->fakesUva())
+      memcpy(mem->uvaPtr, mem->handle, bytes);
+    else
+      occa::memory(mem).syncFromDevice(bytes);
+  }
+
+  bool needsSync(void *ptr){
+    occa::memory m(ptr);
+
+    return m.uvaIsDirty();
+  }
+
+  void dontSync(void *ptr){
+    removeFromDirtyMap(ptr);
+  }
+
+  void removeFromDirtyMap(void *ptr){
+    ptrRangeMap_t::iterator it = uvaMap.find(ptr);
+
+    if(it == uvaMap.end())
+      return;
+
+    memory m(it->second);
+
+    if(!m.uvaIsDirty())
+      return;
+
+    removeFromDirtyMap(m.getOccaMemoryHandle());
+  }
+
+  void removeFromDirtyMap(memory_v *mem){
+    occa::memory m(mem);
+
+    const size_t dirtyEntries = uvaDirtyMemory.size();
+
+    for(size_t i = 0; i < dirtyEntries; ++i){
+      if(uvaDirtyMemory[i] == mem){
+        m.uvaMarkClean();
+        uvaDirtyMemory.erase(uvaDirtyMemory.begin() + i);
+
+        break;
+      }
+    }
+  }
+
+  void setupMagicFor(void *ptr){
+    ptrRangeMap_t::iterator it = uvaMap.find(ptr);
+
+    if(it == uvaMap.end())
+      return;
+
+    memory_v &mem = *(it->second);
+
+    if(mem.dHandle->fakesUva())
+      return;
+
+    if(mem.uvaPtr == NULL)
+      mem.uvaPtr = cpu::malloc(mem.size);
+
+    memcpy(mem.uvaPtr, mem.handle, mem.size);
+  }
 
   void free(void *ptr){
     ptrRangeMap_t::iterator it = uvaMap.find(ptr);
@@ -175,16 +286,14 @@ namespace occa {
     if(infos.size() == 0)
       return;
 
-    parserNS::strNode *n;
+    parserNS::expNode n = parserNS::createExpNodeFrom(infos);
+    int leafPos = 0;
 
-    n = parserNS::splitContent(infos);
-    n = parserNS::labelCode(n);
-
-    while(n){
-      std::string &info = n->value;
+    while(leafPos < n.leafCount){
+      std::string &info = n[leafPos].value;
       std::string value;
 
-      n = n->right;
+      ++leafPos;
 
       if((info != "mode")        &&
          (info != "UVA")         &&
@@ -198,23 +307,23 @@ namespace occa {
 
         std::cout << "Flag [" << info << "] is not available, skipping it\n";
 
-        while(n && (n->value != ","))
-          n = n->right;
+        while((leafPos < n.leafCount) &&
+              (n[leafPos].value != ",")){
+          ++leafPos;
+        }
 
-        if(n)
-          n = n->right;
+        ++leafPos;
 
         continue;
       }
 
-      if(n == NULL)
-        break;
+      if(n[leafPos].value == "=")
+        ++leafPos;
 
-      if(n->value == "=")
-        n = n->right;
+      while((leafPos < n.leafCount) &&
+            (n[leafPos].value != ",")){
 
-      while(n && (n->value != ",")){
-        std::string &v = n->value;
+        std::string &v = n[leafPos].value;
 
         occa::strip(v);
 
@@ -223,8 +332,8 @@ namespace occa {
             value += v;
             value += ' ';
           }
-          else if(n->down){
-            std::string dv = n->down->toString();
+          else if(n[leafPos].leafCount){
+            std::string dv = n[leafPos].toString();
             occa::strip(dv);
 
             value += dv;
@@ -232,11 +341,10 @@ namespace occa {
           }
         }
 
-        n = n->right;
+        ++leafPos;
       }
 
-      if(n)
-        n = n->right;
+      ++leafPos;
 
       occa::strip(value);
 
@@ -529,11 +637,15 @@ namespace occa {
     }
   }
 
-  int kernel::preferredDimSize(){
-    OCCA_CHECK(kHandle->nestedKernelCount == 0,
-               "Cannot get preferred size for fused kernels");
+  uintptr_t kernel::maximumInnerDimSize(){
+    return kHandle->maximumInnerDimSize();
+  }
 
-    return 1;
+  int kernel::preferredDimSize(){
+    if(0 < kHandle->nestedKernelCount)
+      return 0;
+
+    return kHandle->preferredDimSize();
   }
 
   void kernel::clearArgumentList(){
@@ -655,6 +767,19 @@ namespace occa {
     strMode(""),
     mHandle(NULL) {}
 
+  memory::memory(void *uvaPtr){
+    // Default to uvaPtr is actually a memory_v*
+    memory_v *mHandle_ = (memory_v*) uvaPtr;
+
+    ptrRangeMap_t::iterator it = uvaMap.find(uvaPtr);
+
+    if(it != uvaMap.end())
+      mHandle_ = it->second;
+
+    strMode = occa::modeToStr(mHandle_->mode());
+    mHandle = mHandle_;
+  }
+
   memory::memory(memory_v *mHandle_) :
     strMode( occa::modeToStr(mHandle_->mode()) ),
     mHandle(mHandle_) {}
@@ -677,6 +802,14 @@ namespace occa {
 
   void* memory::textureArg() const {
     return (void*) ((mHandle->textureInfo).arg);
+  }
+
+  device_v* memory::getOccaDeviceHandle(){
+    return mHandle->dHandle;
+  }
+
+  memory_v* memory::getOccaMemoryHandle(){
+    return mHandle;
   }
 
   void* memory::getMappedPointer(){
@@ -719,6 +852,46 @@ namespace occa {
     placeInUva();
 
     mHandle->isManaged = true;
+  }
+
+  void memory::syncToDevice(const uintptr_t bytes){
+    if(mHandle->dHandle->fakesUva()){
+      uintptr_t bytes_ = ((bytes == 0) ? mHandle->size : bytes);
+
+      copyTo(mHandle->uvaPtr, bytes_);
+
+      mHandle->uva_inDevice = true;
+      mHandle->uva_isDirty  = false;
+
+      removeFromDirtyMap(mHandle);
+    }
+  }
+
+  void memory::syncFromDevice(const uintptr_t bytes){
+    if(mHandle->dHandle->fakesUva()){
+      uintptr_t bytes_ = ((bytes == 0) ? mHandle->size : bytes);
+
+      copyFrom(mHandle->uvaPtr, bytes_);
+
+      mHandle->uva_inDevice = false;
+      mHandle->uva_isDirty  = false;
+
+      removeFromDirtyMap(mHandle);
+    }
+  }
+
+  bool memory::uvaIsDirty(){
+    return (mHandle && (mHandle->uva_isDirty));
+  }
+
+  void memory::uvaMarkDirty(){
+    if(mHandle)
+      mHandle->uva_isDirty = true;
+  }
+
+  void memory::uvaMarkClean(){
+    if(mHandle)
+      mHandle->uva_isDirty = false;
   }
 
   void memory::copyFrom(const void *src,
@@ -1131,8 +1304,10 @@ namespace occa {
 
 
   //---[ Device ]---------------------
-  device::device() :
-    dHandle(NULL) {}
+  device::device(){
+    strMode = "Serial";
+    dHandle = new device_t<Serial>();
+  }
 
   device::device(device_v *dHandle_) :
     dHandle(dHandle_) {}
@@ -1243,7 +1418,8 @@ namespace occa {
     else
       dHandle->uvaEnabled_ = uvaEnabledByDefault_f;
 
-    dHandle->currentStream = createStream();
+    stream newStream = createStream();
+    dHandle->currentStream = newStream.handle;
   }
 
   void device::setup(occa::mode m,
@@ -1286,7 +1462,8 @@ namespace occa {
     dHandle->modelID_ = library::deviceModelID(dHandle->getIdentifier());
     dHandle->id_      = library::genDeviceID();
 
-    dHandle->currentStream = createStream();
+    stream newStream = createStream();
+    dHandle->currentStream = newStream.handle;
   }
 
   void device::setup(occa::mode m,
@@ -1302,7 +1479,8 @@ namespace occa {
     dHandle->modelID_ = library::deviceModelID(dHandle->getIdentifier());
     dHandle->id_      = library::genDeviceID();
 
-    dHandle->currentStream = createStream();
+    stream newStream = createStream();
+    dHandle->currentStream = newStream.handle;
   }
 
   void device::setup(occa::mode m,
@@ -1319,7 +1497,8 @@ namespace occa {
     dHandle->modelID_ = library::deviceModelID(dHandle->getIdentifier());
     dHandle->id_      = library::genDeviceID();
 
-    dHandle->currentStream = createStream();
+    stream newStream = createStream();
+    dHandle->currentStream = newStream.handle;
   }
 
   void device::setup(occa::mode m,
@@ -1337,7 +1516,8 @@ namespace occa {
     dHandle->modelID_ = library::deviceModelID(dHandle->getIdentifier());
     dHandle->id_      = library::genDeviceID();
 
-    dHandle->currentStream = createStream();
+    stream newStream = createStream();
+    dHandle->currentStream = newStream.handle;
   }
 
 
@@ -1439,16 +1619,19 @@ namespace occa {
   }
 
   stream device::createStream(){
-    dHandle->streams.push_back( dHandle->createStream() );
-    return dHandle->streams.back();
+    stream newStream(dHandle->createStream());
+
+    dHandle->streams.push_back(newStream.handle);
+
+    return newStream;
   }
 
   stream device::getStream(){
-    return dHandle->currentStream;
+    return stream(dHandle->currentStream);
   }
 
   void device::setStream(stream s){
-    dHandle->currentStream = s;
+    dHandle->currentStream = s.handle;
   }
 
   stream device::wrapStream(void *handle_){
@@ -1467,7 +1650,7 @@ namespace occa {
     const int streamCount = dHandle->streams.size();
 
     for(int i = 0; i < streamCount; ++i){
-      if(dHandle->streams[i] == s){
+      if(dHandle->streams[i] == s.handle){
         dHandle->freeStream(dHandle->streams[i]);
         dHandle->streams.erase(dHandle->streams.begin() + i);
 
@@ -1674,7 +1857,7 @@ namespace occa {
     std::string loopyLang = "loopy";
 
     if(useLoopyOrFloopy == occa::useFloopy)
-      loopyLang = "fortran";
+      loopyLang = "fpp";
 
     std::stringstream command;
 
@@ -1867,6 +2050,22 @@ namespace occa {
     return dHandle->simdWidth();
   }
 
+  //   ---[ Device Functions ]----------
+  device currentDevice;
+
+  void setDevice(device d){
+    currentDevice = d;
+  }
+
+  void setDevice(const std::string &infos){
+    device newDevice(infos);
+    currentDevice = newDevice;
+  }
+
+  device getCurrentDevice(){
+    return currentDevice;
+  }
+
   mutex_t deviceListMutex;
   std::vector<device> deviceList;
 
@@ -1901,6 +2100,250 @@ namespace occa {
 
     return deviceList;
   }
+
+  void setCompiler(const std::string &compiler_){
+    currentDevice.setCompiler(compiler_);
+  }
+
+  void setCompilerEnvScript(const std::string &compilerEnvScript_){
+    currentDevice.setCompilerEnvScript(compilerEnvScript_);
+  }
+
+  void setCompilerFlags(const std::string &compilerFlags_){
+    currentDevice.setCompilerFlags(compilerFlags_);
+  }
+
+  std::string& getCompiler(){
+    return currentDevice.getCompiler();
+  }
+
+  std::string& getCompilerEnvScript(){
+    return currentDevice.getCompilerEnvScript();
+  }
+
+  std::string& getCompilerFlags(){
+    return currentDevice.getCompilerFlags();
+  }
+
+  void flush(){
+    currentDevice.flush();
+  }
+
+  void finish(){
+    currentDevice.finish();
+  }
+
+  void waitFor(streamTag tag){
+    currentDevice.waitFor(tag);
+  }
+
+  stream createStream(){
+    return currentDevice.createStream();
+  }
+
+  stream getStream(){
+    return currentDevice.getStream();
+  }
+
+  void setStream(stream s){
+    currentDevice.setStream(s);
+  }
+
+  stream wrapStream(void *handle_){
+    return currentDevice.wrapStream(handle_);
+  }
+
+  streamTag tagStream(){
+    return currentDevice.tagStream();
+  }
+
+  //   ---[ Kernel Functions ]----------
+
+  kernel buildKernel(const std::string &str,
+                     const std::string &functionName,
+                     const kernelInfo &info_){
+
+    return currentDevice.buildKernel(str,
+                                     functionName,
+                                     info_);
+  }
+
+  kernel buildKernelFromString(const std::string &content,
+                               const std::string &functionName,
+                               const int language){
+
+    return currentDevice.buildKernelFromString(content,
+                                               functionName,
+                                               language);
+  }
+
+  kernel buildKernelFromString(const std::string &content,
+                               const std::string &functionName,
+                               const kernelInfo &info_,
+                               const int language){
+
+    return currentDevice.buildKernelFromString(content,
+                                               functionName,
+                                               info_,
+                                               language);
+  }
+
+  kernel buildKernelFromSource(const std::string &filename,
+                               const std::string &functionName,
+                               const kernelInfo &info_){
+
+    return currentDevice.buildKernelFromSource(filename,
+                                               functionName,
+                                               info_);
+  }
+
+  kernel buildKernelFromBinary(const std::string &filename,
+                               const std::string &functionName){
+
+    return currentDevice.buildKernelFromBinary(filename,
+                                               functionName);
+  }
+
+  void cacheKernelInLibrary(const std::string &filename,
+                            const std::string &functionName_,
+                            const kernelInfo &info_){
+
+    return currentDevice.cacheKernelInLibrary(filename,
+                                              functionName_,
+                                              info_);
+  }
+
+  kernel loadKernelFromLibrary(const char *cache,
+                               const std::string &functionName_){
+
+    return currentDevice.loadKernelFromLibrary(cache,
+                                               functionName_);
+  }
+
+  kernel buildKernelFromLoopy(const std::string &filename,
+                              const std::string &functionName,
+                              const int loopyOrFloopy){
+
+    return currentDevice.buildKernelFromLoopy(filename,
+                                              functionName,
+                                              loopyOrFloopy);
+  }
+
+  kernel buildKernelFromLoopy(const std::string &filename,
+                              const std::string &functionName,
+                              const kernelInfo &info_,
+                              const int loopyOrFloopy){
+
+    return currentDevice.buildKernelFromLoopy(filename,
+                                              functionName,
+                                              info_,
+                                              loopyOrFloopy);
+  }
+
+  //   ---[ Memory Functions ]----------
+  memory wrapMemory(void *handle_,
+                    const uintptr_t bytes){
+
+    return currentDevice.wrapMemory(handle_, bytes);
+  }
+
+  void* wrapManagedMemory(void *handle_,
+                          const uintptr_t bytes){
+
+    return currentDevice.wrapManagedMemory(handle_, bytes);
+  }
+
+  memory wrapTexture(void *handle_,
+                     const int dim, const occa::dim &dims,
+                     occa::formatType type, const int permissions){
+
+    return currentDevice.wrapTexture(handle_,
+                                     dim, dims,
+                                     type, permissions);
+  }
+
+  void* wrapManagedTexture(void *handle_,
+                           const int dim, const occa::dim &dims,
+                           occa::formatType type, const int permissions){
+
+    return currentDevice.wrapManagedTexture(handle_,
+                                            dim, dims,
+                                            type, permissions);
+  }
+
+  memory malloc(const uintptr_t bytes,
+                void *src){
+
+    return currentDevice.malloc(bytes, src);
+  }
+
+  void* managedAlloc(const uintptr_t bytes,
+                     void *src){
+
+    return currentDevice.managedAlloc(bytes, src);
+  }
+
+  void* uvaAlloc(const uintptr_t bytes,
+                 void *src){
+
+    return currentDevice.uvaAlloc(bytes, src);
+  }
+
+  void* managedUvaAlloc(const uintptr_t bytes,
+                        void *src){
+
+    return currentDevice.managedUvaAlloc(bytes, src);
+  }
+
+  memory textureAlloc(const int dim, const occa::dim &dims,
+                      void *src,
+                      occa::formatType type, const int permissions){
+
+    return currentDevice.textureAlloc(dim, dims,
+                                      src,
+                                      type, permissions);
+  }
+
+  void* managedTextureAlloc(const int dim, const occa::dim &dims,
+                            void *src,
+                            occa::formatType type, const int permissions){
+
+    return currentDevice.managedTextureAlloc(dim, dims,
+                                             src,
+                                             type, permissions);
+  }
+
+  memory mappedAlloc(const uintptr_t bytes,
+                     void *src){
+
+    return currentDevice.mappedAlloc(bytes, src);
+  }
+
+  void* managedMappedAlloc(const uintptr_t bytes,
+                           void *src){
+
+    return currentDevice.managedMappedAlloc(bytes, src);
+  }
+  //   =================================
+
+  //   ---[ Free Functions ]------------
+  void free(device d){
+    d.free();
+  }
+
+  void free(stream s){
+    currentDevice.freeStream(s);
+  }
+
+  void free(kernel k){
+    k.free();
+  }
+
+  void free(memory m){
+    m.free();
+  }
+  //   =================================
+
   void printAvailableDevices(){
     std::stringstream ss;
     ss << "==============o=======================o==========================================\n";

@@ -4,7 +4,9 @@
 #define DBP1 0 // Index Sorting/Updating
 #define DBP2 0 // Expression Simplification
 #define DBP3 0 // Has Stride
-#define DBP4 1 // Check Conflicts
+#define DBP4 1 // Check Complex Inputs, Access Stride Conflicts, Access Conflicts
+#define DBP5 0 // LCD-labeled Statements and GCS Prints, For-loops with LCD
+#define DBP6 1 // Outer-Loop/Inner-Loop Posibilities
 
 namespace occa {
   namespace parserNS {
@@ -71,6 +73,38 @@ namespace occa {
       return (exp && (*exp == e));
     }
 
+    bool atomInfo_t::operator == (atomInfo_t &ai){
+      if(info & viType::isConstant){
+        if( !(ai.info & viType::isConstant) )
+          return false;
+
+        return (constValue == ai.constValue);
+      }
+      else if(info & viType::isAVariable){
+        if( !(ai.info & viType::isAVariable) )
+          return false;
+
+        return (var == ai.var);
+      }
+      else {
+        if(info & (viType::isConstant |
+                   viType::isAVariable)){
+          return false;
+        }
+
+        if((exp == NULL) || (ai.exp == NULL))
+          return false;
+
+        return exp->sameAs(*ai.exp);
+      }
+
+      return true;
+    }
+
+    bool atomInfo_t::operator != (atomInfo_t &ai){
+      return !(*this == ai);
+    }
+
     void atomInfo_t::setDB(infoDB_t *db_){
       db = db_;
     }
@@ -86,7 +120,10 @@ namespace occa {
         constValue = e.calculateValue();
 
         if(constValue.type & noType){
-          exp = e.clone();
+          if(exp == NULL)
+            exp = e.clonePtr();
+          else
+            e.cloneTo(*exp);
         }
         else
           info = viType::isConstant;
@@ -154,7 +191,7 @@ namespace occa {
 
     bool atomInfo_t::expandValue(expNode *&expRoot, varInfo &v){
       if((0 < v.pointerDepth()) ||
-         (v.info & varType::functionType)){
+         (v.info & varType::function)){
 
         return !analyzeInfo::changed;
       }
@@ -200,6 +237,11 @@ namespace occa {
 
           info &= ~(viType::isAVariable |
                     viType::isAnIterator);
+
+          constValue = expRoot->calculateValue();
+
+          if( !(constValue.type & noType) )
+            info |= viType::isConstant;
         }
       }
       else { // Root node -> ()
@@ -328,6 +370,29 @@ namespace occa {
       return *this;
     }
 
+    bool valueInfo_t::operator == (valueInfo_t &vi){
+      if(indices != vi.indices)
+        return false;
+
+      if(indices == 0){
+        return (value == vi.value);
+      }
+      else {
+        for(int i = 0; i < indices; ++i)
+          if((vars[i]    != vi.vars[i]) ||
+             (strides[i] != vi.strides[i])){
+
+            return false;
+          }
+      }
+
+      return true;
+    }
+
+    bool valueInfo_t::operator != (valueInfo_t &vi){
+      return !(*this == vi);
+    }
+
     void valueInfo_t::setDB(infoDB_t *db_){
       db = db_;
 
@@ -376,11 +441,10 @@ namespace occa {
       if(indices == 0)
         return value.constValue;
 
-      ret = applyOperator(vars[0].constValue, "*", strides[0].constValue);
+      ret = (vars[0].constValue * strides[0].constValue);
 
       for(int i = 1; i < indices; ++i)
-        ret = applyOperator(ret, "+",
-                            applyOperator(vars[0].constValue, "*", strides[0].constValue));
+        ret += (vars[0].constValue * strides[0].constValue);
 
       return ret;
     }
@@ -413,8 +477,7 @@ namespace occa {
 
     void valueInfo_t::load(expNode &e){
       info = 0;
-
-      expNode &e2 = *(e.clone());
+      expNode e2 = e.clone();
 
 #if DBP2
       std::cout << "SIMP1: e2 = " << e2 << '\n';
@@ -444,8 +507,6 @@ namespace occa {
         reEvaluateStrides();
 
       // sortIndices();
-
-      // e2.free();
     }
 
     void valueInfo_t::load(varInfo &var){
@@ -462,12 +523,12 @@ namespace occa {
         strides[pos].load("1");
         return;
       }
-      else if(e.info == expType::presetValue){
+      else if(e.info & expType::presetValue){
         vars[pos].load(e.value);
         strides[pos].load("1");
         return;
       }
-      else if((e.info  == expType::LR) &&
+      else if((e.info & expType::LR) &&
          (e.value == "*")){
 
         const bool varIn0 = (e[0].info & expType::varInfo);
@@ -495,7 +556,7 @@ namespace occa {
       vars[pos].info    = viType::isUseless;
       strides[pos].info = viType::isUseless;
 
-      vars[pos].exp = e.clone();
+      vars[pos].exp = e.clonePtr();
       strides[pos].load("1");
     }
 
@@ -675,7 +736,7 @@ namespace occa {
             cNode->info  = expType::LR;
             cNode->value = "+";
 
-            cNode->addNodes(expType::root, 0, 2);
+            cNode->addNodes(2);
 
             saveIndexTo(i, *cNode, 0);
 
@@ -702,7 +763,7 @@ namespace occa {
         leaf.info  = expType::LR;
         leaf.value = "*";
 
-        leaf.addNodes(expType::root, 0, 2);
+        leaf.addNodes(2);
 
         vars[index].saveTo(leaf, 0);
         strides[index].saveTo(leaf, 1);
@@ -837,14 +898,11 @@ namespace occa {
               int b = idx[(pass + 1) % 2];
 
               typeHolder &aMax = bounds[3*a + analyzeInfo::UB];
-              typeHolder  bMin = applyOperator(bounds[3*b + analyzeInfo::LB],
-                                               "+",
-                                               bounds[3*b + analyzeInfo::S]);
+              typeHolder  bMin = (bounds[3*b + analyzeInfo::LB] +
+                                  bounds[3*b + analyzeInfo::S]);
 
               // [<>] Assumes for-loop as [<] operator, not [<=]
-              typeHolder comp = applyOperator(aMax, "<=", bMin);
-
-              fails += (comp.boolValue() == false);
+              fails += (bMin < aMax);
             }
 
             // Strides overlap
@@ -923,9 +981,8 @@ namespace occa {
 
           for(int b = 0; b < 3; ++b){
             if(iterBounds[b]->isConstant()){
-              bounds[3*i + b]    = applyOperator(iterBounds[b]->constValue(),
-                                                 "*",
-                                                 strides[i].constValue);
+              bounds[3*i + b]    = (iterBounds[b]->constValue() *
+                                    strides[i].constValue);
               hasBounds[3*i + b] = true;
             }
           }
@@ -939,7 +996,7 @@ namespace occa {
       eOp.info  = expType::LR;
       eOp.value = op;
 
-      eOp.addNodes(expType::root, 0, 2);
+      eOp.addNodes(2);
 
       saveTo(eOp[1]);
 
@@ -1030,6 +1087,7 @@ namespace occa {
       value.load(varNode);
     }
 
+    // [-] Fix
     void accessInfo_t::load(const int brackets, expNode &bracketNode){
       s = bracketNode.sInfo;
 
@@ -1103,6 +1161,16 @@ namespace occa {
       end(db_),
       stride(db_) {}
 
+    bool iteratorInfo_t::operator == (iteratorInfo_t &iter){
+      return ((start  == iter.start) &&
+              (end    == iter.end)   &&
+              (stride == iter.stride));
+    }
+
+    bool iteratorInfo_t::operator != (iteratorInfo_t &iter){
+      return !(*this == iter);
+    }
+
     void iteratorInfo_t::setDB(infoDB_t *db_){
       db = db_;
 
@@ -1143,68 +1211,88 @@ namespace occa {
       return (writes.size() != 0);
     }
 
-    accessInfo_t& viInfo_t::addWrite(expNode &varNode){
-      writes.push_back( accessInfo_t(db) );
+    void viInfo_t::addWrite(const bool isUpdated,
+                            expNode &varNode){
+      if(db->isLocked())
+        return;
 
-      accessInfo_t &ai = writes.back();
+      if(isUpdated)
+        statementHasLCD(varNode.sInfo);
+
+      accessInfo_t ai(db);
       ai.load(varNode);
+
+      writes.push_back(ai);
+      writeSetsValue.push_back(!isUpdated);
 #if DBP0
       std::cout << "W1. ai = " << ai << '\n';
 #endif
-
-      return ai;
     }
 
-    accessInfo_t& viInfo_t::addWrite(const int brackets, expNode &bracketNode){
-      writes.push_back( accessInfo_t(db) );
+    // [-] Fix
+    void viInfo_t::addWrite(const bool isUpdated,
+                            const int brackets, expNode &bracketNode){
+      if(db->isLocked())
+        return;
 
-      accessInfo_t &ai = writes.back();
+      // No reduction check for array entries
+
+      accessInfo_t ai(db);
       ai.load(brackets, bracketNode);
+
+      writes.push_back(ai);
+      writeSetsValue.push_back(!isUpdated);
 #if DBP0
       std::cout << "W2. ai = " << ai << '\n';
 #endif
 
       checkLastInput(ai, writeValue);
-
-      return ai;
     }
 
-    accessInfo_t& viInfo_t::addRead(expNode &varNode){
-      reads.push_back( accessInfo_t(db) );
+    void viInfo_t::addRead(expNode &varNode){
+      if(db->isLocked())
+        return;
 
-      accessInfo_t &ai = reads.back();
+      accessInfo_t ai(db);
       ai.load(varNode);
+
+      reads.push_back(ai);
 #if DBP0
       std::cout << "R1. ai = " << ai << '\n';
 #endif
-
-      return ai;
     }
 
-    accessInfo_t& viInfo_t::addRead(const int brackets, expNode &bracketNode){
-      reads.push_back( accessInfo_t(db) );
+    // [-] Fix
+    void viInfo_t::addRead(const int brackets, expNode &bracketNode){
+      if(db->isLocked())
+        return;
 
-      accessInfo_t &ai = reads.back();
+      accessInfo_t ai(db);
       ai.load(brackets, bracketNode);
+
+      reads.push_back(ai);
 #if DBP0
       std::cout << "R2. ai = " << ai << '\n';
 #endif
 
       checkLastInput(ai, readValue);
-
-      return ai;
     }
 
     void viInfo_t::updateValue(expNode &opNode, expNode &setNode){
       if(opNode.value == "="){
-        valueInfo.load(setNode);
+        // Fixes recursive issue
+        valueInfo_t vi;
+        vi.setDB(db);
+        vi.load(setNode);
+
 #if DBP0
-        std::cout << "X1. valueInfo = " << valueInfo << '\n';
+        std::cout << "X1. valueInfo = " << vi << '\n';
 #endif
-        valueInfo.expandValues(); // [<>] Recursive x = a[x];
+        vi.expandValues();
 #if DBP0
-        std::cout << "X2. valueInfo = " << valueInfo << '\n';
+        std::cout << "X2. valueInfo = " << vi << '\n';
 #endif
+        valueInfo = vi;
       }
       else {
 #if DBP0
@@ -1217,6 +1305,62 @@ namespace occa {
       }
 
       checkComplexity();
+    }
+
+    void viInfo_t::statementHasLCD(statement *sEnd){
+      if((sEnd == NULL) ||
+         (sEnd->info == smntType::forStatement)){
+
+        return;
+      }
+
+      statement *sStart = lastSetStatement();
+
+      // Variable wasn't set, only label sEnd
+      if(sStart == NULL){
+        db->statementsHaveLCD(sEnd);
+        return;
+      }
+
+      // If the [up] statement is the same, nothing is wrong
+      if(sStart->up == sEnd->up)
+        return;
+
+      statement *gcs = &(sStart->greatestCommonStatement(*sEnd));
+
+#if DBP5
+      if(gcs != NULL)
+        std::cout << "GCS s:: " << gcs->onlyThisToString() << '\n';
+      else
+        std::cout << "GCS s:: NULL\n";
+#endif
+
+      db->statementsHaveLCD(gcs);
+    }
+
+    void viInfo_t::sharedStatementHaveLCD(statement *a, statement *b){
+      if((a == NULL) || (b == NULL))
+        return;
+
+      statement *gcs = &(a->greatestCommonStatement(*b));
+
+      if(gcs != NULL)
+        std::cout << "GCS s:: " << gcs->onlyThisToString() << '\n';
+      else
+        std::cout << "GCS s:: NULL\n";
+
+      db->statementsHaveLCD(gcs);
+    }
+
+    statement* viInfo_t::lastSetStatement(){
+      const int writeCount = (int) writes.size();
+
+      for(int i = (writeCount - 1); 0 <= i; --i){
+        if(writeSetsValue[i])
+          return writes[i].s;
+      }
+
+      return NULL;
     }
 
     void viInfo_t::checkComplexity(){
@@ -1245,13 +1389,17 @@ namespace occa {
         autoConflicts = true;
 
       if(!autoConflicts && ai.hasComplexAccess()){
+#if DBP4
         std::cout << "Complex access: " << ai << '\n';
+#endif
         info |= viType::isComplex;
         autoConflicts = true;
       }
 
       if(!autoConflicts && ai.stridesConflict()){
+#if DBP4
         std::cout << "Access strides overlap: " << ai << '\n';
+#endif
         info |= viType::isComplex;
         autoConflicts = true;
       }
@@ -1271,10 +1419,12 @@ namespace occa {
 
         for(int j = 0; j < inputCount; ++j){
           if(autoConflicts || inputs[j].conflictsWith(ai)){
+#if DBP4
             std::cout << "Access conflicts:\n"
                       << "  A1: " << ai        << '\n'
                       << "  A2: " << inputs[j] << '\n';
-            return;
+#endif
+            sharedStatementHaveLCD(ai.s, inputs[j].s);
           }
         }
       }
@@ -1357,9 +1507,22 @@ namespace occa {
     }
 
     infoDB_t::infoDB_t() :
+      locked(false),
       viInfoMap(this) {
 
       smntInfoStack.push(analyzeInfo::isExecuted);
+    }
+
+    void infoDB_t::lock(){
+      locked = true;
+    }
+
+    void infoDB_t::unlock(){
+      locked = false;
+    }
+
+    bool infoDB_t::isLocked(){
+      return locked;
     }
 
     int& infoDB_t::getSmntInfo(){
@@ -1392,11 +1555,41 @@ namespace occa {
       return ((vi != NULL) && (vi->info & viType::isAnIterator));
     }
 
+    void infoDB_t::statementsHaveLCD(statement *s){
+      if(s == NULL)
+        return;
+
+#if DBP5
+      std::cout << "LCD s:: " << s->onlyThisToString() << '\n';
+#endif
+
+      smntInfoMap[s] |= analyzeInfo::hasLCD;
+
+      statementNode *sn = s->statementStart;
+
+      while(sn){
+        statementsHaveLCD(sn->value);
+        sn = sn->right;
+      }
+    }
+
+    bool infoDB_t::statementHasLCD(statement &s){
+      return (smntInfoMap[&s] & analyzeInfo::hasLCD);
+    }
+
     magician::magician(parserBase &parser_) :
       parser(parser_),
       globalScope( *(parser_.globalScope) ),
       varUpdateMap(parser_.varUpdateMap),
-      varUsedMap(parser_.varUsedMap) {}
+      varUsedMap(parser_.varUsedMap) {
+
+      testedTileSizes.push_back(8);
+      testedTileSizes.push_back(16);
+      testedTileSizes.push_back(32);
+      testedTileSizes.push_back(64);
+      testedTileSizes.push_back(128);
+      testedTileSizes.push_back(256);
+    }
 
     void magician::castMagicOn(parserBase &parser_){
       magician mickey(parser_);
@@ -1410,13 +1603,13 @@ namespace occa {
         statement &s = *(sn->value);
 
         if(parser.statementIsAKernel(s))
-          analyzeFunction(s);
-
-        sn = sn->right;
+          sn = analyzeFunction(s);
+        else
+          sn = sn->right;
       }
     }
 
-    void magician::analyzeFunction(statement &fs){
+    statementNode* magician::analyzeFunction(statement &fs){
       varInfo &func = *(fs.getFunctionVar());
 
       db.enteringStatement(fs);
@@ -1439,43 +1632,50 @@ namespace occa {
       }
 
       db.leavingStatement();
+
+      db.lock();
+      updateLoopBounds(fs);
+      statementNode *ret = generatePossibleKernels(fs);
+      db.unlock();
+
+      return ret;
     }
 
     void magician::analyzeStatement(statement &s){
       db.enteringStatement(s);
 
-      if(s.info & declareStatementType){
+      if(s.info & smntType::declareStatement){
         analyzeDeclareStatement(s.expRoot);
       }
 
-      else if(s.info & updateStatementType){
+      else if(s.info & smntType::updateStatement){
         analyzeUpdateStatement(s.expRoot);
       }
 
-      else if(s.info & forStatementType){
-        if(parser.parsingC)
+      else if(s.info & smntType::forStatement){
+        if(parser.parsingLanguage & parserInfo::parsingC)
           analyzeForStatement(s);
         else
           analyzeFortranForStatement(s);
       }
 
-      else if(s.info & whileStatementType){
+      else if(s.info & smntType::whileStatement){
         analyzeWhileStatement(s);
       }
 
-      else if(s.info & doWhileStatementType){
+      else if(s.info & smntType::doWhileStatement){
         // do-while guarantees at least one run
         analyzeEmbeddedStatements(s);
         analyzeWhileStatement(s);
       }
 
-      else if(s.info & ifStatementType){
+      else if(s.info & smntType::ifStatement){
         statementNode *snStart = s.getStatementNode();
         statementNode *snEnd   = snStart->right;
 
-        while(snEnd                                   &&
-              (snEnd->value->info &  ifStatementType) &&
-              (snEnd->value->info != ifStatementType)){
+        while(snEnd                                         &&
+              (snEnd->value->info &  smntType::ifStatement) &&
+              (snEnd->value->info != smntType::ifStatement)){
 
           snEnd = snEnd->right;
         }
@@ -1483,17 +1683,17 @@ namespace occa {
         analyzeIfStatement(snStart, snEnd);
       }
 
-      else if(s.info & switchStatementType){
+      else if(s.info & smntType::switchStatement){
         analyzeSwitchStatement(s);
       }
 
-      else if(s.info & (typedefStatementType   |
-                        blankStatementType     |
-                        blockStatementType     |
-                        structStatementType    |
-                        functionStatementType  |
-                        functionDefinitionType |
-                        functionPrototypeType)){
+      else if(s.info & (smntType::typedefStatement   |
+                        smntType::blankStatement     |
+                        smntType::blockStatement     |
+                        smntType::structStatement    |
+                        smntType::functionStatement  |
+                        smntType::functionDefinition |
+                        smntType::functionPrototype)){
         // Ignore this statement
       }
 
@@ -1590,17 +1790,18 @@ namespace occa {
       for(int i = 0; i < updateNode.leafCount; ++i){
         expNode &leaf = updateNode[i];
 
-        if(!(leaf.info & expType::LR)){
+        if(!(leaf.info & (expType::L_R |
+                          expType::LR))){
           wrongFormat = true;
           break;
         }
-        else if(leaf.info == expType::LR){
+        else if(leaf.info & expType::LR){
           if((leaf.value != "+=") && (leaf.value != "-=")){
             wrongFormat = true;
             break;
           }
         }
-        else{ // (leaf.info & expType::LR)
+        else{ // (leaf.info & expType::L_R)
           if((leaf.value != "++") && (leaf.value != "--")){
             wrongFormat = true;
             break;
@@ -1622,7 +1823,7 @@ namespace occa {
       for(int i = 0; i < updateNode.leafCount; ++i){
         expNode &leaf = updateNode[i];
 
-        if(leaf.info == expType::LR){
+        if(leaf.info & expType::LR){
           if((leaf.value == "+=") ||
              (leaf.value == "-=")){
 
@@ -1638,7 +1839,7 @@ namespace occa {
             }
           }
         }
-        else if(leaf.info & expType::LR){
+        else if(leaf.info & expType::L_R){
           if((leaf.value == "++") ||
              (leaf.value == "--")){
 
@@ -1750,7 +1951,7 @@ namespace occa {
       typeHolder th = s.expRoot[0].calculateValue();
 
       if( !(th.type & noType) &&
-          (th.boolValue() == false) ){
+          (th == false) ){
 
         db.getSmntInfo() &= ~analyzeInfo::isExecuted;
         return;
@@ -1800,15 +2001,18 @@ namespace occa {
       statementNode *sn = snStart;
 
       while(sn != snEnd){
-        statement &s  = *(sn->value);
-        typeHolder th = s.expRoot[0].calculateValue();
+        statement &s = *(sn->value);
 
-        if( !(th.type & noType) &&
-            (th.boolValue() == true) ){
+        if(s.expRoot.leafCount != 0){
+          typeHolder th = s.expRoot[0].calculateValue();
 
-          analyzeEmbeddedStatements(s);
+          if( !(th.type & noType) &&
+              (th == true) ){
 
-          return;
+            analyzeEmbeddedStatements(s);
+
+            return;
+          }
         }
 
         sn = sn->right;
@@ -1839,7 +2043,7 @@ namespace occa {
       while(sn){
         statement &s2 = *(sn->value);
 
-        if(s2.info & caseStatementType){
+        if(s2.info & smntType::caseStatement){
           if(s2.expRoot.leafCount){ // Not default
             if(th == s2.expRoot[0].calculateValue()){
               calculateSN = sn;
@@ -1873,31 +2077,430 @@ namespace occa {
       return false;
     }
 
-    bool magician::variableIsUpdated(expNode &varNode){
-      if(!(varNode.info & (expType::varInfo |
-                           expType::variable))){
+    statementNode* magician::generatePossibleKernels(statement &kernel){
+#if DBP5
+      printIfLoopsHaveLCD(kernel);
+#endif
 
-        return false;
+      statementVector_t loopsVec;
+      intVector_t depthVec;
+      intVector_t outerLoopVec;
+      intVecVector_t innerLoopVec;
+      int depth = 0;
+
+      // Initial vector
+      innerLoopVec.push_back(intVector_t());
+
+      storeLoopsAndDepths(kernel, loopsVec, depthVec, depth);
+
+      const int loopCount = (int) loopsVec.size();
+
+      for(int o = 0; o < loopCount; ++o){
+        const int oDepth = depthVec[o];
+
+        // The deepest for-loop branch has all of
+        //   the possible bounds
+        int innerMostLoop  = 0;
+        int innerMostDepth = 0;
+
+        for(int i = (o + 1); i < loopCount; ++i){
+          int iDepth = depthVec[i];
+
+          if(iDepth <= oDepth)
+            break;
+
+          if(innerMostDepth < iDepth){
+            innerMostDepth = iDepth;
+            innerMostLoop  = i;
+          }
+        }
+
+        // Always setup tiled kernels
+        const int tileKernels = (int) testedTileSizes.size();
+
+        for(int tk = 0; tk < tileKernels; ++tk){
+          outerLoopVec.push_back(o);
+          innerLoopVec.push_back(intVector_t());
+        }
+
+        if(innerMostLoop == 0)
+          continue;
+
+        intVector_t orderVec;
+
+        // Get the correct order
+        for(int i = innerMostLoop; o < i; --i){
+          int iDepth = depthVec[i];
+
+          // Going down the loop path
+          if(innerMostDepth < iDepth)
+            continue;
+          else
+            innerMostDepth = (iDepth - 1);
+
+          orderVec.push_back(i);
+        }
+
+        const int innerLoopCount = orderVec.size();
+
+        if(innerLoopCount == 0)
+          continue;
+
+        for(int i_ = (innerLoopCount - 1); 0 <= i_; --i_){
+          int i = orderVec[i_];
+
+          storeInnerLoopCandidates(loopsVec,
+                                   depthVec,
+                                   o, i,
+                                   innerLoopVec.back());
+
+          if(innerLoopVec.back().size()){
+            outerLoopVec.push_back(o);
+            innerLoopVec.push_back(intVector_t());
+          }
+        }
       }
 
-      expNode *up = varNode.up;
+      return generateKernelsAndLabelLoops(loopsVec,
+                                          depthVec,
+                                          outerLoopVec,
+                                          innerLoopVec);
+    }
 
-      if((up != NULL) &&
-         (up->info & expType::variable)){
+    void magician::storeInnerLoopCandidates(statementVector_t &loopsVec,
+                                            intVector_t &depthVec,
+                                            int outerLoopIdx,
+                                            int innerLoopIdx,
+                                            intVector_t &innerLoopVec){
 
-        up = up->up;
+      iteratorInfo_t iteratorInfo = iteratorLoopBounds(*(loopsVec[innerLoopIdx]));
+
+      bool foundLoops = nestedLoopHasSameBounds(loopsVec,
+                                                depthVec,
+                                                outerLoopIdx,
+                                                iteratorInfo,
+                                                innerLoopVec);
+
+      if(!foundLoops)
+        innerLoopVec.clear();
+    }
+
+    void magician::storeNextDepthLoops(statementVector_t &loopsVec,
+                                       intVector_t &depthVec,
+                                       int loopIdx,
+                                       intVector_t &ndLoopsVec){
+
+      const int loopCount = (int) loopsVec.size();
+      const int depth    = depthVec[loopIdx];
+
+      for(int i = (loopIdx + 1); i < loopCount; ++i){
+        int iDepth = depthVec[i];
+
+        if(iDepth == depth)
+          break;
+
+        if(iDepth == (depth + 1))
+          ndLoopsVec.push_back(i);
+      }
+    }
+
+    bool magician::nestedLoopHasSameBounds(statementVector_t &loopsVec,
+                                           intVector_t &depthVec,
+                                           int ndLoopIdx,
+                                           iteratorInfo_t &iteratorInfo,
+                                           intVector_t &innerLoopVec,
+                                           const bool isFirstCall){
+
+      statement &ndS = *(loopsVec[ndLoopIdx]);
+
+      iteratorInfo_t ndIteratorInfo = iteratorLoopBounds(ndS);
+
+      // First call doesn't return in the case that
+      //   the inner-loop has the same bounds as the
+      //   outer-loop
+      if(!isFirstCall){
+        if(ndIteratorInfo == iteratorInfo){
+          innerLoopVec.push_back(ndLoopIdx);
+          return true;
+        }
       }
 
-      if(up == NULL)
+      intVector_t ndLoopsVec;
+
+      storeNextDepthLoops(loopsVec,
+                          depthVec,
+                          ndLoopIdx,
+                          ndLoopsVec);
+
+      const int ndLoopCount = (int) ndLoopsVec.size();
+      int b;
+
+      for(b = 0; b < ndLoopCount; ++b){
+        if(!nestedLoopHasSameBounds(loopsVec,
+                                    depthVec,
+                                    ndLoopsVec[b],
+                                    iteratorInfo,
+                                    innerLoopVec,
+                                    false)){
+#if DBP6
+          std::cout << "loops have different bounds\n";
+#endif
+          break;
+        }
+      }
+
+      if(b != ndLoopCount)
         return false;
 
-      return ((up->info & expType::operator_) &&
-              isAnUpdateOperator(up->value));
+      return true;
+    }
+
+    statementNode* magician::generateKernelsAndLabelLoops(statementVector_t &loopsVec,
+                                                          intVector_t &depthVec,
+                                                          intVector_t &outerLoopVec,
+                                                          intVecVector_t &innerLoopVec){
+      const int kernelCount = outerLoopVec.size();
+      statementVector_t newKernelVec;
+
+      statement &kernel  = *(parserBase::getStatementKernel(*(loopsVec[0])));
+      varInfo &kernelVar = *(kernel.getFunctionVar());
+      statementNode *sn  = kernel.getStatementNode();
+
+      if(kernelCount == 0)
+        return sn->right;
+
+#if DBP6
+      std::cout << "Kernel: " << kernel.onlyThisToString() << '\n';
+#endif
+
+      statement &globalScope = *(kernel.getGlobalScope());
+
+      std::string kernelName = kernel.getFunctionName();
+      globalScope.createUniqueSequentialVariables(kernelName, kernelCount);
+
+      std::stringstream ss;
+      intVector_t path;
+
+      int tileTest = 0;
+
+      for(int k = 0; k < kernelCount; ++k){
+        ss.str("");
+        ss << k;
+        kernel.setFunctionName(kernelName + ss.str());
+
+        sn = sn->push(kernel.clone());
+        statement &newKernel = *(sn->value);
+        newKernelVec.push_back(&newKernel);
+
+        kernel.setFunctionName(kernelName);
+
+        const int o   = outerLoopVec[k];
+        statement &os = *(loopsVec[o]);
+
+        os.setIndexPath(path, &kernel);
+        statement &newOs = newKernel[path];
+
+        if(newOs.getForStatementCount() == 3)
+          newOs.addForStatement();
+
+        expNode &newOsE = *(newOs.getForStatement(3));
+        newOsE.info  = expType::unknown;
+        newOsE.value = "outer0";
+
+        intVector_t &innerLoopsVec = innerLoopVec[k];
+        const int innerLoopCount  = innerLoopsVec.size();
+
+        if(innerLoopCount != 0){
+          tileTest = 0;
+        }
+        else {
+          newOsE.info  = expType::root;
+          newOsE.value = "";
+
+          newOsE.addNodes(expType::unknown, 0, 2);
+          newOsE[0].value = "tile";
+
+          newOsE[1].info  = expType::C;
+          newOsE[1].value = "(";
+
+          ss.str("");
+          ss << testedTileSizes[tileTest++];
+
+          newOsE[1].addNode(expType::printValue, ss.str());
+          continue;
+        }
+
+#if DBP6
+        std::cout << "Outer Loop   : " << newOs.onlyThisToString() << '\n';
+        std::cout << "Inner Loop(s):\n";
+#endif
+
+        for(int i_ = 0; i_ < innerLoopCount; ++i_){
+          const int i   = innerLoopsVec[i_];
+          statement &is = *(loopsVec[i]);
+
+          is.setIndexPath(path, &kernel);
+          statement &newIs = newKernel[path];
+
+          if(newIs.getForStatementCount() == 3)
+            newIs.addForStatement();
+
+          expNode &newIsE = *(newIs.getForStatement(3));
+          newIsE.info  = expType::unknown;
+          newIsE.value = "inner0";
+#if DBP6
+          std::cout << "  " << i << ": " << newIs.onlyThisToString() << '\n';
+#endif
+        }
+#if DBP6
+        std::cout << '\n';
+#endif
+      }
+
+      statementNode *retSn = sn->right;
+
+      sn = kernel.statementStart;
+
+      while(sn)
+        popAndGoRight(sn);
+
+      kernel.statementStart = NULL;
+      kernel.statementEnd   = NULL;
+
+      std::string syncArgsStr, kernelArgs;
+
+      for(int i = 0; i < kernelVar.argumentCount; ++i){
+        varInfo &argVar = kernelVar.getArgument(i);
+
+        if(0 < argVar.pointerCount){
+          ss.str("");
+          ss << "occa::setupMagicFor(" << argVar.name << ");";
+          kernel.addStatementFromSource(ss.str());
+
+          ss.str("");
+          ss << "occa::syncToDevice(" << argVar.name << ");";
+          syncArgsStr += ss.str();
+        }
+      }
+
+      ss.str("");
+
+      ss << '(';
+
+      for(int i = 0; i < kernelVar.argumentCount; ++i){
+        if(i) ss << ',';
+        ss << kernelVar.getArgument(i).name;
+      }
+
+      ss << ");";
+
+      kernelArgs = ss.str();
+
+      for(int k = 0; k < kernelCount; ++k){
+        ss.str("");
+        ss << k;
+
+        std::string kStr = ss.str();
+
+        kernel.addStatementFromSource(kernelName + kStr + kernelArgs);
+
+        if(k < (kernelCount - 1))
+          kernel.addStatementsFromSource(syncArgsStr);
+      }
+
+      return retSn;
+    }
+
+    void magician::storeLoopsAndDepths(statement &s,
+                                       statementVector_t &loopsVec,
+                                       intVector_t &depthVec, int depth){
+
+      statementNode *sn = s.statementStart;
+
+      while(sn){
+        statement &s2 = *(sn->value);
+
+        if(s2.info == smntType::forStatement){
+          loopsVec.push_back(&s2);
+          depthVec.push_back(depth);
+          storeLoopsAndDepths(s2, loopsVec, depthVec, depth + 1);
+        }
+        else
+          storeLoopsAndDepths(s2, loopsVec, depthVec, depth);
+
+        sn = sn->right;
+      }
+    }
+
+    iteratorInfo_t magician::iteratorLoopBounds(statement &s){
+      const bool dbWasLocked = db.isLocked();
+      db.lock();
+
+      iteratorInfo_t iteratorInfo;
+
+      expNode &flatRoot = *(s.expRoot[2].makeFlatHandle());
+
+      for(int i = 0; i < flatRoot.leafCount; ++i){
+        expNode &leaf = flatRoot[i];
+
+        if(leaf.info & expType::varInfo){
+          varInfo &var = leaf.getVarInfo();
+
+          if(db.varIsAnIterator(var)){
+            viInfo_t &vi = db[var];
+
+            iteratorInfo = vi.iteratorInfo;
+            break;
+          }
+        }
+      }
+
+      expNode::freeFlatHandle(flatRoot);
+
+      if(!dbWasLocked)
+        db.unlock();
+
+      return iteratorInfo;
+    }
+
+    void magician::updateLoopBounds(statement &s){
+      statementNode *sn = s.statementStart;
+
+      while(sn){
+        statement &s2 = *(sn->value);
+
+        if(s2.info == smntType::forStatement){
+          if(parser.parsingLanguage & parserInfo::parsingC)
+            analyzeForStatement(s2);
+          else
+            analyzeFortranForStatement(s2);
+
+          updateLoopBounds(s2);
+        }
+        else
+          updateLoopBounds(s2);
+
+        sn = sn->right;
+      }
+    }
+
+    void magician::printIfLoopsHaveLCD(statement &s){
+      if(s.info == smntType::forStatement)
+        std::cout << "LCD(" << db.statementHasLCD(s) << "): " << s.onlyThisToString() << '\n';
+
+      statementNode *sn = s.statementStart;
+
+      while(sn){
+        printIfLoopsHaveLCD(*(sn->value));
+        sn = sn->right;
+      }
     }
 
     void magician::addVariableWrite(expNode &varNode, expNode &opNode, expNode &setNode){
-      const bool isUpdated = variableIsUpdated(varNode);
+      const bool isUpdated = (isAnUpdateOperator(opNode.value) &&
+                              (opNode.value != "="));
 
+      // [-] Fix
       if(varNode.info & expType::variable){
         const int brackets = varNode.getVariableBracketCount();
 
@@ -1913,26 +2516,30 @@ namespace occa {
 
       viInfo_t &viInfo = db[ varNode.getVarInfo() ];
 
-      viInfo.addWrite(varNode);
+      viInfo.addWrite(isUpdated, varNode);
       viInfo.updateValue(opNode, setNode);
     }
 
+    // [-] Fix
     void magician::addVariableWrite(expNode &varNode,
                                     expNode &opNode,
                                     expNode &setNode,
                                     const int brackets,
                                     expNode &bracketNode){
-      const bool isUpdated = variableIsUpdated(varNode);
+
+      const bool isUpdated = (isAnUpdateOperator(opNode.value) &&
+                              (opNode.value != "="));
 
       if(isUpdated)
         addVariableRead(varNode, brackets, bracketNode);
 
       viInfo_t &viInfo = db[ varNode[0].getVarInfo() ];
 
-      viInfo.addWrite(brackets, bracketNode);
+      viInfo.addWrite(isUpdated, brackets, bracketNode);
     }
 
     void magician::addVariableRead(expNode &varNode){
+      // [-] Fix
       if(varNode.info & expType::variable){
         const int brackets = varNode.getVariableBracketCount();
 
@@ -1947,6 +2554,7 @@ namespace occa {
       viInfo.addRead(varNode);
     }
 
+    // [-] Fix
     void magician::addVariableRead(expNode &varNode,
                                    const int brackets,
                                    expNode &bracketNode){
@@ -1957,6 +2565,7 @@ namespace occa {
     }
 
     void magician::addExpressionRead(expNode &e){
+      // [-] Fix
       if(e.info & expType::variable){
         const int brackets = e.getVariableBracketCount();
 
@@ -2016,7 +2625,7 @@ namespace occa {
       const std::string &eValue = e.value;
 
       if((eValue.size() != 1) ||
-         (e.info != expType::LR)){
+         !(e.info & expType::LR)){
 
         return false;
       }
@@ -2032,10 +2641,31 @@ namespace occa {
     }
 
     void magician::simplify(infoDB_t &db, expNode &e){
+      removePermutations(db, e);
       turnMinusIntoNegatives(db, e);
       expandExp(db, e);
       mergeConstants(db, e);
       // mergeVariables(db, e);
+    }
+
+    void magician::removePermutations(infoDB_t &db, expNode &e){
+      expNode &flatRoot = *(e.makeFlatHandle());
+
+      for(int i = 0; i < flatRoot.leafCount; ++i){
+        expNode &leaf = flatRoot[i];
+
+        // [-] Fix
+        if(leaf.info & expType::variable){
+          varInfo &var = leaf[0].getVarInfo();
+
+          if(var.hasAttribute("permutation")){
+            leaf.info = expType::root;
+            expNode::swap(leaf, leaf[1][0][0]);
+          }
+        }
+      }
+
+      expNode::freeFlatHandle(flatRoot);
     }
 
     void magician::turnMinusIntoNegatives(infoDB_t &db, expNode &e){
@@ -2044,7 +2674,7 @@ namespace occa {
       for(int i = 0; i < flatRoot.leafCount; ++i){
         expNode &leaf = flatRoot[i];
 
-        if((leaf.info  == expType::LR) &&
+        if(!(leaf.info & expType::LR) &&
            (leaf.value == "-")){
 
           leaf.value = "+";
@@ -2098,7 +2728,7 @@ namespace occa {
           // leaf.free(); // [<>]
 
           if(hasConst) {
-            constValue = applyOperator(constValue, "+", th);
+            constValue += th;
           }
           else {
             constValue = th;
@@ -2107,12 +2737,12 @@ namespace occa {
         }
         else {
           applyConstantsIn(db, leaf);
-          sums2.push_back(leaf.clone());
+          sums2.push_back(e.clonePtr());
         }
       }
 
       if(hasConst){
-        expNode &leaf = *(new expNode(e));
+        expNode &leaf = *(new expNode( e.makeFloatingLeaf() ));
 
         leaf.info  = expType::presetValue;
         leaf.value = (std::string) constValue;
@@ -2149,7 +2779,7 @@ namespace occa {
           leaf.info  = expType::LR;
           leaf.value = "+";
 
-          leaf.addNodes(expType::root, 0, 2);
+          leaf.addNodes(2);
         }
 
         leaf.leaves[lastI] = sums2[i];
@@ -2160,7 +2790,7 @@ namespace occa {
     }
 
     void magician::applyConstantsIn(infoDB_t &db, expNode &e){
-      if(e.info != expType::LR)
+      if(!(e.info & expType::LR))
         return;
 
       expVec_t v, v2, constValues;
@@ -2173,13 +2803,13 @@ namespace occa {
         for(int i = 0; i < vCount; ++i){
           expNode &leaf = *(v[i]);
 
-          if((leaf.info  == expType::LR) &&
+          if((leaf.info  &  expType::LR) &&
              (leaf.value == "*")){
 
             int jConsts = 0;
 
             for(int j = 0; j < 2; ++j){
-              if((leaf[j].info  == expType::LR) &&
+              if((leaf[j].info  & expType::LR) &&
                  (leaf[j].value == "*")){
 
                 v2.push_back( &(leaf[j]) );
@@ -2210,22 +2840,19 @@ namespace occa {
         expNode &leaf = *(constValues[i]);
 
         // The other leaf is taking care of this
-        if(leaf.up == NULL)
+        if((leaf.up == NULL) || (leaf.up == &leaf)) // [<>] ???
           continue;
 
         expNode &leafUp = *(leaf.up);
         expNode &leaf2  = leafUp[!leaf.whichLeafAmI()];
 
-        constValue = applyOperator(constValue, "*", leaf.value);
+        constValue *= leaf.value;
 
         expNode::swap(leafUp, leaf2);
 
         leaf2.freeThis();
         delete &leaf2;
       }
-
-      if(1 < constCount)
-        constValues[0]->value = (std::string) constValue;
 
       if(constValue == typeHolder((int) 0)){
         e.free();
@@ -2233,15 +2860,19 @@ namespace occa {
         e.info  = expType::presetValue;
         e.value = (std::string) constValue;
       }
-      else if(constValue == typeHolder((int) 1)){
-        expNode &leaf   = *(constValues[0]);
-        expNode &leafUp = *(leaf.up);
-        expNode &leaf2  = leafUp[!leaf.whichLeafAmI()];
+      else if(1 < constCount){
+        constValues[0]->value = (std::string) constValue;
 
-        expNode::swap(leafUp, leaf2);
+        if(constValue == typeHolder((int) 1)){
+          expNode &leaf   = *(constValues[0]);
+          expNode &leafUp = *(leaf.up);
+          expNode &leaf2  = leafUp[!leaf.whichLeafAmI()];
 
-        leaf2.freeThis();
-        delete &leaf2;
+          expNode::swap(leafUp, leaf2);
+
+          leaf2.freeThis();
+          delete &leaf2;
+        }
       }
     }
 
@@ -2323,12 +2954,12 @@ namespace occa {
       for(int i = 0; i < flatRoot.leafCount; ++i){
         expNode &leaf = flatRoot[i];
 
-        if((leaf.info  == expType::LR) &&
+        if((leaf.info  &  expType::LR) &&
            (leaf.value == "*")){
 
           expandMult(db, leaf);
         }
-        else if((leaf.info  == expType::C) &&
+        else if((leaf.info  & expType::C) &&
                 (leaf.value == "(")){
 
           removeParentheses(db, leaf);
@@ -2370,8 +3001,8 @@ namespace occa {
 
           leaf.reserve(2);
 
-          leaf.setLeaf(*(a[i]->clone()), 0);
-          leaf.setLeaf(*(b[j]->clone()), 1);
+          leaf.setLeaf(*(a[i]->clonePtr()), 0);
+          leaf.setLeaf(*(b[j]->clonePtr()), 1);
         }
       }
 
@@ -2390,7 +3021,7 @@ namespace occa {
           e2.info  = nextLeaf.info;
           e2.value = nextLeaf.value;
 
-          e2.addNodes(expType::root, 0, 2);
+          e2.addNodes(2);
         }
 
         e2[lastI].info  = expType::LR;
@@ -2575,7 +3206,7 @@ namespace occa {
       expNode *cNode = &e;
 
       if(vCount == 1){
-        expNode::swap(e, *(v[0]->clone()));
+        expNode::swap(e, *(v[0]->clonePtr()));
         return;
       }
 

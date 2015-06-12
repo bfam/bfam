@@ -373,6 +373,11 @@ namespace occa {
     return buildFromBinary(cache, functionName);
   }
 
+  template <>
+  uintptr_t kernel_t<COI>::maximumInnerDimSize(){
+    return ((uintptr_t) -1);
+  }
+
   // [-] Missing
   template <>
   int kernel_t<COI>::preferredDimSize(){
@@ -919,7 +924,7 @@ namespace occa {
   }
 
   template <>
-  stream device_t<COI>::createStream(){
+  stream_t device_t<COI>::createStream(){
     OCCA_EXTRACT_DATA(COI, Device);
 
     coiStream *retStream = new coiStream;
@@ -933,7 +938,7 @@ namespace occa {
   }
 
   template <>
-  void device_t<COI>::freeStream(stream s){
+  void device_t<COI>::freeStream(stream_t s){
     if(s == NULL)
       return;
 
@@ -946,7 +951,7 @@ namespace occa {
   }
 
   template <>
-  stream device_t<COI>::wrapStream(void *handle_){
+  stream_t device_t<COI>::wrapStream(void *handle_){
     coiStream *retStream = new coiStream;
     retStream->handle = *((COIPIPELINE*) handle_);
 

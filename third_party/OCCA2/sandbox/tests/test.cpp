@@ -7,9 +7,9 @@
 #define BOXIFY(x)                               \
   {                                             \
     if ((x) >= 0.5)                             \
-      x -= 1.0;                                 \
+      x -= 1.;                                 \
     else if ((x) < -0.5)                        \
-      x += 1.0;                                 \
+      x += 1.;                                 \
   }
 
 typedef int blah234;
@@ -17,6 +17,8 @@ typedef int blah234;
 // 0.9899*sqrt(8.0*log(10.0))/(PI*freq);
 const tFloat hat_t0 = 1.3523661426929/freq; /* Testing 3 */
 const tFloat &hat_t1 = hat_t0;
+
+occaFunction tFloat hatWavelet(tFloat t);
 
 occaFunction tFloat dummyFunction(shared tFloat t){
   return 0;
@@ -27,10 +29,24 @@ occaFunction tFloat hatWavelet(tFloat t){
   const tFloat pift  = PI*freq*(t - hat_t0);
   const tFloat pift2 = pift*pift;
 
-  return (1.0 - 2.0*pift2)*exp(-pift2);
+  return (1. - 2.0*pift2)*exp(-pift2);
 }
 
 const int2 * const a34;
+
+float numberSamples[] = {1, +1, -1,
+                         1., +1., -1.,
+                         1.0, -1.0, +1.0,
+                         1.0f, -1.0f, +1.0f,
+                         1.01F, -1.01F, +1.01F,
+                         1l, -1l, +1l,
+                         1.01L, -1.01L, +1.01L,
+                         0b001, -0b010, +0b011,
+                         0B100, -0B101, +0B110,
+                         00001, -00010, +00011,
+                         00100, -00101, +00110,
+                         0x001, -0x010, +0x011,
+                         0X100, -0X101, +0X110}
 
 #if 1
 occaKernel void fd2d(tFloat *u1,
@@ -53,22 +69,11 @@ occaKernel void fd2d(tFloat *u1,
 
   BOXIFY(s[i].x);
 
-  /*
-    for(int n = 0; n < bDimX; ++n; tile(lDimX)){
-    }
+  for(int n = 0; n < bDimX; ++n; tile(lDimX)){
+  }
 
-    for(int2 n = 0; n < bDimX; ++n; tile(lDimX, lDimY)){
-    }
-
-    for(int2 n(0,0); n < int2(bDimX, bDimY); n += int2(1,1); tile(lDimX,lDimY)){
-    }
-
-    for(int3 n(0,0,0);
-    n < int3(bDimX, bDimY, bDimZ);
-    n += int3(lDimX, lDimY, lDimZ);
-    tile(lDimX,lDimY,lDimZ)){
-    }
-  */
+  // for(int2 i = {0,1}; i.x < bDimX, i.y < bDimY; i.y += 2, ++i.x; tile(lDimX,lDimY)){
+  // }
 
   for(int by = 0; by < bDimY; by += 16; outer0){
     for(int bx = 0; bx < bDimX; bx += 16; outer1){
@@ -169,7 +174,7 @@ occaKernel void fd2d(tFloat *u1,
           const tFloat u_n1 = (-tStencil[1]*r_u2 - tStencil[2]*r_u3 + lap)/tStencil[0];
 
           if((tx == mX) && (ty == mY))
-            u1[id] = u_n1 + hatWavelet(currentTime)/tStencil[0];
+            u1[id] = u_n1 + hatWavelet(currentTime, 1, 2)/tStencil[0];
           else
             u1[id] = u_n1;
         }
