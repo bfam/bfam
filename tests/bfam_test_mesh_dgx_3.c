@@ -108,6 +108,79 @@ static int check_pm(bfam_subdomain_dgx_t *sub, const char *name,
   return failures;
 }
 
+static int check_metrics(bfam_subdomain_dgx_t *sub)
+{
+  int failures = 0;
+  bfam_real_t *Jrx =
+      bfam_dictionary_get_value_ptr(&sub->base.fields, "_grid_Jr0x0");
+  bfam_real_t *Jry =
+      bfam_dictionary_get_value_ptr(&sub->base.fields, "_grid_Jr0x1");
+  bfam_real_t *Jrz =
+      bfam_dictionary_get_value_ptr(&sub->base.fields, "_grid_Jr0x2");
+
+  bfam_real_t *Jsx =
+      bfam_dictionary_get_value_ptr(&sub->base.fields, "_grid_Jr1x0");
+  bfam_real_t *Jsy =
+      bfam_dictionary_get_value_ptr(&sub->base.fields, "_grid_Jr1x1");
+  bfam_real_t *Jsz =
+      bfam_dictionary_get_value_ptr(&sub->base.fields, "_grid_Jr1x2");
+
+  bfam_real_t *Jtx =
+      bfam_dictionary_get_value_ptr(&sub->base.fields, "_grid_Jr2x0");
+  bfam_real_t *Jty =
+      bfam_dictionary_get_value_ptr(&sub->base.fields, "_grid_Jr2x1");
+  bfam_real_t *Jtz =
+      bfam_dictionary_get_value_ptr(&sub->base.fields, "_grid_Jr2x2");
+
+  for (bfam_locidx_t k = 0; k < sub->K; k++)
+  {
+    int offset = k * sub->Np;
+
+    bfam_real_t tmp1[sub->Np];
+    bfam_real_t tmp2[sub->Np];
+    bfam_real_t tmp3[sub->Np];
+    BFAM_KRON_IXIXA(sub->N + 1, sub->Dr, Jrx + offset, tmp1);
+    BFAM_KRON_IXAXI(sub->N + 1, sub->Dr, Jsx + offset, tmp2);
+    BFAM_KRON_AXIXI(sub->N + 1, sub->Dr, Jtx + offset, tmp3);
+    for (bfam_locidx_t n = 0; n < sub->Np; n++)
+    {
+      bfam_real_t tmp = tmp1[n] + tmp2[n] + tmp3[n];
+      int fail = !REAL_APPROX_EQ(tmp, 0, 10);
+      if (fail)
+        BFAM_WARNING("Fail metrics x: %e", (double)tmp);
+      failures += fail;
+    }
+
+    BFAM_KRON_IXIXA(sub->N + 1, sub->Dr, Jry + offset, tmp1);
+    BFAM_KRON_IXAXI(sub->N + 1, sub->Dr, Jsy + offset, tmp2);
+    BFAM_KRON_AXIXI(sub->N + 1, sub->Dr, Jty + offset, tmp3);
+    for (bfam_locidx_t n = 0; n < sub->Np; n++)
+    {
+      bfam_real_t tmp = tmp1[n] + tmp2[n] + tmp3[n];
+      int fail = !REAL_APPROX_EQ(tmp, 0, 10);
+      if (fail)
+        BFAM_WARNING("Fail metrics y: %e", (double)tmp);
+      failures += fail;
+    }
+
+    BFAM_KRON_IXIXA(sub->N + 1, sub->Dr, Jrz + offset, tmp1);
+    BFAM_KRON_IXAXI(sub->N + 1, sub->Dr, Jsz + offset, tmp2);
+    BFAM_KRON_AXIXI(sub->N + 1, sub->Dr, Jtz + offset, tmp3);
+    for (bfam_locidx_t n = 0; n < sub->Np; n++)
+    {
+      bfam_real_t tmp = tmp1[n] + tmp2[n] + tmp3[n];
+      int fail = !REAL_APPROX_EQ(tmp, 0, 10);
+      if (fail)
+        BFAM_WARNING("Fail metrics z: %e", (double)tmp);
+      failures += fail;
+    }
+  }
+
+  if (failures > 0)
+    BFAM_WARNING("FAIL! METRICS");
+  return failures;
+}
+
 static int check_vmaps(bfam_subdomain_dgx_t *sub, const char *name)
 {
   int failures = 0;
@@ -489,6 +562,7 @@ static int build_mesh(MPI_Comm mpicomm)
 
     for (bfam_locidx_t s = 0; s < numSubdomains; ++s)
     {
+      failures += check_metrics((bfam_subdomain_dgx_t *)subdomains[s]);
       failures += check_vmaps((bfam_subdomain_dgx_t *)subdomains[s], "p1");
       failures += check_vmaps((bfam_subdomain_dgx_t *)subdomains[s], "p2");
       failures += check_vmaps((bfam_subdomain_dgx_t *)subdomains[s], "p3");
