@@ -1945,6 +1945,18 @@ static void bfam_subdomain_dgx_geo(
       }
       else if (DIM == 3)
       {
+        bfam_long_real_t u1[Np];
+        bfam_long_real_t u2[Np];
+        bfam_long_real_t u3[Np];
+
+        bfam_long_real_t v1[Np];
+        bfam_long_real_t v2[Np];
+        bfam_long_real_t v3[Np];
+
+        bfam_long_real_t w1[Np];
+        bfam_long_real_t w2[Np];
+        bfam_long_real_t w3[Np];
+
         for (int n = 0; n < Np; ++n)
         {
           bfam_locidx_t idx = n + vsk;
@@ -1963,6 +1975,26 @@ static void bfam_subdomain_dgx_geo(
           J[idx] = xr * (ys * zt - yt * zs) - xs * (yr * zt - yt * zr) +
                    xt * (yr * zs - ys * zr);
 
+          const bfam_long_real_t x = xi[0][idx];
+          const bfam_long_real_t y = xi[1][idx];
+          const bfam_long_real_t z = xi[2][idx];
+
+          /* u = z \nabla y - y \nabla z */
+          u1[n] = z * yr - y * zr;
+          u2[n] = z * ys - y * zs;
+          u3[n] = z * yt - y * zt;
+
+          /* v = x \nabla z - z \nabla x */
+          v1[n] = x * zr - z * xr;
+          v2[n] = x * zs - z * xs;
+          v3[n] = x * zt - z * xt;
+
+          /* w = y \nabla x - x \nabla y */
+          w1[n] = y * xr - x * yr;
+          w2[n] = y * xs - x * ys;
+          w3[n] = y * xt - x * yt;
+
+#if 0
           /* J*rx     =  ( ys * zt - yt * zs ) */
           Jrx[0][idx] = (ys * zt - yt * zs);
 
@@ -1989,7 +2021,64 @@ static void bfam_subdomain_dgx_geo(
 
           /* J*tz     =  ( xr * ys - xs * yr ) */
           Jrx[8][idx] = (xr * ys - xs * yr);
+#endif
         }
+
+        bfam_long_real_t tmp1[Np];
+        bfam_long_real_t tmp2[Np];
+
+        // DR: BFAM_KRON_IXIXA(N + 1, Dr, x, dx);
+        // DS: BFAM_KRON_IXAXI(N + 1, Dr, x, dx);
+        // DT: BFAM_KRON_AXIXI(N + 1, Dr, x, dx);
+
+        /* <Jrx,Jsx,Jtx> = (1/2) \nabla \times \vec{u} */
+        BFAM_KRON_AXIXI(N + 1, Dr, u2, tmp1);
+        BFAM_KRON_IXAXI(N + 1, Dr, u3, tmp2);
+        for (int n = 0; n < Np; n++)
+          Jrx[0][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
+
+        BFAM_KRON_IXIXA(N + 1, Dr, u3, tmp1);
+        BFAM_KRON_AXIXI(N + 1, Dr, u1, tmp2);
+        for (int n = 0; n < Np; n++)
+          Jrx[3][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
+
+        BFAM_KRON_IXAXI(N + 1, Dr, u1, tmp1);
+        BFAM_KRON_IXIXA(N + 1, Dr, u2, tmp2);
+        for (int n = 0; n < Np; n++)
+          Jrx[6][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
+
+        /* <Jry,Jsy,Jty> = (1/2) \nabla \times \vec{v} */
+        BFAM_KRON_AXIXI(N + 1, Dr, v2, tmp1);
+        BFAM_KRON_IXAXI(N + 1, Dr, v3, tmp2);
+        for (int n = 0; n < Np; n++)
+          Jrx[1][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
+
+        BFAM_KRON_IXIXA(N + 1, Dr, v3, tmp1);
+        BFAM_KRON_AXIXI(N + 1, Dr, v1, tmp2);
+        for (int n = 0; n < Np; n++)
+          Jrx[4][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
+
+        BFAM_KRON_IXAXI(N + 1, Dr, v1, tmp1);
+        BFAM_KRON_IXIXA(N + 1, Dr, v2, tmp2);
+        for (int n = 0; n < Np; n++)
+          Jrx[7][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
+
+        /* <Jrz,Jsz,Jtz> = (1/2) \nabla \times \vec{w} */
+        BFAM_KRON_AXIXI(N + 1, Dr, w2, tmp1);
+        BFAM_KRON_IXAXI(N + 1, Dr, w3, tmp2);
+        for (int n = 0; n < Np; n++)
+          Jrx[2][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
+
+        BFAM_KRON_IXIXA(N + 1, Dr, w3, tmp1);
+        BFAM_KRON_AXIXI(N + 1, Dr, w1, tmp2);
+        for (int n = 0; n < Np; n++)
+          Jrx[5][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
+
+        BFAM_KRON_IXAXI(N + 1, Dr, w1, tmp1);
+        BFAM_KRON_IXIXA(N + 1, Dr, w2, tmp2);
+        for (int n = 0; n < Np; n++)
+          Jrx[8][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
+
         for (int n = 0; n < Nfp; ++n)
         {
           const bfam_locidx_t fidx0 = fsk + 0 * Nfp + n;
