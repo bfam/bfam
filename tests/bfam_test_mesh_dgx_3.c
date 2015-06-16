@@ -89,7 +89,7 @@ static int check_pm(bfam_subdomain_dgx_t *sub, const char *name,
     for (int j = 0; j < sub->Np; ++j)
     {
       size_t idx = i * sub->Np + j;
-      int fail = !REAL_APPROX_EQ(f_m[idx], fac * f_p[idx], 100);
+      int fail = !REAL_APPROX_EQ(f_m[idx], fac * f_p[idx], 1000);
 
       if (fail)
         BFAM_LDEBUG("Fail Match: fm[%2d][%2d] = %20" BFAM_REAL_PRIe
