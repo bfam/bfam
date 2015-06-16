@@ -1079,8 +1079,8 @@ void beard_dgx_intra_rhs_elastic(int inN, bfam_subdomain_dgx_t *sub,
      *        -(lam+2*mu)*MI*JI*((Jry*Dr' + Jsy*Ds' + Jty*Dt')*v2
      *        -lam       *MI*JI*((Jrz*Dr' + Jsz*Ds' + Jtz*Dt')*v3
      *
-     * S33 += -lam l     *MI*JI*((Jrx*Dr' + Jsx*Ds' + Jtx*Dt')*v1
-     *        -lam l     *MI*JI*((Jry*Dr' + Jsy*Ds' + Jty*Dt')*v2
+     * S33 += -lam       *MI*JI*((Jrx*Dr' + Jsx*Ds' + Jtx*Dt')*v1
+     *        -lam       *MI*JI*((Jry*Dr' + Jsy*Ds' + Jty*Dt')*v2
      *        -(lam+2*mu)*MI*JI*((Jrz*Dr' + Jsz*Ds' + Jtz*Dt')*v3
      *
      * S12 += -mu*MI*JI*((Jrx*Dr' + Jsx*Ds' + Jtx*Dt')*v2
