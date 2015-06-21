@@ -55,6 +55,7 @@ typedef enum bfam_ts_lsrk_method
  * \param [in]  comm_tags        tags for the communication required for RHS
  * \param [in]  mpicomm          MPI_Comm to use for communication
  * \param [in]  mpitag           tag to use for MPI communcation
+ * \param [in]  comm_late_send   late send tag to pass to communicator
  * \param [in]  comm_data        user data passed to the communicator new
  * \param [in]  update_sol       function handle to update
  * \param [in]  aux_rates        create rate field with given prefix
@@ -69,10 +70,10 @@ bfam_ts_lsrk_t *
 bfam_ts_lsrk_new_up(bfam_domain_t *dom, bfam_ts_lsrk_method_t method,
                     bfam_domain_match_t subdom_match, const char **subdom_tags,
                     bfam_domain_match_t comm_match, const char **comm_tags,
-                    MPI_Comm mpicomm, int mpitag, void *comm_data,
-                    update_soln_t update_soln, aux_rates_t aux_rates,
-                    intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
-                    void *user_data);
+                    MPI_Comm mpicomm, int mpitag, int comm_late_send,
+                    void *comm_data, update_soln_t update_soln,
+                    aux_rates_t aux_rates, intra_rhs_t intra_rhs,
+                    inter_rhs_t inter_rhs, void *user_data);
 
 /** create a low storage RK scheme
  *
@@ -87,6 +88,7 @@ bfam_ts_lsrk_new_up(bfam_domain_t *dom, bfam_ts_lsrk_method_t method,
  * \param [in]  comm_tags        tags for the communication required for RHS
  * \param [in]  mpicomm          MPI_Comm to use for communication
  * \param [in]  mpitag           tag to use for MPI communcation
+ * \param [in]  comm_late_send   late send tag to pass to communicator
  * \param [in]  comm_data        user data passed to the communicator new
  * \param [in]  aux_rates        create rate field with given prefix
  * \param [in]  scale_rates      function handle to scale_rates function
@@ -101,10 +103,10 @@ bfam_ts_lsrk_t *
 bfam_ts_lsrk_new(bfam_domain_t *dom, bfam_ts_lsrk_method_t method,
                  bfam_domain_match_t subdom_match, const char **subdom_tags,
                  bfam_domain_match_t comm_match, const char **comm_tags,
-                 MPI_Comm mpicomm, int mpitag, void *comm_data,
-                 aux_rates_t aux_rates, scale_rates_t scale_rates,
-                 intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
-                 add_rates_t add_rates, void *user_data);
+                 MPI_Comm mpicomm, int mpitag, int comm_late_send,
+                 void *comm_data, aux_rates_t aux_rates,
+                 scale_rates_t scale_rates, intra_rhs_t intra_rhs,
+                 inter_rhs_t inter_rhs, add_rates_t add_rates, void *user_data);
 
 /** initialize a low storage RK scheme
  *
@@ -120,6 +122,7 @@ bfam_ts_lsrk_new(bfam_domain_t *dom, bfam_ts_lsrk_method_t method,
  * \param [in]  comm_tags        tags for the communication required for RHS
  * \param [in]  mpicomm          MPI_Comm to use for communication
  * \param [in]  mpitag           tag to use for MPI communcation
+ * \param [in]  comm_late_send   late send tag to pass to communicator
  * \param [in]  comm_data        user data passed to the communicator new
  * \param [in]  aux_rates        create rate field with given prefix
  * \param [in]  scale_rates      function handle to scale_rates function
@@ -133,10 +136,10 @@ void bfam_ts_lsrk_init(bfam_ts_lsrk_t *ts, bfam_domain_t *dom,
                        bfam_domain_match_t subdom_match,
                        const char **subdom_tags, bfam_domain_match_t comm_match,
                        const char **comm_tags, MPI_Comm mpicomm, int mpitag,
-                       void *comm_data, aux_rates_t aux_rates,
-                       scale_rates_t scale_rates, intra_rhs_t intra_rhs,
-                       inter_rhs_t inter_rhs, add_rates_t add_rates,
-                       void *user_data);
+                       int comm_late_send, void *comm_data,
+                       aux_rates_t aux_rates, scale_rates_t scale_rates,
+                       intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
+                       add_rates_t add_rates, void *user_data);
 
 /** create a low storage RK scheme
  *
@@ -151,6 +154,7 @@ void bfam_ts_lsrk_init(bfam_ts_lsrk_t *ts, bfam_domain_t *dom,
  * \param [in]  comm_tags        tags for the communication required for RHS
  * \param [in]  mpicomm          MPI_Comm to use for communication
  * \param [in]  mpitag           tag to use for MPI communcation
+ * \param [in]  comm_late_send   late send tag to pass to communicator
  * \param [in]  comm_data        user data passed to the communicator new
  * \param [in]  aux_rates        create rate field with given prefix
  * \param [in]  scale_rates      function handle to scale_rates function
@@ -166,7 +170,7 @@ bfam_ts_lsrk_t *bfam_ts_lsrk_new_extended(
     bfam_domain_t *dom, bfam_ts_lsrk_method_t method,
     bfam_domain_match_t subdom_match, const char **subdom_tags,
     bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
-    int mpitag, void *comm_data, aux_rates_t aux_rates,
+    int mpitag, int comm_late_send, void *comm_data, aux_rates_t aux_rates,
     scale_rates_t scale_rates, intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
     add_rates_t add_rates, int make_rates, void *user_data);
 
@@ -184,6 +188,7 @@ bfam_ts_lsrk_t *bfam_ts_lsrk_new_extended(
  * \param [in]  comm_tags        tags for the communication required for RHS
  * \param [in]  mpicomm          MPI_Comm to use for communication
  * \param [in]  mpitag           tag to use for MPI communcation
+ * \param [in]  comm_late_send   late send tag to pass to communicator
  * \param [in]  comm_data        user data passed to the communicator new
  * \param [in]  update_soln      add rates to the soln and scale the rates
  * \param [in]  aux_rates        create rate field with given prefix
@@ -198,7 +203,7 @@ void bfam_ts_lsrk_init_extended(
     bfam_ts_lsrk_t *ts, bfam_domain_t *dom, bfam_ts_lsrk_method_t method,
     bfam_domain_match_t subdom_match, const char **subdom_tags,
     bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
-    int mpitag, void *comm_data, update_soln_t update_soln,
+    int mpitag, int comm_late_send, void *comm_data, update_soln_t update_soln,
     aux_rates_t aux_rates, scale_rates_t scale_rates, intra_rhs_t intra_rhs,
     inter_rhs_t inter_rhs, add_rates_t add_rates, int make_rates,
     void *user_data);

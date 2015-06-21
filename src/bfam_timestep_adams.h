@@ -58,6 +58,7 @@ typedef enum bfam_ts_adams_method
  * \param [in]  comm_tags        tags for the communication required for RHS
  * \param [in]  mpicomm          MPI_Comm to use for communication
  * \param [in]  mpitag           tag to use for MPI communcation
+ * \param [in]  comm_late_send   late_send tag to communicator
  * \param [in]  comm_data        user data passed to the communicator new
  * \param [in]  aux_rates        create rate field with given prefix
  * \param [in]  scale_rates      scale rates function
@@ -70,14 +71,13 @@ typedef enum bfam_ts_adams_method
  *
  * \return the newly created low storage RK time stepper
  */
-bfam_ts_adams_t *
-bfam_ts_adams_new(bfam_domain_t *dom, bfam_ts_adams_method_t method,
-                  bfam_domain_match_t subdom_match, const char **subdom_tags,
-                  bfam_domain_match_t comm_match, const char **comm_tags,
-                  MPI_Comm mpicomm, int mpitag, void *comm_data,
-                  aux_rates_t aux_rates, scale_rates_t scale_rates,
-                  intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
-                  add_rates_t add_rates, const int RK_init, void *user_data);
+bfam_ts_adams_t *bfam_ts_adams_new(
+    bfam_domain_t *dom, bfam_ts_adams_method_t method,
+    bfam_domain_match_t subdom_match, const char **subdom_tags,
+    bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
+    int mpitag, int comm_late_send, void *comm_data, aux_rates_t aux_rates,
+    scale_rates_t scale_rates, intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
+    add_rates_t add_rates, const int RK_init, void *user_data);
 
 /** initialize an Adams scheme
  *
@@ -93,6 +93,7 @@ bfam_ts_adams_new(bfam_domain_t *dom, bfam_ts_adams_method_t method,
  * \param [in]  comm_tags        tags for the communication required for RHS
  * \param [in]  mpicomm          MPI_Comm to use for communication
  * \param [in]  mpitag           tag to use for MPI communcation
+ * \param [in]  comm_late_send   late_send tag to communicator
  * \param [in]  comm_data        user data passed to the communicator new
  * \param [in]  aux_rates        create rate field with given prefix
  * \param [in]  scale_rates      scale rates function
@@ -107,7 +108,7 @@ void bfam_ts_adams_init(
     bfam_ts_adams_t *ts, bfam_domain_t *dom, bfam_ts_adams_method_t method,
     bfam_domain_match_t subdom_match, const char **subdom_tags,
     bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
-    int mpitag, void *comm_data, aux_rates_t aux_rates,
+    int mpitag, int comm_late_send, void *comm_data, aux_rates_t aux_rates,
     scale_rates_t scale_rates, intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
     add_rates_t add_rates, const int RK_init, void *user_data);
 

@@ -20,13 +20,14 @@ typedef struct bfam_communicator_map_entry
 bfam_communicator_t *bfam_communicator_new(bfam_domain_t *domain,
                                            bfam_domain_match_t match,
                                            const char **tags, MPI_Comm comm,
-                                           int tag, void *user_args)
+                                           int tag, int late_send,
+                                           void *user_args)
 {
   bfam_communicator_t *newCommunicator =
       bfam_malloc(sizeof(bfam_communicator_t));
 
   bfam_communicator_init(newCommunicator, domain, match, tags, comm, tag,
-                         user_args);
+                         late_send, user_args);
   return newCommunicator;
 }
 
@@ -83,11 +84,12 @@ static int bfam_communicator_recv_compare(const void *a, const void *b)
 void bfam_communicator_init(bfam_communicator_t *communicator,
                             bfam_domain_t *domain, bfam_domain_match_t match,
                             const char **tags, MPI_Comm comm, int tag,
-                            void *user_args)
+                            int late_send, void *user_args)
 {
   BFAM_LDEBUG("Communicator Init");
   communicator->comm = comm;
   communicator->tag = tag;
+  communicator->late_send = late_send;
 
   /* get the subdomains */
   bfam_subdomain_t *subdomains[domain->numSubdomains];
@@ -263,17 +265,27 @@ void bfam_communicator_start(bfam_communicator_t *comm)
   }
 
   /* post sends */
-  for (int p = 0; p < comm->num_procs; p++)
-  {
-    BFAM_MPI_CHECK(MPI_Isend(comm->proc_data[p].send_buf,
-                             comm->proc_data[p].send_sz, MPI_BYTE,
-                             comm->proc_data[p].rank, comm->tag, comm->comm,
-                             &comm->send_request[p]));
-  }
+  if (!comm->late_send)
+    for (int p = 0; p < comm->num_procs; p++)
+    {
+      BFAM_MPI_CHECK(MPI_Isend(comm->proc_data[p].send_buf,
+                               comm->proc_data[p].send_sz, MPI_BYTE,
+                               comm->proc_data[p].rank, comm->tag, comm->comm,
+                               &comm->send_request[p]));
+    }
 }
 
 void bfam_communicator_finish(bfam_communicator_t *comm)
 {
+  if (comm->late_send)
+    for (int p = 0; p < comm->num_procs; p++)
+    {
+      BFAM_MPI_CHECK(MPI_Isend(comm->proc_data[p].send_buf,
+                               comm->proc_data[p].send_sz, MPI_BYTE,
+                               comm->proc_data[p].rank, comm->tag, comm->comm,
+                               &comm->send_request[p]));
+    }
+
   BFAM_LDEBUG("Communicator Finish");
   BFAM_MPI_CHECK(
       MPI_Waitall(comm->num_procs, comm->recv_request, comm->recv_status));

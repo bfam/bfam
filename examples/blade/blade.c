@@ -1473,13 +1473,13 @@ static void init_time_stepper(blade_t *blade, prefs_t *prefs)
   if (prefs->lsrk_method != BFAM_TS_LSRK_NOOP)
     blade->blade_ts = (bfam_ts_t *)bfam_ts_lsrk_new(
         (bfam_domain_t *)blade->domain, prefs->lsrk_method, BFAM_DOMAIN_OR,
-        timestep_tags, BFAM_DOMAIN_OR, glue, blade->mpicomm, 10,
+        timestep_tags, BFAM_DOMAIN_OR, glue, blade->mpicomm, 10, 0,
         blade->comm_args, &aux_rates, &scale_rates, &intra_rhs, &inter_rhs,
         &add_rates, NULL);
   else if (prefs->adams_method != BFAM_TS_ADAMS_NOOP)
     blade->blade_ts = (bfam_ts_t *)bfam_ts_adams_new(
         (bfam_domain_t *)blade->domain, prefs->adams_method, BFAM_DOMAIN_OR,
-        timestep_tags, BFAM_DOMAIN_OR, glue, blade->mpicomm, 10,
+        timestep_tags, BFAM_DOMAIN_OR, glue, blade->mpicomm, 10, 0,
         blade->comm_args, &aux_rates, &scale_rates, &intra_rhs, &inter_rhs,
         &add_rates, lua_get_global_int(prefs->L, "RK_init", 1), NULL);
 }

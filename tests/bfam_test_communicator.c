@@ -201,19 +201,39 @@ int main(int argc, char *argv[])
   }
 
   /* set up communicator */
-  const char *tags[] = {"_glue", NULL};
-  bfam_communicator_t *communicator = bfam_communicator_new(
-      &domain, BFAM_DOMAIN_AND, tags, MPI_COMM_WORLD, 10, NULL);
+  {
+    const char *tags[] = {"_glue", NULL};
+    bfam_communicator_t *communicator = bfam_communicator_new(
+        &domain, BFAM_DOMAIN_AND, tags, MPI_COMM_WORLD, 10, 0, NULL);
 
-  /* start recv_send */
-  bfam_communicator_start(communicator);
+    /* start recv_send */
+    bfam_communicator_start(communicator);
 
-  /* finish recv */
-  bfam_communicator_finish(communicator);
+    /* finish recv */
+    bfam_communicator_finish(communicator);
 
-  /* clean up */
-  bfam_communicator_free(communicator);
-  bfam_free(communicator);
+    /* clean up */
+    bfam_communicator_free(communicator);
+    bfam_free(communicator);
+  }
+
+  {
+    /* set up communicator */
+    const char *tags[] = {"_glue", NULL};
+    bfam_communicator_t *communicator = bfam_communicator_new(
+        &domain, BFAM_DOMAIN_AND, tags, MPI_COMM_WORLD, 10, 1, NULL);
+
+    /* start recv_send */
+    bfam_communicator_start(communicator);
+
+    /* finish recv */
+    bfam_communicator_finish(communicator);
+
+    /* clean up */
+    bfam_communicator_free(communicator);
+    bfam_free(communicator);
+  }
+
   bfam_domain_free(&domain);
   BFAM_MPI_CHECK(MPI_Finalize());
 }

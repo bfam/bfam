@@ -56,6 +56,8 @@ typedef struct bfam_communicator
   bfam_comm_subdata_t *sub_data;   /**< array of structure with subdomains
                                         specific information */
 
+  int late_send;
+
   void *user_args; /**< user custom data to pass through */
 } bfam_communicator_t;
 
@@ -70,6 +72,7 @@ typedef struct bfam_communicator
  *                        glue grids doing the communication
  * \param [in] comm       MPI communicator
  * \param [in] tag        user specified communicator tag
+ * \param [in] late_send  flag to post the send after when finishing comm
  * \param [in] userdata   user custom data to pass through
  *
  * \return the newly created communicator
@@ -77,7 +80,8 @@ typedef struct bfam_communicator
 bfam_communicator_t *bfam_communicator_new(bfam_domain_t *domain,
                                            bfam_domain_match_t match,
                                            const char **tags, MPI_Comm comm,
-                                           int tag, void *user_data);
+                                           int tag, int late_send,
+                                           void *user_data);
 
 /** initializes a communicator
  *
@@ -91,12 +95,13 @@ bfam_communicator_t *bfam_communicator_new(bfam_domain_t *domain,
  *                              glue grids doing the communication
  * \param [in]     comm         MPI communicator
  * \param [in]     tag          user specified communicator tag
+ * \param [in]     late_send    flag to post the send after when finishing comm
  * \param [in]     userdata     user custom data to pass through
  */
 void bfam_communicator_init(bfam_communicator_t *communicator,
                             bfam_domain_t *domain, bfam_domain_match_t match,
                             const char **tags, MPI_Comm comm, int tag,
-                            void *user_data);
+                            int late_send, void *user_data);
 
 /** Clean up communicator
  *

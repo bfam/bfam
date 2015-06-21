@@ -530,7 +530,7 @@ static int build_mesh(MPI_Comm mpicomm)
   }
 
   bfam_communicator_t *communicator = bfam_communicator_new(
-      (bfam_domain_t *)domain, BFAM_DOMAIN_OR, glue, mpicomm, 10, &commargs);
+      (bfam_domain_t *)domain, BFAM_DOMAIN_OR, glue, mpicomm, 10, 0, &commargs);
 
   /* start recv_send */
   bfam_communicator_start(communicator);

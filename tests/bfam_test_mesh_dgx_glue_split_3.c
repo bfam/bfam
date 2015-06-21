@@ -169,7 +169,7 @@ static int build_state(MPI_Comm mpicomm, state_t *state)
   commargs.user_prefix_function = NULL;
 
   bfam_communicator_t *communicator =
-      bfam_communicator_new(d, BFAM_DOMAIN_OR, glue, mpicomm, 11, &commargs);
+      bfam_communicator_new(d, BFAM_DOMAIN_OR, glue, mpicomm, 11, 0, &commargs);
   bfam_communicator_start(communicator);
   bfam_communicator_finish(communicator);
   bfam_communicator_free(communicator);
@@ -515,7 +515,7 @@ static int test_conn(MPI_Comm mpicomm, state_t *state)
   }
 
   bfam_communicator_t *communicator = bfam_communicator_new(
-      (bfam_domain_t *)domain, BFAM_DOMAIN_OR, glue, mpicomm, 10, &commargs);
+      (bfam_domain_t *)domain, BFAM_DOMAIN_OR, glue, mpicomm, 10, 0, &commargs);
 
   /* start recv_send */
   bfam_communicator_start(communicator);

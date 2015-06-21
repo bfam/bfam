@@ -2179,7 +2179,7 @@ static void domain_add_fields(beard_t *beard, prefs_t *prefs)
   mat_args.user_prefix_function = NULL;
 
   bfam_communicator_init(&material_comm, domain, BFAM_DOMAIN_OR, glue,
-                         beard->mpicomm, 10, &mat_args);
+                         beard->mpicomm, 10, 0, &mat_args);
   bfam_communicator_start(&material_comm);
   bfam_communicator_finish(&material_comm);
   bfam_communicator_free(&material_comm);
@@ -3299,13 +3299,13 @@ static void init_time_stepper(beard_t *beard, prefs_t *prefs)
   if (prefs->lsrk_method != BFAM_TS_LSRK_NOOP)
     beard->beard_ts = (bfam_ts_t *)bfam_ts_lsrk_new(
         (bfam_domain_t *)beard->domain, prefs->lsrk_method, BFAM_DOMAIN_OR,
-        timestep_tags, BFAM_DOMAIN_OR, glue, beard->mpicomm, 10,
+        timestep_tags, BFAM_DOMAIN_OR, glue, beard->mpicomm, 10, 0,
         beard->comm_args, &aux_rates, &scale_rates, &intra_rhs, &inter_rhs,
         &add_rates, NULL);
   else if (prefs->adams_method != BFAM_TS_ADAMS_NOOP)
     beard->beard_ts = (bfam_ts_t *)bfam_ts_adams_new(
         (bfam_domain_t *)beard->domain, prefs->adams_method, BFAM_DOMAIN_OR,
-        timestep_tags, BFAM_DOMAIN_OR, glue, beard->mpicomm, 10,
+        timestep_tags, BFAM_DOMAIN_OR, glue, beard->mpicomm, 10, 0,
         beard->comm_args, &aux_rates, &scale_rates, &intra_rhs, &inter_rhs,
         &add_rates, lua_get_global_int(prefs->L, "RK_init", 1), NULL);
 }

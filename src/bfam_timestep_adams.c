@@ -10,20 +10,19 @@ typedef struct bfam_ts_allprefix
   void *user_data;
 } bfam_ts_adams_allprefix_t;
 
-bfam_ts_adams_t *
-bfam_ts_adams_new(bfam_domain_t *dom, bfam_ts_adams_method_t method,
-                  bfam_domain_match_t subdom_match, const char **subdom_tags,
-                  bfam_domain_match_t comm_match, const char **comm_tags,
-                  MPI_Comm mpicomm, int mpitag, void *comm_data,
-                  aux_rates_t aux_rates, scale_rates_t scale_rates,
-                  intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
-                  add_rates_t add_rates, const int RK_init, void *user_data)
+bfam_ts_adams_t *bfam_ts_adams_new(
+    bfam_domain_t *dom, bfam_ts_adams_method_t method,
+    bfam_domain_match_t subdom_match, const char **subdom_tags,
+    bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
+    int mpitag, int comm_late_send, void *comm_data, aux_rates_t aux_rates,
+    scale_rates_t scale_rates, intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
+    add_rates_t add_rates, const int RK_init, void *user_data)
 {
   bfam_ts_adams_t *newTS = bfam_malloc(sizeof(bfam_ts_adams_t));
   bfam_ts_adams_init(newTS, dom, method, subdom_match, subdom_tags, comm_match,
-                     comm_tags, mpicomm, mpitag, comm_data, aux_rates,
-                     scale_rates, intra_rhs, inter_rhs, add_rates, RK_init,
-                     user_data);
+                     comm_tags, mpicomm, mpitag, comm_late_send, comm_data,
+                     aux_rates, scale_rates, intra_rhs, inter_rhs, add_rates,
+                     RK_init, user_data);
   return newTS;
 }
 
@@ -198,7 +197,7 @@ void bfam_ts_adams_init(
     bfam_ts_adams_t *ts, bfam_domain_t *dom, bfam_ts_adams_method_t method,
     bfam_domain_match_t subdom_match, const char **subdom_tags,
     bfam_domain_match_t comm_match, const char **comm_tags, MPI_Comm mpicomm,
-    int mpitag, void *comm_data, aux_rates_t aux_rates,
+    int mpitag, int comm_late_send, void *comm_data, aux_rates_t aux_rates,
     scale_rates_t scale_rates, intra_rhs_t intra_rhs, inter_rhs_t inter_rhs,
     add_rates_t add_rates, const int RK_init, void *user_data)
 {
@@ -247,8 +246,8 @@ void bfam_ts_adams_init(
     {
       ts->lsrk = bfam_ts_lsrk_new_extended(
           dom, BFAM_TS_LSRK_KC54, subdom_match, subdom_tags, comm_match,
-          comm_tags, mpicomm, mpitag, comm_data, aux_rates, scale_rates,
-          intra_rhs, inter_rhs, add_rates, 0, user_data);
+          comm_tags, mpicomm, mpitag, comm_late_send, comm_data, aux_rates,
+          scale_rates, intra_rhs, inter_rhs, add_rates, 0, user_data);
     }
 
     break;
@@ -265,8 +264,8 @@ void bfam_ts_adams_init(
     {
       ts->lsrk = bfam_ts_lsrk_new_extended(
           dom, BFAM_TS_LSRK_FE, subdom_match, subdom_tags, comm_match,
-          comm_tags, mpicomm, mpitag, comm_data, aux_rates, scale_rates,
-          intra_rhs, inter_rhs, add_rates, 0, user_data);
+          comm_tags, mpicomm, mpitag, comm_late_send, comm_data, aux_rates,
+          scale_rates, intra_rhs, inter_rhs, add_rates, 0, user_data);
     }
 
     break;
@@ -286,8 +285,8 @@ void bfam_ts_adams_init(
     {
       ts->lsrk = bfam_ts_lsrk_new_extended(
           dom, BFAM_TS_LSRK_HEUN, subdom_match, subdom_tags, comm_match,
-          comm_tags, mpicomm, mpitag, comm_data, aux_rates, scale_rates,
-          intra_rhs, inter_rhs, add_rates, 0, user_data);
+          comm_tags, mpicomm, mpitag, comm_late_send, comm_data, aux_rates,
+          scale_rates, intra_rhs, inter_rhs, add_rates, 0, user_data);
     }
 
     break;
@@ -311,8 +310,8 @@ void bfam_ts_adams_init(
     {
       ts->lsrk = bfam_ts_lsrk_new_extended(
           dom, BFAM_TS_LSRK_KC54, subdom_match, subdom_tags, comm_match,
-          comm_tags, mpicomm, mpitag, comm_data, aux_rates, scale_rates,
-          intra_rhs, inter_rhs, add_rates, 0, user_data);
+          comm_tags, mpicomm, mpitag, comm_late_send, comm_data, aux_rates,
+          scale_rates, intra_rhs, inter_rhs, add_rates, 0, user_data);
     }
 
     break;
@@ -342,7 +341,7 @@ void bfam_ts_adams_init(
    * Set up the communicator we will use
    */
   ts->comm = bfam_communicator_new(dom, comm_match, comm_tags, mpicomm, mpitag,
-                                   comm_data);
+                                   comm_late_send, comm_data);
 }
 
 void bfam_ts_adams_free(bfam_ts_adams_t *ts)
