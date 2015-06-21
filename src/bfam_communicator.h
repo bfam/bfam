@@ -51,6 +51,9 @@ typedef struct bfam_communicator
   void *send_buf; /**< full send buffer */
   void *recv_buf; /**< full recv buffer */
 
+  size_t send_sz; /**< full send size */
+  size_t recv_sz; /**< full recz size */
+
   bfam_comm_procdata_t *proc_data; /**< array of structure with neighboring
                                         processor data */
   bfam_comm_subdata_t *sub_data;   /**< array of structure with subdomains

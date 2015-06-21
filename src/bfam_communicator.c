@@ -143,8 +143,11 @@ void bfam_communicator_init(bfam_communicator_t *communicator,
   bfam_critbit0_clear(&procs);
 
   /* allocate everything now */
-  communicator->send_buf = bfam_malloc(send_sz);
-  communicator->recv_buf = bfam_malloc(recv_sz);
+  communicator->send_sz = send_sz;
+  communicator->send_buf = bfam_malloc(communicator->send_sz);
+
+  communicator->recv_sz = recv_sz;
+  communicator->recv_buf = bfam_malloc(communicator->recv_sz);
 
   communicator->proc_data =
       bfam_malloc(communicator->num_procs * sizeof(bfam_comm_procdata_t));
