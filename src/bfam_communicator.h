@@ -10,11 +10,13 @@ typedef struct bfam_comm_subdata
 {
   bfam_subdomain_t *subdomain; /**< pointer to my local subdomain */
 
-  size_t send_sz; /**< amount of data this subdomain can send */
-  void *send_buf; /**< pointer for local send buffer */
+  size_t send_sz;     /**< amount of data this subdomain can send */
+  void *send_buf;     /**< pointer for local send buffer */
+  size_t send_offset; /**< offset into the global send buffer */
 
-  size_t recv_sz; /**< amount of data this subdomain should receive */
-  void *recv_buf; /**< pointer for local recv buffer */
+  size_t recv_sz;     /**< amount of data this subdomain should receive */
+  void *recv_buf;     /**< pointer for local recv buffer */
+  size_t recv_offset; /**< offset into the global receive buffer */
 } bfam_comm_subdata_t;
 
 /**

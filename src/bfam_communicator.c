@@ -178,12 +178,14 @@ void bfam_communicator_init(bfam_communicator_t *communicator,
   qsort((void *)map, communicator->num_subs,
         sizeof(bfam_communicator_map_entry_t), bfam_communicator_send_compare);
   char *send_buf_ptr = communicator->send_buf;
+  size_t send_offset = 0;
   bfam_locidx_t np = -1;   /* global proc ID */
   bfam_locidx_t proc = -1; /* local storage proc ID */
   for (int s = 0; s < communicator->num_subs; s++)
   {
     bfam_locidx_t t = map[s].orig_order;
     communicator->sub_data[t].send_buf = send_buf_ptr;
+    communicator->sub_data[t].send_offset = send_offset;
 
     if (map[s].np != np)
     {
@@ -197,18 +199,21 @@ void bfam_communicator_init(bfam_communicator_t *communicator,
     communicator->proc_data[proc].send_sz += communicator->sub_data[t].send_sz;
 
     send_buf_ptr += communicator->sub_data[t].send_sz;
+    send_offset += communicator->sub_data[t].send_sz;
   }
 
   /* sort for recv and fill struct*/
   qsort((void *)map, communicator->num_subs,
         sizeof(bfam_communicator_map_entry_t), bfam_communicator_recv_compare);
   char *recv_buf_ptr = communicator->recv_buf;
+  size_t recv_offset = 0;
   np = -1;   /* global proc ID */
   proc = -1; /* local storage proc ID */
   for (int s = 0; s < communicator->num_subs; s++)
   {
     bfam_locidx_t t = map[s].orig_order;
     communicator->sub_data[t].recv_buf = recv_buf_ptr;
+    communicator->sub_data[t].recv_offset = recv_offset;
     if (map[s].np != np)
     {
       np = map[s].np;
@@ -220,6 +225,7 @@ void bfam_communicator_init(bfam_communicator_t *communicator,
     communicator->proc_data[proc].recv_sz += communicator->sub_data[t].recv_sz;
 
     recv_buf_ptr += communicator->sub_data[t].recv_sz;
+    recv_offset += communicator->sub_data[t].recv_sz;
   }
 }
 
