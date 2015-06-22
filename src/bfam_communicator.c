@@ -144,10 +144,10 @@ void bfam_communicator_init(bfam_communicator_t *communicator,
 
   /* allocate everything now */
   communicator->send_sz = send_sz;
-  communicator->send_buf = bfam_malloc(communicator->send_sz);
+  communicator->send_buf = bfam_malloc_aligned(communicator->send_sz);
 
   communicator->recv_sz = recv_sz;
-  communicator->recv_buf = bfam_malloc(communicator->recv_sz);
+  communicator->recv_buf = bfam_malloc_aligned(communicator->recv_sz);
 
   communicator->proc_data =
       bfam_malloc(communicator->num_procs * sizeof(bfam_comm_procdata_t));
@@ -232,8 +232,8 @@ void bfam_communicator_free(bfam_communicator_t *communicator)
                              communicator->send_request,
                              communicator->send_status));
 
-  bfam_free(communicator->send_buf);
-  bfam_free(communicator->recv_buf);
+  bfam_free_aligned(communicator->send_buf);
+  bfam_free_aligned(communicator->recv_buf);
   bfam_free(communicator->sub_data);
   bfam_free(communicator->proc_data);
   bfam_free(communicator->send_request);
