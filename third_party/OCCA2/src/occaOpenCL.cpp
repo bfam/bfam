@@ -349,10 +349,10 @@ namespace occa {
 
     void saveProgramBinary(OpenCLKernelData_t &data_,
                            const std::string &cachedBinary){
-      size_t binarySize;
+      uintptr_t binarySize;
       char *binary;
 
-      cl_int error = clGetProgramInfo(data_.program, CL_PROGRAM_BINARY_SIZES, sizeof(size_t), &binarySize, NULL);
+      cl_int error = clGetProgramInfo(data_.program, CL_PROGRAM_BINARY_SIZES, sizeof(uintptr_t), &binarySize, NULL);
 
       if(error)
         releaseFile(cachedBinary);
@@ -503,8 +503,7 @@ namespace occa {
 
     nestedKernelCount = 0;
 
-    maximumInnerDimSize_ = 0;
-    preferredDimSize_    = 0;
+    preferredDimSize_ = 0;
   }
 
   template <>
@@ -527,8 +526,7 @@ namespace occa {
         nestedKernels[i] = k.nestedKernels[i];
     }
 
-    maximumInnerDimSize_ = k.maximumInnerDimSize_;
-    preferredDimSize_    = k.preferredDimSize_;
+    preferredDimSize_ = k.preferredDimSize_;
   }
 
   template <>
@@ -551,8 +549,7 @@ namespace occa {
         nestedKernels[i] = k.nestedKernels[i];
     }
 
-    maximumInnerDimSize_ = k.maximumInnerDimSize_;
-    preferredDimSize_    = k.preferredDimSize_;
+    preferredDimSize_ = k.preferredDimSize_;
 
     return *this;
   }
@@ -651,41 +648,21 @@ namespace occa {
   }
 
   template <>
-  uintptr_t kernel_t<OpenCL>::maximumInnerDimSize(){
-    if(maximumInnerDimSize_)
-      return maximumInnerDimSize_;
-
-    OCCA_EXTRACT_DATA(OpenCL, Kernel);
-
-    size_t pds;
-
-    OCCA_CL_CHECK("Kernel: Getting Preferred Dim Size",
-                  clGetKernelWorkGroupInfo(data_.kernel,
-                                           data_.deviceID,
-                                           CL_KERNEL_WORK_GROUP_SIZE,
-                                           sizeof(size_t), &pds, NULL));
-
-    maximumInnerDimSize_ = (uintptr_t) pds;
-
-    return maximumInnerDimSize_;
-  }
-
-  template <>
   int kernel_t<OpenCL>::preferredDimSize(){
     if(preferredDimSize_)
       return preferredDimSize_;
 
     OCCA_EXTRACT_DATA(OpenCL, Kernel);
 
-    size_t pds;
+    uintptr_t pds;
 
     OCCA_CL_CHECK("Kernel: Getting Preferred Dim Size",
                   clGetKernelWorkGroupInfo(data_.kernel,
                                            data_.deviceID,
                                            CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
-                                           sizeof(size_t), &pds, NULL));
+                                           sizeof(uintptr_t), &pds, NULL));
 
-    preferredDimSize_ = (uintptr_t) pds;
+    preferredDimSize_ = pds;
 
     return preferredDimSize_;
   }
@@ -1234,7 +1211,7 @@ namespace occa {
   }
 
   template <>
-  stream_t device_t<OpenCL>::createStream(){
+  stream device_t<OpenCL>::createStream(){
     OCCA_EXTRACT_DATA(OpenCL, Device);
     cl_int error;
 
@@ -1247,14 +1224,14 @@ namespace occa {
   }
 
   template <>
-  void device_t<OpenCL>::freeStream(stream_t s){
+  void device_t<OpenCL>::freeStream(stream s){
     OCCA_CL_CHECK("Device: freeStream",
                   clReleaseCommandQueue( *((cl_command_queue*) s) ));
     delete (cl_command_queue*) s;
   }
 
   template <>
-  stream_t device_t<OpenCL>::wrapStream(void *handle_){
+  stream device_t<OpenCL>::wrapStream(void *handle_){
     return handle_;
   }
 

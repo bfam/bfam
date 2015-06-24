@@ -5,7 +5,8 @@ endif
 
 include ${OCCA_DIR}/scripts/makefile
 
-links += -lcudart
+compilerFlags = ""
+flags         = ""
 
 #---[ COMPILATION ]-------------------------------
 headers = $(wildcard $(iPath)/*.hpp) $(wildcard $(iPath)/*.tpp)
@@ -18,12 +19,12 @@ executables = main
 all: $(executables)
 
 main: $(objects) $(headers) main.cpp
-	$(compiler) $(compilerFlags) -o main $(flags) $(objects) main.cpp $(paths) $(links)
+	nvcc $(compilerFlags) -o main $(flags) $(objects) main.cpp $(paths) $(links)
 
 $(oPath)/%.o:$(sPath)/%.cpp $(wildcard $(subst $(sPath)/,$(iPath)/,$(<:.cpp=.hpp))) $(wildcard $(subst $(sPath)/,$(iPath)/,$(<:.cpp=.tpp)))
 	$(compiler) $(compilerFlags) -o $@ $(flags) -c $(paths) $<
 
 clean:
 	rm -f $(oPath)/*;
-	rm -f main
+	rm -f main;
 #=================================================

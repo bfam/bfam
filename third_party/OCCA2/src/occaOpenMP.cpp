@@ -312,11 +312,6 @@ namespace occa {
     return buildFromBinary(cache, functionName);
   }
 
-  template <>
-  uintptr_t kernel_t<OpenMP>::maximumInnerDimSize(){
-    return ((uintptr_t) -1);
-  }
-
   // [-] Missing
   template <>
   int kernel_t<OpenMP>::preferredDimSize(){
@@ -818,15 +813,15 @@ namespace occa {
   void device_t<OpenMP>::waitFor(streamTag tag){}
 
   template <>
-  stream_t device_t<OpenMP>::createStream(){
+  stream device_t<OpenMP>::createStream(){
     return NULL;
   }
 
   template <>
-  void device_t<OpenMP>::freeStream(stream_t s){}
+  void device_t<OpenMP>::freeStream(stream s){}
 
   template <>
-  stream_t device_t<OpenMP>::wrapStream(void *handle_){
+  stream device_t<OpenMP>::wrapStream(void *handle_){
     return NULL;
   }
 

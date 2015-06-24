@@ -120,10 +120,7 @@ namespace occa {
         constValue = e.calculateValue();
 
         if(constValue.type & noType){
-          if(exp == NULL)
-            exp = e.clonePtr();
-          else
-            e.cloneTo(*exp);
+          exp = e.clone();
         }
         else
           info = viType::isConstant;
@@ -191,7 +188,7 @@ namespace occa {
 
     bool atomInfo_t::expandValue(expNode *&expRoot, varInfo &v){
       if((0 < v.pointerDepth()) ||
-         (v.info & varType::function)){
+         (v.info & varType::functionType)){
 
         return !analyzeInfo::changed;
       }
@@ -441,10 +438,11 @@ namespace occa {
       if(indices == 0)
         return value.constValue;
 
-      ret = (vars[0].constValue * strides[0].constValue);
+      ret = applyOperator(vars[0].constValue, "*", strides[0].constValue);
 
       for(int i = 1; i < indices; ++i)
-        ret += (vars[0].constValue * strides[0].constValue);
+        ret = applyOperator(ret, "+",
+                            applyOperator(vars[0].constValue, "*", strides[0].constValue));
 
       return ret;
     }
@@ -477,7 +475,8 @@ namespace occa {
 
     void valueInfo_t::load(expNode &e){
       info = 0;
-      expNode e2 = e.clone();
+
+      expNode &e2 = *(e.clone());
 
 #if DBP2
       std::cout << "SIMP1: e2 = " << e2 << '\n';
@@ -507,6 +506,8 @@ namespace occa {
         reEvaluateStrides();
 
       // sortIndices();
+
+      // e2.free();
     }
 
     void valueInfo_t::load(varInfo &var){
@@ -523,12 +524,12 @@ namespace occa {
         strides[pos].load("1");
         return;
       }
-      else if(e.info & expType::presetValue){
+      else if(e.info == expType::presetValue){
         vars[pos].load(e.value);
         strides[pos].load("1");
         return;
       }
-      else if((e.info & expType::LR) &&
+      else if((e.info  == expType::LR) &&
          (e.value == "*")){
 
         const bool varIn0 = (e[0].info & expType::varInfo);
@@ -556,7 +557,7 @@ namespace occa {
       vars[pos].info    = viType::isUseless;
       strides[pos].info = viType::isUseless;
 
-      vars[pos].exp = e.clonePtr();
+      vars[pos].exp = e.clone();
       strides[pos].load("1");
     }
 
@@ -736,7 +737,7 @@ namespace occa {
             cNode->info  = expType::LR;
             cNode->value = "+";
 
-            cNode->addNodes(2);
+            cNode->addNodes(expType::root, 0, 2);
 
             saveIndexTo(i, *cNode, 0);
 
@@ -763,7 +764,7 @@ namespace occa {
         leaf.info  = expType::LR;
         leaf.value = "*";
 
-        leaf.addNodes(2);
+        leaf.addNodes(expType::root, 0, 2);
 
         vars[index].saveTo(leaf, 0);
         strides[index].saveTo(leaf, 1);
@@ -898,11 +899,14 @@ namespace occa {
               int b = idx[(pass + 1) % 2];
 
               typeHolder &aMax = bounds[3*a + analyzeInfo::UB];
-              typeHolder  bMin = (bounds[3*b + analyzeInfo::LB] +
-                                  bounds[3*b + analyzeInfo::S]);
+              typeHolder  bMin = applyOperator(bounds[3*b + analyzeInfo::LB],
+                                               "+",
+                                               bounds[3*b + analyzeInfo::S]);
 
               // [<>] Assumes for-loop as [<] operator, not [<=]
-              fails += (bMin < aMax);
+              typeHolder comp = applyOperator(aMax, "<=", bMin);
+
+              fails += (comp.boolValue() == false);
             }
 
             // Strides overlap
@@ -981,8 +985,9 @@ namespace occa {
 
           for(int b = 0; b < 3; ++b){
             if(iterBounds[b]->isConstant()){
-              bounds[3*i + b]    = (iterBounds[b]->constValue() *
-                                    strides[i].constValue);
+              bounds[3*i + b]    = applyOperator(iterBounds[b]->constValue(),
+                                                 "*",
+                                                 strides[i].constValue);
               hasBounds[3*i + b] = true;
             }
           }
@@ -996,7 +1001,7 @@ namespace occa {
       eOp.info  = expType::LR;
       eOp.value = op;
 
-      eOp.addNodes(2);
+      eOp.addNodes(expType::root, 0, 2);
 
       saveTo(eOp[1]);
 
@@ -1087,7 +1092,6 @@ namespace occa {
       value.load(varNode);
     }
 
-    // [-] Fix
     void accessInfo_t::load(const int brackets, expNode &bracketNode){
       s = bracketNode.sInfo;
 
@@ -1229,7 +1233,6 @@ namespace occa {
 #endif
     }
 
-    // [-] Fix
     void viInfo_t::addWrite(const bool isUpdated,
                             const int brackets, expNode &bracketNode){
       if(db->isLocked())
@@ -1262,7 +1265,6 @@ namespace occa {
 #endif
     }
 
-    // [-] Fix
     void viInfo_t::addRead(const int brackets, expNode &bracketNode){
       if(db->isLocked())
         return;
@@ -1309,7 +1311,7 @@ namespace occa {
 
     void viInfo_t::statementHasLCD(statement *sEnd){
       if((sEnd == NULL) ||
-         (sEnd->info == smntType::forStatement)){
+         (sEnd->info == forStatementType)){
 
         return;
       }
@@ -1644,38 +1646,38 @@ namespace occa {
     void magician::analyzeStatement(statement &s){
       db.enteringStatement(s);
 
-      if(s.info & smntType::declareStatement){
+      if(s.info & declareStatementType){
         analyzeDeclareStatement(s.expRoot);
       }
 
-      else if(s.info & smntType::updateStatement){
+      else if(s.info & updateStatementType){
         analyzeUpdateStatement(s.expRoot);
       }
 
-      else if(s.info & smntType::forStatement){
-        if(parser.parsingLanguage & parserInfo::parsingC)
+      else if(s.info & forStatementType){
+        if(parser.parsingC)
           analyzeForStatement(s);
         else
           analyzeFortranForStatement(s);
       }
 
-      else if(s.info & smntType::whileStatement){
+      else if(s.info & whileStatementType){
         analyzeWhileStatement(s);
       }
 
-      else if(s.info & smntType::doWhileStatement){
+      else if(s.info & doWhileStatementType){
         // do-while guarantees at least one run
         analyzeEmbeddedStatements(s);
         analyzeWhileStatement(s);
       }
 
-      else if(s.info & smntType::ifStatement){
+      else if(s.info & ifStatementType){
         statementNode *snStart = s.getStatementNode();
         statementNode *snEnd   = snStart->right;
 
-        while(snEnd                                         &&
-              (snEnd->value->info &  smntType::ifStatement) &&
-              (snEnd->value->info != smntType::ifStatement)){
+        while(snEnd                                   &&
+              (snEnd->value->info &  ifStatementType) &&
+              (snEnd->value->info != ifStatementType)){
 
           snEnd = snEnd->right;
         }
@@ -1683,17 +1685,17 @@ namespace occa {
         analyzeIfStatement(snStart, snEnd);
       }
 
-      else if(s.info & smntType::switchStatement){
+      else if(s.info & switchStatementType){
         analyzeSwitchStatement(s);
       }
 
-      else if(s.info & (smntType::typedefStatement   |
-                        smntType::blankStatement     |
-                        smntType::blockStatement     |
-                        smntType::structStatement    |
-                        smntType::functionStatement  |
-                        smntType::functionDefinition |
-                        smntType::functionPrototype)){
+      else if(s.info & (typedefStatementType   |
+                        blankStatementType     |
+                        blockStatementType     |
+                        structStatementType    |
+                        functionStatementType  |
+                        functionDefinitionType |
+                        functionPrototypeType)){
         // Ignore this statement
       }
 
@@ -1790,18 +1792,17 @@ namespace occa {
       for(int i = 0; i < updateNode.leafCount; ++i){
         expNode &leaf = updateNode[i];
 
-        if(!(leaf.info & (expType::L_R |
-                          expType::LR))){
+        if(!(leaf.info & expType::LR)){
           wrongFormat = true;
           break;
         }
-        else if(leaf.info & expType::LR){
+        else if(leaf.info == expType::LR){
           if((leaf.value != "+=") && (leaf.value != "-=")){
             wrongFormat = true;
             break;
           }
         }
-        else{ // (leaf.info & expType::L_R)
+        else{ // (leaf.info & expType::LR)
           if((leaf.value != "++") && (leaf.value != "--")){
             wrongFormat = true;
             break;
@@ -1823,7 +1824,7 @@ namespace occa {
       for(int i = 0; i < updateNode.leafCount; ++i){
         expNode &leaf = updateNode[i];
 
-        if(leaf.info & expType::LR){
+        if(leaf.info == expType::LR){
           if((leaf.value == "+=") ||
              (leaf.value == "-=")){
 
@@ -1839,7 +1840,7 @@ namespace occa {
             }
           }
         }
-        else if(leaf.info & expType::L_R){
+        else if(leaf.info & expType::LR){
           if((leaf.value == "++") ||
              (leaf.value == "--")){
 
@@ -1951,7 +1952,7 @@ namespace occa {
       typeHolder th = s.expRoot[0].calculateValue();
 
       if( !(th.type & noType) &&
-          (th == false) ){
+          (th.boolValue() == false) ){
 
         db.getSmntInfo() &= ~analyzeInfo::isExecuted;
         return;
@@ -2007,7 +2008,7 @@ namespace occa {
           typeHolder th = s.expRoot[0].calculateValue();
 
           if( !(th.type & noType) &&
-              (th == true) ){
+              (th.boolValue() == true) ){
 
             analyzeEmbeddedStatements(s);
 
@@ -2043,7 +2044,7 @@ namespace occa {
       while(sn){
         statement &s2 = *(sn->value);
 
-        if(s2.info & smntType::caseStatement){
+        if(s2.info & caseStatementType){
           if(s2.expRoot.leafCount){ // Not default
             if(th == s2.expRoot[0].calculateValue()){
               calculateSN = sn;
@@ -2326,7 +2327,7 @@ namespace occa {
           ss.str("");
           ss << testedTileSizes[tileTest++];
 
-          newOsE[1].addNode(expType::printValue, ss.str());
+          newOsE[1].addNode(expType::presetValue, ss.str());
           continue;
         }
 
@@ -2420,7 +2421,7 @@ namespace occa {
       while(sn){
         statement &s2 = *(sn->value);
 
-        if(s2.info == smntType::forStatement){
+        if(s2.info == forStatementType){
           loopsVec.push_back(&s2);
           depthVec.push_back(depth);
           storeLoopsAndDepths(s2, loopsVec, depthVec, depth + 1);
@@ -2469,8 +2470,8 @@ namespace occa {
       while(sn){
         statement &s2 = *(sn->value);
 
-        if(s2.info == smntType::forStatement){
-          if(parser.parsingLanguage & parserInfo::parsingC)
+        if(s2.info == forStatementType){
+          if(parser.parsingC)
             analyzeForStatement(s2);
           else
             analyzeFortranForStatement(s2);
@@ -2485,7 +2486,7 @@ namespace occa {
     }
 
     void magician::printIfLoopsHaveLCD(statement &s){
-      if(s.info == smntType::forStatement)
+      if(s.info == forStatementType)
         std::cout << "LCD(" << db.statementHasLCD(s) << "): " << s.onlyThisToString() << '\n';
 
       statementNode *sn = s.statementStart;
@@ -2500,7 +2501,6 @@ namespace occa {
       const bool isUpdated = (isAnUpdateOperator(opNode.value) &&
                               (opNode.value != "="));
 
-      // [-] Fix
       if(varNode.info & expType::variable){
         const int brackets = varNode.getVariableBracketCount();
 
@@ -2520,7 +2520,6 @@ namespace occa {
       viInfo.updateValue(opNode, setNode);
     }
 
-    // [-] Fix
     void magician::addVariableWrite(expNode &varNode,
                                     expNode &opNode,
                                     expNode &setNode,
@@ -2539,7 +2538,6 @@ namespace occa {
     }
 
     void magician::addVariableRead(expNode &varNode){
-      // [-] Fix
       if(varNode.info & expType::variable){
         const int brackets = varNode.getVariableBracketCount();
 
@@ -2554,7 +2552,6 @@ namespace occa {
       viInfo.addRead(varNode);
     }
 
-    // [-] Fix
     void magician::addVariableRead(expNode &varNode,
                                    const int brackets,
                                    expNode &bracketNode){
@@ -2565,7 +2562,6 @@ namespace occa {
     }
 
     void magician::addExpressionRead(expNode &e){
-      // [-] Fix
       if(e.info & expType::variable){
         const int brackets = e.getVariableBracketCount();
 
@@ -2625,7 +2621,7 @@ namespace occa {
       const std::string &eValue = e.value;
 
       if((eValue.size() != 1) ||
-         !(e.info & expType::LR)){
+         (e.info != expType::LR)){
 
         return false;
       }
@@ -2654,7 +2650,6 @@ namespace occa {
       for(int i = 0; i < flatRoot.leafCount; ++i){
         expNode &leaf = flatRoot[i];
 
-        // [-] Fix
         if(leaf.info & expType::variable){
           varInfo &var = leaf[0].getVarInfo();
 
@@ -2674,7 +2669,7 @@ namespace occa {
       for(int i = 0; i < flatRoot.leafCount; ++i){
         expNode &leaf = flatRoot[i];
 
-        if(!(leaf.info & expType::LR) &&
+        if((leaf.info  == expType::LR) &&
            (leaf.value == "-")){
 
           leaf.value = "+";
@@ -2728,7 +2723,7 @@ namespace occa {
           // leaf.free(); // [<>]
 
           if(hasConst) {
-            constValue += th;
+            constValue = applyOperator(constValue, "+", th);
           }
           else {
             constValue = th;
@@ -2737,12 +2732,12 @@ namespace occa {
         }
         else {
           applyConstantsIn(db, leaf);
-          sums2.push_back(e.clonePtr());
+          sums2.push_back(leaf.clone());
         }
       }
 
       if(hasConst){
-        expNode &leaf = *(new expNode( e.makeFloatingLeaf() ));
+        expNode &leaf = *(new expNode(e));
 
         leaf.info  = expType::presetValue;
         leaf.value = (std::string) constValue;
@@ -2779,7 +2774,7 @@ namespace occa {
           leaf.info  = expType::LR;
           leaf.value = "+";
 
-          leaf.addNodes(2);
+          leaf.addNodes(expType::root, 0, 2);
         }
 
         leaf.leaves[lastI] = sums2[i];
@@ -2790,7 +2785,7 @@ namespace occa {
     }
 
     void magician::applyConstantsIn(infoDB_t &db, expNode &e){
-      if(!(e.info & expType::LR))
+      if(e.info != expType::LR)
         return;
 
       expVec_t v, v2, constValues;
@@ -2803,13 +2798,13 @@ namespace occa {
         for(int i = 0; i < vCount; ++i){
           expNode &leaf = *(v[i]);
 
-          if((leaf.info  &  expType::LR) &&
+          if((leaf.info  == expType::LR) &&
              (leaf.value == "*")){
 
             int jConsts = 0;
 
             for(int j = 0; j < 2; ++j){
-              if((leaf[j].info  & expType::LR) &&
+              if((leaf[j].info  == expType::LR) &&
                  (leaf[j].value == "*")){
 
                 v2.push_back( &(leaf[j]) );
@@ -2846,7 +2841,7 @@ namespace occa {
         expNode &leafUp = *(leaf.up);
         expNode &leaf2  = leafUp[!leaf.whichLeafAmI()];
 
-        constValue *= leaf.value;
+        constValue = applyOperator(constValue, "*", leaf.value);
 
         expNode::swap(leafUp, leaf2);
 
@@ -2954,12 +2949,12 @@ namespace occa {
       for(int i = 0; i < flatRoot.leafCount; ++i){
         expNode &leaf = flatRoot[i];
 
-        if((leaf.info  &  expType::LR) &&
+        if((leaf.info  == expType::LR) &&
            (leaf.value == "*")){
 
           expandMult(db, leaf);
         }
-        else if((leaf.info  & expType::C) &&
+        else if((leaf.info  == expType::C) &&
                 (leaf.value == "(")){
 
           removeParentheses(db, leaf);
@@ -3001,8 +2996,8 @@ namespace occa {
 
           leaf.reserve(2);
 
-          leaf.setLeaf(*(a[i]->clonePtr()), 0);
-          leaf.setLeaf(*(b[j]->clonePtr()), 1);
+          leaf.setLeaf(*(a[i]->clone()), 0);
+          leaf.setLeaf(*(b[j]->clone()), 1);
         }
       }
 
@@ -3021,7 +3016,7 @@ namespace occa {
           e2.info  = nextLeaf.info;
           e2.value = nextLeaf.value;
 
-          e2.addNodes(2);
+          e2.addNodes(expType::root, 0, 2);
         }
 
         e2[lastI].info  = expType::LR;
@@ -3206,7 +3201,7 @@ namespace occa {
       expNode *cNode = &e;
 
       if(vCount == 1){
-        expNode::swap(e, *(v[0]->clonePtr()));
+        expNode::swap(e, *(v[0]->clone()));
         return;
       }
 
