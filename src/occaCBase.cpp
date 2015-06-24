@@ -476,30 +476,27 @@ extern "C" {
   }
 
   occaStream OCCA_RFUNC occaDeviceCreateStream(occaDevice device){
-    occa::device &device_  = *((occa::device*) device);
-    occa::stream newStream = device_.createStream();
-
+    occa::device &device_ = *((occa::device*) device);
     occaStream *stream = new occaStream;
 
-    *stream = newStream.handle;
+    *stream =  device_.createStream();
 
     return (occaStream) stream;
   }
 
   occaStream OCCA_RFUNC occaDeviceGetStream(occaDevice device){
-    occa::device &device_      = *((occa::device*) device);
-    occa::stream currentStream = device_.getStream();
+    occa::device &device_ = *((occa::device*) device);
 
     occaStream *stream = new occaStream;
 
-    *stream = currentStream.handle;
+    *stream = device_.getStream();
 
     return (occaStream) stream;
   }
 
   void OCCA_RFUNC occaDeviceSetStream(occaDevice device, occaStream stream){
     occa::device &device_ = *((occa::device*) device);
-    occa::stream_t stream_(*((occa::stream_t*) stream));
+    occa::stream &stream_ = *((occa::stream*) stream);
 
     device_.setStream(stream_);
   }
@@ -529,11 +526,11 @@ extern "C" {
 
   void OCCA_RFUNC occaDeviceStreamFree(occaDevice device, occaStream stream){
     occa::device &device_ = *((occa::device*) device);
-    occa::stream_t stream_(*((occa::stream_t*) stream));
+    occa::stream &stream_ = *((occa::stream*) stream);
 
     device_.freeStream(stream_);
 
-    delete (occaStream*) stream;
+    delete (occa::stream*) stream;
   }
 
   void OCCA_RFUNC occaDeviceFree(occaDevice device){
@@ -561,12 +558,6 @@ extern "C" {
     occa::kernel &kernel_ = *((occa::kernel*) kernel);
 
     return kernel_.mode().c_str();
-  }
-
-  uintptr_t OCCA_RFUNC occaKernelMaximumInnerDimSize(occaKernel kernel){
-    occa::kernel &kernel_ = *((occa::kernel*) kernel);
-
-    return kernel_.maximumInnerDimSize();
   }
 
   int OCCA_RFUNC occaKernelPreferredDimSize(occaKernel kernel){
@@ -771,11 +762,9 @@ extern "C" {
 
   occaStream OCCA_RFUNC occaDeviceWrapStream(occaDevice device, void *handle_){
     occa::device &device_ = *((occa::device*) device);
-    occaStream *stream    = new occaStream;
+    occaStream *stream = new occaStream;
 
-    occa::stream newStream = device_.wrapStream(handle_);
-
-    *stream = newStream.handle;
+    *stream = device_.wrapStream(handle_);
 
     return (occaStream) stream;
   }

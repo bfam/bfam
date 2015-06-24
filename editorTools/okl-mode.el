@@ -26,8 +26,7 @@
       ("\\<\\(outer2\\)\\>"         . 'font-lock-keyword-face)
       ("\\<\\(inner0\\)\\>"         . 'font-lock-keyword-face)
       ("\\<\\(inner1\\)\\>"         . 'font-lock-keyword-face)
-      ("\\<\\(inner2\\)\\>"         . 'font-lock-keyword-face)
-      ("\\<\\(tile\\)\\>"           . 'font-lock-keyword-face)
+      ("\\<\\(inner2\\)\\>"        . 'font-lock-keyword-face)
 
       ("\\<\\(barrier\\)\\>"        . 'font-lock-builtin-face)
       ("\\<\\(localMemFence\\)\\>"  . 'font-lock-constant-face)

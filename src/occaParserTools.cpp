@@ -1,4 +1,3 @@
-#include "occaParserPreprocessor.hpp"
 #include "occaParserTools.hpp"
 #include "occaTools.hpp"
 
@@ -124,50 +123,86 @@ namespace occa {
   }
 
   bool isAnInt(const char *c){
-    parserNS::typeHolder th;
-    th.load(c);
+    const char *cEnd = c;
+    skipToWhitespace(cEnd);
 
-    return (th.isAnInt());
+    if((*c == '-') ||
+       (*c == '+')){
+
+      ++c;
+    }
+
+    while(c < cEnd){
+      if(('0' > *c) || (*c > '9'))
+        return false;
+
+      ++c;
+    }
+
+    return true;
   }
 
   bool isAFloat(const char *c){
-    parserNS::typeHolder th;
-    th.load(c);
+    if((*c == '-') ||
+       (*c == '+')){
 
-    return (th.isAFloat());
+      ++c;
+    }
+
+    if(('0' <= *c) && (*c <= '9'))
+      return true;
+
+    if((c[0] != '\0') &&
+       ((c[0] == '.') || (('0' <= c[0]) && (c[0] <= '9'))))
+      return true;
+
+    if((c[0] == '.')  &&
+       (c[1] != '\0') &&
+       ('0' <= c[1]) && (c[1] <= '9'))
+      return true;
+
+    return false;
   }
 
   bool isANumber(const char *c){
-    parserNS::typeHolder th;
-    th.load(c);
-
-    return (th.type != parserNS::noType);
-  }
-
-  bool isAString(const std::string &str){
-    return isAString(str.c_str());
-  }
-
-  bool isAnInt(const std::string &str){
-    return isAnInt(str.c_str());
-  }
-
-  bool isAFloat(const std::string &str){
-    return isAFloat(str.c_str());
-  }
-
-  bool isANumber(const std::string &str){
-    return isANumber(str.c_str());
+    return (isAnInt(c) || isAFloat(c));
   }
 
   void skipInt(const char *&c){
-    parserNS::typeHolder th;
-    th.load(c);
+    while((*c != '\0') &&
+          ('0' <= *c) && (*c <= '9'))
+      ++c;
   }
 
-  void skipNumber(const char *&c, const int parsingLanguage_){
-    parserNS::typeHolder th;
-    th.load(c);
+  void skipNumber(const char *&c, const bool parsingC){
+    if(!parsingC){
+      skipFortranNumber(c);
+      return;
+    }
+
+    if((*c == '+') || (*c == '-'))
+      ++c;
+
+    skipInt(c);
+
+    if(*c == '.'){
+      ++c;
+
+      skipInt(c);
+    }
+
+    if(*c == 'e'){
+      ++c;
+
+      if((*c == '+') || (*c == '-'))
+        ++c;
+
+      skipInt(c);
+    }
+
+    if((*c == 'f') || (*c == 'F') ||
+       (*c == 'l') || (*c == 'L'))
+      ++c;
   }
 
   void skipFortranNumber(const char *&c){
@@ -198,11 +233,11 @@ namespace occa {
       c += 2;
   }
 
-  void skipString(const char *&c, const int parsingLanguage_){
+  void skipString(const char *&c, const bool parsingC){
     if(!isAString(c))
       return;
 
-    const char nl = ((parsingLanguage_ & parserInfo::parsingC) ? '\\' : '&');
+    const char nl = (parsingC ? '\\' : '&');
 
     const char match = *(c++);
 
@@ -218,8 +253,8 @@ namespace occa {
     }
   }
 
-  char isAWordDelimiter(const char *c, const int parsingLanguage_){
-    if(!(parsingLanguage_ & parserInfo::parsingC))
+  char isAWordDelimiter(const char *c, const bool parsingC){
+    if(!parsingC)
       return isAFortranWordDelimiter(c);
 
     if(charIsIn(c[0], parserNS::cWordDelimiter)){
@@ -256,9 +291,9 @@ namespace occa {
     return 0;
   }
 
-  int skipWord(const char *&c, const int parsingLanguage_){
+  int skipWord(const char *&c, const bool parsingC){
     while(!charIsIn(*c, parserNS::whitespace) && (*c != '\0')){
-      const int delimiterChars = isAWordDelimiter(c, parsingLanguage_);
+      const int delimiterChars = isAWordDelimiter(c, parsingC);
 
       if(delimiterChars == 0)
         ++c;
@@ -270,15 +305,15 @@ namespace occa {
   }
 
   bool isAnUpdateOperator(const std::string &s,
-                          const int parsingLanguage_){
-    if(isAnAssOperator(s, parsingLanguage_))
+                          const bool parsingC){
+    if(isAnAssOperator(s, parsingC))
       return true;
 
     return (s == "++" || s == "--");
   }
 
   bool isAnAssOperator(const std::string &s,
-                       const int parsingLanguage_){ // hehe
+                       const bool parsingC){ // hehe
     const size_t chars = s.size();
     const char *c      = s.c_str();
 
@@ -316,7 +351,7 @@ namespace occa {
     return false;
   }
 
-  bool isAnInequalityOperator(const std::string &s, const int parsingLanguage_){
+  bool isAnInequalityOperator(const std::string &s, const bool parsingC){
     const size_t chars = s.size();
     const char *c      = s.c_str();
 
@@ -333,8 +368,8 @@ namespace occa {
     return false;
   }
 
-  const char* readLine(const char *c, const int parsingLanguage_){
-    if(!(parsingLanguage_ & parserInfo::parsingC))
+  const char* readLine(const char *c, const bool parsingC){
+    if(!parsingC)
       return readFortranLine(c);
 
     bool breakNextLine = true;
@@ -446,11 +481,11 @@ namespace occa {
 
   std::string strip(const char *c,
                     const size_t chars,
-                    const int parsingLanguage_){
+                    const bool parsingC){
     if(chars == 0)
       return "";
 
-    const char nl = ((parsingLanguage_ & parserInfo::parsingC) ? '\\' : '&');
+    const char nl = (parsingC ? '\\' : '&');
 
     const char *cLeft  = c;
     const char *cRight = c + (chars - 1);
@@ -488,7 +523,7 @@ namespace occa {
   }
 
   void strip(std::string &str,
-             const int parsingLanguage_){
+             const bool parsingC){
     str = strip(str.c_str(), str.size());
   }
 
@@ -514,8 +549,8 @@ namespace occa {
     return buffer;
   }
 
-  int stripComments(std::string &line, const int parsingLanguage_){
-    if(!(parsingLanguage_ & parserInfo::parsingC))
+  int stripComments(std::string &line, const bool parsingC){
+    if(!parsingC)
       return stripFortranComments(line);
 
     std::string line2  = line;
@@ -524,7 +559,7 @@ namespace occa {
     const char *cLeft  = line2.c_str();
     const char *cRight = cLeft;
 
-    info_t status = parserNS::readingCode;
+    int status = parserNS::readingCode;
 
     while(*cRight != '\0'){
       if((*cRight == '\0') || (*cRight == '\n'))
@@ -587,32 +622,6 @@ namespace occa {
     return status;
   }
 
-  bool charStartsSection(const char c){
-    return ((c == '(') ||
-            (c == '[') ||
-            (c == '{'));
-  }
-
-  bool charEndsSection(const char c){
-    return ((c == ')') ||
-            (c == ']') ||
-            (c == '}'));
-  }
-
-  bool startsSection(const std::string &str){
-    if(str.size() == 1)
-      return charStartsSection(str[0]);
-
-    return false;
-  }
-
-  bool endsSection(const std::string &str){
-    if(str.size() == 1)
-      return charEndsSection(str[0]);
-
-    return false;
-  }
-
   char segmentPair(const char c){
     return ((')' * (c == '(')) +
             (']' * (c == '[')) +
@@ -622,12 +631,6 @@ namespace occa {
             ('{' * (c == '}')));
   }
 
-  char segmentPair(const std::string &str){
-    if(str.size() == 1)
-      return segmentPair(str[0]);
-
-    return '\0';
-  }
 
   void skipPair(const char *&c){
     if(*c == '\0')
@@ -650,19 +653,6 @@ namespace occa {
 
     if(*c != '\0')
       ++c;
-  }
-
-  int countDelimiters(const char *c, const char delimiter){
-    int count = 0;
-
-    while(*c != '\0'){
-      if(*c == delimiter)
-        ++count;
-
-      ++c;
-    }
-
-    return count;
   }
 
   void skipTo(const char *&c, const char delimiter){
@@ -731,7 +721,7 @@ namespace occa {
   }
   //==============================================
 
-  std::string getBits(const info_t value){
+  std::string getBits(const int value){
     if(value == 0)
       return "0";
 
@@ -739,8 +729,8 @@ namespace occa {
 
     bool printedSomething = false;
 
-   for(info_t i = 0; i < (8*sizeof(info_t)); ++i){
-     if(value & (((info_t) 1) << i)){
+    for(int i = 0; i < 32; ++i){
+      if(value & (1 << i)){
         if(printedSomething)
           ret << ',';
 

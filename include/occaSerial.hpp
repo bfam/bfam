@@ -123,9 +123,6 @@ namespace occa {
                                                       const std::string &functionName_);
 
   template <>
-  uintptr_t kernel_t<Serial>::maximumInnerDimSize();
-
-  template <>
   int kernel_t<Serial>::preferredDimSize();
 
   template <>
@@ -248,13 +245,13 @@ namespace occa {
   void device_t<Serial>::waitFor(streamTag tag);
 
   template <>
-  stream_t device_t<Serial>::createStream();
+  stream device_t<Serial>::createStream();
 
   template <>
-  void device_t<Serial>::freeStream(stream_t s);
+  void device_t<Serial>::freeStream(stream s);
 
   template <>
-  stream_t device_t<Serial>::wrapStream(void *handle_);
+  stream device_t<Serial>::wrapStream(void *handle_);
 
   template <>
   streamTag device_t<Serial>::tagStream();

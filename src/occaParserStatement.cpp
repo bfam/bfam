@@ -1,6 +1,8 @@
 #include "occaParserStatement.hpp"
 #include "occaParser.hpp"
 
+#include "occaTools.hpp"
+
 namespace occa {
   namespace parserNS {
     //---[ Exp Node ]-------------------------------
@@ -15,43 +17,6 @@ namespace occa {
       leafCount(0),
       leaves(NULL) {}
 
-    expNode::expNode(const std::string &str) :
-      sInfo(NULL),
-
-      value(str),
-      info(expType::root),
-
-      up(NULL),
-
-      leafCount(0),
-      leaves(NULL) {}
-
-    expNode::expNode(const char *c) :
-      sInfo(NULL),
-
-      value(c),
-      info(expType::root),
-
-      up(NULL),
-
-      leafCount(0),
-      leaves(NULL) {}
-
-    expNode::expNode(const expNode &e) :
-      sInfo(e.sInfo),
-
-      value(e.value),
-      info(e.info),
-
-      up(e.up),
-
-      leafCount(e.leafCount),
-      leaves(e.leaves) {
-
-      for(int i = 0; i < leafCount; ++i)
-        leaves[i]->up = this;
-    }
-
     expNode::expNode(statement &s) :
       sInfo(&s),
 
@@ -63,22 +28,16 @@ namespace occa {
       leafCount(0),
       leaves(NULL) {}
 
-    expNode& expNode::operator = (const expNode &e){
-      sInfo = e.sInfo;
+    expNode::expNode(expNode &up_) :
+      sInfo(up_.sInfo),
 
-      value = e.value;
-      info  = e.info;
+      value(""),
+      info(expType::root),
 
-      up = e.up;
+      up(&up_),
 
-      leafCount = e.leafCount;
-      leaves    = e.leaves;
-
-      for(int i = 0; i < leafCount; ++i)
-        leaves[i]->up = this;
-
-      return *this;
-    }
+      leafCount(0),
+      leaves(NULL) {}
 
     bool expNode::operator == (expNode &e){
       return sameAs(e);
@@ -147,257 +106,160 @@ namespace occa {
       return true;
     }
 
-    expNode expNode::makeFloatingLeaf(){
-      expNode fLeaf;
-
-      fLeaf.sInfo = sInfo;
-      fLeaf.up    = this;
-
-      return fLeaf;
-    }
-
-    void expNode::loadFromNode(expNode &allExp,
-                               const int parsingLanguage){
-
-      int expPos = 0;
-
-      loadFromNode(allExp, expPos, parsingLanguage);
-    }
-
-    void expNode::loadFromNode(expNode &allExp,
-                               int &expPos,
-                               const int parsingLanguage){
-      if(allExp.leafCount <= expPos){
-        sInfo->info = smntType::invalidStatement;
+    void expNode::loadFromNode(strNode *&nodePos, const bool parsingC){
+      if(nodePos == NULL){
+        sInfo->info = invalidStatementType;
         return;
       }
 
-      const bool parsingC       = (parsingLanguage & parserInfo::parsingC);
-      const bool parsingFortran = (parsingLanguage & parserInfo::parsingFortran);
+      strNode *nodeRoot = nodePos;
 
-      int expStart = expPos;
-
-      sInfo->labelStatement(allExp, expPos, parsingLanguage);
-
-      expNode *firstLeaf = this;
-
-      // expPos is not included, it starts the next expNode tree
-      if((1 < (expPos - expStart)) ||
-         (0 < allExp[expStart].leafCount)){
-        useExpLeaves(allExp, expStart, (expPos - expStart));
-        firstLeaf = leaves[0];
-      }
-      else{
-        info  = allExp[expStart].info;
-        value = allExp[expStart].value;
-      }
-
-      // printf("Copied expNode:\n");
-      // print();
+      sInfo->labelStatement(nodePos, this, parsingC);
 
       // Don't need to load stuff
-      if((sInfo->info & (smntType::skipStatement   |
-                         smntType::macroStatement  |
-                         smntType::gotoStatement   |
-                         smntType::blockStatement))      ||
-         (sInfo->info == smntType::occaFor)              ||
-         (sInfo->info == smntType::elseStatement)        ||
-         (sInfo->info == smntType::doWhileStatement)){
-
-        if(sInfo->info == smntType::elseStatement){
-          info  = expType::checkSInfo;
-          value = "";
-          freeThis();
-        }
-        else if(sInfo->info == smntType::gotoStatement){
-          leafCount = 1;
-        }
+      if(sInfo->info & (skipStatementType   |
+                        macroStatementType  |
+                        gotoStatementType   |
+                        blockStatementType)            ||
+         (sInfo->info == occaForType) ||
+         (sInfo->info == elseStatementType)            ||
+         (sInfo->info == doWhileStatementType)){
 
         return;
       }
 
-      std::string &firstValue = firstLeaf->value;
-
       //---[ Special Type ]---
-      if(firstLeaf->info & expType::specialKeyword){
-        if((firstValue == "break")    ||
-           (firstValue == "continue")){
+      if(nodeRoot->info & specialKeywordType){
+        if((nodeRoot->value == "break")    ||
+           (nodeRoot->value == "continue")){
 
-          info = expType::transfer_;
-
-          if((firstValue == "continue") &&
+          if((nodeRoot->value == "continue") &&
              (sInfo->distToOccaForLoop() <= sInfo->distToForLoop())){
 
             value = "occaContinue";
+            info  = expType::transfer_;
           }
           else{
-            value = firstValue;
+            value = nodeRoot->value;
+            info  = expType::transfer_;
           }
-
-          freeThis();
 
           return;
         }
 
         // [-] Doesn't support GCC's twisted [Labels as Values]
-        if(firstValue == "goto"){
-          OCCA_CHECK(1 < leafCount,
-                     "Goto check [" << toString() << "] needs label");
-
+        if(nodeRoot->value == "goto"){
+          value = nodeRoot->right->value;
           info  = expType::goto_;
-          value = allExp[expStart + 1];
           return;
         }
 
         // Case where nodeRoot = [case, return]
 
-        if((firstValue == "case") ||
-           (firstValue == "default")){
+        if((nodeRoot->value == "case") ||
+           (nodeRoot->value == "default")){
           info = expType::checkSInfo;
         }
-        else if((parsingC       && (firstValue == "return")) ||
-                (parsingFortran && (firstValue == "RETURN"))){
-
+        else if(nodeRoot->value == "return"){
           info = expType::return_;
-
-          // it's only return
-          if(leafCount == 0){
-            value = "";
-            return;
-          }
-
-          if(firstLeaf == leaves[0])
-            removeNode(0);
-
-          // Don't put the [;]
-          if(leafCount &&
-             (leaves[leafCount - 1]->value == ";")){
-
-            --leafCount;
-          }
-        }
-
-        // [occaParallelFor][#]
-        // 15              + 1 = 16
-        if((firstValue.find("occaParallelFor") != std::string::npos) &&
-           (firstValue.size() == 16)){
-
-          sInfo->info = smntType::macroStatement;
-          info        = expType::printValue;
-
-          return;
-        }
-
-        if(firstValue == "occaUnroll"){
-          splitAndOrganizeNode();
-
-          value = (std::string) *this;
-
-          free();
-
-          sInfo->info  = smntType::macroStatement;
-          info         = expType::printValue;
-
-          return;
         }
       }
       //======================
 
-      if(parsingLanguage & parserInfo::parsingC)
-        splitAndOrganizeNode();
+      strNode *newNodeRoot = nodeRoot->cloneTo(nodePos);
+      strNode *lastNewNode = lastNode(newNodeRoot);
+
+      if(lastNewNode == NULL)
+        newNodeRoot->print();
+
+      if(parsingC)
+        splitAndOrganizeNode(newNodeRoot);
       else
-        splitAndOrganizeFortranNode();
+        splitAndOrganizeFortranNode(newNodeRoot);
 
       // std::cout << "[" << getBits(sInfo->info) << "] this = " << *this << '\n';
       // print();
+
+      // Only the root needs to free
+      if(up == NULL)
+        occa::parserNS::free(newNodeRoot);
     }
 
-    void expNode::splitAndOrganizeNode(){
-      changeExpTypes();
+    void expNode::splitAndOrganizeNode(strNode *nodeRoot){
+      initLoadFromNode(nodeRoot);
       initOrganization();
 
-      if(sInfo == NULL)
-        organize();
-
-      else if(sInfo->info & smntType::declareStatement){
+      if(sInfo->info & declareStatementType)
         splitDeclareStatement();
-      }
 
-      else if(sInfo->info & smntType::updateStatement)
-        splitUpdateStatement();
-
-      else if((sInfo->info & (smntType::ifStatement    |
-                              smntType::forStatement   |
-                              smntType::whileStatement |
-                              smntType::switchStatement)) &&
-              (sInfo->info != smntType::elseStatement)){
+      else if((sInfo->info & (ifStatementType    |
+                              forStatementType   |
+                              whileStatementType |
+                              switchStatementType)) &&
+              (sInfo->info != elseStatementType)){
 
         splitFlowStatement();
       }
 
-      else if(sInfo->info & smntType::functionStatement)
+      else if(sInfo->info & functionStatementType)
         splitFunctionStatement();
 
-      else if(sInfo->info & smntType::structStatement)
+      else if(sInfo->info & structStatementType)
         splitStructStatement();
 
-      else if(sInfo->info & smntType::caseStatement)
+      else if(sInfo->info & caseStatementType)
         splitCaseStatement();
 
       else
         organize();
     }
 
-    void expNode::splitAndOrganizeFortranNode(){
-      changeExpTypes();
-
-      if(leafCount == 0)
-        return;
+    void expNode::splitAndOrganizeFortranNode(strNode *nodeRoot){
+      initLoadFromFortranNode(nodeRoot);
 
       if(leaves[leafCount - 1]->value == "\\n")
         --leafCount;
 
-      if(sInfo == NULL)
-        organize();
-
-      else if(sInfo->info & smntType::declareStatement)
+      if(sInfo->info & declareStatementType)
         splitFortranDeclareStatement();
 
-      else if(sInfo->info & smntType::updateStatement)
+      if(sInfo->info & updateStatementType)
         splitFortranUpdateStatement();
 
-      else if((sInfo->info & (smntType::ifStatement  |
-                              smntType::forStatement |
-                              smntType::whileStatement)) &&
-              (sInfo->info != smntType::elseStatement)){
+      else if((sInfo->info & (ifStatementType  |
+                              forStatementType |
+                              whileStatementType)) &&
+              (sInfo->info != elseStatementType)){
 
         splitFortranFlowStatement();
       }
 
-      else if(sInfo->info & smntType::functionStatement)
+      else if(sInfo->info & functionStatementType)
         splitFortranFunctionStatement();
 
-      else if(sInfo->info & smntType::structStatement)
+      else if(sInfo->info & structStatementType)
         splitStructStatement();
 
-      else if(sInfo->info & smntType::caseStatement)
-        splitCaseStatement(parserInfo::parsingFortran);
+      else if(sInfo->info & caseStatementType)
+        splitCaseStatement(parsingFortran);
 
       else
-        organize(parserInfo::parsingFortran);
+        organize(parsingFortran);
+
+      // std::cout << "this = " << *this << '\n';
     }
 
-    void expNode::organize(const int parsingLanguage){
+    void expNode::organize(const bool parsingC){
       if(leafCount == 0)
         return;
 
-      if(parsingLanguage & parserInfo::parsingC)
+      if(parsingC)
         organizeLeaves();
       else
         organizeFortranLeaves();
     }
 
-    void expNode::splitDeclareStatement(const info_t flags){
+    void expNode::splitDeclareStatement(const int flags){
       info = expType::declaration;
 
       int varCount = 1 + typeInfo::delimiterCount(*this, ",");
@@ -408,7 +270,7 @@ namespace occa {
       // Store variables and stuff
       expNode newExp(*sInfo);
       newExp.info = info;
-      newExp.addNodes(varCount);
+      newExp.addNodes(expType::root, 0, varCount);
 
       for(int i = 0; i < varCount; ++i){
         expNode &leaf = newExp[i];
@@ -441,15 +303,14 @@ namespace occa {
         leafPos = sExpEnd;
 
         // Don't put the [;]
-        if(leafCount              &&
-           (sExpEnd == leafCount) &&
+        if((sExpEnd == leafCount) &&
            (leaves[sExpEnd - 1]->value == ";")){
 
           --sExpEnd;
         }
 
         if(sExpStart < sExpEnd){
-          leaf.addNodes(1, sExpEnd - sExpStart);
+          leaf.addNodes(expType::root, 1, sExpEnd - sExpStart);
 
           for(int j = sExpStart; j < sExpEnd; ++j)
             expNode::swap(*leaf.leaves[j - sExpStart + 1], *leaves[j]);
@@ -464,22 +325,6 @@ namespace occa {
       expNode::swap(*this, newExp);
     }
 
-    void expNode::splitUpdateStatement(){
-      // Don't put the [;]
-      if(leafCount &&
-         (leaves[leafCount - 1]->value == ";")){
-
-        info |= expType::hasSemicolon;
-        --leafCount;
-      }
-      else if(leafCount == 0){
-        info = expType::checkSInfo;
-        return;
-      }
-
-      organize();
-    }
-
     void expNode::splitFlowStatement(){
       info = expType::checkSInfo;
 
@@ -489,7 +334,7 @@ namespace occa {
 
       expNode newExp(*sInfo);
       newExp.info = info;
-      newExp.addNodes(statementCount);
+      newExp.addNodes(expType::root, 0, statementCount);
 
       int leafPos = 0;
 
@@ -499,7 +344,7 @@ namespace occa {
         int nextLeafPos = typeInfo::nextDelimiter(expDown, leafPos, ";");
 
         if(leafPos < nextLeafPos){
-          leaf.addNodes(nextLeafPos - leafPos);
+          leaf.addNodes(expType::root, 0, (nextLeafPos - leafPos));
 
           for(int j = 0; j < leaf.leafCount; ++j){
             delete leaf.leaves[j];
@@ -508,7 +353,7 @@ namespace occa {
             leaf.leaves[j]->up = &leaf;
           }
 
-          bool hasDeclare = ((sInfo->info & smntType::forStatement) && (i == 0));
+          bool hasDeclare = ((sInfo->info & forStatementType) && (i == 0));
 
           if(hasDeclare &&
              ((leaf.leafCount == 0) ||
@@ -525,7 +370,7 @@ namespace occa {
           else{
             leaf.splitDeclareStatement(expFlag::addVarToScope);
 
-            expNode &flatRoot = *(makeDumbFlatHandle());
+            expNode &flatRoot = *(makeFlatHandle());
 
             for(int j = 0; j < flatRoot.leafCount; ++j){
               expNode &n = flatRoot[j];
@@ -549,10 +394,8 @@ namespace occa {
       expNode::swap(*this, newExp);
     }
 
-    void expNode::splitFunctionStatement(const info_t flags){
-      const bool functionIsDefined = (sInfo->info & smntType::functionDefinition);
-
-      if(functionIsDefined)
+    void expNode::splitFunctionStatement(const int flags){
+      if(sInfo->info & functionDefinitionType)
         info = (expType::function | expType::declaration);
       else
         info = (expType::function | expType::prototype);
@@ -571,9 +414,7 @@ namespace occa {
         sInfo->up->addVariable(&var);
       }
 
-      if(functionIsDefined){
-        leaves[0]->info |= expType::type;
-
+      if(info == (expType::function | expType::declaration)){
         for(int i = 0; i < var.argumentCount; ++i)
           sInfo->addVariable(var.argumentVarInfos[i]);
       }
@@ -581,7 +422,7 @@ namespace occa {
       removeNodes(1, leafPos);
     }
 
-    void expNode::splitStructStatement(const info_t flags){
+    void expNode::splitStructStatement(const int flags){
       info = expType::struct_;
 
       // Store type
@@ -603,9 +444,9 @@ namespace occa {
       expNode::swap(*this, newExp);
     }
 
-    void expNode::splitCaseStatement(const int parsingLanguage){
+    void expNode::splitCaseStatement(const bool parsingC){
       // Fortran doesn't have [:] leaf at the end
-      if(parsingLanguage & parserInfo::parsingC)
+      if(parsingC)
         --leafCount;
 
       // Remove [case] or [default]
@@ -639,7 +480,7 @@ namespace occa {
       // Store variables and stuff
       expNode newExp(*sInfo);
       newExp.info = info;
-      newExp.addNodes(varCount);
+      newExp.addNodes(expType::root, 0, varCount);
 
       for(int i = 0; i < varCount; ++i){
         expNode &leaf = newExp[i];
@@ -666,7 +507,7 @@ namespace occa {
         leafPos = sExpEnd;
 
         if(sExpStart < sExpEnd){
-          leaf.addNodes(1, sExpEnd - sExpStart);
+          leaf.addNodes(expType::root, 1, sExpEnd - sExpStart);
 
           for(int j = sExpStart; j < sExpEnd; ++j)
             expNode::swap(*leaf.leaves[j - sExpStart + 1], *leaves[j]);
@@ -730,9 +571,9 @@ namespace occa {
           *(argVar) = var;
         }
 
-        sInfo->info = smntType::skipStatement;
+        sInfo->info = skipStatementType;
       }
-      else { // Add variables to scope
+      else{ // Add variables to scope
         for(int i = 0; i < varCount; ++i){
 
           varInfo &var = leaves[i]->getVarInfo(0);
@@ -743,7 +584,7 @@ namespace occa {
             statement *s = sInfo->getVarOriginStatement(*pVar);
 
             if(s &&
-               (s->info & smntType::functionDefinition)){
+               (s->info & functionDefinitionType)){
 
               // Hide stack info in arguments
               var.stackPointersUsed = 0;
@@ -758,7 +599,7 @@ namespace occa {
 
               *(pVar) = var;
 
-              sInfo->info = smntType::skipStatement;
+              sInfo->info = skipStatementType;
             }
             // Will give error message
             else if(sInfo->up != NULL){
@@ -770,6 +611,7 @@ namespace occa {
               sInfo->up->addVariable(&var, sInfo);
             }
           }
+
         }
       }
     }
@@ -778,19 +620,11 @@ namespace occa {
       if(leafCount == 0)
         return;
 
-      // Don't put the [;]
-      if(leafCount &&
-         (leaves[leafCount - 1]->value == ";")){
-
-        info |= expType::hasSemicolon;
-        --leafCount;
-      }
-
       // Function call
       if(leaves[0]->value == "CALL"){
         // Only [CALL]
         if(leafCount == 1){
-          sInfo->info = smntType::skipStatement;
+          sInfo->info = skipStatementType;
           return;
         }
 
@@ -799,9 +633,10 @@ namespace occa {
 
           leaves[0]->info = expType::function;
 
-          organize(parserInfo::parsingFortran);
+          mergeFunctionCalls();
 
-          info |= expType::hasSemicolon;
+          if(leaves[leafCount - 1]->value != ";")
+            addNode(expType::operator_, ";");
         }
         else{
           OCCA_CHECK(false,
@@ -812,7 +647,7 @@ namespace occa {
         return;
       }
 
-      organize(parserInfo::parsingFortran);
+      organize(parsingFortran);
 
       varInfo *funcExp = sInfo->getFunctionVar();
 
@@ -820,19 +655,30 @@ namespace occa {
          ((*this)[0].value    != "=") ||
          ((*this)[0][0].value != funcExp->name)){
 
-        info |= expType::hasSemicolon;
+        if(leaves[leafCount - 1]->value != ";")
+          addNode(expType::operator_, ";");
 
         return;
       }
 
-      expNode &retValueLeaf = *((*this)[0][1].clonePtr());
+      expNode *retValueLeaf = &((*this)[0][1]);
 
-      free();
+      delete &((*this)[0][0]);
+      delete &((*this)[0]);
+      delete [] leaves;
 
       info = expType::return_;
 
-      reserve(1);
-      setLeaf(retValueLeaf, 0);
+      leaves    = new expNode*[2];
+      leafCount = 2;
+
+      leaves[0] = new expNode(*this);
+      leaves[1] = retValueLeaf;
+
+      (*this)[0].info  = expType::printValue;
+      (*this)[0].value = "return";
+
+      addNode(expType::operator_, ";");
     }
 
     void expNode::splitFortranFlowStatement(){
@@ -841,13 +687,13 @@ namespace occa {
       if(leafCount == 0)
         return;
 
-      if(sInfo->info & smntType::forStatement){
+      if(sInfo->info & forStatementType){
         splitFortranForStatement();
       }
       // [IF/ELSE IF/DO WHILE]( EXPR )
-      else if((sInfo->info == smntType::ifStatement)     ||
-              (sInfo->info == smntType::elseIfStatement) ||
-              (sInfo->info == smntType::whileStatement)){
+      else if((sInfo->info == ifStatementType)     ||
+              (sInfo->info == elseIfStatementType) ||
+              (sInfo->info == whileStatementType)){
 
         OCCA_CHECK(leafCount != 0,
                    "No expression in if-statement: " << *this << '\n');
@@ -859,7 +705,7 @@ namespace occa {
         leafCount = 1;
       }
       // [ELSE]
-      else if(sInfo->info & smntType::elseStatement){
+      else if(sInfo->info & elseStatementType){
         if(leafCount)
           free();
       }
@@ -870,10 +716,10 @@ namespace occa {
       // Infinite [DO]
       if(leafCount == 1){
         leaves[0]->value = "true";
-        leaves[0]->info  = expType::presetValue;
+        leaves[0]->info  = presetValue;
         leafCount = 1;
 
-        sInfo->info = smntType::whileStatement;
+        sInfo->info = whileStatementType;
 
         return;
       }
@@ -905,11 +751,11 @@ namespace occa {
 
       expNode newExp(*sInfo);
       newExp.info = info;
-      newExp.addNodes(3 + hasOccaTag);
+      newExp.addNodes(expType::root, 0, 3 + hasOccaTag);
 
       if(hasOccaTag){
         expNode &leaf = newExp[3];
-        leaf.addNode(expType::printValue, 0);
+        leaf.addNode(expType::presetValue, 0);
         leaf[0].value = lastLeafValue;
 
         // Get rid of the tag
@@ -939,39 +785,25 @@ namespace occa {
 
       sInfo->createUniqueVariables(doNames);
 
-      expNode exp0 = sInfo->createOrganizedExpNodeFrom(*this,
-                                                       pos[0],
-                                                       (pos[1] - pos[0] - 1));
-      expNode exp1 = sInfo->createOrganizedExpNodeFrom(*this,
-                                                       pos[1],
-                                                       (pos[2] - pos[1] - 1));
+      const std::string exp0 = toString(pos[0], (pos[1] - pos[0] - 1));
+      const std::string exp1 = toString(pos[1], (pos[2] - pos[1] - 1));
 
-      const std::string exp0Str = exp0.toString();
-      const std::string exp1Str = exp1.toString();
+      const std::string decl0 = "const int " + doStart + " = " + exp0;
+      const std::string decl1 = "const int " + doEnd   + " = " + exp1;
 
-      OCCA_CHECK(exp0Str.size() != 0,
-                 "Error, missing 1st statement in the [DO]: "
-                 << toString() << '\n');
-      OCCA_CHECK(exp1Str.size() != 0,
-                 "Error, missing 2nd statement in the [DO]: "
-                 << toString() << '\n');
-
-      const std::string decl0 = "const int " + doStart + " = " + exp0Str;
-      const std::string decl1 = "const int " + doEnd   + " = " + exp1Str;
+      OCCA_CHECK(exp0.size() != 0,
+                 "Error, missing 1st statement in the [DO]: " << toString() << '\n');
+      OCCA_CHECK(exp1.size() != 0,
+                 "Error, missing 2nd statement in the [DO]: " << toString() << '\n');
 
       sInfo->up->addStatementFromSource(decl0);
       sInfo->up->addStatementFromSource(decl1);
 
       if(statementCount == 3){
-        expNode exp2 = sInfo->createOrganizedExpNodeFrom(*this,
-                                                         pos[2],
-                                                         (pos[3] - pos[2] - 1));
+        const std::string exp2  = toString(pos[2], (pos[3] - pos[2] - 1));
+        const std::string decl2 = "const int " + doStride + " = " + exp2;
 
-        const std::string exp2Str = exp2.toString();
-
-        const std::string decl2 = "const int " + doStride + " = " + exp2Str;
-
-        OCCA_CHECK(exp2Str.size() != 0,
+        OCCA_CHECK(exp2.size() != 0,
                    "Error, missing 3rd statement in the [DO]: " << toString() << '\n');
 
         sInfo->up->addStatementFromSource(decl2);
@@ -981,15 +813,15 @@ namespace occa {
         sInfo->up->addStatementFromSource(decl3);
       }
 
-      newExp[0] = sInfo->createOrganizedExpNodeFrom(iter + " = " + doStart);
+      newExp.leaves[0] = sInfo->createExpNodeFrom(iter + " = " + doStart);
 
       if(statementCount == 3){
-        newExp[1] = sInfo->createOrganizedExpNodeFrom("0 <= (" + doStrideSign + "* (" + doEnd + " - " + iter + "))");
-        newExp[2] = sInfo->createOrganizedExpNodeFrom(iter + " += " + doStride);
+        newExp.leaves[1] = sInfo->createExpNodeFrom("0 <= (" + doStrideSign + "* (" + doEnd + " - " + iter + "))");
+        newExp.leaves[2] = sInfo->createExpNodeFrom(iter + " += " + doStride);
       }
       else{
-        newExp[1] = sInfo->createOrganizedExpNodeFrom(iter + " <= " + doEnd);
-        newExp[2] = sInfo->createOrganizedExpNodeFrom("++" + iter);
+        newExp.leaves[1] = sInfo->createExpNodeFrom(iter + " <= " + doEnd);
+        newExp.leaves[2] = sInfo->createExpNodeFrom("++" + iter);
       }
 
       newExp[0].labelUsedVariables();
@@ -1037,113 +869,178 @@ namespace occa {
     }
     //  ======================
 
-    void expNode::translateOccaKeyword(expNode &exp,
-                                       info_t preInfo,
-                                       const int parsingLanguage_){
+    void expNode::translateOccaKeyword(strNode *nodePos, const bool parsingC){
+      if(nodePos->info & occaKeywordType){
 
-      if(preInfo & expType::occaKeyword){
+        if(((parsingC)  &&
+            (nodePos->value == "directLoad")) ||
+           ((!parsingC) &&
+            upStringCheck(nodePos->value, "DIRECTLOAD"))){
 
-        const bool parsingC       = (parsingLanguage_ & parserInfo::parsingC);
-        const bool parsingFortran = (parsingLanguage_ & parserInfo::parsingFortran);
-
-        if((parsingC       && (exp.value == "directLoad")) ||
-           (parsingFortran && upStringCheck(exp.value, "DIRECTLOAD"))){
-
-          exp.value = "occaDirectLoad";
+          nodePos->value = "occaDirectLoad";
         }
 
       }
     }
 
-    bool expNode::isOrganized(){
-      if(needsExpChange())
-        return true;
+    void expNode::initLoadFromNode(strNode *nodeRoot){
+      strNode *nodePos = nodeRoot;
 
-      for(int i = 0; i < leafCount; ++i){
-        if(leaves[i]->needsExpChange())
-          return true;
+      while(nodePos){
+        ++leafCount;
+        nodePos = nodePos->right;
       }
 
-      return false;
-    }
-
-    bool expNode::needsExpChange(){
-      if(info == expType::root)
-        return false;
-
-      return (info & expType::firstPass);
-    }
-
-    void expNode::changeExpTypes(const int leafPos){
-      if(info & expType::hasInfo)
+      if(leafCount == 0)
         return;
 
-      if(info & expType::unknown){
-        info &= expType::firstPassMask;
+      nodePos = nodeRoot;
 
-        if(sInfo != NULL){
-          varInfo *nodeVar = sInfo->hasVariableInScope(value);
+      leaves = new expNode*[leafCount];
+      int leafPos = 0;
+
+      while(nodePos){
+        if(nodePos->info & occaKeywordType)
+          translateOccaKeyword(nodePos, true);
+
+        expNode *&leaf = leaves[leafPos++];
+
+        leaf        = new expNode(*this);
+        leaf->value = nodePos->value;
+
+        if(nodePos->info & unknownVariable){
+          varInfo *nodeVar = sInfo->hasVariableInScope(nodePos->value);
 
           if(nodeVar){
-            if( !(nodeVar->info & varType::function) ){
-              putVarInfo(*nodeVar);
-              return;
-            }
+            if( !(nodeVar->info & varType::functionType) )
+              leaf->putVarInfo(*nodeVar);
             else
-              info = expType::function; // [<>] Change to funcInfo
+              leaf->info = expType::function;
           }
           else{
-            typeInfo *nodeType = sInfo->hasTypeInScope(value);
+            typeInfo *nodeType = sInfo->hasTypeInScope(nodePos->value);
 
             if(!nodeType)
-              info = expType::unknown;
+              leaf->info = expType::unknown;
             else
-              info = expType::type;
+              leaf->info = expType::type;
           }
         }
-      }
-      else if(needsExpChange()){
-        info &= expType::firstPassMask;
 
-        info_t preInfo = info;
+        else if(nodePos->info & presetValue){
+          leaf->info = expType::presetValue;
+        }
 
-        if(preInfo & expType::occaKeyword)
-          translateOccaKeyword(*this, preInfo, true);
+        else if(nodePos->info & descriptorType){
+          if(nodePos->info == keywordType["long"]){
+            if((nodePos->right) &&
+               (sInfo->hasTypeInScope(nodePos->right->value))){
 
-        if(preInfo & expType::descriptor){
-          if(preInfo == (*keywordType)["long"]){
-            if((up != NULL)                    &&
-               ((leafPos + 1) < up->leafCount) &&
-               (sInfo->hasTypeInScope(up->leaves[leafPos + 1]->value))){
-
-              info = expType::qualifier;
+              leaf->info = expType::qualifier;
             }
             else
-              info = expType::type;
+              leaf->info = expType::type;
           }
-          else if(preInfo & (expType::qualifier | expType::struct_))
-            info = expType::qualifier;
+          else if(nodePos->info & (qualifierType | structType))
+            leaf->info = expType::qualifier;
           else
-            info = expType::type;
+            leaf->info = expType::type;
 
           // For [*] and [&]
-          if(preInfo & expType::operator_)
-            info = (preInfo & expType::firstPassMask);
+          if(nodePos->info & operatorType)
+            leaf->info |= expType::operator_;
         }
 
-        else if(preInfo & expType::C){
-          if(leafCount)
-            changeExpTypes();
+        else if(nodePos->info & structType){
+          leaf->info = expType::qualifier;
         }
 
-        else if( !(preInfo & (expType::presetValue |
-                              expType::operator_)) ){
-          info = expType::printValue;
+        else if(nodePos->info & operatorType){
+          leaf->info = expType::operator_;
         }
+
+        else if(nodePos->info & startSection){
+          leaf->info  = expType::C;
+
+          if(nodePos->down)
+            leaf->initLoadFromNode(nodePos->down);
+        }
+
+        else
+          leaf->info = expType::printValue;
+
+        if(nodePos->info == 0){
+          delete leaf;
+          --leafPos;
+        }
+
+        nodePos = nodePos->right;
+      }
+    }
+
+    void expNode::initLoadFromFortranNode(strNode *nodeRoot){
+      strNode *nodePos = nodeRoot;
+
+      while(nodePos){
+        ++leafCount;
+        nodePos = nodePos->right;
       }
 
-      for(int i = 0; i < leafCount; ++i)
-        leaves[i]->changeExpTypes(i);
+      if(leafCount == 0)
+        return;
+
+      nodePos = nodeRoot;
+
+      leaves = new expNode*[leafCount];
+      int leafPos = 0;
+
+      while(nodePos){
+        expNode *&leaf = leaves[leafPos++];
+
+        leaf        = new expNode(*this);
+        leaf->value = nodePos->value;
+
+        if(nodePos->info & unknownVariable){
+          varInfo *nodeVar = sInfo->hasVariableInScope(nodePos->value);
+
+          if(nodeVar)
+            leaf->putVarInfo(*nodeVar);
+          else
+            leaf->info = expType::unknown;
+        }
+
+        else if(nodePos->info & presetValue){
+          leaf->info = expType::presetValue;
+        }
+
+        else if(nodePos->info & descriptorType){
+          if(nodePos->info & qualifierType)
+            leaf->info = expType::qualifier;
+          else
+            leaf->info  = expType::type;
+        }
+
+        else if(nodePos->info & operatorType){
+          leaf->info = expType::operator_;
+        }
+
+        else if(nodePos->info & startSection){
+          leaf->info  = expType::C;
+
+          if(nodePos->down)
+            leaf->initLoadFromNode(nodePos->down);
+        }
+
+        else
+          leaf->info = expType::printValue;
+
+        if(nodePos->info == 0){
+          delete leaf;
+          --leafPos;
+        }
+
+        nodePos = nodePos->right;
+      }
     }
 
     void expNode::initOrganization(){
@@ -1196,9 +1093,6 @@ namespace occa {
       // <const int,float>
       mergeTypes();
 
-      // a[3]
-      mergeArrays();
-
       // class(...), class{1,2,3}
       mergeClassConstructs();
 
@@ -1207,6 +1101,9 @@ namespace occa {
 
       // [max(a,b)]
       mergeFunctionCalls();
+
+      // a[3]
+      mergeArrays();
 
       // ptr(a,b)
       mergePointerArrays();
@@ -1256,7 +1153,6 @@ namespace occa {
       }
 
       mergeFortranArrays();
-      mergeArrays();
 
       for(int i = 0; i < 12; ++i)
         organizeLeaves(i);
@@ -1266,7 +1162,7 @@ namespace occa {
     }
 
     void expNode::organizeLeaves(const int level){
-      bool leftToRight = *(opLevelL2R[level]);
+      bool leftToRight = opLevelL2R[level];
 
       int leafPos  = (leftToRight ? 0 : (leafCount - 1));
       const int ls = (leftToRight ? 1 : -1);
@@ -1284,46 +1180,39 @@ namespace occa {
           continue;
         }
 
-        std::string &lStr     = leaves[leafPos]->value;
-        opLevelMapIterator it = opLevelMap[level]->find(lStr);
+        std::string &lStr = leaves[leafPos]->value;
+        opLevelMapIterator it = opLevelMap[level].find(lStr);
 
-        if(it == opLevelMap[level]->end()){
+        if(it == opLevelMap[level].end()){
           leafPos += ls;
           continue;
         }
 
         const int levelType = it->second;
 
-        if(levelType & expType::L_R){
+        if(levelType & unitaryOperatorType){
           bool updateNow = true;
 
-          const int targetOff = ((levelType & expType::L) ? 1 : -1);
+          const int targetOff = ((levelType & lUnitaryOperatorType) ? 1 : -1);
           const int target    = leafPos + targetOff;
 
           if((target < 0) || (leafCount <= target)){
             updateNow = false;
           }
           else{
-            info_t lInfo = (*keywordType)[lStr];
-
+            if(leaves[target]->info & expType::operator_)
+              updateNow = false;
             // Cases: & * + -
-            if((lInfo & expType::LR) ||
-               ((lInfo & expType::L_R) == expType::L_R)){
+            else if(keywordType[lStr] & binaryOperatorType){
               const int invTarget = leafPos + ((targetOff == 1) ?
                                                -1 : 1);
 
               updateNow = false;
 
-              if((invTarget < 0) || (leafCount <= invTarget)){
-                updateNow = true;
-              }
-              else {
-                // [-] Add
-                // varInfo tVar  = leaves[target]->evaluateType();
-                // varInfo itVar = leaves[invTarget]->evaluateType();
+              if((invTarget < 0) || (leafCount <= invTarget) ||
+                 (leaves[invTarget]->info & expType::operator_)){
 
-                if(leaves[invTarget]->info & expType::operator_)
-                  updateNow = (leaves[invTarget]->leafCount == 0);
+                updateNow = true;
               }
             }
           }
@@ -1332,15 +1221,15 @@ namespace occa {
             leafPos += ls;
           }
           else{
-            if(levelType & expType::L)
+            if(levelType & lUnitaryOperatorType)
               leafPos = mergeLeftUnary(leafPos, leftToRight);
             else
               leafPos = mergeRightUnary(leafPos, leftToRight);
           }
         }
-        else if(levelType & expType::LR)
+        else if(levelType & binaryOperatorType)
           leafPos = mergeBinary(leafPos, leftToRight);
-        else if(levelType & expType::LCR)
+        else if(levelType & ternaryOperatorType)
           leafPos = mergeTernary(leafPos, leftToRight);
         else
           leafPos += ls;
@@ -1350,15 +1239,19 @@ namespace occa {
     int expNode::mergeRange(const int newLeafType,
                             const int leafPosStart,
                             const int leafPosEnd){
-      expNode *newLeaf = new expNode( makeFloatingLeaf() );
+      expNode *newLeaf = new expNode(*this);
 
-      newLeaf->info = newLeafType;
-      newLeaf->addNodes(leafPosEnd - leafPosStart + 1);
+      newLeaf->up        = this;
+      newLeaf->info      = newLeafType;
+      newLeaf->leafCount = (leafPosEnd - leafPosStart + 1);
+      newLeaf->leaves    = new expNode*[newLeaf->leafCount];
 
-      for(int i = 0; i < newLeaf->leafCount; ++i)
-        newLeaf->setLeaf(*(leaves[leafPosStart + i]), i);
+      for(int i = 0; i < newLeaf->leafCount; ++i){
+        newLeaf->leaves[i]     = leaves[leafPosStart + i];
+        newLeaf->leaves[i]->up = newLeaf;
+      }
 
-      setLeaf(*newLeaf, leafPosStart);
+      leaves[leafPosStart] = newLeaf;
 
       for(int i = (leafPosEnd + 1); i < leafCount; ++i)
         leaves[leafPosStart + i - leafPosEnd] = leaves[i];
@@ -1400,8 +1293,8 @@ namespace occa {
       int leafPos = 0;
 
       while(leafPos < leafCount){
-        if(((leaves[leafPos]->info & expType::operator_) == 0) ||
-           ((leaves[leafPos]->info & expType::qualifier) == 0)){
+        if(leaves[leafPos]->info != (expType::operator_ |
+                                     expType::qualifier)){
 
           ++leafPos;
           continue;
@@ -1410,7 +1303,7 @@ namespace occa {
         expNode &leaf = *(leaves[leafPos]);
 
         if(leafPos == 0){
-          leaf.info &= ~expType::qualifier;
+          leaf.info = expType::operator_;
           ++leafPos;
           continue;
         }
@@ -1420,25 +1313,25 @@ namespace occa {
         if(lLeaf.info & (expType::qualifier |
                          expType::type)){
 
-          leaf.info &= ~expType::operator_;
+          leaf.info = expType::qualifier;
         }
 
         else if(lLeaf.info & expType::unknown){
           if(!sInfo->hasTypeInScope(lLeaf.value))
-            leaf.info &= ~expType::qualifier;
+            leaf.info = expType::operator_;
           else
-            leaf.info &= ~expType::operator_;
+            leaf.info = expType::qualifier;
         }
 
         else if((lLeaf.value == ",") &&
                 (up == NULL)         &&
-                (sInfo->info == smntType::declareStatement)){
+                (sInfo->info == declareStatementType)){
 
-          leaf.info &= ~expType::operator_;
+          leaf.info = expType::qualifier;
         }
 
         else{
-          leaf.info &= ~expType::qualifier;
+          leaf.info = expType::operator_;
         }
 
         ++leafPos;
@@ -1449,11 +1342,8 @@ namespace occa {
     void expNode::labelCasts(){
       // Don't mistake:
       //   int main(int) -> int main[(int)]
-      if((sInfo == NULL) ||
-         (sInfo->info & smntType::functionStatement)){
-
+      if(sInfo->info & functionStatementType)
         return;
-      }
 
       int leafPos = 0;
 
@@ -1523,6 +1413,7 @@ namespace occa {
                             leafPos);
           }
 
+          // Remove nodes from the AST
           removeNodes(leafPos, nextLeafPos - leafPos);
         }
 
@@ -1532,17 +1423,9 @@ namespace occa {
 
     // <const int,float>
     void expNode::mergeTypes(){
-      if(sInfo == NULL)
-        return;
-
       int leafPos = 0;
 
       while(leafPos < leafCount){
-        if(leaves[leafPos]->info & expType::hasInfo){
-          ++leafPos;
-          continue;
-        }
-
         if(sInfo->hasTypeInScope(leaves[leafPos]->value) ||
            (leaves[leafPos]->info == expType::qualifier)){
 
@@ -1572,7 +1455,7 @@ namespace occa {
       int leafPos = 0;
 
       while(leafPos < leafCount){
-        if((leaves[leafPos]->info  & expType::C) &&
+        if((leaves[leafPos]->info  == expType::C) &&
            (leaves[leafPos]->value == "(")){
 
           if((leafPos) &&
@@ -1611,27 +1494,80 @@ namespace occa {
 
       while(leafPos < leafCount){
         expNode &preLeaf = *(leaves[leafPos - 1]);
-        expNode &leaf    = *(leaves[leafPos]);
 
-        if((leaf.info & expType::C)  && // ( or [
-           ((leaf.value == "[") ||
-            (leaf.value == "("))     &&
-           (preLeaf.info & (expType::typeInfo |     // that should be merged with a type, var, or ?
-                            expType::varInfo  |
-                            expType::unknown))){
+        if( !((preLeaf.info & expType::varInfo) &&
+              (preLeaf.getVarInfo().hasOperator("(") ||
+               preLeaf.getVarInfo().hasOperator("["))) &&
+            ((preLeaf.info & expType::attribute) == 0) ){
 
-          leaf.info = expType::LR;
-
-          leaf.reserveAndShift(1, 1);
-
-          leaf.leaves[1] = &preLeaf;
-          expNode::swap(leaf[0], leaf[1]);
-
-          removeNode(leafPos - 1);
+          ++leafPos;
           continue;
         }
 
-        ++leafPos;
+        if((leaves[leafPos]->info & expType::C) &&
+           ((leaves[leafPos]->value == "[") ||
+            (leaves[leafPos]->value == "("))){
+
+          int brackets = 0;
+
+          while(((leafPos + brackets) < leafCount) &&
+                (leaves[leafPos + brackets]->info & expType::C) &&
+                ((leaves[leafPos + brackets]->value == "[") ||
+                 (leaves[leafPos + brackets]->value == "("))){
+
+            ++brackets;
+          }
+
+          const bool inserting = ((leaves[leafPos - 1]->info & expType::variable) &&
+                                  leaves[leafPos - 1]->leafCount);
+
+          expNode *newLeaf;
+
+          if(inserting){
+            newLeaf = leaves[leafPos - 1];
+          }
+          else{
+            newLeaf = new expNode(*this);
+
+            newLeaf->up        = this;
+            newLeaf->info      = expType::variable;
+            newLeaf->leafCount = 2;
+            newLeaf->leaves    = new expNode*[2];
+          }
+
+          expNode *sNewLeaf = new expNode(*newLeaf);
+
+          sNewLeaf->up        = newLeaf;
+          sNewLeaf->info      = expType::qualifier;
+          sNewLeaf->leafCount = brackets;
+          sNewLeaf->leaves    = new expNode*[brackets];
+
+          if(inserting){
+            newLeaf->addNode(expType::qualifier);
+            newLeaf->leaves[newLeaf->leafCount - 1] = sNewLeaf;
+          }
+          else{
+            newLeaf->leaves[0] = leaves[leafPos - 1];
+            newLeaf->leaves[1] = sNewLeaf;
+
+            newLeaf->leaves[0]->up = newLeaf;
+
+            leaves[leafPos - 1] = newLeaf;
+          }
+
+          for(int i = 0; i < brackets; ++i){
+            sNewLeaf->leaves[i]     = leaves[leafPos + i];
+            leaves[leafPos + i]->up = sNewLeaf;
+          }
+
+          for(int i = (leafPos + brackets); i < leafCount; ++i)
+            leaves[i - brackets] = leaves[i];
+
+          ++leafPos;
+          leafCount -= brackets;
+        }
+        else
+          ++leafPos;
       }
     }
 
@@ -1642,18 +1578,20 @@ namespace occa {
       while(leafPos < leafCount){
         expNode &leaf = *(leaves[leafPos]);
 
-        if((leaf.info & expType::LR)             &&
-           (leaf.value == "(")                   && // () operator
+        if((leaf.info & expType::variable)       && // Variable
+           (1 < leaf.leafCount)                  &&
            (leaf[0].info & expType::varInfo)     && // varInfo
-           (leaf[0].getVarInfo().pointerDepth())){  // that is a pointer
+           (leaf[0].getVarInfo().pointerDepth()) && // that is a pointer
+           (leaf[1].info & expType::qualifier)   &&
+           (leaf[1][0].value == "(")){              // Uses () operator
 
           varInfo &var      = leaf[0].getVarInfo();
-          expNode &arrNode  = leaf[1];
+          expNode &arrNode  = leaf[1][0];
 
           const int dims     = var.dimAttr.argCount;
           const bool reorder = var.idxOrdering.size();
 
-          expNode &csvFlatRoot = *(arrNode.makeCsvFlatHandle());
+          expNode &csvFlatRoot = *(arrNode[0].makeCsvFlatHandle());
           expVec_t indices;
 
           OCCA_CHECK(dims != 0,
@@ -1662,21 +1600,22 @@ namespace occa {
           OCCA_CHECK(dims == csvFlatRoot.leafCount,
                      "Variable use [" << toString() << "] has different index count of its attribute [" << var.dimAttr << "]");
 
-          leaf.value = "[";
+          arrNode.value = "[";
 
           for(int i = 0; i < dims; ++i){
             if(reorder)
-              indices.push_back( csvFlatRoot[ var.idxOrdering[i] ].clonePtr() );
+              indices.push_back( csvFlatRoot[ var.idxOrdering[i] ].clone() );
             else
-              indices.push_back( csvFlatRoot[i].clonePtr() );
+              indices.push_back( csvFlatRoot[i].clone() );
           }
 
           expNode::freeFlatHandle(csvFlatRoot);
-          arrNode.free();
+          arrNode[0].free();
 
-          expNode *plusNode_ = &(arrNode);
+          arrNode.addNode();
+          expNode *plusNode_ = &(arrNode[0]);
 
-          for(int i = 0; i < (dims - 1); ++i){
+          for(int i = 0; i < dims - 1; ++i){
             const int i2 = (reorder ? var.idxOrdering[i] : i);
 
             expNode &plusNode = *plusNode_;
@@ -1684,7 +1623,7 @@ namespace occa {
             plusNode.info  = expType::LR;
             plusNode.value = "+";
 
-            plusNode.addNodes(2);
+            plusNode.addNodes(expType::root, 0, 2);
 
             expNode &timesNode = plusNode[1];
 
@@ -1694,10 +1633,10 @@ namespace occa {
             timesNode.info  = expType::LR;
             timesNode.value = "*";
 
-            timesNode.addNodes(2);
+            timesNode.addNodes(expType::root, 0, 2);
 
             timesNode[0].free();
-            expNode::swap(timesNode[0], *(var.dimAttr[i2].clonePtr()));
+            expNode::swap(timesNode[0], *(var.dimAttr[i2].clone()));
 
             if(i < (dims - 2)){
               timesNode[1].info  = expType::C;
@@ -1826,7 +1765,7 @@ namespace occa {
 
       leafCount -= 2;
 
-      leaf->info      = expType::LR;
+      leaf->info      = (expType::L | expType::R);
       leaf->leafCount = 2;
       leaf->leaves    = new expNode*[2];
       leaf->leaves[0] = sLeafL;
@@ -1857,7 +1796,7 @@ namespace occa {
       for(int i = leafPos; i < leafCount; ++i)
         leaves[i] = leaves[i + 4];
 
-      leaf->info      = expType::LCR;
+      leaf->info      = (expType::L | expType::C | expType::R);
       leaf->leafCount = 3;
       leaf->leaves    = new expNode*[3];
       leaf->leaves[0] = sLeafL;
@@ -1905,30 +1844,41 @@ namespace occa {
     }
 
     void expNode::mergeFortranArrays(){
-      if(sInfo == NULL)
-        return;
-
       int leafPos = 0;
 
       while(leafPos < leafCount){
         expNode &leaf = *(leaves[leafPos]);
 
-        if((leaf.info & expType::C)                       &&
-           (leaf.value == "(")                            && // Is ()
+        if((leaf.value == "(")                            && // Is ()
            (leaf.leafCount)                               && //   and has stuff
            (0 < leafPos)                                  && //   and follows
-           (leaves[leafPos - 1]->info & (expType::varInfo | //   something [-] Fortran::variable ?
+           (leaves[leafPos - 1]->info & (expType::varInfo  | //   something
                                          expType::unknown))){
 
-          leaf.value = "[";
+          expNode *pLeaf = &(leaf[0]);
+          int entries = 1;
 
-          expNode &csvFlatRoot = *(leaf[0].makeCsvFlatHandle());
+          while(pLeaf &&
+                (pLeaf->value == ",") &&
+                (pLeaf->leafCount)){
 
-          const int entries = csvFlatRoot.leafCount;
+            ++entries;
+            pLeaf = pLeaf->leaves[0];
+          }
 
           if(entries == 1) {
-            if(leaf.leafCount)
-              subtractOneFrom(leaf[0]);
+            leaf.value = "[";
+
+            if(leaf.leafCount){
+              expNode &sLeaf = leaf[0];
+
+              leaf.leafCount = 0;
+
+              leaf.addNode(expType::LR, "-");
+
+              leaf[0].addNode( sLeaf );
+              leaf[0].addNode(expType::presetValue, "1");
+            }
           }
           else {
             expNode &varLeaf = *(leaves[leafPos - 1]);
@@ -1936,6 +1886,28 @@ namespace occa {
 
             const bool mergeEntries = ((pVar != NULL) &&
                                        (pVar->stackPointersUsed <= 1));
+
+            expNode newExp(*sInfo);
+            newExp.info = info;
+            newExp.addNodes(expType::root, 0, entries);
+
+            pLeaf = &(leaf[0]);
+
+            while(pLeaf &&
+                  (pLeaf->value == ",") &&
+                  (pLeaf->leafCount)){
+
+              delete (newExp.leaves[--entries]);
+
+              newExp.leaves[entries] = pLeaf->leaves[1];
+
+              pLeaf = pLeaf->leaves[0];
+            }
+
+            if(entries)
+              newExp.leaves[--entries] = pLeaf;
+
+            entries = newExp.leafCount;
 
             if(!mergeEntries){
               addNodes(expType::C, leafPos, (entries - 1));
@@ -1946,15 +1918,15 @@ namespace occa {
                 sLeaf.value     = "[";
                 sLeaf.leafCount = 0;
 
-                expNode entry = csvFlatRoot[i].clone();
-                subtractOneFrom(entry);
+                sLeaf.addNode(expType::LR, "-");
 
-                sLeaf.addNode( *(entry.clonePtr()) );
+                sLeaf[0].addNode( newExp[entries - i - 1] );
+                sLeaf[0].addNode(expType::presetValue, "1");
               }
             }
-            else {
-              varInfo &var       = *pVar;
-              expNode *plusNode_ = &leaf[0];
+            else{
+              expNode *cpLeaf = &leaf;
+              varInfo &var    = *pVar;
 
               if(entries != var.stackPointerCount){
                 // Revert [var] back to original dimensions
@@ -1967,81 +1939,70 @@ namespace occa {
                            << *(leaf.up) << "]");
               }
 
-              expVec_t indices;
+              leaf.value = "[";
 
-              // Feed the indices backwards
-              for(int i = 0; i < entries; ++i){
-                indices.push_back( csvFlatRoot[entries - i - 1].clonePtr() );
-                subtractOneFrom( *(indices.back()) );
+              if(leaf.leafCount){
+                delete [] leaf.leaves;
+                leaf.leafCount = 0;
               }
-
-              leaf[0].free();
 
               for(int i = 0; i < (entries - 1); ++i){
-                expNode &plusNode = *plusNode_;
+                expNode &cLeaf = *cpLeaf;
 
-                plusNode.info  = expType::LR;
-                plusNode.value = "+";
+                cLeaf.addNode(expType::LR, "+");
 
-                plusNode.addNodes(2);
+                expNode &plusLeaf = cLeaf[0];
 
-                expNode &timesNode = plusNode[1];
+                plusLeaf.addNodes(expType::C, 0, 2);
 
-                plusNode[0].free();
-                expNode::swap(plusNode[0], *(indices[i]));
+                plusLeaf[0].value = "(";
+                plusLeaf[1].value = "(";
 
-                timesNode.info  = expType::LR;
-                timesNode.value = "*";
+                plusLeaf[0].addNode(expType::C, "(");
 
-                timesNode.addNodes(2);
+                expNode &offLeaf = plusLeaf[0][0];
 
-                timesNode[0].free();
-                timesNode[0] = var.stackSizeExpNode(i).clone();
+                offLeaf.addNode(expType::LR, "-");
+                offLeaf[0].addNode( newExp[i] );
+                offLeaf[0].addNode(expType::presetValue, "1");
 
-                if(i < (entries - 2)){
-                  timesNode[1].info  = expType::C;
-                  timesNode[1].value = "(";
+                plusLeaf[1].addNode(expType::LR, "*");
 
-                  timesNode[1].addNode();
+                expNode &nextLeaf = plusLeaf[1][0];
 
-                  plusNode_ = &(timesNode[1][0]);
-                }
-                else {
-                  timesNode[1].free();
-                  expNode::swap(timesNode[1], *(indices[i + 1]));
-                }
+                nextLeaf.addNode(expType::C , "(");
+                nextLeaf.addNode(expType::C , "(");
+
+                nextLeaf[0].addNode(var.stackSizeExpNode(entries - i - 1));
+
+                cpLeaf = &(nextLeaf[1]);
               }
-            }
-              leafPos += (entries - 1);
-          }
 
-          expNode::freeFlatHandle(csvFlatRoot);
+              cpLeaf->addNode(expType::LR, "-");
+
+              expNode &lcpLeaf = (*cpLeaf)[-1];
+
+              lcpLeaf.addNode( newExp[entries - 1] );
+              lcpLeaf.addNode(expType::presetValue, "1");
+            }
+
+            delete [] newExp.leaves;
+
+            leafPos += (entries - 1);
+          }
         }
 
         ++leafPos;
       }
     }
 
-    void expNode::subtractOneFrom(expNode &e){
-      expNode entry;
-      expNode::swap(e, entry);
-
-      e.info  = expType::C;
-      e.value = "(";
-
-      e.addNode(expType::LR, "-");
-
-      e[0].addNode( *(entry.clonePtr()) );
-      e[0].addNode(expType::presetValue, "1");
-    }
-
     void expNode::translateFortranMemberCalls(){
-      expNode &flatRoot = *(makeDumbFlatHandle());
+      expNode &flatRoot = *(makeFlatHandle());
 
       for(int i = 0; i < flatRoot.leafCount; ++i){
         expNode &n = flatRoot[i];
 
-        if((n.info  & expType::LR) &&
+        if((n.info == expType::LR) &&
            (n.value == "%")){
 
           n.value = ".";
@@ -2052,12 +2013,12 @@ namespace occa {
     }
 
     void expNode::translateFortranPow(){
-      expNode &flatRoot = *(makeDumbFlatHandle());
+      expNode &flatRoot = *(makeFlatHandle());
 
       for(int i = 0; i < flatRoot.leafCount; ++i){
         expNode &n = flatRoot[i];
 
-        if((n.info  & expType::LR) &&
+        if((n.info == expType::LR) &&
            (n.value == "**")){
 
           expNode &x = n[0];
@@ -2105,29 +2066,28 @@ namespace occa {
       }
     }
 
-    expNode expNode::clone(){
-      expNode newExp;
-      newExp.sInfo = sInfo;
+    expNode* expNode::clone(){
+      expNode &newRoot = *(new expNode(*sInfo));
 
-      cloneTo(newExp);
+      cloneTo(newRoot);
 
-      return newExp;
+      return &newRoot;
     }
 
-    expNode expNode::clone(statement &s){
-      expNode newExp(s);
+    expNode* expNode::clone(statement &s){
+      expNode &newRoot = *(new expNode(s));
 
-      cloneTo(newExp);
+      cloneTo(newRoot);
 
-      return newExp;
+      return &newRoot;
     }
 
-    expNode* expNode::clonePtr(){
-      return (new expNode(clone()));
-    }
+    expNode* expNode::clone(expNode *original){
+      expNode &newLeaf = *(new expNode(*this));
 
-    expNode* expNode::clonePtr(statement &s){
-      return (new expNode(clone(s)));
+      original->cloneTo(newLeaf);
+
+      return &newLeaf;
     }
 
     void expNode::cloneTo(expNode &newExp){
@@ -2148,7 +2108,7 @@ namespace occa {
                                          expType::prototype)));
 
       const bool inForStatement = ((newExp.sInfo != NULL) &&
-                                   (newExp.sInfo->info & smntType::forStatement));
+                                   (newExp.sInfo->info & forStatementType));
 
       if(isVarInfo | isTypeInfo | isFuncInfo){
         if(isVarInfo){
@@ -2211,6 +2171,7 @@ namespace occa {
           newExp.addVarInfoNode(0);
           newExp.setVarInfo(0, newVar);
 
+
           // Make sure we haven't initialized it
           //   from the original or an extern
           if(sChanged      &&
@@ -2236,7 +2197,7 @@ namespace occa {
           newExp.leaves = new expNode*[leafCount];
 
           for(int i = 0; i < leafCount; ++i){
-            newExp.leaves[i] = new expNode( newExp.makeFloatingLeaf() );
+            newExp.leaves[i] = new expNode(newExp);
             leaves[i]->cloneTo(newExp[i]);
           }
         }
@@ -2289,55 +2250,13 @@ namespace occa {
       return ret;
     }
 
-    expNode& expNode::lastNode(){
-      return *(leaves[leafCount - 1]);
-    }
-
-    expNode* expNode::makeDumbFlatHandle(){
-      expNode *flatNode;
-
-      if(sInfo != NULL)
-        flatNode = new expNode(*sInfo);
-      else
-        flatNode = new expNode( makeFloatingLeaf() );
-
-      const bool addMe = (info != 0);
-
-      if((leafCount == 0) && !addMe)
-        return flatNode;
-
-      flatNode->info   = expType::printLeaves;
-      flatNode->leaves = new expNode*[addMe + nestedLeafCount()];
-
-      int offset = 0;
-      makeDumbFlatHandle(offset, flatNode->leaves);
-
-      if(addMe)
-        flatNode->setLeaf(*this, offset++);
-
-      flatNode->leafCount = offset;
-
-      return flatNode;
-    }
-
-    void expNode::makeDumbFlatHandle(int &offset,
-                                     expNode **flatLeaves){
-      if(info & expType::hasInfo)
-        return;
-
-      for(int i = 0; i < leafCount; ++i){
-        leaves[i]->makeDumbFlatHandle(offset, flatLeaves);
-        flatLeaves[offset++] = leaves[i];
-      }
-    }
-
     expNode* expNode::makeFlatHandle(){
       expNode *flatNode;
 
       if(sInfo != NULL)
         flatNode = new expNode(*sInfo);
       else
-        flatNode = new expNode( makeFloatingLeaf() );
+        flatNode = new expNode(*this);
 
       const bool addMe = (info != 0);
 
@@ -2381,7 +2300,7 @@ namespace occa {
           break;
         }
 
-        case (expType::LR):{
+        case (expType::L | expType::R):{
           leaves[i]->leaves[0]->makeFlatHandle(offset, flatLeaves);
           leaves[i]->leaves[1]->makeFlatHandle(offset, flatLeaves);
           flatLeaves[offset++] = leaves[i]->leaves[0];
@@ -2391,7 +2310,7 @@ namespace occa {
           break;
         }
 
-        case (expType::LCR):{
+        case (expType::L | expType::C | expType::R):{
           leaves[i]->leaves[0]->makeFlatHandle(offset, flatLeaves);
           leaves[i]->leaves[1]->makeFlatHandle(offset, flatLeaves);
           leaves[i]->leaves[2]->makeFlatHandle(offset, flatLeaves);
@@ -2423,7 +2342,7 @@ namespace occa {
       if(sInfo != NULL)
         flatNode = new expNode(*sInfo);
       else
-        flatNode = new expNode( makeFloatingLeaf() );
+        flatNode = new expNode(*this);
 
       if((leafCount == 0) && (info == expType::root))
         return flatNode;
@@ -2440,20 +2359,20 @@ namespace occa {
         }
 
         while(cNode                         &&
-              (cNode->info  &  expType::LR) &&
+              (cNode->info  == expType::LR) &&
               (cNode->value == ",")){
 
           if(pass == 0){
             ++csvCount;
           }
           else {
-            flatNode->leaves[--csvCount] = cNode->leaves[0];
+            flatNode->leaves[--csvCount] = cNode->leaves[1];
 
             if(csvCount == 1)
-              flatNode->leaves[--csvCount] = cNode->leaves[1];
+              flatNode->leaves[--csvCount] = cNode->leaves[0];
           }
 
-          cNode = cNode->leaves[1];
+          cNode = cNode->leaves[0];
         }
 
         if((pass == 1) && csvCount)
@@ -2463,18 +2382,7 @@ namespace occa {
       return flatNode;
     }
 
-    void expNode::addNodes(const int count){
-
-      addNodes(expType::root, 0, count);
-    }
-
-    void expNode::addNodes(const int pos_,
-                           const int count){
-
-      addNodes(expType::root, pos_, count);
-    }
-
-    void expNode::addNodes(const info_t info_,
+    void expNode::addNodes(const int info_,
                            const int pos_,
                            const int count){
 
@@ -2483,7 +2391,7 @@ namespace occa {
       reserveAndShift(pos, count);
 
       for(int i = pos; i < (pos + count); ++i){
-        leaves[i] = new expNode( makeFloatingLeaf() );
+        leaves[i] = new expNode(*this);
 
         leaves[i]->info      = info_;
         leaves[i]->leafCount = 0;
@@ -2491,12 +2399,12 @@ namespace occa {
       }
     }
 
-    void expNode::addNode(const info_t info_,
+    void expNode::addNode(const int info_,
                           const int pos){
       addNodes(info_, pos, 1);
     }
 
-    void expNode::addNode(const info_t info_,
+    void expNode::addNode(const int info_,
                           const std::string &value_,
                           const int pos){
 
@@ -2518,27 +2426,6 @@ namespace occa {
       leaves[pos] = &node_;
 
       node_.up = this;
-    }
-
-    int expNode::insertExpAt(expNode &exp, int pos){
-      reserveAndShift(pos, exp.leafCount);
-
-      for(int i = pos; i < (pos + exp.leafCount); ++i)
-        leaves[i] = exp.leaves[i - pos];
-
-      return (pos + exp.leafCount);
-    }
-
-    void expNode::useExpLeaves(expNode &exp, const int pos, const int count){
-      reserveAndShift(0, count);
-
-      for(int i = pos; i < (pos + count); ++i){
-        leaves[i - pos]     = exp.leaves[i];
-        leaves[i - pos]->up = this;
-      }
-
-      if(sInfo)
-        setNestedSInfo(*sInfo);
     }
 
     void expNode::reserve(const int count){
@@ -2569,23 +2456,6 @@ namespace occa {
     void expNode::setLeaf(expNode &leaf, const int pos){
       leaves[pos] = &leaf;
       leaf.up     = this;
-    }
-
-    void expNode::removeNodes(int pos, const int count){
-      if(pos < 0)
-        pos += leafCount;
-
-      int removed = (((pos + count) <= leafCount) ?
-                     count : (leafCount - pos));
-
-      for(int i = (pos + removed); i < leafCount; ++i)
-        leaves[i - count] = leaves[i];
-
-      leafCount -= removed;
-    }
-
-    void expNode::removeNode(const int pos){
-      removeNodes(pos, 1);
     }
 
     varInfo& expNode::addVarInfoNode(){
@@ -2634,7 +2504,7 @@ namespace occa {
     }
 
     bool expNode::hasVariable(){
-      if(info & (expType::variable |  // [-] Fortran::variable ?
+      if(info & (expType::variable |
                  expType::varInfo  |
                  expType::function)){
 
@@ -2649,6 +2519,9 @@ namespace occa {
     }
 
     varInfo& expNode::getVarInfo(){
+      if(info & expType::variable)
+        return leaves[0]->getVarInfo();
+
       return *((varInfo*) leaves[0]);
     }
 
@@ -2685,162 +2558,18 @@ namespace occa {
       return *typeLeaf;
     }
 
-    varInfo expNode::typeInfoOf(const std::string &str){
-      varInfo var;
+    void expNode::removeNodes(const int pos, const int count){
+      const int removed = (((pos + count) <= leafCount) ?
+                           count : (leafCount - pos));
 
-      if(sInfo == NULL)
-        return var;
+      for(int i = (pos + count); i < leafCount; ++i)
+        leaves[i - count] = leaves[i];
 
-      if(isAnInt(str)){
-        // if(isALongInt(str))
-        //   var.baseType = sInfo->hasTypeInScope("long");
-        // else
-          var.baseType = sInfo->hasTypeInScope("int");
-      }
-      else if(isAFloat(str)){
-        // if(isADouble(str))
-        //   var.baseType = sInfo->hasTypeInScope("double");
-        // else
-          var.baseType = sInfo->hasTypeInScope("float");
-      }
-      else if((str == "false") || (str == "true")){
-        var.baseType = sInfo->hasTypeInScope("bool");
-      }
-      else if(isAString(str)){
-        var.baseType = sInfo->hasTypeInScope("char");
-
-        var.stackPointerCount = 1;
-        var.stackPointersUsed = 1;
-
-        var.stackExpRoots        = new expNode();
-        var.stackExpRoots->info  = expType::presetValue;
-        var.stackExpRoots->value = strFrom<size_t>(str.size() - 2);
-      }
-      else if(str == "NULL"){
-        var.baseType = sInfo->hasTypeInScope("void");
-
-        var.rightQualifiers.add("*");
-        ++var.pointerCount;
-      }
-
-      return var;
+      leafCount -= removed;
     }
 
-    varInfo expNode::evaluateType(){
-      varInfo var;
-
-      if(info & expType::hasInfo){
-        if(info & expType::varInfo)
-          var.baseType = getVarInfo().baseType;
-        else if(info & expType::typeInfo)
-          var.baseType = &(getTypeInfo());
-      }
-      else if(info & expType::presetValue){
-        var = typeInfoOf(value);
-      }
-      else if(info & expType::operator_){
-        if(leafCount == 0)
-          return var;
-
-        if(info & expType::LR){
-          varInfo var0 = leaves[0]->evaluateType();
-
-          if(var0.baseType == NULL)
-            return var;
-
-          if(sInfo){
-            const int thType0 = var0.baseType->thType;
-
-            if(var0.baseType->thType & noType){
-              varInfo *funcVar = sInfo->parser.hasOperator(info,
-                                                           value,
-                                                           var0);
-
-              if(funcVar != NULL)
-                var = *funcVar;
-            }
-            else{
-              return sInfo->parser.thOperatorReturnType(info,
-                                                        value,
-                                                        thType0);
-            }
-          }
-
-          return var;
-        }
-        else if(info & expType::LR){
-          if(leafCount != 2)
-            return var;
-
-          varInfo var0 = leaves[0]->evaluateType();
-          varInfo var1 = leaves[1]->evaluateType();
-
-          if((var0.baseType == NULL) ||
-             (var1.baseType == NULL)){
-
-            return var;
-          }
-
-          if(sInfo){
-            const int thType0 = var0.baseType->thType;
-            const int thType1 = var1.baseType->thType;
-
-            if((thType0 & noType) ||
-               (thType1 & noType)){
-
-              varInfo *funcVar = sInfo->parser.hasOperator(info,
-                                                           value,
-                                                           var0, var1);
-
-              if(funcVar != NULL)
-                var = *funcVar;
-            }
-            else{
-              return sInfo->parser.thOperatorReturnType(info,
-                                                        value,
-                                                        thType0, thType1);
-            }
-          }
-
-          return var;
-        }
-        else if(info & expType::C){
-          return leaves[0]->evaluateType();
-        }
-        else if(info & expType::LCR){
-          if(leafCount != 3)
-            return var;
-
-          varInfo var1 = leaves[1]->evaluateType();
-          varInfo var2 = leaves[2]->evaluateType();
-
-          if((var1.baseType == NULL) ||
-             (var2.baseType == NULL)){
-
-            return var;
-          }
-
-          if(sInfo){
-            const int thType1 = var1.baseType->thType;
-            const int thType2 = var2.baseType->thType;
-
-            if((thType1 & noType) ||
-               (thType2 & noType)){
-
-              OCCA_CHECK(false,
-                         "Oops, not implemented yet");
-            }
-            else{
-              return sInfo->parser.thVarInfo((thType1 < thType2) ?
-                                             thType2 : thType1);
-            }
-          }
-
-          return var;
-        }
-      }
-
-      return var;
+    void expNode::removeNode(const int pos){
+      removeNodes(pos, 1);
     }
 
     bool expNode::hasQualifier(const std::string &qualifier){
@@ -2867,8 +2596,13 @@ namespace occa {
           return value == qualifier;
       }
       else if(info & expType::variable){
-        OCCA_CHECK(false,
-                   "Oops, forgot to check this");
+        if((leafCount) &&
+           (leaves[0]->info & expType::type)){
+
+          return leaves[0]->hasQualifier(qualifier);
+        }
+        else
+          return false;
       }
 
       return false;
@@ -2893,6 +2627,30 @@ namespace occa {
               return;
             }
           }
+        }
+      }
+    }
+
+    void expNode::changeType(const std::string &newType){
+      if(info & expType::variable){
+        if(leafCount){
+          const bool hasLQualifier = (leaves[0]->info & expType::type);
+
+          if(hasLQualifier)
+            leaves[0]->changeType(newType);
+        }
+      }
+      else if(info & expType::type){
+        if(leaves[0]->info & expType::type)
+          leaves[0]->value = newType;
+        else
+          leaves[1]->value = newType;
+      }
+      else if(info == expType::declaration){
+        if(leafCount &&
+           (leaves[0]->info & expType::type)){
+
+          leaves[0]->changeType(newType);
         }
       }
     }
@@ -2950,7 +2708,7 @@ namespace occa {
         expNode &varNode = *(getVariableNode(pos));
 
         if(varNode.leafCount &&
-           (varNode[0].info & expType::LR)){
+           (varNode[0].info == expType::LR)){
 
           return &(varNode[0]);
         }
@@ -3080,20 +2838,38 @@ namespace occa {
       return n->leaves[1];
     }
 
-    // [-] Fix
     int expNode::getVariableBracketCount(){
+      if(info & expType::variable){
+        if((1 < leafCount)                        &&
+           ((*this)[1].info & expType::qualifier) &&
+           (0 < (*this)[1].leafCount)             &&
+           ((*this)[1][0].value == "[")){
+
+          return (*this)[1].leafCount;
+        }
+      }
+
       return 0;
     }
 
-    // [-] Fix
     expNode* expNode::getVariableBracket(const int pos){
-      // Returns the variable inside "["
+      if(info & expType::variable){
+        if(pos < getVariableBracketCount())
+          return &( (*this)[1][pos] );
+      }
+
       return NULL;
     }
 
     //  ---[ Node-based ]----------
     std::string expNode::getMyVariableName(){
-      if(info & expType::varInfo){
+      if(info & expType::variable){
+        if(leafCount == 0)
+          return value;
+        else
+          return leaves[0]->getMyVariableName();
+      }
+      else if(info & expType::varInfo){
         return getVarInfo().name;
       }
       else if(info & expType::function){
@@ -3105,20 +2881,6 @@ namespace occa {
     //  ===========================
 
     //  ---[ Statement-based ]-----
-    void expNode::setNestedSInfo(statement *sInfo_){
-      sInfo = sInfo_;
-
-      if(info & expType::hasInfo)
-        return;
-
-      for(int i = 0; i < leafCount; ++i)
-        leaves[i]->setNestedSInfo(sInfo_);
-    }
-
-    void expNode::setNestedSInfo(statement &sInfo_){
-      setNestedSInfo(&sInfo_);
-    }
-
     void expNode::switchBaseStatement(statement &s1, statement &s2){
       expNode &flatRoot = *(makeFlatHandle());
 
@@ -3129,8 +2891,8 @@ namespace occa {
           std::string varName = n.getMyVariableName();
           varInfo &var        = *(s1.hasVariableInScope(varName));
 
-          statementNode *sn1 = &(s1.parser.varUpdateMap[&var]);
-          statementNode *sn2 = &(s1.parser.varUsedMap[&var]);
+          statementNode *sn1 = &(s1.varUpdateMap[&var]);
+          statementNode *sn2 = &(s1.varUsedMap[&var]);
 
           while(sn1){
             if(sn1->value == &s1)
@@ -3163,10 +2925,10 @@ namespace occa {
       for(int i = 0; i < flatRoot.leafCount; ++i){
         expNode &n = flatRoot[i];
 
-        if(n.info & (expType::unknown  |
-                     expType::variable | // [-] Fortran::variable ?
-                     expType::function | // [-] Check function later
-                     expType::varInfo)){
+        if(n.info & (expType::varInfo   |
+                     expType::unknown   |
+                     expType::variable  |
+                     expType::function)){ // [-] Check function later
 
           cStrToStrMapIterator it;
 
@@ -3180,7 +2942,7 @@ namespace occa {
             break;
           }
         }
-        else if((n.info  & expType::C) && // [-] Don't load constant arrays yet
+        else if((n.info  == expType::C) && // [-] Don't load constant arrays yet
                 (n.value == "[")){
 
           isKnown = false;
@@ -3197,7 +2959,7 @@ namespace occa {
       if(valueIsKnown() == false)
         return typeHolder();
 
-      expNode this2 = clone();
+      expNode &this2 = *(clone());
 
       expNode &flatRoot = *(this2.makeFlatHandle());
 
@@ -3205,7 +2967,7 @@ namespace occa {
         expNode &n = flatRoot[i];
 
         if(n.info & (expType::unknown  |
-                     expType::variable | // [-] Fortran::variable ?
+                     expType::variable |
                      expType::function | // [-] Check function later
                      expType::varInfo)){
 
@@ -3223,7 +2985,7 @@ namespace occa {
 
       freeFlatHandle(flatRoot);
 
-      return evaluateExpression(this2);
+      return evaluateString(this2.toString());
     }
     //================================
 
@@ -3234,18 +2996,18 @@ namespace occa {
 
     void expNode::free(){
       // Let the parser free all varInfos
-      if(info & expType::hasInfo){
-        delete [] leaves;
-        return;
+      if( !(info & expType::hasInfo) ){
+        for(int i = 0; i < leafCount; ++i){
+          leaves[i]->free();
+          delete leaves[i];
+        }
+
+        if(leaves)
+          delete [] leaves;
       }
 
-      for(int i = 0; i < leafCount; ++i){
-        leaves[i]->free();
-        delete leaves[i];
-      }
-
+      info      = 0;
       leafCount = 0;
-      delete [] leaves;
     }
 
     void expNode::freeThis(){
@@ -3280,20 +3042,13 @@ namespace occa {
 
     void expNode::printOn(std::ostream &out,
                           const std::string &tab,
-                          const info_t flags){
-
-      const bool hasSemicolon = (info & expType::hasSemicolon);
-      const info_t info_      = info & expType::removeFlags;
-
-      switch(info_){
+                          const int flags){
+      switch(info){
       case (expType::root):{
         out << tab;
 
         for(int i = 0; i < leafCount; ++i)
           out << *(leaves[i]);
-
-        if(hasSemicolon)
-          out << ';';
 
         break;
       }
@@ -3311,9 +3066,7 @@ namespace occa {
       }
 
       case (expType::LR):{
-        if(startsSection(value))
-          out << *(leaves[0]) << value << *(leaves[1]) << segmentPair(value);
-        else if((value != ".") && (value != "->") && (value != ","))
+        if((value != ".") && (value != "->") && (value != ","))
           out << *(leaves[0]) << ' ' << value << ' ' << *(leaves[1]);
         else if(value == ",")
           out << *(leaves[0]) << value << ' ' << *(leaves[1]);
@@ -3415,8 +3168,39 @@ namespace occa {
       }
 
       case (expType::variable):{
-        OCCA_CHECK(false,
-                   "Oops, forgot to check this");
+        // [[[const] [int] [*]] [x]]
+        if(leafCount){
+          const bool hasLQualifier = (leaves[0]->info & (expType::qualifier |
+                                                         expType::type));
+
+          const bool hasRQualifier = (((hasLQualifier + 1) < leafCount) &&
+                                      (leaves[hasLQualifier + 1]->info & (expType::qualifier |
+                                                                          expType::type)));
+
+          if(hasLQualifier){
+            out << *(leaves[0]);
+
+            if((leaves[0]->info & expType::qualifier) ||
+               ((leaves[0]->leafCount) &&
+                (leaves[0]->lastLeaf()->info & expType::qualifier))){
+
+              out << ' ';
+            }
+          }
+
+          out << *(leaves[hasLQualifier]);
+
+          if(hasRQualifier){
+            if( !(leaves[hasLQualifier + 1]->hasAnArrayQualifier()) )
+              out << ' ';
+
+            out << *(leaves[hasLQualifier + 1]);
+          }
+        }
+        // [x]
+        else{
+          out << value;
+        }
 
         break;
       }
@@ -3444,6 +3228,24 @@ namespace occa {
         break;
       }
 
+      case (expType::functionPointer):{
+        out << *(leaves[0]) << " (*" << *(leaves[1]) << ")"
+            << '(';
+
+        expNode *argNode = leaves[2];
+
+        if(argNode->leafCount){
+          for(int i = 0; i < (argNode->leafCount - 1); ++i)
+            out << *(argNode->leaves[i]) << ", ";
+
+          out << *(argNode->leaves[argNode->leafCount - 1]);
+        }
+
+        out << ')';
+
+        break;
+      }
+
       case (expType::declaration):{
         if(leafCount){
           out << tab << leaves[0]->toString();
@@ -3464,7 +3266,7 @@ namespace occa {
       case (expType::struct_):{
         if(leafCount){
           typeInfo &type = *((typeInfo*) leaves[0]->leaves[0]);
-          out << type.toString(tab) << ';';
+          out << type.toString(tab) << ";\n";
         }
 
         break;
@@ -3516,7 +3318,7 @@ namespace occa {
       }
 
       case (expType::goto_):{
-        out << tab << "goto " << value << ";\n";
+        out << tab << "goto " << value << ';';
         break;
       }
 
@@ -3526,21 +3328,18 @@ namespace occa {
       }
 
       case (expType::return_):{
-        out << tab << "return";
-
-        if(leafCount)
-          out << ' ';
+        out << tab;
 
         for(int i = 0; i < leafCount; ++i)
           out << *(leaves[i]);
-
-        out << ';';
 
         break;
       }
 
       case (expType::transfer_):{
-        out << tab << value;
+        out << tab;
+
+        out << value;
 
         if(leafCount){
           out << ' ';
@@ -3560,42 +3359,22 @@ namespace occa {
       }
 
       case (expType::checkSInfo):{
-        if(sInfo->info & smntType::updateStatement){
-          if(leafCount){
-            leaves[0]->printOn(out, tab, (expFlag::noNewline |
-                                          expFlag::noSemicolon));
-
-            for(int i = 1; i < leafCount; ++i){
-              out << ", ";
-
-              leaves[i]->printOn(out, "", (expFlag::noNewline |
-                                           expFlag::noSemicolon));
-            }
-
-            out << ";";
-          }
-          else
-            out << tab << ";";
-
-          break;
-        }
-
-        else if(sInfo->info & smntType::flowStatement){
+        if(sInfo->info & flowStatementType){
           out << tab;
 
-          if(sInfo->info & smntType::forStatement)
+          if(sInfo->info & forStatementType)
             out << "for(";
-          else if(sInfo->info & smntType::whileStatement)
+          else if(sInfo->info & whileStatementType)
             out << "while(";
-          else if(sInfo->info & smntType::ifStatement){
-            if(sInfo->info == smntType::ifStatement)
+          else if(sInfo->info & ifStatementType){
+            if(sInfo->info == ifStatementType)
               out << "if(";
-            else if(sInfo->info == smntType::elseIfStatement)
+            else if(sInfo->info == elseIfStatementType)
               out << "else if(";
             else
               out << "else";
           }
-          else if(sInfo->info & smntType::switchStatement)
+          else if(sInfo->info & switchStatementType)
             out << "switch(";
 
           if(leafCount){
@@ -3609,16 +3388,15 @@ namespace occa {
               out << "; " << *(leaves[i]);
           }
 
-          if( !(sInfo->info & smntType::gotoStatement) &&
-              (sInfo->info != smntType::elseStatement) ){
+          if( !(sInfo->info & gotoStatementType) &&
+              (sInfo->info != elseStatementType) ){
             out << ")";
           }
-          else if(sInfo->info & smntType::gotoStatement){
+          else if(sInfo->info & gotoStatementType){
             out << ":";
           }
-
         }
-        else if(sInfo->info & smntType::caseStatement){
+        else if(sInfo->info & caseStatementType){
           const size_t tabChars = tab.size();
 
           if(2 < tabChars)
@@ -3629,12 +3407,10 @@ namespace occa {
           else
             out << "default:";
         }
-
-        break;
       }
 
       case (expType::printValue):{
-        out << value;
+        out << value << ' ';
 
         break;
       }
@@ -3651,7 +3427,20 @@ namespace occa {
       }
 
       default:{
-        out << value << ' ';
+        if(info & expType::typedef_){
+          const int oldInfo = info;
+
+          out << "typedef ";
+
+          info &= ~expType::typedef_;
+
+          out << *this;
+
+          info = oldInfo;
+
+          if(info & expType::struct_)
+            out << ";\n";
+        }
       }
       };
     }
@@ -3668,7 +3457,7 @@ namespace occa {
       if(leafCount <= leafPos)
         return "";
 
-      const info_t trueInfo = info;
+      const int trueInfo = info;
       info = expType::root;
 
       int trueLeafCount = leafCount;
@@ -3717,9 +3506,11 @@ namespace occa {
 
     //---[ Statement Functions ]--------------------
     statement::statement(parserBase &pb) :
-      parser(pb),
+      varUpdateMap(pb.varUpdateMap),
+      varUsedMap(pb.varUsedMap),
 
-      info(smntType::blockStatement),
+      depth(-1),
+      info(blockStatementType),
 
       up(NULL),
 
@@ -3729,10 +3520,30 @@ namespace occa {
       statementStart(NULL),
       statementEnd(NULL) {}
 
-    statement::statement(const info_t info_,
-                         statement *up_) :
-      parser(up_->parser),
+    statement::statement(const int depth_,
+                         varUsedMap_t &varUpdateMap_,
+                         varUsedMap_t &varUsedMap_) :
+      varUpdateMap(varUpdateMap_),
+      varUsedMap(varUsedMap_),
 
+      depth(depth_),
+      info(blockStatementType),
+
+      up(NULL),
+
+      expRoot(*this),
+
+      statementCount(0),
+      statementStart(NULL),
+      statementEnd(NULL) {}
+
+    statement::statement(const int depth_,
+                         const int info_,
+                         statement *up_) :
+      varUpdateMap(up_->varUpdateMap),
+      varUsedMap(up_->varUsedMap),
+
+      depth(depth_),
       info(info_),
 
       up(up_),
@@ -3783,21 +3594,21 @@ namespace occa {
       return -1;
     }
 
-    int statement::depth(){
-      statement *up_ = up;
-      int depth_     = -1;
+    int statement::getDepth(){
+      statement *s = this;
+      int d = 0;
 
-      while(up_){
-        ++depth_;
-        up_ = up_->up;
+      while(s->up){
+        ++d;
+        s = s->up;
       }
 
-      return depth_;
+      return d;
     }
 
     void statement::setIndexPath(intVector_t &path,
                                  statement *target){
-      int depth_ = depth();
+      int depth_ = getDepth();
 
       path.clear();
       path.reserve(depth_);
@@ -3823,248 +3634,260 @@ namespace occa {
     }
 
     statement* statement::makeSubStatement(){
-      return new statement(0, this);
+      return new statement(depth + 1,
+                           0, this);
     }
 
     std::string statement::getTab(){
-      std::string ret  = "";
-      const int depth_ = depth();
+      std::string ret = "";
+      statement *up_  = up;
 
-      for(int i = 0; i < depth_; ++i)
+      while(up_){
         ret += "  ";
+        up_ = up_->up;
+      }
 
       return ret;
     }
 
-    //---[ Find Statement ]-------------
-    void statement::labelStatement(expNode &allExp,
-                                   int &expPos,
-                                   const int parsingLanguage){
+    void statement::labelStatement(strNode *&nodeRoot,
+                                   expNode *expPtr,
+                                   const bool parsingC){
 
-      info = findStatementType(allExp, expPos, parsingLanguage);
+      info = findStatementType(nodeRoot, expPtr, parsingC);
     }
 
-    info_t statement::findStatementType(expNode &allExp,
-                                        int &expPos,
-                                        const int parsingLanguage){
+    int statement::findStatementType(strNode *&nodeRoot,
+                                     expNode *expPtr,
+                                     const bool parsingC){
+      if(!parsingC)
+        return findFortranStatementType(nodeRoot, expPtr);
 
-      if(allExp.leafCount <= expPos)
+      if(nodeRoot->info == macroKeywordType)
+        return checkMacroStatementType(nodeRoot, expPtr);
+
+      else if(nodeRoot->info == 0)
         return 0;
 
-      if(parsingLanguage & parserInfo::parsingFortran)
-        return findFortranStatementType(allExp, expPos);
+      else if(nodeRoot->info == occaForType)
+        return checkOccaForStatementType(nodeRoot, expPtr);
 
-      if(allExp[expPos].info & expType::macroKeyword)
-        return checkMacroStatementType(allExp, expPos);
+      else if((nodeRoot->info & typedefType) |
+              (nodeRoot->info & structType))
+        return checkStructStatementType(nodeRoot, expPtr);
 
-      else if(allExp[expPos].info == 0)
-        return 0;
+      else if(nodeRoot->info & (operatorType |
+                                presetValue))
+        return checkUpdateStatementType(nodeRoot, expPtr);
 
-      else if(allExp[expPos].info & expType::occaFor)
-        return checkOccaForStatementType(allExp, expPos);
+      else if(nodeHasDescriptor(nodeRoot))
+        return checkDescriptorStatementType(nodeRoot, expPtr);
 
-      else if(allExp[expPos].info & expType::struct_)
-        return checkStructStatementType(allExp, expPos);
+      else if(nodeRoot->info & unknownVariable){
+        if(nodeRoot->right &&
+           nodeRoot->right->value == ":")
+          return checkGotoStatementType(nodeRoot, expPtr);
 
-      else if(allExp[expPos].info & expType::C){
-        if(allExp[expPos].value == "{")
-          return checkBlockStatementType(allExp, expPos);
-        else if(allExp[expPos].value == "(") // Statement: (int) 3;
-          return checkUpdateStatementType(allExp, expPos);
-        else
-          return smntType::updateStatement;
+        return checkUpdateStatementType(nodeRoot, expPtr);
       }
 
-      else if(allExp[expPos].info & (expType::operator_ |
-                                     expType::presetValue))
-        return checkUpdateStatementType(allExp, expPos);
+      else if(nodeRoot->info & flowControlType)
+        return checkFlowStatementType(nodeRoot, expPtr);
 
-      else if(expHasDescriptor(allExp, expPos))
-        return checkDescriptorStatementType(allExp, expPos);
+      else if(nodeRoot->info & specialKeywordType)
+        return checkSpecialStatementType(nodeRoot, expPtr);
 
-      else if(allExp[expPos].info & expType::unknown){
-        if(((expPos + 1) < allExp.leafCount) &&
-           (allExp[expPos + 1].value == ":")){
+      else if(nodeRoot->info & brace)
+        return checkBlockStatementType(nodeRoot, expPtr);
 
-          return checkGotoStatementType(allExp, expPos);
-        }
-
-        return checkUpdateStatementType(allExp, expPos);
-      }
-
-      else if(allExp[expPos].info & expType::flowControl)
-        return checkFlowStatementType(allExp, expPos);
-
-      else if(allExp[expPos].info & expType::specialKeyword)
-        return checkSpecialStatementType(allExp, expPos);
+      // Statement: (int) 3;
+      else if(nodeRoot->info & parentheses)
+        return checkUpdateStatementType(nodeRoot, expPtr);
 
       // Statement: [;]
-      else if(allExp[expPos].info & expType::endStatement)
-        return checkUpdateStatementType(allExp, expPos);
+      else if(nodeRoot->info & endStatement)
+        return checkUpdateStatementType(nodeRoot, expPtr);
 
       else {
-        skipAfterStatement(allExp, expPos);
+        while(nodeRoot &&
+              !(nodeRoot->info & endStatement))
+          nodeRoot = nodeRoot->right;
 
-        return smntType::updateStatement;
+        return updateStatementType;
       }
     }
 
-    info_t statement::findFortranStatementType(expNode &allExp,
-                                               int &expPos){
+    int statement::findFortranStatementType(strNode *&nodeRoot,
+                                            expNode *expPtr){
 
-      if(allExp.leafCount <= expPos)
+      if(nodeRoot->info == macroKeywordType)
+        return checkMacroStatementType(nodeRoot, expPtr);
+
+      else if(nodeRoot->info == 0)
         return 0;
 
-      if(allExp[expPos].info & expType::endStatement)
-        return smntType::skipStatement;
+      else if(nodeHasDescriptor(nodeRoot))
+        return checkFortranDescriptorStatementType(nodeRoot, expPtr);
 
-      if(allExp[expPos].info & expType::macroKeyword)
-        return checkMacroStatementType(allExp, expPos);
+      else if(nodeRoot->info & unknownVariable)
+        return checkFortranUpdateStatementType(nodeRoot, expPtr);
 
-      else if(allExp[expPos].info == 0)
-        return 0;
+      else if(nodeRoot->info & flowControlType)
+        return checkFortranFlowStatementType(nodeRoot, expPtr);
 
-      else if(expHasDescriptor(allExp, expPos))
-        return checkFortranDescriptorStatementType(allExp, expPos);
-
-      else if(allExp[expPos].info & expType::unknown)
-        return checkFortranUpdateStatementType(allExp, expPos);
-
-      else if(allExp[expPos].info & expType::flowControl)
-        return checkFortranFlowStatementType(allExp, expPos);
-
-      else if(allExp[expPos].info & expType::specialKeyword)
-        return checkFortranSpecialStatementType(allExp, expPos);
+      else if(nodeRoot->info & specialKeywordType)
+        return checkFortranSpecialStatementType(nodeRoot, expPtr);
 
       else {
-        while((expPos < allExp.leafCount) &&
-              !(allExp[expPos].info & expType::endStatement)){
+        while(nodeRoot &&
+              !(nodeRoot->info & endStatement))
+          nodeRoot = nodeRoot->right;
 
-          ++expPos;
-        }
-
-        return smntType::updateStatement;
+        return updateStatementType;
       }
     }
 
-    info_t statement::checkMacroStatementType(expNode &allExp, int &expPos){
-      if(expPos < allExp.leafCount){
-        allExp[expPos].info = expType::macro_;
-        ++expPos;
+    int statement::checkMacroStatementType(strNode *&nodeRoot, expNode *expPtr){
+      if(expPtr){
+        expPtr->info  = expType::macro_;
+        expPtr->value = nodeRoot->value;
       }
 
-      return smntType::macroStatement;
+      return macroStatementType;
     }
 
-    info_t statement::checkOccaForStatementType(expNode &allExp, int &expPos){
-      if(expPos < allExp.leafCount){
-        allExp[expPos].info = expType::occaFor;
-        ++expPos;
+    int statement::checkOccaForStatementType(strNode *&nodeRoot, expNode *expPtr){
+      if(expPtr){
+        expPtr->info  = expType::occaFor;
+        expPtr->value = nodeRoot->value;
       }
 
-      return smntType::occaFor;
+      nodeRoot = nodeRoot->right;
+
+      return occaForType;
     }
 
-    info_t statement::checkStructStatementType(expNode &allExp, int &expPos){
-      if(!typeInfo::statementIsATypeInfo(*this, allExp, expPos))
-        return checkDescriptorStatementType(allExp, expPos);
+    int statement::checkStructStatementType(strNode *&nodeRoot, expNode *expPtr){
+      if(!typeInfo::statementIsATypeInfo(*this, nodeRoot))
+        return checkDescriptorStatementType(nodeRoot);
 
-      skipAfterStatement(allExp, expPos);
+      while(nodeRoot){
+        if(nodeRoot->info & endStatement)
+          break;
 
-      return smntType::structStatement;
+        nodeRoot = nodeRoot->right;
+      }
+
+      return structStatementType;
     }
 
-    info_t statement::checkUpdateStatementType(expNode &allExp, int &expPos){
-      skipAfterStatement(allExp, expPos);
+    int statement::checkUpdateStatementType(strNode *&nodeRoot, expNode *expPtr){
+      while(nodeRoot){
+        if(nodeRoot->info & endStatement)
+          break;
 
-      return smntType::updateStatement;
+        nodeRoot = nodeRoot->right;
+      }
+
+      return updateStatementType;
     }
 
-    info_t statement::checkDescriptorStatementType(expNode &allExp, int &expPos){
-      if(typeInfo::statementIsATypeInfo(*this, allExp, expPos))
-        return checkStructStatementType(allExp, expPos);
+    int statement::checkDescriptorStatementType(strNode *&nodeRoot, expNode *expPtr){
+      if(typeInfo::statementIsATypeInfo(*this, nodeRoot))
+        return checkStructStatementType(nodeRoot);
 
       varInfo var;
-      expPos = var.loadFrom(*this, allExp, expPos);
+      nodeRoot = var.loadFrom(*this, nodeRoot);
 
-      if( !(var.info & varType::functionDef) )
-        skipAfterStatement(allExp, expPos);
+      if( !(var.info & varType::functionDef) ){
+        while(nodeRoot){
+          if(nodeRoot->info & endStatement)
+            break;
+
+          nodeRoot = nodeRoot->right;
+        }
+      }
 
       if(var.info & varType::var)
-        return smntType::declareStatement;
+        return declareStatementType;
       else if(var.info & varType::functionDec)
-        return smntType::functionPrototype;
+        return functionPrototypeType;
       else
-        return smntType::functionDefinition;
+        return functionDefinitionType;
     }
 
-    info_t statement::checkGotoStatementType(expNode &allExp, int &expPos){
-      if(expPos < allExp.leafCount){
-        allExp[expPos].info = expType::gotoLabel_;
-        expPos += 2;
+    int statement::checkGotoStatementType(strNode *&nodeRoot, expNode *expPtr){
+      if(expPtr){
+        expPtr->info  = expType::gotoLabel_;
+        expPtr->value = nodeRoot->value;
       }
 
-      return smntType::gotoStatement;
+      nodeRoot = nodeRoot->right;
+
+      return gotoStatementType;
     }
 
-    info_t statement::checkFlowStatementType(expNode &allExp, int &expPos){
-      if(expPos < allExp.leafCount){
-        std::string &expValue = allExp[expPos].value;
-        ++expPos;
+    int statement::checkFlowStatementType(strNode *&nodeRoot, expNode *expPtr){
+      if(expPtr)
+        expPtr->info  = expType::checkSInfo;
 
-        if((expValue != "else") &&
-           (expValue != "do")){
+      std::string &nodeValue = nodeRoot->value;
 
-          ++expPos;
-        }
+      nodeRoot = nodeRoot->right;
 
-        if(expValue == "for")
-          return smntType::forStatement;
-        else if(expValue == "while")
-          return smntType::whileStatement;
-        else if(expValue == "do")
-          return smntType::doWhileStatement;
-        else if(expValue == "if")
-          return smntType::ifStatement;
-        else if(expValue == "else if")
-          return smntType::elseIfStatement;
-        else if(expValue == "else")
-          return smntType::elseStatement;
-        else if(expValue == "switch")
-          return smntType::switchStatement;
+      if((nodeValue != "else") &&
+         (nodeValue != "do")){
+
+        nodeRoot = nodeRoot->right;
       }
+
+      if(nodeValue == "for")
+        return forStatementType;
+      else if(nodeValue == "while")
+        return whileStatementType;
+      else if(nodeValue == "do")
+        return doWhileStatementType;
+      else if(nodeValue == "if")
+        return ifStatementType;
+      else if(nodeValue == "else if")
+        return elseIfStatementType;
+      else if(nodeValue == "else")
+        return elseStatementType;
+      else if(nodeValue == "switch")
+        return switchStatementType;
 
       OCCA_CHECK(false,
                  "You found the [Waldo 2] error in:\n"
-                 << allExp.toString("  "));
+                 << prettyString(nodeRoot, "  "));
 
       return 0;
     }
 
-    info_t statement::checkSpecialStatementType(expNode &allExp, int &expPos){
-      if(allExp.leafCount <= expPos)
-        return smntType::blankStatement;
+    int statement::checkSpecialStatementType(strNode *&nodeRoot, expNode *expPtr){
+      if(nodeRoot == NULL)
+        return blankStatementType;
 
-      if(allExp[expPos].value == "occaUnroll"){
-        expPos += 2;
-        return smntType::blankStatement;
+      const bool isCaseStatement = ((nodeRoot->value == "case") ||
+                                    (nodeRoot->value == "default"));
+
+      while(nodeRoot){
+        if(nodeRoot->info & endStatement)
+          break;
+
+        nodeRoot = nodeRoot->right;
       }
 
-      const bool isCaseStatement = ((allExp[expPos].value == "case") ||
-                                    (allExp[expPos].value == "default"));
-
-      skipAfterStatement(allExp, expPos);
-
       if(isCaseStatement)
-        return smntType::caseStatement;
+        return caseStatementType;
 
-      return smntType::blankStatement;
+      return blankStatementType;
     }
 
-    info_t statement::checkBlockStatementType(expNode &allExp, int &expPos){
-      return smntType::blockStatement;
+    int statement::checkBlockStatementType(strNode *&nodeRoot, expNode *expPtr){
+      nodeRoot = lastNode(nodeRoot);
+
+      return blockStatementType;
     }
-    //==================================
 
     void statement::addType(typeInfo &type){
       scopeTypeMap[type.name] = &type;
@@ -4076,15 +3899,15 @@ namespace occa {
       scopeTypeMap[typedefName] = &type;
     }
 
-    bool statement::expHasQualifier(expNode &allExp, int expPos){
-      if( !(allExp[expPos].info & expType::qualifier) )
+    bool statement::nodeHasQualifier(strNode *n){
+      if( !(n->info & qualifierType) )
         return false;
 
       // short and long can be both:
       //    specifiers and qualifiers
-      if(allExp[expPos].info == (*keywordType)["long"]){
-        if(((expPos + 1) < allExp.leafCount) &&
-           (hasTypeInScope(allExp[expPos + 1].value))){
+      if(n->info == keywordType["long"]){
+        if((n->right) &&
+           (hasTypeInScope(n->right->value))){
 
           return true;
         }
@@ -4095,18 +3918,15 @@ namespace occa {
       return true;
     }
 
-    bool statement::expHasSpecifier(expNode &allExp, int expPos){
-      return ((allExp[expPos].info & expType::type)     ||
-              ((allExp[expPos].info & expType::unknown) &&
-               ( hasTypeInScope(allExp[expPos].value) )));
+    bool statement::nodeHasSpecifier(strNode *n){
+      return ((n->info & specifierType) ||
+              ((n->info & unknownVariable) &&
+               ( hasTypeInScope(n->value) )));
     }
 
-    bool statement::expHasDescriptor(expNode &allExp, int expPos){
-      if(expHasSpecifier(allExp, expPos) ||
-         expHasQualifier(allExp, expPos)){
-
+    bool statement::nodeHasDescriptor(strNode *n){
+      if(nodeHasSpecifier(n) || nodeHasQualifier(n))
         return true;
-      }
 
       return false;
     }
@@ -4162,580 +3982,740 @@ namespace occa {
     }
 
     //---[ Loading ]--------------------
-    void statement::loadAllFromNode(expNode allExp, const int parsingLanguage){
-      int expPos = 0;
-
-      while(expPos < allExp.leafCount)
-        loadFromNode(allExp, expPos, parsingLanguage);
+    void statement::loadAllFromNode(strNode *nodeRoot, const bool parsingC){
+      while(nodeRoot)
+        nodeRoot = loadFromNode(nodeRoot, parsingC);
     }
 
-    void statement::loadFromNode(expNode allExp){
-      int expPos = 0;
-      loadFromNode(allExp, expPos, parserInfo::parsingC);
-    }
-
-    void statement::loadFromNode(expNode allExp, const int parsingLanguage){
-      int expPos = 0;
-      loadFromNode(allExp, expPos, parsingLanguage);
-    }
-
-    void statement::loadFromNode(expNode &allExp,
-                                 int &expPos,
-                                 const int parsingLanguage){
-
+    strNode* statement::loadFromNode(strNode *nodeRoot, const bool parsingC){
       statement *newStatement = makeSubStatement();
+      strNode * nodeRootEnd   = nodeRoot;
 
-      newStatement->expRoot.loadFromNode(allExp, expPos, parsingLanguage);
+      newStatement->expRoot.loadFromNode(nodeRootEnd, parsingC);
       const int st = newStatement->info;
 
-      OCCA_CHECK((st & smntType::invalidStatement) == 0,
+      OCCA_CHECK((st & invalidStatementType) == 0,
                  "Not a valid statement");
 
-      if(st & smntType::skipStatement){
-        skipAfterStatement(allExp, expPos);
+      if(st & skipStatementType){
+        nodeRootEnd = skipAfterStatement(nodeRootEnd);
 
         delete newStatement;
-        return;
+        return nodeRootEnd;
       }
 
       addStatement(newStatement);
 
-      if(st & smntType::simpleStatement){
-        newStatement->loadSimpleFromNode(st,
-                                         allExp,
-                                         expPos,
-                                         parsingLanguage);
+      if(st & simpleStatementType){
+        nodeRootEnd = newStatement->loadSimpleFromNode(st,
+                                                       nodeRoot,
+                                                       nodeRootEnd,
+                                                       parsingC);
       }
 
-      else if(st & smntType::flowStatement){
-        if(st & smntType::forStatement)
-          newStatement->loadForFromNode(st,
-                                        allExp,
-                                        expPos,
-                                        parsingLanguage);
+      else if(st & flowStatementType){
+        if(st & forStatementType)
+          nodeRootEnd = newStatement->loadForFromNode(st,
+                                                      nodeRoot,
+                                                      nodeRootEnd,
+                                                      parsingC);
 
-        else if(st & smntType::whileStatement)
-          newStatement->loadWhileFromNode(st,
-                                          allExp,
-                                          expPos,
-                                          parsingLanguage);
+        else if(st & whileStatementType)
+          nodeRootEnd = newStatement->loadWhileFromNode(st,
+                                                        nodeRoot,
+                                                        nodeRootEnd,
+                                                        parsingC);
 
-        else if(st & smntType::ifStatement)
-          loadIfFromNode(st,
-                         allExp,
-                         expPos,
-                         parsingLanguage);
+        else if(st & ifStatementType)
+          nodeRootEnd = loadIfFromNode(st,
+                                       nodeRoot,
+                                       nodeRootEnd,
+                                       parsingC);
 
-        else if(st & smntType::switchStatement)
-          newStatement->loadSwitchFromNode(st,
-                                           allExp,
-                                           expPos,
-                                           parsingLanguage);
+        else if(st & switchStatementType)
+          nodeRootEnd = newStatement->loadSwitchFromNode(st,
+                                                         nodeRoot,
+                                                         nodeRootEnd,
+                                                         parsingC);
 
-        else if(st & smntType::gotoStatement)
-          newStatement->loadGotoFromNode(st,
-                                         allExp,
-                                         expPos,
-                                         parsingLanguage);
+        else if(st & gotoStatementType)
+          nodeRootEnd = newStatement->loadGotoFromNode(st,
+                                                       nodeRoot,
+                                                       nodeRootEnd,
+                                                       parsingC);
       }
 
-      else if(st & smntType::caseStatement)
-        newStatement->loadCaseFromNode(st,
-                                       allExp,
-                                       expPos,
-                                       parsingLanguage);
+      else if(st & caseStatementType)
+        nodeRootEnd = newStatement->loadCaseFromNode(st,
+                                                     nodeRoot,
+                                                     nodeRootEnd,
+                                                     parsingC);
 
-      else if(st & smntType::blockStatement)
-        newStatement->loadBlockFromNode(st,
-                                        allExp,
-                                        expPos,
-                                        parsingLanguage);
+      else if(st & blockStatementType)
+        nodeRootEnd = newStatement->loadBlockFromNode(st,
+                                                      nodeRoot,
+                                                      nodeRootEnd,
+                                                      parsingC);
 
-      else if(st & smntType::functionStatement){
-        if(st & smntType::functionDefinition)
-          newStatement->loadFunctionDefinitionFromNode(st,
-                                                       allExp,
-                                                       expPos,
-                                                       parsingLanguage);
+      else if(st & functionStatementType){
+        if(st & functionDefinitionType)
+          nodeRootEnd = newStatement->loadFunctionDefinitionFromNode(st,
+                                                                     nodeRoot,
+                                                                     nodeRootEnd,
+                                                                     parsingC);
 
-        else if(st & smntType::functionPrototype)
-          newStatement->loadFunctionPrototypeFromNode(st,
-                                                      allExp,
-                                                      expPos,
-                                                      parsingLanguage);
+        else if(st & functionPrototypeType)
+          nodeRootEnd = newStatement->loadFunctionPrototypeFromNode(st,
+                                                                    nodeRoot,
+                                                                    nodeRootEnd,
+                                                                    parsingC);
       }
 
-      else if(st & smntType::structStatement)
-        newStatement->loadStructFromNode(st,
-                                         allExp,
-                                         expPos,
-                                         parsingLanguage);
+      else if(st & structStatementType)
+        nodeRootEnd = newStatement->loadStructFromNode(st,
+                                                       nodeRoot,
+                                                       nodeRootEnd,
+                                                       parsingC);
 
-      else if(st & smntType::blankStatement)
-        newStatement->loadBlankFromNode(st,
-                                        allExp,
-                                        expPos,
-                                        parsingLanguage);
+      else if(st & blankStatementType)
+        nodeRootEnd = newStatement->loadBlankFromNode(st,
+                                                      nodeRoot,
+                                                      nodeRootEnd,
+                                                      parsingC);
 
-      else if(st & smntType::macroStatement)
-        newStatement->loadMacroFromNode(st,
-                                        allExp,
-                                        expPos,
-                                        parsingLanguage);
+      else if(st & macroStatementType)
+        nodeRootEnd = newStatement->loadMacroFromNode(st,
+                                                      nodeRoot,
+                                                      nodeRootEnd,
+                                                      parsingC);
+
+      // std::cout << "[" << getBits(newStatement->info) << "] s = " << *(newStatement) << '\n';
+
+      return nodeRootEnd;
     }
 
-    expNode statement::createExpNodeFrom(const std::string &source){
-      pushLanguage(parserInfo::parsingC);
+    void statement::setExpNodeFromStrNode(expNode &exp,
+                                          strNode *nodePos){
+      expNode *tmp = createExpNodeFrom(nodePos);
 
-      expNode ret = parserNS::splitAndLabelContent(source, parserInfo::parsingC);
+      exp.sInfo = this;
 
-      ret.changeExpTypes();
+      exp.value = tmp->value;
+      exp.info  = tmp->info;
 
-      popLanguage();
+      exp.leafCount = tmp->leafCount;
+      exp.leaves    = tmp->leaves;
+
+      delete tmp;
+    }
+
+    expNode* statement::createExpNodeFrom(strNode *nodeRoot){
+      loadFromNode(nodeRoot);
+
+      statementNode *sn = statementEnd;
+
+      if(statementStart == statementEnd)
+        statementStart = statementEnd->left;
+
+      statementEnd = statementEnd->left;
+
+      if(statementEnd)
+        statementEnd->right = NULL;
+
+      --(statementCount);
+
+      expNode &ret = *(sn->value->expRoot.clone(*this));
+
+      delete sn->value;
+      delete sn;
+
+      return &ret;
+    }
+
+    expNode* statement::createExpNodeFrom(const std::string &source){
+      strNode *nodeRoot = parserNS::splitContent(source);
+      nodeRoot          = parserNS::labelCode(nodeRoot);
+
+      expNode *ret = createExpNodeFrom(nodeRoot);
+
+      free(nodeRoot);
 
       return ret;
     }
 
-    expNode statement::createPlainExpNodeFrom(const std::string &source){
-      pushLanguage(parserInfo::parsingC);
+    expNode* statement::createPlainExpNodeFrom(const std::string &source){
+      strNode *nodeRoot = parserNS::splitContent(source);
+      nodeRoot          = parserNS::labelCode(nodeRoot);
 
-      expNode ret = parserNS::splitAndLabelContent(source, parserInfo::parsingC);
+      expNode *ret = new expNode(*this);
+      ret->initLoadFromNode(nodeRoot);
+      ret->initOrganization();
 
-      ret.setNestedSInfo(*this);
-
-      ret.changeExpTypes();
-
-      popLanguage();
-
-      return ret;
-    }
-
-    expNode statement::createOrganizedExpNodeFrom(const std::string &source){
-      pushLanguage(parserInfo::parsingC);
-
-      expNode ret = parserNS::splitAndLabelContent(source, parserInfo::parsingC);
-
-      statement &tmpS = *(makeSubStatement());
-
-      int expPos = 0;
-      tmpS.expRoot.loadFromNode(ret, expPos, parserInfo::parsingC);
-
-      popLanguage();
-
-      return tmpS.expRoot;
-    }
-
-    expNode statement::createOrganizedExpNodeFrom(expNode &allExp,
-                                                  const int expPos,
-                                                  const int leafCount){
-      pushLanguage(parserInfo::parsingC);
-
-      expNode ret(*(allExp.sInfo));
-      ret.useExpLeaves(allExp, expPos, leafCount);
-
-      ret.initOrganization();
-      ret.organize();
-
-      popLanguage();
+      free(nodeRoot);
 
       return ret;
     }
 
-    void statement::loadSimpleFromNode(const info_t st,
-                                       expNode &allExp,
-                                       int &expPos,
-                                       const int parsingLanguage){
+    strNode* statement::loadSimpleFromNode(const int st,
+                                           strNode *nodeRoot,
+                                           strNode *nodeRootEnd,
+                                           const bool parsingC){
+
+      strNode *nextNode = nodeRootEnd ? nodeRootEnd->right : NULL;
+
+      if(nodeRoot)
+        nodeRoot->left = NULL;
+      if(nodeRootEnd)
+        nodeRootEnd->right = NULL;
+
+      return nextNode;
     }
 
-    void statement::loadOneStatementFromNode(const info_t st,
-                                             expNode &allExp,
-                                             int &expPos,
-                                             const int parsingLanguage){
+    strNode* statement::loadOneStatementFromNode(const int st,
+                                                 strNode *nodeRoot,
+                                                 strNode *nodeRootEnd,
+                                                 const bool parsingC){
 
-      if(allExp.leafCount <= expPos)
-        return;
+      strNode *nextNode = nodeRootEnd ? nodeRootEnd->right : NULL;
 
-      if(parsingLanguage & parserInfo::parsingC){
-        if((allExp[expPos].info  & expType::C) &&
-           (allExp[expPos].value == "{")){
+      if(nodeRoot)
+        nodeRoot->left = NULL;
 
-          loadAllFromNode(allExp[expPos]);
-          ++expPos;
-        }
-        else {
-          loadFromNode(allExp, expPos, parsingLanguage);
-        }
-      }
-      else{
-        loadFromNode(allExp, expPos, parsingLanguage);
-      }
-    }
-
-    void statement::loadForFromNode(const info_t st,
-                                    expNode &allExp,
-                                    int &expPos,
-                                    const int parsingLanguage){
-
-      if(parsingLanguage & parserInfo::parsingC)
-        loadOneStatementFromNode(st, allExp, expPos, parsingLanguage);
-      else
-        loadUntilFortranEnd(allExp, expPos);
-    }
-
-    void statement::loadWhileFromNode(const info_t st,
-                                      expNode &allExp,
-                                      int &expPos,
-                                      const int parsingLanguage){
-
-      if(parsingLanguage & parserInfo::parsingC){
-        loadOneStatementFromNode(st, allExp, expPos, parsingLanguage);
-
-        if(st == smntType::whileStatement) {
-          bool skipSemicolon = false;
-
-          // Re-use the while-loop load
-          info = smntType::whileStatement;
-
-          if(expPos < allExp.leafCount)
-            skipSemicolon = (((allExp[expPos].info & expType::C) == 0) ||
-                             (allExp[expPos].value               != "{"));
-
-          expRoot.loadFromNode(allExp, expPos, parsingLanguage);
-
-          info = smntType::doWhileStatement;
-
-          if(skipSemicolon)
-            skipAfterStatement(allExp, expPos);
+      if(parsingC){
+        if(nodeRootEnd){
+          if(nodeRootEnd->info == startBrace)
+            loadAllFromNode(nodeRootEnd->down);
+          else
+            return loadFromNode(nodeRootEnd);
         }
       }
       else{
-        loadUntilFortranEnd(allExp, expPos);
+        return loadFromNode(nodeRootEnd, parsingC);
+      }
+
+      return nextNode;
+    }
+
+    strNode* statement::loadForFromNode(const int st,
+                                        strNode *nodeRoot,
+                                        strNode *nodeRootEnd,
+                                        const bool parsingC){
+
+      if(parsingC){
+        return loadOneStatementFromNode(st,
+                                        nodeRoot, nodeRootEnd,
+                                        parsingC);
+      }
+      else {
+        return loadUntilFortranEnd(nodeRootEnd);
       }
     }
 
-    void statement::loadIfFromNode(const info_t st_,
-                                   expNode &allExp,
-                                   int &expPos,
-                                   const int parsingLanguage){
+    strNode* statement::loadWhileFromNode(const int st,
+                                          strNode *nodeRoot,
+                                          strNode *nodeRootEnd,
+                                          const bool parsingC){
+
+      if(parsingC){
+        if(st == whileStatementType)
+          return loadOneStatementFromNode(st, nodeRoot, nodeRootEnd);
+        else{
+          strNode *nextNode = loadOneStatementFromNode(st, nodeRootEnd, nodeRootEnd);
+          info = whileStatementType;
+
+          expRoot.loadFromNode(nextNode);
+
+          info = doWhileStatementType;
+
+          // Skip the [;] after [while()]
+          if(nextNode &&
+             (nextNode->value == ";")){
+
+            nextNode = nextNode->right;
+          }
+
+          return nextNode;
+        }
+      }
+      else{
+        return loadUntilFortranEnd(nodeRootEnd);
+      }
+    }
+
+    strNode* statement::loadIfFromNode(const int st_,
+                                       strNode *nodeRoot,
+                                       strNode *nodeRootEnd,
+                                       const bool parsingC){
 
       statement *newStatement = statementEnd->value;
 
-      if(parsingLanguage & parserInfo::parsingC){
-        newStatement->loadOneStatementFromNode(st_,
-                                               allExp,
-                                               expPos,
-                                               parsingLanguage);
+      if(parsingC){
+        strNode *nextNode = newStatement->loadOneStatementFromNode(st_,
+                                                                   nodeRoot,
+                                                                   nodeRootEnd);
 
-        int tmpPos     = expPos;
-        info_t st      = findStatementType(allExp, tmpPos, parsingLanguage);
-        info_t stCheck = smntType::elseIfStatement;
+        if(nextNode == NULL)
+          return NULL;
+
+        nodeRoot    = nextNode;
+        nodeRootEnd = nextNode;
+
+        int st      = findStatementType(nodeRootEnd);
+        int stCheck = elseIfStatementType;
+
+        nodeRootEnd = nextNode;
 
         while(true){
           if(st != stCheck){
-            if(stCheck == smntType::elseIfStatement)
-              stCheck = smntType::elseStatement;
+            if(stCheck == elseIfStatementType)
+              stCheck = elseStatementType;
             else
               break;
           }
-          else if(allExp.leafCount <= expPos){
+          else if(nextNode == NULL){
             break;
           }
           else{
             newStatement = makeSubStatement();
-            newStatement->expRoot.loadFromNode(allExp, expPos, parsingLanguage);
+            newStatement->expRoot.loadFromNode(nodeRootEnd);
 
-            OCCA_CHECK((st & smntType::invalidStatement) == 0,
+            OCCA_CHECK((st & invalidStatementType) == 0,
                        "Not a valid statement");
 
             addStatement(newStatement);
 
-            newStatement->loadOneStatementFromNode(st,
-                                                   allExp,
-                                                   expPos,
-                                                   parsingLanguage);
+            nextNode = newStatement->loadOneStatementFromNode(st,
+                                                              nodeRoot,
+                                                              nodeRootEnd);
 
-            if(expPos < allExp.leafCount){
-              tmpPos = expPos;
-              st     = findStatementType(allExp, tmpPos);
+            nodeRoot    = nextNode;
+            nodeRootEnd = nextNode;
+
+            if(nodeRootEnd){
+              st = findStatementType(nodeRootEnd);
+
+              nodeRootEnd = nextNode;
             }
           }
         }
+
+        return nextNode;
       }
       else{
-        if(newStatement->info != smntType::ifStatement){
-          newStatement->loadUntilFortranEnd(allExp, expPos);
-          return;
+        if(nodeRoot->value != "IF")
+          return newStatement->loadUntilFortranEnd(nodeRootEnd);
+
+        strNode *nodePos = nodeRoot;
+
+        while(nodePos != nodeRootEnd){
+          if(nodePos->value == "THEN")
+            return newStatement->loadUntilFortranEnd(nodeRootEnd);
+
+          nodePos = nodePos->right;
         }
 
-        if((expPos < allExp.leafCount) &&
-           (allExp[expPos].value == "THEN")){
+        // [IF][(...)][load this]
+        newStatement->loadFromNode(nodeRoot->right->right, parsingFortran);
 
-          newStatement->loadUntilFortranEnd(allExp, expPos);
-        }
-        else {
-          newStatement->loadFromNode(allExp, expPos, parserInfo::parsingFortran);
-        }
+        return nodeRootEnd;
       }
     }
 
     // [-] Missing Fortran
-    void statement::loadSwitchFromNode(const info_t st,
-                                       expNode &allExp,
-                                       int &expPos,
-                                       const int parsingLanguage){
+    strNode* statement::loadSwitchFromNode(const int st,
+                                           strNode *nodeRoot,
+                                           strNode *nodeRootEnd,
+                                           const bool parsingC){
 
-      if(parsingLanguage & parserInfo::parsingC){
-        loadOneStatementFromNode(st,
-                                 allExp,
-                                 expPos,
-                                 parsingLanguage);
+      if(parsingC){
+        return loadOneStatementFromNode(st,
+                                        nodeRoot, nodeRootEnd,
+                                        parsingC);
       }
       else {
-        loadUntilFortranEnd(allExp, expPos);
+        return loadUntilFortranEnd(nodeRootEnd);
       }
     }
 
     // [-] Missing Fortran
-    void statement::loadCaseFromNode(const info_t st,
-                                     expNode &allExp,
-                                     int &expPos,
-                                     const int parsingLanguage){
+    strNode* statement::loadCaseFromNode(const int st,
+                                           strNode *nodeRoot,
+                                           strNode *nodeRootEnd,
+                                           const bool parsingC){
 
+      strNode *nextNode = nodeRootEnd ? nodeRootEnd->right : NULL;
+
+      if(nodeRoot)
+        nodeRoot->left = NULL;
+      if(nodeRootEnd)
+        nodeRootEnd->right = NULL;
+
+      return nextNode;
     }
 
     // [-] Missing Fortran
-    void statement::loadGotoFromNode(const info_t st,
-                                     expNode &allExp,
-                                     int &expPos,
-                                     const int parsingLanguage){
+    strNode* statement::loadGotoFromNode(const int st,
+                                         strNode *nodeRoot,
+                                         strNode *nodeRootEnd,
+                                         const bool parsingC){
 
+      strNode *nextNode = nodeRootEnd ? nodeRootEnd->right : NULL;
+
+      if(nodeRoot)
+        nodeRoot->left = NULL;
+      if(nodeRootEnd)
+        nodeRootEnd->right = NULL;
+
+      return nextNode;
     }
 
-    void statement::loadFunctionDefinitionFromNode(const info_t st,
-                                                   expNode &allExp,
-                                                   int &expPos,
-                                                   const int parsingLanguage){
-      if(parsingLanguage & parserInfo::parsingC){
-        if(expPos < allExp.leafCount){
-          loadAllFromNode(allExp[expPos], parsingLanguage);
-          ++expPos;
-        }
+    strNode* statement::loadFunctionDefinitionFromNode(const int st,
+                                                       strNode *nodeRoot,
+                                                       strNode *nodeRootEnd,
+                                                       const bool parsingC){
+
+      strNode *nextNode = nodeRootEnd ? nodeRootEnd->right : NULL;
+
+      if(nodeRoot)
+        nodeRoot->left = NULL;
+      if(nodeRootEnd)
+        nodeRootEnd->right = NULL;
+
+      if(parsingC){
+        if(nodeRootEnd)
+          loadAllFromNode(nodeRootEnd->down);
+
+        return nextNode;
       }
       else
-        return loadUntilFortranEnd(allExp, expPos);
+        return loadUntilFortranEnd(nextNode);
     }
 
     // [-] Missing Fortran
-    void statement::loadFunctionPrototypeFromNode(const info_t st,
-                                                  expNode &allExp,
-                                                  int &expPos,
-                                                  const int parsingLanguage){
+    strNode* statement::loadFunctionPrototypeFromNode(const int st,
+                                                      strNode *nodeRoot,
+                                                      strNode *nodeRootEnd,
+                                                      const bool parsingC){
+
+      strNode *nextNode = nodeRootEnd ? nodeRootEnd->right : NULL;
+
+      if(nodeRoot)
+        nodeRoot->left = NULL;
+      if(nodeRootEnd)
+        nodeRootEnd->right = NULL;
+
+      return nextNode;
     }
 
     // [-] Missing Fortran
-    void statement::loadBlockFromNode(const info_t st,
-                                      expNode &allExp,
-                                      int &expPos,
-                                      const int parsingLanguage){
+    strNode* statement::loadBlockFromNode(const int st,
+                                          strNode *nodeRoot,
+                                          strNode *nodeRootEnd,
+                                          const bool parsingC){
 
-      if(expPos < allExp.leafCount){
-        loadAllFromNode(allExp[expPos], parsingLanguage);
-        ++expPos;
-      }
+      strNode *nextNode = nodeRoot->right;
+
+      if(nodeRoot->down)
+        loadAllFromNode(nodeRoot->down);
+
+      return nextNode;
     }
 
     // [-] Missing Fortran
-    void statement::loadStructFromNode(const info_t st,
-                                       expNode &allExp,
-                                       int &expPos,
-                                       const int parsingLanguage){
+    strNode* statement::loadStructFromNode(const int st,
+                                           strNode *nodeRoot,
+                                           strNode *nodeRootEnd,
+                                           const bool parsingC){
+
+      strNode *nextNode = nodeRootEnd ? nodeRootEnd->right : NULL;
+
+      if(nodeRoot)
+        nodeRoot->left = NULL;
+      if(nodeRootEnd)
+        nodeRootEnd->right = NULL;
+
+      return nextNode;
     }
 
     // [-] Missing
-    void statement::loadBlankFromNode(const info_t st,
-                                      expNode &allExp,
-                                      int &expPos,
-                                      const int parsingLanguage){
+    strNode* statement::loadBlankFromNode(const int st,
+                                          strNode *nodeRoot,
+                                          strNode *nodeRootEnd,
+                                          const bool parsingC){
+
+      strNode *nextNode = nodeRootEnd ? nodeRootEnd->right : NULL;
+
+      if(nodeRoot)
+        nodeRoot->left = NULL;
+      if(nodeRootEnd)
+        nodeRootEnd->right = NULL;
+
+      return nextNode;
     }
 
     // [-] Missing
-    void statement::loadMacroFromNode(const info_t st,
-                                      expNode &allExp,
-                                      int &expPos,
-                                      const int parsingLanguage){
+    strNode* statement::loadMacroFromNode(const int st,
+                                          strNode *nodeRoot,
+                                          strNode *nodeRootEnd,
+                                          const bool parsingC){
+
+      strNode *nextNode = nodeRootEnd ? nodeRootEnd->right : NULL;
+
+      if(nodeRoot)
+        nodeRoot->left = NULL;
+      if(nodeRootEnd)
+        nodeRootEnd->right = NULL;
+
+      return nextNode;
     }
 
     //  ---[ Fortran ]--------
     // [+] Missing
-    info_t statement::checkFortranStructStatementType(expNode &allExp, int &expPos){
-      skipUntilFortranStatementEnd(allExp, expPos);
+    int statement::checkFortranStructStatementType(strNode *&nodeRoot, expNode *expPtr){
+      nodeRoot = skipUntilFortranStatementEnd(nodeRoot);
 
-      return smntType::structStatement;
+      return structStatementType;
     }
 
-    info_t statement::checkFortranUpdateStatementType(expNode &allExp, int &expPos){
-      skipUntilFortranStatementEnd(allExp, expPos);
+    int statement::checkFortranUpdateStatementType(strNode *&nodeRoot, expNode *expPtr){
+      nodeRoot = skipUntilFortranStatementEnd(nodeRoot);
 
-      return smntType::updateStatement;
+      return updateStatementType;
     }
 
-    info_t statement::checkFortranDescriptorStatementType(expNode &allExp, int &expPos){
-      if(((expPos + 1) < allExp.leafCount)        &&
-         (allExp[expPos].value     == "IMPLICIT") &&
-         (allExp[expPos + 1].value == "NONE")){
+    int statement::checkFortranDescriptorStatementType(strNode *&nodeRoot, expNode *expPtr){
+      if((nodeRoot        && (nodeRoot->value        == "IMPLICIT")) &&
+         (nodeRoot->right && (nodeRoot->right->value == "NONE"))){
 
-        skipUntilFortranStatementEnd(allExp, expPos);
+        nodeRoot = skipUntilFortranStatementEnd(nodeRoot);
 
-        return smntType::skipStatement;
+        return skipStatementType;
       }
 
       varInfo var;
-      var.loadFromFortran(*this, allExp, expPos);
+      nodeRoot = var.loadFromFortran(*this, nodeRoot);
 
-      if( !(var.info & varType::functionDef) )
-        skipUntilFortranStatementEnd(allExp, expPos);
+      if( !(var.info & varType::functionDef) ){
+        nodeRoot = skipUntilFortranStatementEnd(nodeRoot);
+      }
 
       if(var.info & varType::var)
-        return smntType::declareStatement;
+        return declareStatementType;
       else
-        return smntType::functionDefinition;
+        return functionDefinitionType;
     }
 
-    info_t statement::checkFortranFlowStatementType(expNode &allExp, int &expPos){
-      if(expPos < allExp.leafCount)
-        allExp[expPos].info = expType::checkSInfo;
+    int statement::checkFortranFlowStatementType(strNode *&nodeRoot, expNode *expPtr){
+      if(expPtr)
+        expPtr->info  = expType::checkSInfo;
 
-      std::string &expValue = allExp[expPos].value;
+      std::string &nodeValue = nodeRoot->value;
 
       int st = 0;
 
-      if(expValue == "DO")
-        st = smntType::forStatement;
-      else if(expValue == "DO WHILE")
-        st = smntType::whileStatement;
-      else if(expValue == "IF")
-        st = smntType::ifStatement;
-      else if(expValue == "ELSE IF")
-        st = smntType::elseIfStatement;
-      else if(expValue == "ELSE")
-        st = smntType::elseStatement;
-      else if(expValue == "SWITCH")
-        st = smntType::switchStatement;
+      if(nodeValue == "DO")
+        st = forStatementType;
+      else if(nodeValue == "DO WHILE")
+        st = whileStatementType;
+      else if(nodeValue == "IF")
+        st = ifStatementType;
+      else if(nodeValue == "ELSE IF")
+        st = elseIfStatementType;
+      else if(nodeValue == "ELSE")
+        st = elseStatementType;
+      else if(nodeValue == "SWITCH")
+        st = switchStatementType;
 
       // [-] Missing one-line case
-      while((expPos < allExp.leafCount)     &&
-            (allExp[expPos].value != "\\n") &&
-            (allExp[expPos].value != ";")){
+      while(nodeRoot &&
+            (nodeRoot->value != "\\n") &&
+            (nodeRoot->value != ";")){
 
-        ++expPos;
+        nodeRoot = nodeRoot->right;
       }
 
-      if(expPos < allExp.leafCount)
-        ++expPos;
+      if(nodeRoot)
+        nodeRoot = nodeRoot->right;
 
       if(st)
         return st;
 
       OCCA_CHECK(false,
                  "You found the [Waldo 3] error in:\n"
-                 << expRoot.toString("  "));
+                 << prettyString(nodeRoot, "  "));
 
       return 0;
     }
 
-    info_t statement::checkFortranSpecialStatementType(expNode &allExp, int &expPos){
-      info_t retType = smntType::blankStatement;
+    int statement::checkFortranSpecialStatementType(strNode *&nodeRoot, expNode *expPtr){
+      strNode *nextNode = skipUntilFortranStatementEnd(nodeRoot);
 
-      if(expPos < allExp.leafCount){
-        if(allExp[expPos].value == "CALL"){
-          retType = smntType::updateStatement;
-        }
-        else if((allExp[expPos].value == "FUNCTION") ||
-                (allExp[expPos].value == "SUBROUTINE")){
+      if(nodeRoot->value == "CALL"){
+        nodeRoot = nextNode;
 
-          retType = checkFortranDescriptorStatementType(allExp, expPos);
-        }
+        return updateStatementType;
+      }
+      else if((nodeRoot->value == "FUNCTION") ||
+              (nodeRoot->value == "SUBROUTINE")){
 
-        skipUntilFortranStatementEnd(allExp, expPos);
+        return checkFortranDescriptorStatementType(nodeRoot, expPtr);
       }
 
-      return retType;
+      nodeRoot = nextNode;
+
+      return blankStatementType;
     }
 
-    bool statement::isFortranEnd(expNode &allExp, int &expPos){
-      if(allExp.leafCount <= expPos)
-        return true;
+    bool statement::isFortranEnd(strNode *nodePos){
+      return (nodePos == getFortranEnd(nodePos));
+    }
 
-      std::string expValue = allExp[expPos].value;
-
-      if(info & smntType::functionDefinition){
+    strNode* statement::getFortranEnd(strNode *nodePos){
+      if(info & functionDefinitionType){
         const std::string &typeName = (getFunctionVar()->baseType->name);
+        const std::string endTag    = ((typeName == "void") ?
+                                       "ENDSUBROUTINE" : "ENDFUNCTION");
 
-        if(typeName == "void")
-          return (expValue == "ENDSUBROUTINE");
-        else
-          return (expValue == "ENDFUNCTION");
+        return skipNodeUntil(nodePos, endTag);
       }
-      else if(info & (smntType::forStatement |
-                      smntType::whileStatement)){
+      else if(info & (forStatementType |
+                      whileStatementType)){
 
-        return (expValue == "ENDDO");
+        return skipNodeUntil(nodePos, "ENDDO");
       }
-      else if(info & smntType::ifStatement){
-        if(info != smntType::elseStatement){
+      else if(info & ifStatementType){
+        if(info != elseStatementType){
+          int pos1, pos2, pos3;
 
-          if((expValue == "ENDIF")   ||
-             (expValue == "ELSE IF") ||
-             (expValue == "ELSE")){
+          strNode *node1 = skipNodeUntil(nodePos, "ENDIF"  , &pos1);
+          strNode *node2 = skipNodeUntil(nodePos, "ELSE IF", &pos2);
+          strNode *node3 = skipNodeUntil(nodePos, "ELSE"   , &pos3);
 
-            return true;
+          if(pos1 < pos2){
+            if(pos1 < pos3)
+              return node1;
+            else
+              return node3;
+          }
+          else{
+            if(pos2 < pos3)
+              return node2;
+            else
+              return node3;
           }
         }
         else
-          return (expValue == "ENDIF");
+          return skipNodeUntil(nodePos, "ENDIF");
       }
 
-      return false;
+      return nodePos;
     }
 
-    void statement::loadUntilFortranEnd(expNode &allExp, int &expPos){
+    strNode* statement::getFortranEnd(strNode *nodePos,
+                                      const std::string &value){
+      if((value == "DO") ||
+         (value == "DO WHILE")){
 
-      while(!isFortranEnd(allExp, expPos))
-        loadFromNode(allExp, expPos, parserInfo::parsingFortran);
+        return skipNodeUntil(nodePos, "ENDDO");
+      }
+      else if((value == "IF") ||
+              (value == "ELSE IF")){
+        int pos1, pos2, pos3;
+
+        strNode *node1 = skipNodeUntil(nodePos, "ENDIF"  , &pos1);
+        strNode *node2 = skipNodeUntil(nodePos, "ELSE IF", &pos2);
+        strNode *node3 = skipNodeUntil(nodePos, "ELSE"   , &pos3);
+
+        if(pos1 < pos2){
+          if(pos1 < pos3)
+            return node1;
+          else
+            return node3;
+        }
+        else{
+          if(pos2 < pos3)
+            return node2;
+          else
+            return node3;
+        }
+      }
+      else if(value == "ELSE"){
+        return skipNodeUntil(nodePos, "ENDIF");
+      }
+      else if(value == "FUNCTION"){
+        return skipNodeUntil(nodePos, "ENDFUNCTION");
+      }
+      else if(value == "SUBROUTINE"){
+        return skipNodeUntil(nodePos, "ENDSUBROUTINE");
+      }
+
+      return nodePos;
+    }
+
+    strNode* statement::loadUntilFortranEnd(strNode *nodePos){
+      while(!isFortranEnd(nodePos))
+        nodePos = loadFromNode(nodePos, parsingFortran);
 
       // Don't skip [ELSE IF] and [ELSE]
-      if((expPos < allExp.leafCount) &&
-         (allExp[expPos].value.substr(0,3) == "END")){
+      if(nodePos &&
+         (nodePos->value.substr(0,3) == "END")){
 
-        skipUntilFortranStatementEnd(allExp, expPos);
+        nodePos = skipAfterStatement(nodePos);
       }
+
+      return nodePos;
     }
 
-    void statement::skipAfterStatement(expNode &allExp, int &expPos){
-      skipUntilStatementEnd(allExp, expPos);
+    strNode* statement::skipNodeUntil(strNode *nodePos,
+                                      const std::string &value,
+                                      int *separation){
+      int count = 0;
 
-      if(expPos < allExp.leafCount)
-        ++expPos;
-    }
+      while(nodePos &&
+            (nodePos->value != value)){
 
-    void statement::skipUntilStatementEnd(expNode &allExp, int &expPos){
-      while((expPos < allExp.leafCount) &&
-            !(allExp[expPos].info & expType::endStatement)){
-
-        ++expPos;
+        ++count;
+        nodePos = nodePos->right;
       }
+
+      if(separation)
+        *separation = count;
+
+      return nodePos;
     }
 
-    void statement::skipUntilFortranStatementEnd(expNode &allExp, int &expPos){
-      while(expPos < allExp.leafCount){
-        if((allExp[expPos].value == "\\n") ||
-           (allExp[expPos].value == ";")){
+    strNode* statement::skipAfterStatement(strNode *nodePos){
+      nodePos = skipUntilStatementEnd(nodePos);
+
+      if(nodePos)
+        nodePos = nodePos->right;
+
+      return nodePos;
+    }
+
+    strNode* statement::skipUntilStatementEnd(strNode *nodePos){
+      while(nodePos){
+        if(nodePos->info & endStatement)
+          break;
+
+        nodePos = nodePos->right;
+      }
+
+      return nodePos;
+    }
+
+    strNode* statement::skipUntilFortranStatementEnd(strNode *nodePos){
+      while(nodePos){
+        nodePos = nodePos->right;
+
+        if((nodePos->value == "\\n") ||
+           (nodePos->value == ";")){
 
           break;
         }
-
-        ++expPos;
       }
+
+      return nodePos;
     }
     //==================================
 
@@ -4763,11 +4743,11 @@ namespace occa {
       return NULL;
     }
 
-    statement& statement::pushNewStatementLeft(const info_t info_){
+    statement& statement::pushNewStatementLeft(const int type_){
       statementNode *newSN = new statementNode(up->makeSubStatement());
 
       statement *newS = newSN->value;
-      newS->info      = info_;
+      newS->info      = type_;
 
       statementNode *sn = getStatementNode();
 
@@ -4785,11 +4765,11 @@ namespace occa {
       return *newS;
     }
 
-    statement& statement::pushNewStatementRight(const info_t info_){
+    statement& statement::pushNewStatementRight(const int type_){
       statementNode *newSN = new statementNode(up->makeSubStatement());
 
       statement *newS = newSN->value;
-      newS->info      = info_;
+      newS->info      = type_;
 
       statementNode *sn = getStatementNode();
 
@@ -4820,36 +4800,21 @@ namespace occa {
     }
 
     void statement::addStatementFromSource(const std::string &source){
-      pushLanguage(parserInfo::parsingC);
-
-      expNode allExp = splitAndLabelContent(source, parserInfo::parsingC);
-
-      loadFromNode(allExp);
-
-      popLanguage();
+      loadFromNode(labelCode( splitContent(source) ));
     }
 
     void statement::addStatementsFromSource(const std::string &source){
-      pushLanguage(parserInfo::parsingC);
-
-      loadAllFromNode(splitAndLabelContent(source, parserInfo::parsingC));
-
-      popLanguage();
+      loadAllFromNode(labelCode( splitContent(source) ));
     }
 
     void statement::pushSourceLeftOf(statementNode *target,
                                      const std::string &source){
       addStatementFromSource(source);
 
-      if(target == NULL)
-        return;
-
       statementNode *newSN = statementEnd;
 
-      statementEnd = statementEnd->left;
-
-      if(statementEnd)
-        statementEnd->right = NULL;
+      statementEnd        = statementEnd->left;
+      statementEnd->right = NULL;
 
       if(statementStart == target)
         statementStart = newSN;
@@ -4867,18 +4832,13 @@ namespace occa {
                                       const std::string &source){
       addStatementFromSource(source);
 
-      if((target == NULL) ||
-         (target == statementEnd->left)){
-
+      if(target == statementEnd->left)
         return;
-      }
 
       statementNode *newSN = statementEnd;
 
-      statementEnd = statementEnd->left;
-
-      if(statementEnd)
-        statementEnd->right = NULL;
+      statementEnd        = statementEnd->left;
+      statementEnd->right = NULL;
 
       if(target->right)
         target->right->left = newSN;
@@ -4947,7 +4907,7 @@ namespace occa {
     }
 
     unsigned int statement::distToForLoop(){
-      return distToStatementType(smntType::forStatement);
+      return distToStatementType(forStatementType);
     }
 
     unsigned int statement::distToOccaForLoop(){
@@ -4956,8 +4916,8 @@ namespace occa {
       unsigned int dist = 0;
 
       while(s){
-        if((s->info == smntType::occaFor) ||
-           ((s->info == smntType::forStatement) &&
+        if((s->info == occaForType) ||
+           ((s->info == forStatementType) &&
             (s->getForStatementCount() == 4))){
 
           return dist;
@@ -4970,7 +4930,7 @@ namespace occa {
       return -1; // Maximum distance
     }
 
-    unsigned int statement::distToStatementType(const info_t info_){
+    unsigned int statement::distToStatementType(const int info_){
       statement *s = this;
 
       unsigned int dist = 0;
@@ -4986,7 +4946,18 @@ namespace occa {
       return -1; // Maximum distance
     }
 
+    bool statement::insideOf(statement &s){
+      statement *up_ = up;
 
+      while(up_){
+        if(up_ == &s)
+          return true;
+
+        up_ = up_->up;
+      }
+
+      return false;
+    }
 
     void statement::setStatementIdMap(statementIdMap_t &idMap){
       int startID = 0;
@@ -5046,11 +5017,11 @@ namespace occa {
     }
 
     void statement::removeFromUpdateMapFor(varInfo &var){
-      removeFromMapFor(var, parser.varUpdateMap);
+      removeFromMapFor(var, varUpdateMap);
     }
 
     void statement::removeFromUsedMapFor(varInfo &var){
-      removeFromMapFor(var, parser.varUsedMap);
+      removeFromMapFor(var, varUsedMap);
     }
 
     void statement::removeFromMapFor(varInfo &var,
@@ -5106,9 +5077,9 @@ namespace occa {
     }
 
     statement* statement::getVarOriginStatement(varInfo &var){
-      varUsedMapIterator it = parser.varUpdateMap.find(&var);
+      varUsedMapIterator it = varUpdateMap.find(&var);
 
-      if(it == parser.varUpdateMap.end())
+      if(it == varUpdateMap.end())
         return NULL;
 
       return (it->second).value;
@@ -5141,7 +5112,7 @@ namespace occa {
 
       statement *origin = (origin_ == NULL ? this : origin_);
 
-      addVariableToMap(var, parser.varUpdateMap, origin);
+      addVariableToMap(var, varUpdateMap, origin);
     }
 
     void statement::addVariableToUsedMap(varInfo &var,
@@ -5149,7 +5120,7 @@ namespace occa {
 
       statement *origin = (origin_ == NULL ? this : origin_);
 
-      addVariableToMap(var, parser.varUsedMap, origin);
+      addVariableToMap(var, varUsedMap, origin);
     }
 
     void statement::addVariableToMap(varInfo &var,
@@ -5164,7 +5135,8 @@ namespace occa {
     }
 
     void statement::addStatement(statement *newStatement){
-      newStatement->up = this;
+      newStatement->up    = this;
+      newStatement->depth = (depth + 1);
 
       if(statementStart != NULL){
         ++statementCount;
@@ -5212,16 +5184,22 @@ namespace occa {
       statement *newStatement;
 
       if(up_){
-        newStatement = new statement(info, up_);
+        newStatement = new statement(up_->depth + 1,
+                                     info, up_);
       }
       else if(up){
-        newStatement = new statement(info, up);
+        newStatement = new statement(depth,
+                                     info, up);
       }
       else {
-        newStatement = new statement(parser);
+        newStatement = new statement(depth,
+                                     varUpdateMap,
+                                     varUsedMap);
       }
 
       expRoot.cloneTo(newStatement->expRoot);
+
+      newStatement->attributeMap = attributeMap;
 
       newStatement->statementStart = NULL;
       newStatement->statementEnd   = NULL;
@@ -5294,7 +5272,7 @@ namespace occa {
 
     //---[ Statement Info ]-----------
     void statement::createUniqueVariables(std::vector<std::string> &names,
-                                          const info_t flags){
+                                          const int flags){
       std::stringstream ss;
 
       const int nameCount = names.size();
@@ -5354,15 +5332,15 @@ namespace occa {
     }
 
     bool statement::hasQualifier(const std::string &qualifier){
-      if(info & smntType::declareStatement){
+      if(info & declareStatementType){
         varInfo &var = getDeclarationVarInfo(0);
         return var.hasQualifier(qualifier);
       }
-      else if(info & smntType::functionStatement){
+      else if(info & functionStatementType){
         varInfo &var = expRoot.getVarInfo(0);
         return var.hasQualifier(qualifier);
       }
-      else if(info & smntType::forStatement){
+      else if(info & forStatementType){
         if(expRoot.leafCount){
           expNode &node1 = *(expRoot.leaves[0]);
 
@@ -5384,33 +5362,45 @@ namespace occa {
       if(hasQualifier(qualifier))
         return;
 
-      if(info & smntType::declareStatement){
+      if(info & declareStatementType){
         varInfo &var = getDeclarationVarInfo(0);
         var.addQualifier(qualifier);
       }
-      else if(info & smntType::functionStatement){
+      else if(info & functionStatementType){
         varInfo &var = expRoot.getVarInfo(0);
         var.addQualifier(qualifier, pos);
       }
+      // ---[ OLD ]---
+      // else if(info & forStatementType){
+      //   if(expRoot.leafCount){
+      //     expNode &node1    = *(expRoot.leaves[0]);
+      //     expNode &qualNode = *(node1.leaves[0]);
+
+      //     if( !(qualNode.leaves[0]->info & expType::qualifier) )
+      //       qualNode.addNode(expType::qualifier, 0);
+
+      //     qualNode.leaves[0]->value = qualifier;
+      //   }
+      // }
     }
 
     void statement::removeQualifier(const std::string &qualifier){
       if(!hasQualifier(qualifier))
         return;
 
-      if(info & smntType::declareStatement){
+      if(info & declareStatementType){
         varInfo &var = getDeclarationVarInfo(0);
         var.removeQualifier(qualifier);
       }
-      else if(info & smntType::functionStatement){
+      else if(info & functionStatementType){
       }
-      else if(info & smntType::forStatement){
+      else if(info & forStatementType){
       }
     }
 
 
-    info_t statement::occaForInfo(){
-      if(info != smntType::occaFor)
+    int statement::occaForInfo(){
+      if(info != occaForType)
         return notAnOccaFor;
 
       std::string forLoop = expRoot.value;
@@ -5424,18 +5414,18 @@ namespace occa {
       return (nest << occaOuterForShift);
     }
 
-    info_t statement::occaForNest(const info_t forInfo){
+    int statement::occaForNest(const int forInfo){
       if(forInfo & occaInnerForMask)
         return ((forInfo >> occaInnerForShift) - 1);
 
       return ((forInfo >> occaOuterForShift) - 1);
     }
 
-    bool statement::isOccaOuterFor(const info_t forInfo){
+    bool statement::isOccaOuterFor(const int forInfo){
       return ((forInfo & occaOuterForMask) != 0);
     }
 
-    bool statement::isOccaInnerFor(const info_t forInfo){
+    bool statement::isOccaInnerFor(const int forInfo){
       return ((forInfo & occaInnerForMask) != 0);
     }
 
@@ -5453,9 +5443,9 @@ namespace occa {
 
           // [-] Missing up-checks
           //    Example: var->x = 3
-          //              =
-          //        ->        3
-          //      var  x
+          //                    =
+          //              ->        3
+          //            var  x
           if((nVar != &var) || // Checking our variable update
              (n.up == NULL) || // Update needs an assignment operator
              !isAnAssOperator(n.up->value) ||
@@ -5512,9 +5502,9 @@ namespace occa {
           varInfo *nVar        = hasVariableInScope(nVarName);
 
           // [-] Missing up-checks
-          if((nVar != &var)                || // Checking our variable update
-             (n.up == NULL)                || // Update needs an assignment operator
-             !isAnAssOperator(n.up->value) ||
+          if((nVar != &var) || // Checking our variable update
+             (n.up == NULL) || // Update needs an assignment operator
+             (n.up->value != "=") ||
              (n.up->leaves[0]->getMyVariableName() != var.name)){
 
             continue;
@@ -5542,7 +5532,7 @@ namespace occa {
                                              statementIdMap_t &idMap,
                                              statementVector_t sVec,
                                              idDepMap_t &depMap){
-      if(info & smntType::functionStatement)
+      if(info & functionStatementType)
         return;
 
       expNode &flatRoot = *(expRoot.makeFlatHandle());
@@ -5584,14 +5574,14 @@ namespace occa {
     }
 
     expNode* statement::getDeclarationVarNode(const int pos){
-      if(info & smntType::declareStatement)
+      if(info & declareStatementType)
         return expRoot.leaves[pos];
 
       return NULL;
     }
 
     std::string statement::getDeclarationVarName(const int pos){
-      if(info & smntType::declareStatement){
+      if(info & declareStatementType){
         varInfo &var = getDeclarationVarInfo(pos);
         return var.name;
       }
@@ -5600,28 +5590,28 @@ namespace occa {
     }
 
     expNode* statement::getDeclarationVarInitNode(const int pos){
-      if(info & smntType::declareStatement)
+      if(info & declareStatementType)
         return expRoot.getVariableInitNode(pos);
 
       return NULL;
     }
 
     int statement::getDeclarationVarCount(){
-      if(info & smntType::declareStatement)
+      if(info & declareStatementType)
         return expRoot.leafCount;
 
       return 0;
     }
 
     varInfo* statement::getFunctionVar(){
-      if(info & smntType::functionStatement){
+      if(info & functionStatementType){
         return &(expRoot.getVarInfo(0));
       }
-      else if(info & smntType::updateStatement){
+      else if(info & updateStatementType){
         statement *s = up;
 
         while(s &&
-              !(s->info & smntType::functionStatement)){
+              !(s->info & functionStatementType)){
           s = s->up;
         }
 
@@ -5637,14 +5627,14 @@ namespace occa {
     }
 
     void statement::setFunctionVar(varInfo &var){
-      if(info & smntType::functionStatement){
+      if(info & functionStatementType){
         expRoot.setVarInfo(0, var);
       }
-      else if(info & smntType::updateStatement){
+      else if(info & updateStatementType){
         statement *s = up;
 
         while(s &&
-              !(s->info & smntType::functionStatement)){
+              !(s->info & functionStatementType)){
           s = s->up;
         }
 
@@ -5654,7 +5644,7 @@ namespace occa {
     }
 
     std::string statement::getFunctionName(){
-      if(info & smntType::functionStatement){
+      if(info & functionStatementType){
         return getFunctionVar()->name;
       }
 
@@ -5664,7 +5654,7 @@ namespace occa {
     }
 
     void statement::setFunctionName(const std::string &newName){
-      if(info & smntType::functionStatement){
+      if(info & functionStatementType){
         getFunctionVar()->name = newName;
         return;
       }
@@ -5673,7 +5663,7 @@ namespace occa {
     }
 
     bool statement::functionHasQualifier(const std::string &qName){
-      if(info & smntType::functionStatement){
+      if(info & functionStatementType){
         return getFunctionVar()->hasQualifier(qName);
       }
 
@@ -5683,7 +5673,7 @@ namespace occa {
     }
 
     int statement::getFunctionArgCount(){
-      if(info & smntType::functionStatement){
+      if(info & functionStatementType){
         return getFunctionVar()->argumentCount;
       }
 
@@ -5691,7 +5681,7 @@ namespace occa {
     }
 
     std::string statement::getFunctionArgType(const int pos){
-      if(info & smntType::functionDefinition){
+      if(info & functionDefinitionType){
         return getFunctionVar()->baseType->name;
       }
 
@@ -5699,7 +5689,7 @@ namespace occa {
     }
 
     std::string statement::getFunctionArgName(const int pos){
-      if(info & smntType::functionDefinition){
+      if(info & functionDefinitionType){
         return getFunctionVar()->getArgument(pos).name;
       }
 
@@ -5707,7 +5697,7 @@ namespace occa {
     }
 
     varInfo* statement::getFunctionArgVar(const int pos){
-      if(info & smntType::functionDefinition){
+      if(info & functionDefinitionType){
         return &(getFunctionVar()->getArgument(pos));
       }
 
@@ -5715,7 +5705,7 @@ namespace occa {
     }
 
     bool statement::hasFunctionArgVar(varInfo &var){
-      if(info & smntType::functionDefinition){
+      if(info & functionDefinitionType){
         const int argc = getFunctionArgCount();
 
         for(int i = 0; i < argc; ++i){
@@ -5730,14 +5720,14 @@ namespace occa {
     }
 
     void statement::addFunctionArg(const int pos, varInfo &var){
-      if( !(info & smntType::functionStatement) )
+      if( !(info & functionStatementType) )
         return;
 
       getFunctionVar()->addArgument(pos, var);
     }
 
     expNode* statement::getForStatement(const int pos){
-      if(info & smntType::forStatement)
+      if(info & forStatementType)
         return expRoot.leaves[pos];
 
       return NULL;
@@ -5748,14 +5738,274 @@ namespace occa {
     }
 
     int statement::getForStatementCount(){
-      if(info & smntType::forStatement)
+      if(info & forStatementType)
         return expRoot.leafCount;
 
       return 0;
     }
     //================================
 
-    std::string statement::toString(const info_t flags){
+    // autoMode: Handles newlines and tabs
+    std::string statement::prettyString(strNode *nodeRoot,
+                                        const std::string &tab_,
+                                        const bool autoMode){
+      return "";
+#if 0
+      strNode *nodePos = nodeRoot;
+
+      std::string tab = tab_;
+      std::string ret = "";
+
+      while(nodePos){
+        if(nodePos->info & operatorType){
+
+          if(nodePos->info & binaryOperatorType){
+
+            // char *blah
+            if(nodeHasQualifier(nodePos)){
+
+              // [char ][*][blah]
+              // or
+              // [int ][a][ = ][0][, ][*][b][ = ][1][;]
+              //                       ^
+              if(nodePos->left &&
+                 ((nodePos->left->info & descriptorType) ||
+                  (nodePos->left->value == ","))){
+                ret += *nodePos;
+
+                // [const ][*][ const]
+                if(nodePos->right &&
+                   (nodePos->right->info & descriptorType) &&
+                   !(nodePos->right->value == "*"))
+                  ret += ' ';
+              }
+              else{
+                ret += " ";
+                ret += *nodePos;
+                ret += " ";
+              }
+            }
+            // [+] and [-]
+            else if(nodePos->info & unitaryOperatorType){
+              // (-blah ... )
+              if(nodePos->left &&
+                 !(nodePos->left->info & (presetValue | unknownVariable)) )
+                ret += *nodePos;
+              // a - b
+              else{
+                ret += " ";
+                ret += *nodePos;
+                ret += " ";
+              }
+            }
+            else if(nodePos->value == ","){
+              ret += ", ";
+            }
+            else if((nodePos->value == ".") || (nodePos->value == "::")){
+              if(((nodePos->left == NULL) ||
+                  !(nodePos->left->info & unknownVariable)) ||
+                 ((nodePos->right == NULL) ||
+                  !(nodePos->right->info & unknownVariable))){
+                if(nodePos->left){
+                  nodePos->up->print();
+                  std::cout << "1. Error on:\n";
+                  nodePos->left->print("  ");
+                }
+                else{
+                  std::cout << "2. Error on:\n";
+                  nodePos->print("  ");
+                }
+
+                OCCA_THROW;
+              }
+
+              ret += *nodePos;
+            }
+            else{
+              ret += " ";
+              ret += *nodePos;
+              ret += " ";
+            }
+
+          }
+          // [++] and [--]
+          else if(nodePos->info & unitaryOperatorType){
+            ret += *nodePos;
+          }
+          else if(nodePos->info & ternaryOperatorType){
+            ret += " ? ";
+
+            nodePos = nodePos->right;
+
+            OCCA_CHECK((nodePos->right) != NULL,
+                       "3. Error on: " << *(nodePos->left));
+
+            if((nodePos->down).size())
+              ret += prettyString(nodePos, "", autoMode);
+            else
+              ret += *nodePos;
+
+            ret += " : ";
+
+            OCCA_CHECK(((nodePos->right)        != NULL) &&
+                       ((nodePos->right->right) != NULL),
+
+                       "4. Error on: " << *(nodePos->left->left));
+
+            nodePos = nodePos->right->right;
+
+            if((nodePos->down).size())
+              ret += prettyString(nodePos, "", autoMode);
+            else
+              ret += *nodePos;
+          }
+        }
+
+        else if(nodePos->info & brace){
+          if(nodePos->info & startSection){
+            // a[] = {};
+            if(nodePos->up->info & binaryOperatorType){
+              ret += "{ ";
+            }
+            else{
+              // Case: function(...) const {
+              if( (((nodePos->sideDepth) != 0) &&
+                   ((nodePos->up->down[nodePos->sideDepth - 1]->info & parentheses) ||
+                    (nodePos->up->down[nodePos->sideDepth - 1]->value == "const")) )
+
+                  || (nodePos->up->info & (occaKeywordType | flowControlType)))
+                ret += " {\n" + tab + "  ";
+              else
+                ret += tab + "{\n";
+            }
+
+            tab += "  ";
+          }
+          else{
+            tab = tab.substr(0, tab.size() - 2);
+
+            // a[] = {};
+            if(nodePos->up &&
+               (nodePos->up->info & binaryOperatorType))
+              ret += " }";
+            else{
+              ret += '}';
+
+              //   }
+              // }
+              if((nodePos->up == NULL) ||
+                 ((nodePos->up->right) &&
+                  (nodePos->up->right->info == endBrace)))
+                ret += "\n" + tab.substr(0, tab.size() - 2);
+              else
+                ret += "\n" + tab;
+            }
+          }
+        }
+
+        else if(nodePos->info == endParentheses){
+          ret += ")";
+
+          // if(...) statement
+          if(autoMode)
+            if((nodePos->up->info & flowControlType) &&
+               (((nodePos->sideDepth) >= (nodePos->up->down.size() - 1)) ||
+                !(nodePos->up->down[nodePos->sideDepth + 1]->info & brace))){
+
+              ret += "\n" + tab + "  ";
+            }
+        }
+
+        else if(nodePos->info & endStatement){
+          ret += *nodePos;
+
+          // for(){
+          //   ...;
+          // }
+          if((nodePos->right == NULL) ||
+             ((nodePos->right) &&
+              (nodePos->right->info & brace))){
+
+            ret += "\n" + tab.substr(0, tab.size() - 2);
+          }
+          //   blah;
+          // }
+          else if(!(nodePos->up)                    ||
+                  !(nodePos->up->info & flowControlType) ||
+                  !(nodePos->up->value == "for")){
+
+            ret += "\n" + tab;
+          }
+          // Don't add newlines to for(A;B;C)
+          else
+            ret += " ";
+        }
+
+        else if(nodeHasDescriptor(nodePos)){
+          ret += *nodePos;
+
+          if(nodePos->right &&
+             // [static ][const ][float ][variable]
+             ((nodePos->right->info & (presetValue    |
+                                       unknownVariable)) ||
+              nodeHasDescriptor(nodePos->right))){
+
+            ret += " ";
+          }
+        }
+
+        else if(nodePos->info & flowControlType){
+          ret += *nodePos;
+
+          if(autoMode)
+            if(nodePos->down.size() == 0)
+              ret += '\n' + tab + "  ";
+        }
+
+        else if(nodePos->info & specialKeywordType){
+          if(nodePos->value == "case")
+            ret += "case";
+          else if(nodePos->value == "default")
+            ret += "default";
+          else if(nodePos->value == "break")
+            ret += "break";
+          else if(nodePos->value == "continue")
+            ret += "continue";
+          else if(nodePos->value == "return"){
+            ret += "return";
+
+            if(nodePos->right || nodePos->down.size())
+              ret += ' ';
+          }
+          else if(nodePos->value == "goto")
+            ret += "goto ";
+          else
+            ret += *nodePos;
+        }
+        else if(nodePos->info & macroKeywordType){
+          ret += *nodePos;
+
+          ret += '\n' + tab;
+        }
+        else
+          ret += *nodePos;
+
+        const int downCount = (nodePos->down).size();
+
+        for(int i = 0; i < downCount; ++i){
+          strNode *downNode = nodePos->down[i];
+
+          ret += prettyString(downNode, tab, autoMode);
+        }
+
+        nodePos = nodePos->right;
+      }
+
+      return ret;
+#endif
+    }
+
+    std::string statement::toString(const int flags){
       std::string tab;
 
       if(flags & statementFlag::printSubStatements)
@@ -5764,7 +6014,7 @@ namespace occa {
       statementNode *statementPos = statementStart;
 
       // OCCA For's
-      if(info == smntType::occaFor){
+      if(info == occaForType){
         if( !(flags & statementFlag::printSubStatements) )
           return expRoot.value;
 
@@ -5780,24 +6030,24 @@ namespace occa {
         return ret;
       }
 
-      else if(info & smntType::declareStatement){
+      else if(info & declareStatementType){
         return expRoot.toString(tab);
       }
 
-      else if(info & (smntType::simpleStatement | smntType::gotoStatement)){
+      else if(info & (simpleStatementType | gotoStatementType)){
         if(flags & statementFlag::printSubStatements)
           return expRoot.toString(tab) + "\n";
         else
           return expRoot.toString();
       }
 
-      else if(info & smntType::flowStatement){
+      else if(info & flowStatementType){
         if( !(flags & statementFlag::printSubStatements) )
           return expRoot.toString();
 
         std::string ret;
 
-        if(info != smntType::doWhileStatement){
+        if(info != doWhileStatementType){
           ret += expRoot.toString(tab);
 
           if(0 < statementCount)
@@ -5818,12 +6068,12 @@ namespace occa {
         }
 
         if((0 < statementCount) ||
-           (info == smntType::doWhileStatement)){
+           (info == doWhileStatementType)){
 
             ret += tab + "}\n";
         }
 
-        if(info == smntType::doWhileStatement){
+        if(info == doWhileStatementType){
           ret += ' ';
           ret += expRoot.toString();
           ret += ";\n\n";
@@ -5832,15 +6082,15 @@ namespace occa {
         return ret;
       }
 
-      else if(info & smntType::caseStatement){
+      else if(info & caseStatementType){
         if(flags & statementFlag::printSubStatements)
           return expRoot.toString(tab) + "\n";
         else
           return expRoot.toString();
       }
 
-      else if(info & smntType::functionStatement){
-        if(info & smntType::functionDefinition){
+      else if(info & functionStatementType){
+        if(info & functionDefinitionType){
           if( !(flags & statementFlag::printSubStatements) )
             return expRoot.toString();
 
@@ -5860,17 +6110,16 @@ namespace occa {
 
           return ret;
         }
-        else if(info & smntType::functionPrototype)
+        else if(info & functionPrototypeType)
           return expRoot.toString(tab);
       }
-      else if(info & smntType::blockStatement){
+      else if(info & blockStatementType){
         if( !(flags & statementFlag::printSubStatements) )
           return "{}";
 
-        std::string ret  = "";
-        const int depth_ = depth();
+        std::string ret = "";
 
-        if(0 <= depth_)
+        if(0 <= depth)
           ret += tab + "{\n";
 
         while(statementPos){
@@ -5878,7 +6127,7 @@ namespace occa {
           statementPos = statementPos->right;
         }
 
-        if(0 <= depth_){
+        if(0 <= depth){
           if(back(ret) != '\n')
             ret += "\n" + tab + "}\n";
           else
@@ -5887,15 +6136,15 @@ namespace occa {
 
         return ret;
       }
-      else if(info & smntType::structStatement){
+      else if(info & structStatementType){
         if(flags & statementFlag::printSubStatements)
           return expRoot.toString(tab) + "\n";
         else
           return expRoot.toString();
       }
-      else if(info & smntType::macroStatement){
+      else if(info & macroStatementType){
         if(flags & statementFlag::printSubStatements)
-          return expRoot.value + "\n";
+          return tab + expRoot.value + "\n";
         else
           return expRoot.value;
       }
@@ -5910,83 +6159,6 @@ namespace occa {
 
     statement::operator std::string() {
       return toString();
-    }
-
-    int setAttributeMap(strToStrMap_t &attributeMap,
-                        expNode &expRoot,
-                        int leafPos){
-
-      if(expRoot.leafCount <= (leafPos + 1))
-        return leafPos;
-
-      if(expRoot[leafPos].value != "@")
-        return leafPos;
-
-      ++leafPos;
-
-      // Only one attribute
-      if(expRoot[leafPos].info != expType::C){
-        attributeMap[expRoot[leafPos].value] = "";
-      }
-      else {
-        expNode &csvFlatRoot = *(expRoot[leafPos].makeCsvFlatHandle());
-
-        const int attributeCount = csvFlatRoot.leafCount;
-
-        for(int i = 0; i < attributeCount; ++i){
-          expNode &attrNode   = csvFlatRoot[i];
-          const int attrIsSet = (attrNode.value == "=");
-
-          expNode *lrValues[2] = {attrIsSet ? &(attrNode[0]) : &attrNode,
-                                  attrIsSet ? &(attrNode[1]) : (expNode*) NULL};
-
-          std::string strValues[2];
-
-          for(int j = 0; j < (1 + attrIsSet); ++j){
-            for(int k = 0; k < lrValues[j]->leafCount; ++k){
-              if(k) strValues[j] += ' ';
-              strValues[j] += (*(lrValues[j]))[k];
-            }
-          }
-
-          attributeMap[strValues[0]] = strValues[1];
-        }
-
-        expNode::freeFlatHandle(csvFlatRoot);
-      }
-
-      return (leafPos + 1);
-    }
-
-    std::string attributeMapToString(strToStrMap_t &attributeMap){
-      std::string ret;
-
-      if(attributeMap.size()){
-        ret += "@(";
-
-        strToStrMapIterator it = attributeMap.begin();
-        bool oneAttrSet = false;
-
-        while(it != attributeMap.end()){
-          if(oneAttrSet)
-            ret += ", ";
-          else
-            oneAttrSet = true;
-
-          ret += it->first;
-
-          if(it->second != ""){
-            ret += " = ";
-            ret += it->second;
-          }
-
-          ++it;
-        }
-
-        ret += ')';
-      }
-
-      return ret;
     }
 
     std::ostream& operator << (std::ostream &out, statement &s){

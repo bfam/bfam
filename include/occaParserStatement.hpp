@@ -2,7 +2,7 @@
 #define OCCA_PARSER_STATEMENT_HEADER
 
 #include "occaParserDefines.hpp"
-#include "occaParserPreprocessor.hpp"
+#include "occaParserMacro.hpp"
 #include "occaParserTools.hpp"
 #include "occaParserNodes.hpp"
 #include "occaParserTypes.hpp"
@@ -14,80 +14,87 @@ namespace occa {
 
     //---[ Exp Node ]-------------------------------
     namespace expType {
-      static const info_t root            = 0;
-      static const info_t firstPass       = (((info_t) 1)  << 63);
-      static const info_t firstPassMask   = ~firstPass;
+      static const int root            = 0;
 
-      static const info_t L               = (((info_t) 1)  << 0);
-      static const info_t R               = (((info_t) 1)  << 1);
-      static const info_t L_R             = (((info_t) 3)  << 0);
+      static const int LCR             = (7 << 1);
+      static const int LR              = (5 << 1);
 
-      static const info_t LR              = (((info_t) 1)  << 2);
-      static const info_t C               = (((info_t) 1)  << 3);
-      static const info_t LCR             = (((info_t) 1)  << 4);
-      static const info_t operator_       = (L | R | LR | C | LCR);
+      static const int L               = (1 << 1);
+      static const int C               = (1 << 2);
+      static const int R               = (1 << 3);
 
-      static const info_t descriptor      = (((info_t) 7)  <<  5);
-      static const info_t qualifier       = (((info_t) 1)  <<  5);
-      static const info_t type            = (((info_t) 1)  <<  6);
-      static const info_t struct_         = (((info_t) 1)  <<  7);
-      static const info_t presetValue     = (((info_t) 1)  <<  8);
-      static const info_t endStatement    = (((info_t) 1)  <<  9);
-      static const info_t unknown         = (((info_t) 1)  << 10);
-      static const info_t variable        = (((info_t) 1)  << 11);
-      static const info_t function        = (((info_t) 1)  << 12);
-      static const info_t prototype       = (((info_t) 1)  << 13);
-      static const info_t declaration     = (((info_t) 1)  << 14);
-      static const info_t namespace_      = (((info_t) 1)  << 15);
-      static const info_t cast_           = (((info_t) 1)  << 16);
-      static const info_t macro_          = (((info_t) 1)  << 17);
-      static const info_t goto_           = (((info_t) 1)  << 18);
-      static const info_t gotoLabel_      = (((info_t) 1)  << 19);
-      static const info_t return_         = (((info_t) 1)  << 20);
-      static const info_t transfer_       = (((info_t) 1)  << 21);
-      static const info_t occaFor         = (((info_t) 1)  << 22);
-      static const info_t checkSInfo      = (((info_t) 1)  << 23);
-      static const info_t attribute       = (((info_t) 1)  << 24);
+      static const int qualifier       = (1 <<  4);
+      static const int type            = (1 <<  5);
+      static const int presetValue     = (1 <<  6);
+      static const int operator_       = (1 <<  7);
+      static const int unknown         = (1 <<  8);
+      static const int variable        = (1 <<  9);
+      static const int function        = (1 << 11);
+      static const int functionPointer = (1 << 12);
+      static const int typedef_        = (1 << 13);
+      static const int prototype       = (1 << 14);
+      static const int declaration     = (1 << 15);
+      static const int struct_         = (1 << 16);
+      static const int namespace_      = (1 << 17);
+      static const int cast_           = (1 << 18);
+      static const int macro_          = (1 << 19);
+      static const int goto_           = (1 << 20);
+      static const int gotoLabel_      = (1 << 21);
+      static const int return_         = (1 << 22);
+      static const int transfer_       = (1 << 23);
+      static const int occaFor         = (1 << 24);
+      static const int checkSInfo      = (1 << 25);
+      static const int attribute       = (1 << 26);
 
-      static const info_t hasInfo         = (((info_t) 3)  << 25);
-      static const info_t varInfo         = (((info_t) 1)  << 25);
-      static const info_t typeInfo        = (((info_t) 1)  << 26);
+      static const int hasInfo         = (3 << 27);
+      static const int varInfo         = (1 << 27);
+      static const int typeInfo        = (1 << 28);
 
-      static const info_t printValue      = (((info_t) 1)  << 27);
-      static const info_t printLeaves     = (((info_t) 1)  << 28);
-
-      static const info_t flowControl     = (((info_t) 1)  << 29);
-
-      static const info_t specialKeyword  = (((info_t) 1)  << 30);
-
-      static const info_t macroKeyword    = (((info_t) 1)  << 31);
-
-      static const info_t apiKeyword      = (((info_t) 7)  << 32);
-      static const info_t occaKeyword     = (((info_t) 1)  << 32);
-      static const info_t cudaKeyword     = (((info_t) 1)  << 33);
-      static const info_t openclKeyword   = (((info_t) 1)  << 34);
-
-      static const info_t hasFlag         = (((info_t) 1)  << 35);
-      static const info_t removeFlags     = ~expType::hasFlag;
-      static const info_t hasSemicolon    = (((info_t) 1)  << 35);
+      static const int printValue      = (1 << 29);
+      static const int printLeaves     = (1 << 30);
+      static const int maxBit          = 31;
     };
 
     namespace expFlag {
-      static const info_t none        = 0;
-      static const info_t noNewline   = (1 << 0);
-      static const info_t noSemicolon = (1 << 1);
+      static const int none        = 0;
+      static const int noNewline   = (1 << 0);
+      static const int noSemicolon = (1 << 1);
 
-      static const info_t addVarToScope  = (1 << 0);
-      static const info_t addTypeToScope = (1 << 1);
-      static const info_t addToParent    = (1 << 2);
+      static const int addVarToScope  = (1 << 0);
+      static const int addTypeToScope = (1 << 1);
+      static const int addToParent    = (1 << 2);
+    };
+
+    namespace leafType {
+      static const char exp  = (1 << 0);
+      static const char type = (1 << 1);
+      static const char var  = (1 << 2);
     };
 
     namespace statementFlag {
-      static const info_t updateByNumber     = (1 << 0);
-      static const info_t updateByUnderscore = (1 << 1);
+      static const int updateByNumber     = (1 << 0);
+      static const int updateByUnderscore = (1 << 1);
 
-      static const info_t printEverything    = (info_t) -1;
-      static const info_t printSubStatements = (1 << 0);
+      static const int printEverything    = (int) -1;
+      static const int printSubStatements = (1 << 0);
+    };
+
+    class varInfo;
+    class typeInfo;
+    class expNode;
+
+    class varLeaf_t {
+    public:
+      bool hasExp;
+
+      varInfo *var;
+      expNode *exp;
+
+      varLeaf_t() :
+        hasExp(false),
+
+        var(NULL),
+        exp(NULL) {}
     };
 
     class expNode {
@@ -95,7 +102,7 @@ namespace occa {
       statement *sInfo;
 
       std::string value;
-      info_t info;
+      int info;
 
       expNode *up;
 
@@ -103,12 +110,8 @@ namespace occa {
       expNode **leaves;
 
       expNode();
-      expNode(const char *c);
-      expNode(const std::string &str);
-      expNode(const expNode &e);
       expNode(statement &s);
-
-      expNode& operator = (const expNode &e);
+      expNode(expNode &up_);
 
       bool operator == (expNode &e);
 
@@ -122,33 +125,25 @@ namespace occa {
           return *leaves[leafCount + i];
       }
 
-      expNode makeFloatingLeaf();
+      void loadFromNode(strNode *&nodePos, const bool parsingC = true);
 
-      void loadFromNode(expNode &allExp,
-                        const int parsingLanguage_ = parserInfo::parsingC);
-      void loadFromNode(expNode &allExp,
-                        int &expPos,
-                        const int parsingLanguage_);
+      void splitAndOrganizeNode(strNode *nodeRoot);
+      void splitAndOrganizeFortranNode(strNode *nodeRoot);
 
-      void splitAndOrganizeNode();
-      void splitAndOrganizeFortranNode();
+      void organize(const bool parsingC = true);
 
-      void organize(const int parsingLanguage_ = parserInfo::parsingC);
-
-      void splitDeclareStatement(const info_t flags = (expFlag::addVarToScope |
-                                                       expFlag::addToParent));
-
-      void splitUpdateStatement();
+      void splitDeclareStatement(const int flags = (expFlag::addVarToScope |
+                                                    expFlag::addToParent));
 
       void splitFlowStatement();
 
-      void splitFunctionStatement(const info_t flags = (expFlag::addVarToScope |
-                                                        expFlag::addToParent));
+      void splitFunctionStatement(const int flags = (expFlag::addVarToScope |
+                                                     expFlag::addToParent));
 
-      void splitStructStatement(const info_t flags = (expFlag::addTypeToScope |
-                                                      expFlag::addToParent));
+      void splitStructStatement(const int flags = (expFlag::addTypeToScope |
+                                                   expFlag::addToParent));
 
-      void splitCaseStatement(const int parsingLanguage_ = parserInfo::parsingC);
+      void splitCaseStatement(const bool parsingC = true);
 
       //  ---[ Fortran ]------
       void splitFortranDeclareStatement();
@@ -158,13 +153,10 @@ namespace occa {
       void splitFortranFunctionStatement();
       //  ====================
 
-      static void translateOccaKeyword(expNode &exp,
-                                       info_t preInfo,
-                                       const int parsingLanguage_ = parserInfo::parsingC);
+      static void translateOccaKeyword(strNode *nodePos, const bool parsingC);
 
-      bool isOrganized();
-      bool needsExpChange();
-      void changeExpTypes(const int leafPos = 0);
+      void initLoadFromNode(strNode *nodeRoot);
+      void initLoadFromFortranNode(strNode *nodeRoot);
 
       void initOrganization();
 
@@ -195,9 +187,6 @@ namespace occa {
       // <const int,float>
       void mergeTypes();
 
-      // a[3]
-      void mergeArrays();
-
       // class(...), class{1,2,3}
       void mergeClassConstructs();
 
@@ -208,6 +197,9 @@ namespace occa {
       void mergeFunctionCalls();
 
       void mergeArguments();
+
+      // a[3]
+      void mergeArrays();
 
       // ptr(a,b)
       void mergePointerArrays();
@@ -245,19 +237,15 @@ namespace occa {
 
       void mergeFortranArrays();
 
-      void subtractOneFrom(expNode &e);
-
       void translateFortranMemberCalls();
       void translateFortranPow();
       //================================
 
       static void swap(expNode &a, expNode &b);
 
-      expNode clone();
-      expNode clone(statement &s);
-
-      expNode* clonePtr();
-      expNode* clonePtr(statement &s);
+      expNode* clone();
+      expNode* clone(statement &s);
+      expNode* clone(expNode *original);
 
       void cloneTo(expNode &newExp);
 
@@ -268,12 +256,6 @@ namespace occa {
       int whichLeafAmI();
       int nestedLeafCount();
 
-      expNode& lastNode();
-
-      expNode* makeDumbFlatHandle();
-      void makeDumbFlatHandle(int &offset,
-                              expNode **flatLeaves);
-
       expNode* makeFlatHandle();
       void makeFlatHandle(int &offset,
                           expNode **flatLeaves);
@@ -282,27 +264,19 @@ namespace occa {
 
       expNode* makeCsvFlatHandle();
 
-      void addNode(const info_t info_ = 0, const int pos = -1);
-      void addNode(const info_t info_, const std::string &value_, const int pos = -1);
-
-      void addNodes(const int count);
-      void addNodes(const int pos_, const int count);
-      void addNodes(const info_t info_, const int pos_, const int count);
+      void addNode(const int info_ = 0, const int pos = -1);
+      void addNode(const int info_, const std::string &value_, const int pos = -1);
+      void addNodes(const int info_, const int pos_, const int count = 1);
 
       void addNode(expNode &node_, const int pos_ = -1);
 
       void reserve(const int count);
-      int insertExpAt(expNode &exp, int pos);
-      void useExpLeaves(expNode &exp, const int pos, const int count);
       void reserveAndShift(const int pos, const int count = 1);
 
       void setLeaf(expNode &leaf, const int pos);
 
-      void removeNodes(const int pos, const int count = 1);
-      void removeNode(const int pos = -1);
-
       varInfo& addVarInfoNode();
-      varInfo& addVarInfoNode(const int pos);
+      varInfo& addVarInfoNode(const int pos_);
 
       void putVarInfo(varInfo &var);
       void putVarInfo(const int pos, varInfo &var);
@@ -313,21 +287,22 @@ namespace occa {
       bool hasVariable();
 
       varInfo& getVarInfo();
-      varInfo& getVarInfo(const int pos);
+      varInfo& getVarInfo(const int pos_);
 
       void setVarInfo(varInfo &var);
-      void setVarInfo(const int pos, varInfo &var);
+      void setVarInfo(const int pos_, varInfo &var);
 
       typeInfo& getTypeInfo();
       typeInfo& getTypeInfo(const int pos);
 
-      varInfo typeInfoOf(const std::string &str);
-
-      varInfo evaluateType();
+      void removeNodes(const int pos, const int count = 1);
+      void removeNode(const int pos = 0);
 
       bool hasQualifier(const std::string &qualifier);
 
       void removeQualifier(const std::string &qualifier);
+
+      void changeType(const std::string &newType);
 
       int getVariableCount();
       bool variableHasInit(const int pos);
@@ -355,8 +330,6 @@ namespace occa {
       //  =========================
 
       //  ---[ Statement-based ]---
-      void setNestedSInfo(statement *sInfo_);
-      void setNestedSInfo(statement &sInfo_);
       void switchBaseStatement(statement &s1, statement &s2);
       //  =========================
       //================================
@@ -364,7 +337,7 @@ namespace occa {
 
       //---[ Analysis Info ]------------
       bool valueIsKnown(const strToStrMap_t &stsMap = strToStrMap_t());
-      typeHolder calculateValue(const strToStrMap_t &stsMap = strToStrMap_t());
+      typeHolder calculateValue(const strToStrMap_t &stsMap = strToStrMap_t()); // Assumes (valueIsKnown() == true)
       //================================
 
       void freeLeaf(const int leafPos);
@@ -374,7 +347,7 @@ namespace occa {
       void print(const std::string &tab = "");
       void printOn(std::ostream &out,
                    const std::string &tab = "",
-                   const info_t flags = expFlag::none);
+                   const int flags = expFlag::none);
 
       static void printVec(expVec_t &v);
 
@@ -385,53 +358,25 @@ namespace occa {
 
       friend std::ostream& operator << (std::ostream &out, expNode &n);
     };
+
+    struct statementExp {
+      int sType;
+      expNode exp;
+    };
     //==============================================
 
 
     //---[ Statement ]------------------------------
-    namespace smntType {
-      static const info_t invalidStatement   = (1 << 0);
-
-      static const info_t simpleStatement    = (7 << 1);
-      static const info_t typedefStatement   = (1 << 1);
-      static const info_t declareStatement   = (1 << 2);
-      static const info_t updateStatement    = (1 << 3);
-
-      static const info_t flowStatement      = (255 <<  4);
-      static const info_t forStatement       = (1   <<  4);
-      static const info_t whileStatement     = (1   <<  5);
-      static const info_t doWhileStatement   = (3   <<  5);
-      static const info_t ifStatement        = (1   <<  7);
-      static const info_t elseIfStatement    = (3   <<  7);
-      static const info_t elseStatement      = (5   <<  7);
-      static const info_t switchStatement    = (1   << 10);
-      static const info_t gotoStatement      = (1   << 11);
-
-      static const info_t caseStatement      = (1 << 12);
-      static const info_t blankStatement     = (1 << 13);
-
-      static const info_t functionStatement  = (3 << 14);
-      static const info_t functionDefinition = (1 << 14);
-      static const info_t functionPrototype  = (1 << 15);
-      static const info_t blockStatement     = (1 << 16);
-      static const info_t structStatement    = (1 << 17);
-
-      static const info_t occaStatement      = (1 << 18);
-      static const info_t occaFor            = (occaStatement |
-                                                forStatement);
-
-      static const info_t macroStatement     = (1 << 19);
-      static const info_t skipStatement      = (1 << 20);
-    };
-
     class statement {
     public:
-      parserBase &parser;
-
       scopeTypeMap_t scopeTypeMap;
       scopeVarMap_t scopeVarMap;
 
-      info_t info;
+      varUsedMap_t &varUpdateMap;
+      varUsedMap_t &varUsedMap;
+
+      int depth;
+      int info;
 
       statement *up;
 
@@ -440,13 +385,18 @@ namespace occa {
       int statementCount;
       statementNode *statementStart, *statementEnd;
 
-      strToStrMap_t attributeMap;
+      attributeMap_t attributeMap;
 
       statement(parserBase &pb);
 
-      statement(statement *up_);
+      statement(const int depth_,
+                varUsedMap_t &varUpdateMap_,
+                varUsedMap_t &varUsedMap_);
 
-      statement(const info_t info_,
+      statement(const int depth_, statement *up_);
+
+      statement(const int depth_,
+                const int type_,
                 statement *up_);
 
       ~statement();
@@ -456,7 +406,7 @@ namespace occa {
 
       int getSubIndex();
 
-      int depth();
+      int getDepth();
       void setIndexPath(intVector_t &path, statement *target = NULL);
 
       statement* makeSubStatement();
@@ -464,41 +414,43 @@ namespace occa {
       std::string getTab();
 
       //---[ Find Statement ]-----------
-      void labelStatement(expNode &allExp,
-                          int &expPos,
-                          const int parsingLanguage_ = parserInfo::parsingC);
+      void labelStatement(strNode *&nodeRoot,
+                          expNode *expPtr = NULL,
+                          const bool parsingC = true);
 
-      info_t findStatementType(expNode &allExp,
-                               int &expPos,
-                               const int parsingLanguage_ = parserInfo::parsingC);
+      int findStatementType(strNode *&nodeRoot,
+                            expNode *expPtr = NULL,
+                          const bool parsingC = true);
 
-      info_t findFortranStatementType(expNode &allExp,
-                                      int &expPos);
+      int findFortranStatementType(strNode *&nodeRoot,
+                                   expNode *expPtr = NULL);
 
-      info_t checkMacroStatementType(expNode &allExp, int &expPos);
-      info_t checkOccaForStatementType(expNode &allExp, int &expPos);
-      info_t checkStructStatementType(expNode &allExp, int &expPos);
-      info_t checkUpdateStatementType(expNode &allExp, int &expPos);
-      info_t checkDescriptorStatementType(expNode &allExp, int &expPos);
-      info_t checkGotoStatementType(expNode &allExp, int &expPos);
-      info_t checkFlowStatementType(expNode &allExp, int &expPos);
-      info_t checkSpecialStatementType(expNode &allExp, int &expPos);
-      info_t checkBlockStatementType(expNode &allExp, int &expPos);
+      int checkMacroStatementType(strNode *&nodeRoot, expNode *expPtr = NULL);
+      int checkOccaForStatementType(strNode *&nodeRoot, expNode *expPtr = NULL);
+      int checkStructStatementType(strNode *&nodeRoot, expNode *expPtr = NULL);
+      int checkUpdateStatementType(strNode *&nodeRoot, expNode *expPtr = NULL);
+      int checkDescriptorStatementType(strNode *&nodeRoot, expNode *expPtr = NULL);
+      int checkGotoStatementType(strNode *&nodeRoot, expNode *expPtr = NULL);
+      int checkFlowStatementType(strNode *&nodeRoot, expNode *expPtr = NULL);
+      int checkSpecialStatementType(strNode *&nodeRoot, expNode *expPtr = NULL);
+      int checkBlockStatementType(strNode *&nodeRoot, expNode *expPtr = NULL);
 
       //  ---[ Fortran ]------
-      info_t checkFortranStructStatementType(expNode &allExp, int &expPos);
-      info_t checkFortranUpdateStatementType(expNode &allExp, int &expPos);
-      info_t checkFortranDescriptorStatementType(expNode &allExp, int &expPos);
-      info_t checkFortranFlowStatementType(expNode &allExp, int &expPos);
-      info_t checkFortranSpecialStatementType(expNode &allExp, int &expPos);
+      int checkFortranStructStatementType(strNode *&nodeRoot, expNode *expPtr = NULL);
+      int checkFortranUpdateStatementType(strNode *&nodeRoot, expNode *expPtr = NULL);
+      int checkFortranDescriptorStatementType(strNode *&nodeRoot, expNode *expPtr = NULL);
+      int checkFortranFlowStatementType(strNode *&nodeRoot, expNode *expPtr = NULL);
+      int checkFortranSpecialStatementType(strNode *&nodeRoot, expNode *expPtr = NULL);
+
+      int getStatementType();
       //================================
 
       void addType(typeInfo &type);
       void addTypedef(const std::string &typedefName);
 
-      bool expHasQualifier(expNode &allExp, int expPos);
-      bool expHasSpecifier(expNode &allExp, int expPos);
-      bool expHasDescriptor(expNode &allExp, int expPos);
+      bool nodeHasQualifier(strNode *n);
+      bool nodeHasSpecifier(strNode *n);
+      bool nodeHasDescriptor(strNode *n);
 
       typeInfo* hasTypeInScope(const std::string &typeName);
       typeInfo* hasTypeInLocalScope(const std::string &typeName);
@@ -510,112 +462,113 @@ namespace occa {
       bool hasDescriptorVariableInScope(const std::string descriptor);
 
       //---[ Loading ]------------------
-      void loadAllFromNode(expNode allExp, const int parsingLanguage_ = parserInfo::parsingC);
+      void loadAllFromNode(strNode *nodeRoot, const bool parsingC = true);
 
-      void loadFromNode(expNode allExp);
+      strNode* loadFromNode(strNode *nodeRoot, const bool parsingC = true);
 
-      void loadFromNode(expNode allExp,
-                        const int parsingLanguage_);
+      void setExpNodeFromStrNode(expNode &exp,
+                                 strNode *nodePos);
 
-      void loadFromNode(expNode &allExp,
-                        int &expPos,
-                        const int parsingLanguage_);
+      expNode* createExpNodeFrom(strNode *nodePos);
+      expNode* createExpNodeFrom(const std::string &source);
 
-      static expNode createExpNodeFrom(const std::string &source);
-      expNode createPlainExpNodeFrom(const std::string &source);
-      expNode createOrganizedExpNodeFrom(const std::string &source);
-      expNode createOrganizedExpNodeFrom(expNode &allExp,
-                                         const int expPos,
-                                         const int leafCount);
+      expNode* createPlainExpNodeFrom(const std::string &source);
 
-      void loadSimpleFromNode(const info_t st,
-                              expNode &allExp,
-                              int &expPos,
-                              const int parsingLanguage_ = parserInfo::parsingC);
+      strNode* loadSimpleFromNode(const int st,
+                                  strNode *nodeRoot,
+                                  strNode *nodeRootEnd,
+                                  const bool parsingC = true);
 
-      void loadOneStatementFromNode(const info_t st,
-                                    expNode &allExp,
-                                    int &expPos,
-                                    const int parsingLanguage_ = parserInfo::parsingC);
+      strNode* loadOneStatementFromNode(const int st,
+                                        strNode *nodeRoot,
+                                        strNode *nodeRootEnd,
+                                        const bool parsingC = true);
 
-      void loadForFromNode(const info_t st,
-                           expNode &allExp,
-                           int &expPos,
-                           const int parsingLanguage_ = parserInfo::parsingC);
+      strNode* loadForFromNode(const int st,
+                               strNode *nodeRoot,
+                               strNode *nodeRootEnd,
+                               const bool parsingC = true);
 
-      void loadWhileFromNode(const info_t st,
-                             expNode &allExp,
-                             int &expPos,
-                             const int parsingLanguage_ = parserInfo::parsingC);
+      strNode* loadWhileFromNode(const int st,
+                                 strNode *nodeRoot,
+                                 strNode *nodeRootEnd,
+                                 const bool parsingC = true);
 
-      void loadIfFromNode(const info_t st,
-                          expNode &allExp,
-                          int &expPos,
-                          const int parsingLanguage_ = parserInfo::parsingC);
+      strNode* loadIfFromNode(const int st,
+                              strNode *nodeRoot,
+                              strNode *nodeRootEnd,
+                              const bool parsingC = true);
 
-      void loadSwitchFromNode(const info_t st,
-                              expNode &allExp,
-                              int &expPos,
-                              const int parsingLanguage_ = parserInfo::parsingC);
+      strNode* loadSwitchFromNode(const int st,
+                                  strNode *nodeRoot,
+                                  strNode *nodeRootEnd,
+                                  const bool parsingC = true);
 
-      void loadCaseFromNode(const info_t st,
-                            expNode &allExp,
-                            int &expPos,
-                            const int parsingLanguage_ = parserInfo::parsingC);
+      strNode* loadCaseFromNode(const int st,
+                                strNode *nodeRoot,
+                                strNode *nodeRootEnd,
+                                const bool parsingC = true);
 
-      void loadGotoFromNode(const info_t st,
-                            expNode &allExp,
-                            int &expPos,
-                            const int parsingLanguage_ = parserInfo::parsingC);
+      strNode* loadGotoFromNode(const int st,
+                                strNode *nodeRoot,
+                                strNode *nodeRootEnd,
+                                const bool parsingC = true);
 
-      void loadFunctionDefinitionFromNode(const info_t st,
-                                          expNode &allExp,
-                                          int &expPos,
-                                          const int parsingLanguage_ = parserInfo::parsingC);
+      strNode* loadFunctionDefinitionFromNode(const int st,
+                                              strNode *nodeRoot,
+                                              strNode *nodeRootEnd,
+                                              const bool parsingC = true);
 
-      void loadFunctionPrototypeFromNode(const info_t st,
-                                         expNode &allExp,
-                                         int &expPos,
-                                         const int parsingLanguage_ = parserInfo::parsingC);
+      strNode* loadFunctionPrototypeFromNode(const int st,
+                                             strNode *nodeRoot,
+                                             strNode *nodeRootEnd,
+                                             const bool parsingC = true);
 
-      void loadBlockFromNode(const info_t st,
-                             expNode &allExp,
-                             int &expPos,
-                             const int parsingLanguage_ = parserInfo::parsingC);
+      strNode* loadBlockFromNode(const int st,
+                                 strNode *nodeRoot,
+                                 strNode *nodeRootEnd,
+                                 const bool parsingC = true);
 
       // [-] Missing
-      void loadStructFromNode(const info_t st,
-                              expNode &allExp,
-                              int &expPos,
-                              const int parsingLanguage_ = parserInfo::parsingC);
+      strNode* loadStructFromNode(const int st,
+                                  strNode *nodeRoot,
+                                  strNode *nodeRootEnd,
+                                  const bool parsingC = true);
 
       // [-] Missing
-      void loadBlankFromNode(const info_t st,
-                             expNode &allExp,
-                             int &expPos,
-                             const int parsingLanguage_ = parserInfo::parsingC);
+      strNode* loadBlankFromNode(const int st,
+                                 strNode *nodeRoot,
+                                 strNode *nodeRootEnd,
+                                 const bool parsingC = true);
 
       // [-] Missing
-      void loadMacroFromNode(const info_t st,
-                             expNode &allExp,
-                             int &expPos,
-                             const int parsingLanguage_ = parserInfo::parsingC);
+      strNode* loadMacroFromNode(const int st,
+                                 strNode *nodeRoot,
+                                 strNode *nodeRootEnd,
+                                 const bool parsingC = true);
 
-      bool isFortranEnd(expNode &allExp, int &expPos);
+      bool isFortranEnd(strNode *nodePos);
+      strNode* getFortranEnd(strNode *nodePos);
+      static strNode* getFortranEnd(strNode *nodePos,
+                                    const std::string &value);
 
-      void loadUntilFortranEnd(expNode &allExp, int &expPos);
+      strNode* loadUntilFortranEnd(strNode *nodePos);
 
-      static void skipAfterStatement(expNode &allExp, int &expPos);
-      static void skipUntilStatementEnd(expNode &allExp, int &expPos);
+      static strNode* skipNodeUntil(strNode *nodePos,
+                                    const std::string &value,
+                                    int *separation = NULL);
 
-      static void skipUntilFortranStatementEnd(expNode &allExp, int &expPos);
+      static strNode* skipAfterStatement(strNode *nodePos);
+      static strNode* skipUntilStatementEnd(strNode *nodePos);
+
+      static strNode* skipUntilFortranStatementEnd(strNode *nodePos);
       //================================
 
       statement* getGlobalScope();
       statementNode* getStatementNode();
 
-      statement& pushNewStatementLeft(const info_t info_ = 0);
-      statement& pushNewStatementRight(const info_t info_ = 0);
+      statement& pushNewStatementLeft(const int type_ = 0);
+      statement& pushNewStatementRight(const int type_ = 0);
 
       statement& createStatementFromSource(const std::string &source);
 
@@ -637,7 +590,7 @@ namespace occa {
 
       unsigned int distToForLoop();
       unsigned int distToOccaForLoop();
-      unsigned int distToStatementType(const info_t info_);
+      unsigned int distToStatementType(const int info_);
 
       bool insideOf(statement &s);
 
@@ -695,7 +648,7 @@ namespace occa {
 
       //---[ Statement Info ]-----------
       void createUniqueVariables(std::vector<std::string> &names,
-                                 const info_t flags = statementFlag::updateByNumber);
+                                 const int flags = statementFlag::updateByNumber);
 
       void createUniqueSequentialVariables(std::string &varName,
                                            const int varCount);
@@ -706,11 +659,11 @@ namespace occa {
       void addQualifier(const std::string &qualifier, const int pos = 0);
       void removeQualifier(const std::string &qualifier);
 
-      info_t occaForInfo();
+      int occaForInfo();
 
-      static info_t occaForNest(const info_t forInfo);
-      static bool isOccaOuterFor(const info_t forInfo);
-      static bool isOccaInnerFor(const info_t forInfo);
+      static int occaForNest(const int forInfo);
+      static bool isOccaOuterFor(const int forInfo);
+      static bool isOccaInnerFor(const int forInfo);
 
       void setVariableDeps(varInfo &var,
                            sDep_t &sDep);
@@ -758,17 +711,16 @@ namespace occa {
       int getForStatementCount();
       //================================
 
-      std::string toString(const info_t flags = (statementFlag::printSubStatements));
+      // autoMode: Handles newlines and tabs
+      std::string prettyString(strNode *nodeRoot,
+                               const std::string &tab_ = "",
+                               const bool autoMode = true);
+
+      std::string toString(const int flags = (statementFlag::printSubStatements));
       std::string onlyThisToString();
 
       operator std::string();
     };
-
-    int setAttributeMap(strToStrMap_t &attributeMap,
-                        expNode &expRoot,
-                        int leafPos);
-
-    std::string attributeMapToString(strToStrMap_t &attributeMap);
 
     std::ostream& operator << (std::ostream &out, statement &s);
     //============================================
