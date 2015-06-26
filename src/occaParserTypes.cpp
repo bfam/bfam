@@ -403,26 +403,48 @@ namespace occa {
         if(pass == 1){
           if(qualifierCount)
             qualifiers = new std::string[qualifierCount];
+          else
+            break;
         }
 
         qualifierCount = 0;
         leafPos = leafRoot;
 
         while(leafPos < expRoot.leafCount){
-          if(expRoot[leafPos].info & expType::qualifier){
-            if(pass == 1)
+          if(expHasQualifier(expRoot, leafPos)){
+            if(pass == 1){
+              if((expRoot[leafPos].value == "*") &&
+                 hasImplicitInt()){
+                break;
+              }
+
               qualifiers[qualifierCount] = expRoot[leafPos].value;
+            }
 
             ++qualifierCount;
             ++leafPos;
           }
           else if(isAnAttribute(expRoot, leafPos)){
+            const bool is__attribute__ = (expRoot[leafPos].value == "__attribute__");
+
             if(pass == 0){
               leafPos = skipAttribute(expRoot, leafPos);
             }
             else {
               leafPos = setAttributeMap(var.attributeMap, expRoot, leafPos);
+
+              if(is__attribute__){
+                attributeMapIterator it = var.attributeMap.find("__attribute__");
+                attribute_t &attr       = *(it->second);
+
+                qualifiers[qualifierCount] = ("__attribute__" + attr.name);
+
+                var.attributeMap.erase(it);
+              }
             }
+
+            if(is__attribute__)
+              ++qualifierCount;
           }
           else
             break;
@@ -615,6 +637,13 @@ namespace occa {
         qualifiers = NULL;
       }
     }
+
+    bool qualifierInfo::hasImplicitInt(){
+      return (has("unsigned") ||
+              has("signed")   ||
+              has("short")    ||
+              has("long"));
+    }
     //==================================
 
     std::string qualifierInfo::toString(){
@@ -644,6 +673,10 @@ namespace occa {
       out << q.toString();
 
       return out;
+    }
+
+    bool expHasQualifier(expNode &allExp, int expPos){
+      return (allExp[expPos].info & expType::qualifier);
     }
     //============================================
 
@@ -777,23 +810,33 @@ namespace occa {
 
         updateThType();
       }
+      else if(hasImplicitInt()){
+        name     = "int";
+        baseType = s.hasTypeInScope("int");
+      }
 
       if((leafPos < expRoot.leafCount) &&
          (expRoot[leafPos].value == "{")){
 
         expNode &leaf = expRoot[leafPos++];
 
-        const bool usesSemicolon = !leftQualifiers.has("enum");
-        const char *delimiter = (usesSemicolon ? ";" : ",");
+        if(leftQualifiers.has("enum")){
+          nestedInfoCount = 1;
+          nestedExps      = new expNode[nestedInfoCount];
 
-        // [enum] doesn't end with a semicolon, so we add one more info
-        nestedInfoCount = delimiterCount(leaf, delimiter) + !usesSemicolon;
+          nestedExps[0] = leaf.clone();
+          nestedExps[0].organizeDeclareStatement(expFlag::none);
+
+          return leafPos;
+        }
+
+        nestedInfoCount = delimiterCount(leaf, ";");
         nestedExps      = new expNode[nestedInfoCount];
 
         int sLeafPos = 0;
 
         for(int i = 0; i < nestedInfoCount; ++i){
-          int sNextLeafPos = nextDelimiter(leaf, sLeafPos, delimiter);
+          int sNextLeafPos = nextDelimiter(leaf, sLeafPos, ";");
 
           // Empty statements
           if(sNextLeafPos != sLeafPos){
@@ -839,18 +882,25 @@ namespace occa {
       if((leafPos < expRoot.leafCount) &&
          (expRoot[leafPos].value != "{")){
 
-        typeInfo *tmp = s.hasTypeInScope(expRoot[leafPos].value);
+        typeInfo *leafType = s.hasTypeInScope(expRoot[leafPos].value);
 
-        if(tmp){
-          typedefing = tmp;
+        if(leafType){
+          typedefing = leafType;
+
+          ++leafPos;
         }
         else{
-          typedefing           = new typeInfo;
-          typedefing->name     = expRoot[leafPos].value;
-          typedefing->baseType = typedefing;
-        }
+          if(!leftQualifiers.hasImplicitInt()){
+            typedefing           = new typeInfo;
+            typedefing->name     = expRoot[leafPos].value;
+            typedefing->baseType = typedefing;
 
-        ++leafPos;
+            ++leafPos;
+          }
+          else {
+            typedefing = s.hasTypeInScope("int");
+          }
+        }
       }
 
       if((leafPos < expRoot.leafCount) &&
@@ -940,6 +990,9 @@ namespace occa {
       if(qualifiers.has("typedef"))
         return true;
 
+      if(qualifiers.hasImplicitInt())
+        return false;
+
       if(leafPos < expRoot.leafCount){
         if((expRoot[leafPos].info & expType::unknown) &&
            (!s.hasTypeInScope(expRoot[leafPos].value))){
@@ -989,6 +1042,10 @@ namespace occa {
       leftQualifiers.add(qName, pos);
     }
 
+    bool typeInfo::hasImplicitInt(){
+      return leftQualifiers.hasImplicitInt();
+    }
+
     int typeInfo::pointerDepth(){
       if(typedefing)
         return typedefVar->pointerDepth();
@@ -1021,6 +1078,8 @@ namespace occa {
         ret += typedefVar->toString(false);
       }
       else{
+        const bool isAnEnum = leftQualifiers.has("enum");
+
         ret += tab;
         ret += leftQualifiers.toString();
         ret += name;
@@ -1033,7 +1092,18 @@ namespace occa {
           ret += '\n';
 
           for(int i = 0; i < nestedInfoCount; ++i){
-            ret += nestedExps[i].toString(tab + "  ");
+            if(!isAnEnum){
+              ret += nestedExps[i].toString(tab + "  ");
+            }
+            else {
+              if(i < (nestedInfoCount - 1)){
+                ret += nestedExps[i].toString(tab + "  ", (expFlag::noSemicolon |
+                                                           expFlag::endWithComma));
+              }
+              else {
+                ret += nestedExps[i].toString(tab + "  ", expFlag::noSemicolon);
+              }
+            }
 
             if(back(ret) != '\n')
               ret += '\n';
@@ -1287,6 +1357,8 @@ namespace occa {
           if(baseType)
             ++leafPos;
         }
+        else if(leftQualifiers.has("unsigned"))
+          baseType = s.hasTypeInScope("int");
       }
       else{
         leftQualifiers = varHasType->leftQualifiers.clone();
@@ -1518,6 +1590,17 @@ namespace occa {
         argumentVarInfos = new varInfo*[argumentCount];
 
         for(int i = 0; i < argumentCount; ++i){
+          if(leaf[sLeafPos].value == "..."){
+            OCCA_CHECK(i == (argumentCount - 1),
+                       "Variadic argument [...] has to be the last argument");
+
+            info |= varType::variadic;
+
+            --argumentCount;
+            break;
+          }
+
+
           argumentVarInfos[i] = new varInfo();
           sLeafPos = argumentVarInfos[i]->loadFrom(s, leaf, sLeafPos);
           sLeafPos = typeInfo::nextDelimiter(leaf, sLeafPos, ",") + 1;
@@ -2035,7 +2118,7 @@ namespace occa {
       std::cout << toString(true) << ' ' << attributeMapToString(attributeMap) << '\n';
     }
 
-    std::string varInfo::toString(const bool printType){
+    std::string varInfo::toString(const bool printType, const std::string &tab){
       std::string ret;
 
       bool addSpaceBeforeName = false;
@@ -2114,6 +2197,13 @@ namespace occa {
             ret += ", ";
             ret += argumentVarInfos[i]->toString();
           }
+        }
+
+        if(info & varType::variadic){
+          if(argumentCount)
+            ret += ", ";
+
+          ret += "...";
         }
 
         ret += ')';

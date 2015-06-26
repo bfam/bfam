@@ -565,6 +565,10 @@ namespace occa {
     return *this;
   }
 
+  kernel_v* kernel::getKHandle(){
+    return kHandle;
+  }
+
   const std::string& kernel::mode(){
     return kHandle->strMode;
   }
@@ -748,6 +752,10 @@ namespace occa {
     mHandle = m.mHandle;
 
     return *this;
+  }
+
+  memory_v* memory::getMHandle(){
+    return mHandle;
   }
 
   const std::string& memory::mode(){
@@ -1278,6 +1286,10 @@ namespace occa {
     return *this;
   }
 
+  device_v* device::getDHandle(){
+    return dHandle;
+  }
+
   void device::setupHandle(occa::mode m){
     switch(m){
 
@@ -1702,7 +1714,7 @@ namespace occa {
       const std::string hashDir    = hashDirFor(realFilename, hash);
       const std::string parsedFile = hashDir + "parsedSource.occa";
 
-      k->metaInfo = parseFileForFunction(k->strMode,
+      k->metaInfo = parseFileForFunction(mode(),
                                          realFilename,
                                          parsedFile,
                                          functionName,

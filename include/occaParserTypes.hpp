@@ -136,6 +136,8 @@ namespace occa {
       void remove(const int pos, const int count = 1);
 
       void clear();
+
+      bool hasImplicitInt();
       //================================
 
       std::string toString();
@@ -143,6 +145,8 @@ namespace occa {
 
       friend std::ostream& operator << (std::ostream &out, qualifierInfo &type);
     };
+
+    bool expHasQualifier(expNode &allExp, int expPos);
     //============================================
 
 
@@ -207,6 +211,8 @@ namespace occa {
       void addQualifier(const std::string &qName,
                         int pos = -1);
 
+      bool hasImplicitInt();
+
       int pointerDepth();
       //================================
 
@@ -231,7 +237,8 @@ namespace occa {
       static const int functionDec     = (1 << 2);
       static const int functionDef     = (1 << 3);
 
-      static const int block           = (1 << 4);
+      static const int variadic        = (1 << 4);
+      static const int block           = (1 << 5);
     };
 
     class varInfo {
@@ -397,7 +404,8 @@ namespace occa {
       bool isConst();
 
       void printDebugInfo();
-      std::string toString(const bool printType = true);
+      std::string toString(const bool printType = true,
+                           const std::string &tab = "");
 
       operator std::string ();
 
