@@ -15,9 +15,19 @@ set(CMAKE_MODULE_PATH
   ${CMAKE_MODULE_PATH}
 )
 
-find_package(CUDA)
-find_package(OpenCL)
-find_package(OpenMP)
+option(WITH_CUDA "Compile with CUDA" ON)
+option(WITH_OPENCL "Compile with OpenCL" ON)
+option(WITH_OPENMP "Compile with OpenMP" ON)
+
+if(WITH_CUDA)
+  find_package(CUDA)
+endif(WITH_CUDA)
+if(WITH_OPENCL)
+  find_package(OpenCL)
+endif(WITH_OPENCL)
+if(WITH_OPENMP)
+  find_package(OpenMP)
+endif(WITH_OPENMP)
 
 ##
 ## mulit-build variables
