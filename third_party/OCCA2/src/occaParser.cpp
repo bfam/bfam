@@ -797,7 +797,8 @@ namespace occa {
 
       int parts[6]            = {1, 2, 3, 4, 8, 16};
       std::string suffix[6]   = {"", "2", "3", "4", "8", "16"};
-      std::string baseType[7] = {"int"  ,
+      std::string baseType[8] = {"void",
+                                 "int"  ,
                                  "bool" ,
                                  "char" ,
                                  "long" ,
@@ -807,7 +808,7 @@ namespace occa {
 
       std::stringstream ss;
 
-      for(int t = 0; t < 7; ++t){
+      for(int t = 0; t < 8; ++t){
         for(int n = 0; n < 6; ++n){
           typeInfo &type = *(new typeInfo);
 
@@ -855,11 +856,11 @@ namespace occa {
 
             ss.str("");
           }
+
+          if(type.name == "void")
+            break;
         }
       }
-
-      globalScope->addTypedef("void");
-      globalScope->addTypedef("__builtin_va_list");
 
       popLanguage();
     }
@@ -3899,12 +3900,10 @@ namespace occa {
 
       cKeywordType["#"]                  = expType::macroKeyword;
 
-      cKeywordType["void"]               = expType::type;
-
-      cKeywordType["long"]               = (expType::qualifier | expType::type);
-      cKeywordType["short"]              = (expType::qualifier | expType::type);
-      cKeywordType["signed"]             = (expType::qualifier | expType::type);
-      cKeywordType["unsigned"]           = (expType::qualifier | expType::type);
+      cKeywordType["long"]               = expType::qualifier;
+      cKeywordType["short"]              = expType::qualifier;
+      cKeywordType["signed"]             = expType::qualifier;
+      cKeywordType["unsigned"]           = expType::qualifier;
 
       cKeywordType["inline"]             = expType::qualifier;
       cKeywordType["static"]             = expType::qualifier;
@@ -3939,7 +3938,7 @@ namespace occa {
       cKeywordType["namespace"]          = (expType::type | expType::struct_);
 
       //---[ Constants ]------------------
-      cKeywordType["..."]                = expType::printValue;
+      cKeywordType["..."]                = expType::presetValue;
       cKeywordType["true"]               = expType::presetValue;
       cKeywordType["false"]              = expType::presetValue;
 
