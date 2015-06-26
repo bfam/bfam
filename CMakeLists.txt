@@ -478,52 +478,52 @@ target_link_libraries(bfam_exam_zpipe bfam)
 add_executable(bfam_exam_clock examples/clock/bfam_exam_clock.c)
 target_link_libraries(bfam_exam_clock bfam)
 
-add_executable(beard_2d examples/beard/beard.c)
-set_target_properties(beard_2d PROPERTIES COMPILE_FLAGS
-  "-DBEARD_DGX_DIMENSION=2")
-
-add_executable(beard_3d examples/beard/beard.c)
-set_target_properties(beard_3d PROPERTIES COMPILE_FLAGS
-  "-DBEARD_DGX_DIMENSION=3")
-
-add_executable(blade_2d examples/blade/blade.c)
-set_target_properties(blade_2d PROPERTIES COMPILE_FLAGS
-  "-DBLADE_DGX_DIMENSION=2")
-
-add_executable(blade_3d examples/blade/blade.c)
-set_target_properties(blade_3d PROPERTIES COMPILE_FLAGS
-  "-DBLADE_DGX_DIMENSION=3")
-
-
-bfam_multiple_build("NORDER" "${bfam_dgx_norders}"
-  beard_dgx_rhs_2
-  examples/beard/beard_dgx_rhs.c
-  beard_2d)
-bfam_multiple_add_flag("BEARD_DGX_DIMENSION" "2" "${bfam_dgx_norders}"
-beard_dgx_rhs_2)
-
-
-bfam_multiple_build("NORDER" "${bfam_dgx_norders}"
-  beard_dgx_rhs_3
-  examples/beard/beard_dgx_rhs.c
-  beard_3d)
-bfam_multiple_add_flag("BEARD_DGX_DIMENSION" "3" "${bfam_dgx_norders}"
-beard_dgx_rhs_3)
-
-bfam_multiple_build("NORDER" "${bfam_dgx_norders}"
-  blade_dgx_rhs_2
-  examples/blade/blade_dgx_rhs.c
-  blade_2d)
-bfam_multiple_add_flag("BLADE_DGX_DIMENSION" "2" "${bfam_dgx_norders}"
-blade_dgx_rhs_2)
-
-
-bfam_multiple_build("NORDER" "${bfam_dgx_norders}"
-  blade_dgx_rhs_3
-  examples/blade/blade_dgx_rhs.c
-  blade_3d)
-bfam_multiple_add_flag("BLADE_DGX_DIMENSION" "3" "${bfam_dgx_norders}"
-blade_dgx_rhs_3)
+## add_executable(beard_2d examples/beard/beard.c)
+## set_target_properties(beard_2d PROPERTIES COMPILE_FLAGS
+##   "-DBEARD_DGX_DIMENSION=2")
+##
+## add_executable(beard_3d examples/beard/beard.c)
+## set_target_properties(beard_3d PROPERTIES COMPILE_FLAGS
+##   "-DBEARD_DGX_DIMENSION=3")
+##
+## add_executable(blade_2d examples/blade/blade.c)
+## set_target_properties(blade_2d PROPERTIES COMPILE_FLAGS
+##   "-DBLADE_DGX_DIMENSION=2")
+##
+## add_executable(blade_3d examples/blade/blade.c)
+## set_target_properties(blade_3d PROPERTIES COMPILE_FLAGS
+##   "-DBLADE_DGX_DIMENSION=3")
+##
+##
+## bfam_multiple_build("NORDER" "${bfam_dgx_norders}"
+##   beard_dgx_rhs_2
+##   examples/beard/beard_dgx_rhs.c
+##   beard_2d)
+## bfam_multiple_add_flag("BEARD_DGX_DIMENSION" "2" "${bfam_dgx_norders}"
+## beard_dgx_rhs_2)
+##
+##
+## bfam_multiple_build("NORDER" "${bfam_dgx_norders}"
+##   beard_dgx_rhs_3
+##   examples/beard/beard_dgx_rhs.c
+##   beard_3d)
+## bfam_multiple_add_flag("BEARD_DGX_DIMENSION" "3" "${bfam_dgx_norders}"
+## beard_dgx_rhs_3)
+##
+## bfam_multiple_build("NORDER" "${bfam_dgx_norders}"
+##   blade_dgx_rhs_2
+##   examples/blade/blade_dgx_rhs.c
+##   blade_2d)
+## bfam_multiple_add_flag("BLADE_DGX_DIMENSION" "2" "${bfam_dgx_norders}"
+## blade_dgx_rhs_2)
+##
+##
+## bfam_multiple_build("NORDER" "${bfam_dgx_norders}"
+##   blade_dgx_rhs_3
+##   examples/blade/blade_dgx_rhs.c
+##   blade_3d)
+## bfam_multiple_add_flag("BLADE_DGX_DIMENSION" "3" "${bfam_dgx_norders}"
+## blade_dgx_rhs_3)
 
 ##
 ## Tests
