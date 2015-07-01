@@ -34,8 +34,13 @@ for k = 1:length(names)
     disp(['NOT FOUND :: ',names{k}])
   else
     disp(['    FOUND :: ',names{k}])
-    m = [1; 0; 0];
-    l = [0; 1; 0];
+    % m = [1; 0; 0];
+    % l = [0; 1; 0];
+    m = [pd.n(3); 0; -pd.n(1)];
+    m = m/norm(m);
+    l = [0;1;0];
+    l = l - (pd.n*l)*pd.n';
+    l = l/norm(l);
     t       = pd.t;
     hslip   = pd.Dp1*m(1)+pd.Dp2*m(2)+pd.Dp3*m(3);
     hrate   = pd.Vp1*m(1)+pd.Vp2*m(2)+pd.Vp3*m(3);
