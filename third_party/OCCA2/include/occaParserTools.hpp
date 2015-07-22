@@ -25,7 +25,14 @@ namespace occa {
   template <class TM>
   inline std::string toString(const TM &t){
     std::stringstream ss;
-    ss << t;
+    ss << std::setprecision(60) << std::scientific << t;
+    return ss.str();
+  }
+
+  template <>
+  inline std::string toString(const float &t){
+    std::stringstream ss;
+    ss << std::setprecision(60) << std::scientific << t << "f";
     return ss.str();
   }
 
