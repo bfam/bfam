@@ -3,6 +3,7 @@
 
 #include "occaParserDefines.hpp"
 #include "occaTools.hpp"
+#include <iomanip>
 
 namespace occa {
   //---[ Helper Functions ]-----------------------
@@ -25,14 +26,14 @@ namespace occa {
   template <class TM>
   inline std::string toString(const TM &t){
     std::stringstream ss;
-    ss << std::setprecision(60) << std::scientific << t;
+    ss << std::setprecision(16) << std::scientific << t;
     return ss.str();
   }
 
   template <>
   inline std::string toString(const float &t){
     std::stringstream ss;
-    ss << std::setprecision(60) << std::scientific << t << "f";
+    ss << std::setprecision(8) << std::scientific << t << "f";
     return ss.str();
   }
 
