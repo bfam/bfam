@@ -3020,13 +3020,17 @@ static void bfam_subdomain_dgx_buildmaps(
 
         int oidx = -1;
 
+        const int8_t nr = bfam_p8est_FToF_code[f1][f2];
+        const int8_t ns =
+            (k1 == k2 && f1 == f2) ? 0 : bfam_p8est_code_to_perm[nr][o];
+
         for (int j = 0, n = 0; j < Nrp; ++j)
         {
           for (int i = 0; i < Nrp; ++i, ++n)
           {
             int ir = Nrp - (i + 1);
             int jr = Nrp - (j + 1);
-            switch (o)
+            switch (ns)
             {
             case 0:
               oidx = i + j * Nrp;
