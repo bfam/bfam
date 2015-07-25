@@ -3216,8 +3216,8 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_, BFAM_DGX_DIMENSION)(
     bfam_subdomain_dgx_t *subdomain, const bfam_locidx_t id,
     const bfam_locidx_t uid, const char *name, const int N,
     const bfam_locidx_t Nv, const int num_Vi, const bfam_long_real_t **Vi,
-    const bfam_locidx_t K, const bfam_locidx_t *EToV, const bfam_locidx_t *EToE,
-    const int8_t *EToF,
+    const bfam_locidx_t K, const bfam_locidx_t *EToQ, const bfam_locidx_t *EToV,
+    const bfam_locidx_t *EToE, const int8_t *EToF,
     void (*nodes_transform)(const bfam_locidx_t num_Vi,
                             const bfam_locidx_t num_pnts,
                             bfam_long_real_t **lxi, void *user_args),
@@ -3233,6 +3233,14 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_, BFAM_DGX_DIMENSION)(
   const int *Ngp = subdomain->Ngp;
   const int numg = subdomain->numg;
   const int Np = subdomain->Np;
+
+  subdomain->EToQ = NULL;
+  if (EToQ)
+  {
+    subdomain->EToQ = bfam_malloc_aligned(K * sizeof(bfam_locidx_t));
+    for (bfam_locidx_t k = 0; k < K; k++)
+      subdomain->EToQ[k] = EToQ[k];
+  }
 
   if (DIM > 0)
   {
@@ -3484,7 +3492,8 @@ bfam_subdomain_dgx_t *BFAM_APPEND_EXPAND(bfam_subdomain_dgx_new_,
     const bfam_locidx_t id, const bfam_locidx_t uid, const char *name,
     const int N, const bfam_locidx_t Nv, const int num_Vi,
     const bfam_long_real_t **Vi, const bfam_locidx_t K,
-    const bfam_locidx_t *EToV, const bfam_locidx_t *EToE, const int8_t *EToF,
+    const bfam_locidx_t *EToQ, const bfam_locidx_t *EToV,
+    const bfam_locidx_t *EToE, const int8_t *EToF,
     void (*nodes_transform)(const bfam_locidx_t num_Vi,
                             const bfam_locidx_t num_pnts,
                             bfam_long_real_t **lxi, void *user_args),
@@ -3500,7 +3509,7 @@ bfam_subdomain_dgx_t *BFAM_APPEND_EXPAND(bfam_subdomain_dgx_new_,
       bfam_malloc(sizeof(bfam_subdomain_dgx_t));
 
   BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_, BFAM_DGX_DIMENSION)(
-      newSubdomain, id, uid, name, N, Nv, num_Vi, Vi, K, EToV, EToE, EToF,
+      newSubdomain, id, uid, name, N, Nv, num_Vi, Vi, K, EToQ, EToV, EToE, EToF,
       nodes_transform, user_args, DIM);
   return newSubdomain;
 }
@@ -3610,6 +3619,9 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,
     bfam_free_aligned(sub->Ngp);
   sub->Ngp = NULL;
 
+  if (sub->EToQ)
+    bfam_free_aligned(sub->EToQ);
+  sub->EToQ = NULL;
   if (sub->vmapP)
     bfam_free_aligned(sub->vmapP);
   sub->vmapP = NULL;

@@ -114,6 +114,8 @@ typedef struct bfam_subdomain_dgx
   bfam_locidx_t *vmapP; /* Mapping into the volume for the plus  side of
                            the face mesh */
 
+  bfam_locidx_t *EToQ; /* Element to p4est local quadrant map */
+
   int ***gmask; /* geometry mask: same order as Ng */
 
   uint8_t *hadapt; /* length K where entries indicate h-adaptation
@@ -171,7 +173,8 @@ bfam_subdomain_dgx_t *bfam_subdomain_dgx_new_(
     const bfam_locidx_t id, const bfam_locidx_t uid, const char *name,
     const int N, const bfam_locidx_t Nv, const int num_Vi,
     const bfam_long_real_t **Vi, const bfam_locidx_t K,
-    const bfam_locidx_t *EToV, const bfam_locidx_t *EToE, const int8_t *EToF,
+    const bfam_locidx_t *EToQ, const bfam_locidx_t *EToV,
+    const bfam_locidx_t *EToE, const int8_t *EToF,
     bfam_dgx_nodes_transform_t nodes_transform, void *user_args, const int dim);
 
 /** initializes a dgx subdomain
@@ -185,6 +188,8 @@ bfam_subdomain_dgx_t *bfam_subdomain_dgx_new_(
  * \param [in]     num_Vi    number of coordinate for vertices to store
  * \param [in]     Vi        array of array of coordinates for the vertives
  * \param [in]     K         number of elements in the subdomain
+ * \param [in]     EToQ      Mapping such that \c EToQ[k] gives the pxest
+ *                           quadrant number of element \c k.
  * \param [in]     EToV      Mapping such that \c EToV[k*4+c] gives the vertex
  *                           number for corner \c c of element \c k.
  * \param [in]     EToE      Mapping such that \c EToE[k*4+f] gives the element
@@ -197,15 +202,13 @@ bfam_subdomain_dgx_t *bfam_subdomain_dgx_new_(
  *                    transform the nodal locations
  * \param [in]     dim       number of (computational) dimensions
  */
-void bfam_subdomain_dgx_init_(bfam_subdomain_dgx_t *subdomain,
-                              const bfam_locidx_t id, const bfam_locidx_t uid,
-                              const char *name, const int N,
-                              const bfam_locidx_t Nv, const int num_Vi,
-                              const bfam_long_real_t **Vi,
-                              const bfam_locidx_t K, const bfam_locidx_t *EToV,
-                              const bfam_locidx_t *EToE, const int8_t *EToF,
-                              bfam_dgx_nodes_transform_t nodes_transform,
-                              void *user_args, const int dim);
+void bfam_subdomain_dgx_init_(
+    bfam_subdomain_dgx_t *subdomain, const bfam_locidx_t id,
+    const bfam_locidx_t uid, const char *name, const int N,
+    const bfam_locidx_t Nv, const int num_Vi, const bfam_long_real_t **Vi,
+    const bfam_locidx_t K, const bfam_locidx_t *EToQ, const bfam_locidx_t *EToV,
+    const bfam_locidx_t *EToE, const int8_t *EToF,
+    bfam_dgx_nodes_transform_t nodes_transform, void *user_args, const int dim);
 
 /** create a dgx glue subdomain.
  *
@@ -374,17 +377,18 @@ int bfam_subdomain_dgx_clear_interpolation_dict_(const char *key, void *val,
       const bfam_locidx_t id, const bfam_locidx_t uid, const char *name,       \
       const int N, const bfam_locidx_t Nv, const int num_Vi,                   \
       const bfam_long_real_t **Vi, const bfam_locidx_t K,                      \
-      const bfam_locidx_t *EToV, const bfam_locidx_t *EToE,                    \
-      const int8_t *EToF, bfam_dgx_nodes_transform_t nodes_transform,          \
-      void *user_args, const int dim);                                         \
+      const bfam_locidx_t *EToQ, const bfam_locidx_t *EToV,                    \
+      const bfam_locidx_t *EToE, const int8_t *EToF,                           \
+      bfam_dgx_nodes_transform_t nodes_transform, void *user_args,             \
+      const int dim);                                                          \
   void bfam_subdomain_dgx_init_##dg_dim(                                       \
       bfam_subdomain_dgx_t *subdomain, const bfam_locidx_t id,                 \
       const bfam_locidx_t uid, const char *name, const int N,                  \
       const bfam_locidx_t Nv, const int num_Vi, const bfam_long_real_t **Vi,   \
-      const bfam_locidx_t K, const bfam_locidx_t *EToV,                        \
-      const bfam_locidx_t *EToE, const int8_t *EToF,                           \
-      bfam_dgx_nodes_transform_t nodes_transform, void *user_args,             \
-      const int dim);                                                          \
+      const bfam_locidx_t K, const bfam_locidx_t *EToQ,                        \
+      const bfam_locidx_t *EToV, const bfam_locidx_t *EToE,                    \
+      const int8_t *EToF, bfam_dgx_nodes_transform_t nodes_transform,          \
+      void *user_args, const int dim);                                         \
   void bfam_subdomain_dgx_free_##dg_dim(bfam_subdomain_t *subdomain);          \
   bfam_subdomain_dgx_t *bfam_subdomain_dgx_glue_new_##dg_dim(                  \
       const bfam_locidx_t id, const bfam_locidx_t uid, const char *name,       \

@@ -1128,6 +1128,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
   char **name = bfam_malloc(numSubdomains * sizeof(char *));
   bfam_locidx_t **EToV = bfam_malloc(numSubdomains * sizeof(bfam_locidx_t *));
   bfam_locidx_t **EToE = bfam_malloc(numSubdomains * sizeof(bfam_locidx_t *));
+  bfam_locidx_t **EToQ = bfam_malloc(numSubdomains * sizeof(bfam_locidx_t *));
   int8_t **EToF = bfam_malloc(numSubdomains * sizeof(int8_t *));
 
   bfam_locidx_t *sub_to_actual_sub_id =
@@ -1232,6 +1233,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
              (intmax_t)id);
 
     EToV[id] = bfam_malloc(subK[id] * P4EST_CHILDREN * sizeof(bfam_locidx_t));
+    EToQ[id] = bfam_malloc(subK[id] * sizeof(bfam_locidx_t));
     EToE[id] = bfam_malloc(subK[id] * P4EST_FACES * sizeof(bfam_locidx_t));
     EToF[id] = bfam_malloc(subK[id] * P4EST_FACES * sizeof(int8_t));
   }
@@ -1266,6 +1268,8 @@ void bfam_domain_pxest_split_dgx_subdomains(
   for (p4est_locidx_t k = 0; k < K; ++k)
   {
     const bfam_locidx_t idk = subdomainID[k];
+
+    EToQ[idk][subk[idk]] = k;
 
     for (int v = 0; v < P4EST_CHILDREN; ++v)
     {
@@ -1305,8 +1309,8 @@ void bfam_domain_pxest_split_dgx_subdomains(
   {
     const bfam_long_real_t *Vi[] = {VX, VY, VZ};
     subdomains[id] = bfam_subdomain_dgx_new(
-        id, -1, name[id], N[id], Nv, DIM, Vi, subK[id], EToV[id], EToE[id],
-        EToF[id], nodes_transform, nt_user_args, DIM);
+        id, -1, name[id], N[id], Nv, DIM, Vi, subK[id], EToQ[id], EToV[id],
+        EToE[id], EToF[id], nodes_transform, nt_user_args, DIM);
 
     bfam_subdomain_add_tag((bfam_subdomain_t *)subdomains[id], "_volume");
     char root_id_tag[BFAM_BUFSIZ];
@@ -1583,12 +1587,14 @@ void bfam_domain_pxest_split_dgx_subdomains(
     bfam_free(name[id]);
     bfam_free(EToV[id]);
     bfam_free(EToE[id]);
+    bfam_free(EToQ[id]);
     bfam_free(EToF[id]);
   }
 
   bfam_free(name);
   bfam_free(EToV);
   bfam_free(EToE);
+  bfam_free(EToQ);
   bfam_free(EToF);
 
   bfam_free(subK);
