@@ -3086,6 +3086,8 @@ static void bfam_subdomain_dgx_null_all_values(bfam_subdomain_dgx_t *sub)
   sub->w = NULL;
   sub->wi = NULL;
   sub->Dr = NULL;
+  sub->lDr = NULL;
+  sub->lr = NULL;
   sub->V = NULL;
   sub->K = 0;
   sub->vmapM = NULL;
@@ -3175,12 +3177,14 @@ static void bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
 
     bfam_jacobi_p_mass(0, 0, N, V, M);
 
+    subdomain->lr = bfam_malloc_aligned(Nrp * sizeof(bfam_long_real_t));
     subdomain->r = bfam_malloc_aligned(Nrp * sizeof(bfam_real_t));
     subdomain->w = bfam_malloc_aligned(Nrp * sizeof(bfam_real_t));
     subdomain->wi = bfam_malloc_aligned(Nrp * sizeof(bfam_real_t));
 
     for (int n = 0; n < Nrp; ++n)
     {
+      subdomain->lr[n] = lr[n];
       subdomain->r[n] = (bfam_real_t)lr[n];
       subdomain->w[n] = (bfam_real_t)lw[n];
       subdomain->wi[n] = (bfam_real_t)(1.0l / lw[n]);
@@ -3192,8 +3196,12 @@ static void bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
     subdomain->N = N;
 
     subdomain->Dr = bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_real_t));
+    subdomain->lDr = bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_long_real_t));
     for (int n = 0; n < Nrp * Nrp; ++n)
+    {
+      subdomain->lDr[n] = D[n];
       subdomain->Dr[n] = (bfam_real_t)D[n];
+    }
 
     bfam_free_aligned(D);
     bfam_free_aligned(M);
@@ -3587,10 +3595,16 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,
   if (sub->Dr)
     bfam_free_aligned(sub->Dr);
   sub->Dr = NULL;
+  if (sub->lDr)
+    bfam_free_aligned(sub->lDr);
+  sub->lDr = NULL;
   if (sub->V)
     bfam_free_aligned(sub->V);
   sub->V = NULL;
 
+  if (sub->lr)
+    bfam_free_aligned(sub->lr);
+  sub->lr = NULL;
   if (sub->r)
     bfam_free_aligned(sub->r);
   sub->r = NULL;
