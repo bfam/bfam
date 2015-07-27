@@ -3105,6 +3105,8 @@ static void bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
   const int DIM = inDIM;
 #endif
 
+  subdomain->EToQ = NULL;
+
   BFAM_ASSERT(DIM == inDIM);
   BFAM_ABORT_IF(DIM < 0, "dimension %d is not possible in bfam", DIM);
   BFAM_ABORT_IF(DIM == 0 && N != 0,
@@ -3234,7 +3236,6 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_, BFAM_DGX_DIMENSION)(
   const int numg = subdomain->numg;
   const int Np = subdomain->Np;
 
-  subdomain->EToQ = NULL;
   if (EToQ)
   {
     subdomain->EToQ = bfam_malloc_aligned(K * sizeof(bfam_locidx_t));
