@@ -3091,6 +3091,7 @@ static void bfam_subdomain_dgx_null_all_values(bfam_subdomain_dgx_t *sub)
   sub->vmapM = NULL;
   sub->vmapP = NULL;
   sub->gmask = NULL;
+  sub->EToQ = NULL;
 }
 
 static void bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
@@ -3104,8 +3105,6 @@ static void bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
   BFAM_WARNING("Using generic bfam_subdomain_dgx_init");
   const int DIM = inDIM;
 #endif
-
-  subdomain->EToQ = NULL;
 
   BFAM_ASSERT(DIM == inDIM);
   BFAM_ABORT_IF(DIM < 0, "dimension %d is not possible in bfam", DIM);
