@@ -106,6 +106,7 @@ typedef struct bfam_subdomain_dgx
   bfam_real_t *Dr; /* 1D LGL differentiation matrix */
 
   bfam_long_real_t *lr;  /* long format 1D LGL Nodal Point in [-1,1] */
+  bfam_long_real_t *lw;  /* long format 1D LGL Nodal weights in [-1,1] */
   bfam_long_real_t *lDr; /* long format 1D LGL differentiation matrix */
 
   bfam_long_real_t *V; /* 1D Vandermonde matrix for this N */
