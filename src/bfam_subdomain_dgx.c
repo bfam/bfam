@@ -1785,386 +1785,6 @@ static void bfam_subdomain_dgx_comm_info(bfam_subdomain_t *thisSubdomain,
       *recv_sz);
 }
 
-static void bfam_subdomain_dgx_geo(
-    int N, bfam_locidx_t K, int Np, int ***gmask, const int *restrict Ng,
-    const int *restrict Ngp, int num_Vi,
-    /*const*/ bfam_long_real_t **restrict xi,
-    /*const*/ bfam_long_real_t *restrict Dr, bfam_long_real_t **restrict Jrx,
-    bfam_long_real_t *restrict J, bfam_long_real_t **restrict ni,
-    bfam_long_real_t *restrict sJ, const int inDIM)
-{
-#ifdef USE_GENERIC_DGX_DIMENSION
-  BFAM_WARNING("Using generic bfam_subdomain_dgx_geo");
-  const int DIM = inDIM;
-#endif
-  BFAM_ABORT_IF(num_Vi != DIM && !(J == NULL && ni == NULL && sJ == NULL),
-                "[J,ni,sJ] != NULL not implemented for this case");
-  BFAM_ABORT_IF_NOT((J == NULL) == (ni == NULL) && (J == NULL) == (sJ == NULL),
-                    "[J,ni,sJ] must all be NULL or not NULL");
-
-  const int Nfaces = Ng[0];
-  const int Nfp = Ngp[0];
-
-  /*
-  BFAM_ASSUME_ALIGNED( x, 32);
-  BFAM_ASSUME_ALIGNED( y, 32);
-  BFAM_ASSUME_ALIGNED(Dr, 32);
-  BFAM_ASSUME_ALIGNED(Jrx, 32);
-  BFAM_ASSUME_ALIGNED(Jsx, 32);
-  BFAM_ASSUME_ALIGNED(Jry, 32);
-  BFAM_ASSUME_ALIGNED(Jsy, 32);
-  BFAM_ASSUME_ALIGNED( J, 32);
-  */
-
-  BFAM_ASSERT(DIM > 0);
-  for (bfam_locidx_t k = 0, vsk = 0, fsk = 0; k < K; ++k)
-  {
-    if (DIM == 1)
-      for (int v = 0; v < num_Vi; v++)
-      {
-        for (int i = 0; i < N + 1; i++)
-          Jrx[v][vsk + i] = 0;
-        bfam_util_mvmult(N + 1, N + 1, Dr, N + 1, xi[v] + vsk, Jrx[v] + vsk);
-      }
-    else if (DIM == 2)
-      for (int v = 0; v < num_Vi; v++)
-      {
-        BFAM_KRON_IXA(N + 1, Dr, xi[v] + vsk, Jrx[0 + 2 * v] + vsk); /* xr */
-        BFAM_KRON_AXI(N + 1, Dr, xi[v] + vsk, Jrx[1 + 2 * v] + vsk); /* xs */
-      }
-    else if (DIM == 3)
-      for (int v = 0; v < num_Vi; v++)
-      {
-        BFAM_KRON_IXIXA(N + 1, Dr, xi[v] + vsk,
-                        Jrx[0 + 3 * v] + vsk); /* xi_r */
-        BFAM_KRON_IXAXI(N + 1, Dr, xi[v] + vsk,
-                        Jrx[1 + 3 * v] + vsk); /* xi_s */
-        BFAM_KRON_AXIXI(N + 1, Dr, xi[v] + vsk,
-                        Jrx[2 + 3 * v] + vsk); /* xi_t */
-      }
-    else
-      BFAM_ABORT("Cannot handle dim = %d", DIM);
-
-    if (J)
-    {
-      if (DIM == 1)
-      {
-        for (int n = 0; n < Np; ++n)
-          J[n + vsk] = BFAM_LONG_REAL_ABS(Jrx[0][n + vsk]);
-        for (int n = 0; n < Nfp; ++n)
-        {
-          const bfam_locidx_t fidx0 = fsk + 0 * Nfp + n;
-          const bfam_locidx_t fidx1 = fsk + 1 * Nfp + n;
-
-          const bfam_locidx_t vidx0 = vsk + gmask[0][0][n];
-          const bfam_locidx_t vidx1 = vsk + gmask[0][1][n];
-
-          /* face 0 */
-          ni[0][fidx0] = -Jrx[0][vidx0]; /* -sy */
-
-          /* face 1 */
-          ni[0][fidx1] = Jrx[0][vidx1]; /*  sy */
-
-          sJ[fidx0] = BFAM_LONG_REAL_ABS(ni[0][fidx0]);
-          sJ[fidx1] = BFAM_LONG_REAL_ABS(ni[0][fidx1]);
-
-          ni[0][fidx0] /= sJ[fidx0];
-          ni[0][fidx1] /= sJ[fidx1];
-        }
-      }
-      else if (DIM == 2)
-      {
-        for (int n = 0; n < Np; ++n)
-        {
-          bfam_locidx_t idx = n + vsk;
-
-          const bfam_long_real_t xr = Jrx[0][idx];
-          const bfam_long_real_t xs = Jrx[1][idx];
-          const bfam_long_real_t yr = Jrx[2][idx];
-          const bfam_long_real_t ys = Jrx[3][idx];
-
-          /* xr*ys - xs*yr */
-          J[idx] = xr * ys - xs * yr;
-
-          /* J*rx = ys */
-          Jrx[0][idx] = ys;
-
-          /* J*ry = -xs */
-          Jrx[1][idx] = -xs;
-
-          /* J*sx = -yr */
-          Jrx[2][idx] = -yr;
-
-          /* J*sy = xr */
-          Jrx[3][idx] = xr;
-        }
-        for (int n = 0; n < Nfp; ++n)
-        {
-          const bfam_locidx_t fidx0 = fsk + 0 * Nfp + n;
-          const bfam_locidx_t fidx1 = fsk + 1 * Nfp + n;
-          const bfam_locidx_t fidx2 = fsk + 2 * Nfp + n;
-          const bfam_locidx_t fidx3 = fsk + 3 * Nfp + n;
-
-          const bfam_locidx_t vidx0 = vsk + gmask[0][0][n];
-          const bfam_locidx_t vidx1 = vsk + gmask[0][1][n];
-          const bfam_locidx_t vidx2 = vsk + gmask[0][2][n];
-          const bfam_locidx_t vidx3 = vsk + gmask[0][3][n];
-
-          /* rx = 0; ry = 1; sx = 2; sy = 3 */
-
-          /* face 0 */
-          ni[0][fidx0] = -Jrx[0][vidx0]; /* -Jrx/sJ */
-          ni[1][fidx0] = -Jrx[1][vidx0]; /* -Jry/sJ */
-
-          /* face 1 */
-          ni[0][fidx1] = Jrx[0][vidx1]; /*  Jrx/sJ */
-          ni[1][fidx1] = Jrx[1][vidx1]; /*  Jry/sJ */
-
-          /* face 2 */
-          ni[0][fidx2] = -Jrx[2][vidx2]; /* -Jsx/sJ */
-          ni[1][fidx2] = -Jrx[3][vidx2]; /* -Jsy/sJ */
-
-          /* face 3 */
-          ni[0][fidx3] = Jrx[2][vidx3]; /*  Jsx/sJ */
-          ni[1][fidx3] = Jrx[3][vidx3]; /*  Jsy/sJ */
-
-          sJ[fidx0] = BFAM_LONG_REAL_HYPOT(ni[0][fidx0], ni[1][fidx0]);
-          sJ[fidx1] = BFAM_LONG_REAL_HYPOT(ni[0][fidx1], ni[1][fidx1]);
-          sJ[fidx2] = BFAM_LONG_REAL_HYPOT(ni[0][fidx2], ni[1][fidx2]);
-          sJ[fidx3] = BFAM_LONG_REAL_HYPOT(ni[0][fidx3], ni[1][fidx3]);
-
-          ni[0][fidx0] /= sJ[fidx0];
-          ni[1][fidx0] /= sJ[fidx0];
-          ni[0][fidx1] /= sJ[fidx1];
-          ni[1][fidx1] /= sJ[fidx1];
-          ni[0][fidx2] /= sJ[fidx2];
-          ni[1][fidx2] /= sJ[fidx2];
-          ni[0][fidx3] /= sJ[fidx3];
-          ni[1][fidx3] /= sJ[fidx3];
-        }
-      }
-      else if (DIM == 3)
-      {
-        bfam_long_real_t u1[Np];
-        bfam_long_real_t u2[Np];
-        bfam_long_real_t u3[Np];
-
-        bfam_long_real_t v1[Np];
-        bfam_long_real_t v2[Np];
-        bfam_long_real_t v3[Np];
-
-        bfam_long_real_t w1[Np];
-        bfam_long_real_t w2[Np];
-        bfam_long_real_t w3[Np];
-
-        for (int n = 0; n < Np; ++n)
-        {
-          bfam_locidx_t idx = n + vsk;
-
-          const bfam_long_real_t xr = Jrx[0][idx];
-          const bfam_long_real_t xs = Jrx[1][idx];
-          const bfam_long_real_t xt = Jrx[2][idx];
-          const bfam_long_real_t yr = Jrx[3][idx];
-          const bfam_long_real_t ys = Jrx[4][idx];
-          const bfam_long_real_t yt = Jrx[5][idx];
-          const bfam_long_real_t zr = Jrx[6][idx];
-          const bfam_long_real_t zs = Jrx[7][idx];
-          const bfam_long_real_t zt = Jrx[8][idx];
-
-          /*       xr*(ys*zt-yt*zs) - xs*(yr*zt-yt*zr) + xt*(yr*zs-ys*zr) */
-          J[idx] = xr * (ys * zt - yt * zs) - xs * (yr * zt - yt * zr) +
-                   xt * (yr * zs - ys * zr);
-
-          const bfam_long_real_t x = xi[0][idx];
-          const bfam_long_real_t y = xi[1][idx];
-          const bfam_long_real_t z = xi[2][idx];
-
-          /* u = z \nabla y - y \nabla z */
-          u1[n] = z * yr - y * zr;
-          u2[n] = z * ys - y * zs;
-          u3[n] = z * yt - y * zt;
-
-          /* v = x \nabla z - z \nabla x */
-          v1[n] = x * zr - z * xr;
-          v2[n] = x * zs - z * xs;
-          v3[n] = x * zt - z * xt;
-
-          /* w = y \nabla x - x \nabla y */
-          w1[n] = y * xr - x * yr;
-          w2[n] = y * xs - x * ys;
-          w3[n] = y * xt - x * yt;
-
-#if 0
-          /* J*rx     =  ( ys * zt - yt * zs ) */
-          Jrx[0][idx] = (ys * zt - yt * zs);
-
-          /* J*ry     = -( xs * zt - xt * zs ) */
-          Jrx[1][idx] = -(xs * zt - xt * zs);
-
-          /* J*rz     =  ( xs * yt - xt * ys ) */
-          Jrx[2][idx] = (xs * yt - xt * ys);
-
-          /* J*sx     = -( yr * zt - yt * zr ) */
-          Jrx[3][idx] = -(yr * zt - yt * zr);
-
-          /* J*sy     =  ( xr * zt - xt * zr ) */
-          Jrx[4][idx] = (xr * zt - xt * zr);
-
-          /* J*sz     = -( xr * yt - xt * yr ) */
-          Jrx[5][idx] = -(xr * yt - xt * yr);
-
-          /* J*tx     =  ( yr * zs - ys * zr ) */
-          Jrx[6][idx] = (yr * zs - ys * zr);
-
-          /* J*ty     = -( xr * zs - xs * zr ) */
-          Jrx[7][idx] = -(xr * zs - xs * zr);
-
-          /* J*tz     =  ( xr * ys - xs * yr ) */
-          Jrx[8][idx] = (xr * ys - xs * yr);
-#endif
-        }
-
-        bfam_long_real_t tmp1[Np];
-        bfam_long_real_t tmp2[Np];
-
-        // DR: BFAM_KRON_IXIXA(N + 1, Dr, x, dx);
-        // DS: BFAM_KRON_IXAXI(N + 1, Dr, x, dx);
-        // DT: BFAM_KRON_AXIXI(N + 1, Dr, x, dx);
-
-        /* <Jrx,Jsx,Jtx> = (1/2) \nabla \times \vec{u} */
-        BFAM_KRON_AXIXI(N + 1, Dr, u2, tmp1);
-        BFAM_KRON_IXAXI(N + 1, Dr, u3, tmp2);
-        for (int n = 0; n < Np; n++)
-          Jrx[0][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
-
-        BFAM_KRON_IXIXA(N + 1, Dr, u3, tmp1);
-        BFAM_KRON_AXIXI(N + 1, Dr, u1, tmp2);
-        for (int n = 0; n < Np; n++)
-          Jrx[3][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
-
-        BFAM_KRON_IXAXI(N + 1, Dr, u1, tmp1);
-        BFAM_KRON_IXIXA(N + 1, Dr, u2, tmp2);
-        for (int n = 0; n < Np; n++)
-          Jrx[6][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
-
-        /* <Jry,Jsy,Jty> = (1/2) \nabla \times \vec{v} */
-        BFAM_KRON_AXIXI(N + 1, Dr, v2, tmp1);
-        BFAM_KRON_IXAXI(N + 1, Dr, v3, tmp2);
-        for (int n = 0; n < Np; n++)
-          Jrx[1][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
-
-        BFAM_KRON_IXIXA(N + 1, Dr, v3, tmp1);
-        BFAM_KRON_AXIXI(N + 1, Dr, v1, tmp2);
-        for (int n = 0; n < Np; n++)
-          Jrx[4][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
-
-        BFAM_KRON_IXAXI(N + 1, Dr, v1, tmp1);
-        BFAM_KRON_IXIXA(N + 1, Dr, v2, tmp2);
-        for (int n = 0; n < Np; n++)
-          Jrx[7][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
-
-        /* <Jrz,Jsz,Jtz> = (1/2) \nabla \times \vec{w} */
-        BFAM_KRON_AXIXI(N + 1, Dr, w2, tmp1);
-        BFAM_KRON_IXAXI(N + 1, Dr, w3, tmp2);
-        for (int n = 0; n < Np; n++)
-          Jrx[2][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
-
-        BFAM_KRON_IXIXA(N + 1, Dr, w3, tmp1);
-        BFAM_KRON_AXIXI(N + 1, Dr, w1, tmp2);
-        for (int n = 0; n < Np; n++)
-          Jrx[5][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
-
-        BFAM_KRON_IXAXI(N + 1, Dr, w1, tmp1);
-        BFAM_KRON_IXIXA(N + 1, Dr, w2, tmp2);
-        for (int n = 0; n < Np; n++)
-          Jrx[8][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
-
-        for (int n = 0; n < Nfp; ++n)
-        {
-          const bfam_locidx_t fidx0 = fsk + 0 * Nfp + n;
-          const bfam_locidx_t fidx1 = fsk + 1 * Nfp + n;
-          const bfam_locidx_t fidx2 = fsk + 2 * Nfp + n;
-          const bfam_locidx_t fidx3 = fsk + 3 * Nfp + n;
-          const bfam_locidx_t fidx4 = fsk + 4 * Nfp + n;
-          const bfam_locidx_t fidx5 = fsk + 5 * Nfp + n;
-
-          const bfam_locidx_t vidx0 = vsk + gmask[0][0][n];
-          const bfam_locidx_t vidx1 = vsk + gmask[0][1][n];
-          const bfam_locidx_t vidx2 = vsk + gmask[0][2][n];
-          const bfam_locidx_t vidx3 = vsk + gmask[0][3][n];
-          const bfam_locidx_t vidx4 = vsk + gmask[0][4][n];
-          const bfam_locidx_t vidx5 = vsk + gmask[0][5][n];
-
-          /* face 0 */
-          ni[0][fidx0] = -Jrx[0][vidx0]; /* -Jrx/sJ */
-          ni[1][fidx0] = -Jrx[1][vidx0]; /* -Jry/sJ */
-          ni[2][fidx0] = -Jrx[2][vidx0]; /* -Jrz/sJ */
-
-          /* face 1 */
-          ni[0][fidx1] = Jrx[0][vidx1]; /*  Jrx/sJ */
-          ni[1][fidx1] = Jrx[1][vidx1]; /*  Jry/sJ */
-          ni[2][fidx1] = Jrx[2][vidx1]; /*  Jrz/sJ */
-
-          /* face 2 */
-          ni[0][fidx2] = -Jrx[3][vidx2]; /* -Jsx/sJ */
-          ni[1][fidx2] = -Jrx[4][vidx2]; /* -Jsy/sJ */
-          ni[2][fidx2] = -Jrx[5][vidx2]; /* -Jsz/sJ */
-
-          /* face 3 */
-          ni[0][fidx3] = Jrx[3][vidx3]; /*  Jsx/sJ */
-          ni[1][fidx3] = Jrx[4][vidx3]; /*  Jsy/sJ */
-          ni[2][fidx3] = Jrx[5][vidx3]; /*  Jsz/sJ */
-
-          /* face 4 */
-          ni[0][fidx4] = -Jrx[6][vidx4]; /* -Jtx/sJ */
-          ni[1][fidx4] = -Jrx[7][vidx4]; /* -Jty/sJ */
-          ni[2][fidx4] = -Jrx[8][vidx4]; /* -Jtz/sJ */
-
-          /* face 5 */
-          ni[0][fidx5] = Jrx[6][vidx5]; /*  Jtx/sJ */
-          ni[1][fidx5] = Jrx[7][vidx5]; /*  Jty/sJ */
-          ni[2][fidx5] = Jrx[8][vidx5]; /*  Jtz/sJ */
-
-          sJ[fidx0] = BFAM_LONG_REAL_HYPOT(
-              ni[0][fidx0], BFAM_LONG_REAL_HYPOT(ni[1][fidx0], ni[2][fidx0]));
-          sJ[fidx1] = BFAM_LONG_REAL_HYPOT(
-              ni[0][fidx1], BFAM_LONG_REAL_HYPOT(ni[1][fidx1], ni[2][fidx1]));
-          sJ[fidx2] = BFAM_LONG_REAL_HYPOT(
-              ni[0][fidx2], BFAM_LONG_REAL_HYPOT(ni[1][fidx2], ni[2][fidx2]));
-          sJ[fidx3] = BFAM_LONG_REAL_HYPOT(
-              ni[0][fidx3], BFAM_LONG_REAL_HYPOT(ni[1][fidx3], ni[2][fidx3]));
-          sJ[fidx4] = BFAM_LONG_REAL_HYPOT(
-              ni[0][fidx4], BFAM_LONG_REAL_HYPOT(ni[1][fidx4], ni[2][fidx4]));
-          sJ[fidx5] = BFAM_LONG_REAL_HYPOT(
-              ni[0][fidx5], BFAM_LONG_REAL_HYPOT(ni[1][fidx5], ni[2][fidx5]));
-
-          ni[0][fidx0] /= sJ[fidx0];
-          ni[1][fidx0] /= sJ[fidx0];
-          ni[2][fidx0] /= sJ[fidx0];
-          ni[0][fidx1] /= sJ[fidx1];
-          ni[1][fidx1] /= sJ[fidx1];
-          ni[2][fidx1] /= sJ[fidx1];
-          ni[0][fidx2] /= sJ[fidx2];
-          ni[1][fidx2] /= sJ[fidx2];
-          ni[2][fidx2] /= sJ[fidx2];
-          ni[0][fidx3] /= sJ[fidx3];
-          ni[1][fidx3] /= sJ[fidx3];
-          ni[2][fidx3] /= sJ[fidx3];
-          ni[0][fidx4] /= sJ[fidx4];
-          ni[1][fidx4] /= sJ[fidx4];
-          ni[2][fidx4] /= sJ[fidx4];
-          ni[0][fidx5] /= sJ[fidx5];
-          ni[1][fidx5] /= sJ[fidx5];
-          ni[2][fidx5] /= sJ[fidx5];
-        }
-      }
-    }
-
-    vsk += Np;
-    fsk += Nfaces * Nfp;
-  }
-}
-
 static void
 bfam_subdomain_dgx_field_init(bfam_subdomain_t *subdomain, const char *name,
                               bfam_real_t time,
@@ -3227,13 +2847,8 @@ static void bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
 void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_, BFAM_DGX_DIMENSION)(
     bfam_subdomain_dgx_t *subdomain, const bfam_locidx_t id,
     const bfam_locidx_t uid, const char *name, const int N,
-    const bfam_locidx_t Nv, const int num_Vi, const bfam_long_real_t **Vi,
-    const bfam_locidx_t K, const bfam_locidx_t *EToQ, const bfam_locidx_t *EToV,
-    const bfam_locidx_t *EToE, const int8_t *EToF,
-    void (*nodes_transform)(const bfam_locidx_t num_Vi,
-                            const bfam_locidx_t num_pnts,
-                            bfam_long_real_t **lxi, void *user_args),
-    void *user_args, const int inDIM)
+    const bfam_locidx_t K, const bfam_locidx_t *EToQ, const bfam_locidx_t *EToE,
+    const int8_t *EToF, const int inDIM)
 {
 #ifdef USE_GENERIC_DGX_DIMENSION
   BFAM_WARNING("Using generic bfam_subdomain_dgx_init");
@@ -3243,7 +2858,6 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_, BFAM_DGX_DIMENSION)(
 
   const int *Ng = subdomain->Ng;
   const int *Ngp = subdomain->Ngp;
-  const int numg = subdomain->numg;
   const int Np = subdomain->Np;
 
   if (EToQ)
@@ -3255,212 +2869,7 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_, BFAM_DGX_DIMENSION)(
 
   if (DIM > 0)
   {
-    const int Nrp = N + 1;
-    bfam_long_real_t *lr, *lw;
-    lr = bfam_malloc_aligned(Nrp * sizeof(bfam_long_real_t));
-    lw = bfam_malloc_aligned(Nrp * sizeof(bfam_long_real_t));
-
-    bfam_jacobi_gauss_lobatto_quadrature(0, 0, N, lr, lw);
-
-    bfam_long_real_t **lxi =
-        bfam_malloc_aligned(num_Vi * sizeof(bfam_long_real_t *));
-
-    for (int i = 0; i < num_Vi; i++)
-      lxi[i] = bfam_malloc_aligned(K * Np * sizeof(bfam_long_real_t));
-
-    /* Loop over all the elements and set up the grid*/
-    int Ncorners = Ng[numg - 1];
-    for (bfam_locidx_t k = 0; k < K; ++k)
-    {
-      const bfam_locidx_t *v = EToV + Ncorners * k;
-      bfam_long_real_t w[Ncorners];
-
-      if (DIM == 1)
-        for (int n = 0; n < Nrp; ++n)
-        {
-          int offset = n;
-          w[0] = 1 - lr[n];
-          w[1] = 1 + lr[n];
-          for (int i = 0; i < num_Vi; i++)
-          {
-            lxi[i][Np * k + offset] = 0;
-            for (int c = 0; c < Ncorners; c++)
-              lxi[i][Np * k + offset] += w[c] * Vi[i][v[c]];
-            lxi[i][Np * k + offset] /= Ncorners;
-          }
-        }
-      else if (DIM == 2)
-        for (int n = 0; n < Nrp; ++n)
-          for (int m = 0; m < Nrp; ++m)
-          {
-            int offset = n * Nrp + m;
-            w[0] = (1 - lr[m]) * (1 - lr[n]);
-            w[1] = (1 + lr[m]) * (1 - lr[n]);
-            w[2] = (1 - lr[m]) * (1 + lr[n]);
-            w[3] = (1 + lr[m]) * (1 + lr[n]);
-            for (int i = 0; i < num_Vi; i++)
-            {
-              lxi[i][Np * k + offset] = 0;
-              for (int c = 0; c < Ncorners; c++)
-                lxi[i][Np * k + offset] += w[c] * Vi[i][v[c]];
-              lxi[i][Np * k + offset] /= Ncorners;
-            }
-          }
-      else if (DIM == 3)
-        for (int n = 0; n < Nrp; ++n)
-          for (int m = 0; m < Nrp; ++m)
-            for (int l = 0; l < Nrp; ++l)
-            {
-              int offset = n * Nrp * Nrp + m * Nrp + l;
-              w[0] = (1 - lr[l]) * (1 - lr[m]) * (1 - lr[n]);
-              w[1] = (1 + lr[l]) * (1 - lr[m]) * (1 - lr[n]);
-              w[2] = (1 - lr[l]) * (1 + lr[m]) * (1 - lr[n]);
-              w[3] = (1 + lr[l]) * (1 + lr[m]) * (1 - lr[n]);
-              w[4] = (1 - lr[l]) * (1 - lr[m]) * (1 + lr[n]);
-              w[5] = (1 + lr[l]) * (1 - lr[m]) * (1 + lr[n]);
-              w[6] = (1 - lr[l]) * (1 + lr[m]) * (1 + lr[n]);
-              w[7] = (1 + lr[l]) * (1 + lr[m]) * (1 + lr[n]);
-              for (int i = 0; i < num_Vi; i++)
-              {
-                lxi[i][Np * k + offset] = 0;
-                for (int c = 0; c < Ncorners; c++)
-                  lxi[i][Np * k + offset] += w[c] * Vi[i][v[c]];
-                lxi[i][Np * k + offset] /= Ncorners;
-              }
-            }
-      else
-        BFAM_ABORT("not setup of dim = %d", DIM);
-    }
-
-    if (nodes_transform)
-      nodes_transform(num_Vi, K * Np, lxi, user_args);
-
-    bfam_long_real_t *restrict V = subdomain->V;
-
-    bfam_long_real_t *restrict D =
-        bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_long_real_t));
-
-    bfam_jacobi_p_differentiation(0, 0, N, Nrp, lr, V, D);
-
-    bfam_long_real_t **lJrx =
-        bfam_malloc_aligned(num_Vi * DIM * sizeof(bfam_long_real_t *));
-    for (int n = 0; n < num_Vi * DIM; n++)
-      lJrx[n] = bfam_malloc_aligned(K * Np * sizeof(bfam_long_real_t));
-
-    bfam_long_real_t *lJ = NULL;
-    bfam_long_real_t **lni = NULL;
-    bfam_long_real_t *lsJ = NULL;
-    if (DIM == num_Vi)
-    {
-      lJ = bfam_malloc_aligned(K * Np * sizeof(bfam_long_real_t));
-
-      /* Ng[0] = number of faces, Ngp[0] = number of face points */
-      lni = bfam_malloc_aligned(num_Vi * sizeof(bfam_long_real_t *));
-      for (int n = 0; n < num_Vi; n++)
-        lni[n] =
-            bfam_malloc_aligned(K * Ng[0] * Ngp[0] * sizeof(bfam_long_real_t));
-
-      lsJ = bfam_malloc_aligned(K * Ng[0] * Ngp[0] * sizeof(bfam_long_real_t));
-    }
-
-    bfam_subdomain_dgx_geo(N, K, Np, subdomain->gmask, Ng, Ngp, num_Vi, lxi, D,
-                           lJrx, lJ, lni, lsJ, DIM);
-
-    /* store the grid */
-    for (int i = 0; i < num_Vi; i++)
-    {
-      char name[BFAM_BUFSIZ];
-      snprintf(name, BFAM_BUFSIZ, "_grid_x%d", i);
-      int rval = bfam_subdomain_dgx_field_add(&subdomain->base, name);
-      BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s", name);
-      bfam_real_t *restrict xi =
-          bfam_dictionary_get_value_ptr(&subdomain->base.fields, name);
-      for (int n = 0; n < K * Np; ++n)
-      {
-        xi[n] = (bfam_real_t)lxi[i][n];
-      }
-    }
-
-    /* store the metric stuff */
-    if (lJ)
-    {
-      for (int d = 0; d < DIM; d++)
-      {
-        for (int v = 0; v < num_Vi; v++)
-        {
-          char name[BFAM_BUFSIZ];
-          snprintf(name, BFAM_BUFSIZ, "_grid_Jr%dx%d", d, v);
-          int rval = bfam_subdomain_dgx_field_add(&subdomain->base, name);
-          BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s", name);
-          bfam_real_t *restrict Jrx =
-              bfam_dictionary_get_value_ptr(&subdomain->base.fields, name);
-          for (int n = 0; n < K * Np; ++n)
-            Jrx[n] = (bfam_real_t)lJrx[v + d * num_Vi][n];
-        }
-      }
-      {
-        char name[] = "_grid_J";
-        int rval = bfam_subdomain_dgx_field_add(&subdomain->base, name);
-        BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s", name);
-        bfam_real_t *restrict J =
-            bfam_dictionary_get_value_ptr(&subdomain->base.fields, name);
-        for (int n = 0; n < K * Np; ++n)
-          J[n] = (bfam_real_t)lJ[n];
-      }
-      {
-        char name[] = "_grid_JI";
-        int rval = bfam_subdomain_dgx_field_add(&subdomain->base, name);
-        BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s", name);
-        bfam_real_t *restrict JI =
-            bfam_dictionary_get_value_ptr(&subdomain->base.fields, name);
-        for (int n = 0; n < K * Np; ++n)
-          JI[n] = (bfam_real_t)(BFAM_LONG_REAL(1.0) / lJ[n]);
-      }
-      BFAM_ASSERT(lni != NULL && lsJ != NULL);
-      for (int v = 0; v < num_Vi; v++)
-      {
-        char name[BFAM_BUFSIZ];
-        snprintf(name, BFAM_BUFSIZ, "_grid_nx%d", v);
-        int rval = bfam_subdomain_dgx_field_face_add(&subdomain->base, name);
-        BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s", name);
-        bfam_real_t *restrict ni =
-            bfam_dictionary_get_value_ptr(&subdomain->base.fields_face, name);
-        for (int n = 0; n < K * Ng[0] * Ngp[0]; ++n)
-          ni[n] = (bfam_real_t)lni[v][n];
-      }
-      {
-        char name[] = "_grid_sJ";
-        int rval = bfam_subdomain_dgx_field_face_add(&subdomain->base, name);
-        BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s", name);
-        bfam_real_t *restrict sJ =
-            bfam_dictionary_get_value_ptr(&subdomain->base.fields_face, name);
-
-        for (int n = 0; n < K * Ng[0] * Ngp[0]; ++n)
-          sJ[n] = (bfam_real_t)lsJ[n];
-      }
-    }
-    else
-    {
-      /* In this Jrx really has dx/dr */
-      for (int v = 0; v < num_Vi; v++)
-      {
-        for (int d = 0; d < DIM; d++)
-        {
-          char name[BFAM_BUFSIZ];
-          snprintf(name, BFAM_BUFSIZ, "_grid_x%dr%d", v, d);
-          int rval = bfam_subdomain_dgx_field_add(&subdomain->base, name);
-          BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s", name);
-          bfam_real_t *restrict xr =
-              bfam_dictionary_get_value_ptr(&subdomain->base.fields, name);
-          for (int n = 0; n < K * Np; ++n)
-            xr[n] = (bfam_real_t)lJrx[d + v * DIM][n];
-        }
-      }
-      BFAM_ASSERT(lni == NULL && lsJ == NULL);
-    }
-
     /* store the face stuff */
-
     subdomain->vmapP =
         bfam_malloc_aligned(K * Ngp[0] * Ng[0] * sizeof(bfam_locidx_t));
     subdomain->vmapM =
@@ -3469,46 +2878,14 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_, BFAM_DGX_DIMENSION)(
     bfam_subdomain_dgx_buildmaps(N, K, Np, Ngp[0], Ng[0], EToE, EToF,
                                  subdomain->gmask, subdomain->vmapP,
                                  subdomain->vmapM, DIM);
-
-    /* free stuff */
-    if (lsJ)
-      bfam_free_aligned(lsJ);
-    if (lni)
-    {
-      for (int n = 0; n < num_Vi; n++)
-        bfam_free_aligned(lni[n]);
-      bfam_free_aligned(lni);
-    }
-
-    if (lJ)
-      bfam_free_aligned(lJ);
-
-    for (int n = 0; n < num_Vi * DIM; n++)
-      bfam_free_aligned(lJrx[n]);
-    bfam_free_aligned(lJrx);
-
-    bfam_free_aligned(D);
-
-    bfam_free_aligned(lr);
-    bfam_free_aligned(lw);
-
-    for (int i = 0; i < num_Vi; i++)
-      bfam_free_aligned(lxi[i]);
-    bfam_free_aligned(lxi);
   }
 }
 
 bfam_subdomain_dgx_t *BFAM_APPEND_EXPAND(bfam_subdomain_dgx_new_,
                                          BFAM_DGX_DIMENSION)(
     const bfam_locidx_t id, const bfam_locidx_t uid, const char *name,
-    const int N, const bfam_locidx_t Nv, const int num_Vi,
-    const bfam_long_real_t **Vi, const bfam_locidx_t K,
-    const bfam_locidx_t *EToQ, const bfam_locidx_t *EToV,
-    const bfam_locidx_t *EToE, const int8_t *EToF,
-    void (*nodes_transform)(const bfam_locidx_t num_Vi,
-                            const bfam_locidx_t num_pnts,
-                            bfam_long_real_t **lxi, void *user_args),
-    void *user_args, const int inDIM)
+    const int N, const bfam_locidx_t K, const bfam_locidx_t *EToQ,
+    const bfam_locidx_t *EToE, const int8_t *EToF, const int inDIM)
 {
 #ifdef USE_GENERIC_DGX_DIMENSION
   BFAM_WARNING("Using generic bfam_subdomain_dgx_new");
@@ -3520,8 +2897,7 @@ bfam_subdomain_dgx_t *BFAM_APPEND_EXPAND(bfam_subdomain_dgx_new_,
       bfam_malloc(sizeof(bfam_subdomain_dgx_t));
 
   BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_, BFAM_DGX_DIMENSION)(
-      newSubdomain, id, uid, name, N, Nv, num_Vi, Vi, K, EToQ, EToV, EToE, EToF,
-      nodes_transform, user_args, DIM);
+      newSubdomain, id, uid, name, N, K, EToQ, EToE, EToF, DIM);
   return newSubdomain;
 }
 
@@ -4074,3 +3450,660 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
   bfam_free_aligned(sub_m_V);
   bfam_free_aligned(Vt_MP);
 }
+
+#if 0
+static void bfam_subdomain_dgx_geo(
+    int N, bfam_locidx_t K, int Np, int ***gmask, const int *restrict Ng,
+    const int *restrict Ngp, int num_Vi,
+    /*const*/ bfam_long_real_t **restrict xi,
+    /*const*/ bfam_long_real_t *restrict Dr, bfam_long_real_t **restrict Jrx,
+    bfam_long_real_t *restrict J, bfam_long_real_t **restrict ni,
+    bfam_long_real_t *restrict sJ, const int inDIM)
+{
+#ifdef USE_GENERIC_DGX_DIMENSION
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_geo");
+  const int DIM = inDIM;
+#endif
+  BFAM_ABORT_IF(num_Vi != DIM && !(J == NULL && ni == NULL && sJ == NULL),
+                "[J,ni,sJ] != NULL not implemented for this case");
+  BFAM_ABORT_IF_NOT((J == NULL) == (ni == NULL) && (J == NULL) == (sJ == NULL),
+                    "[J,ni,sJ] must all be NULL or not NULL");
+
+  const int Nfaces = Ng[0];
+  const int Nfp = Ngp[0];
+
+  /*
+  BFAM_ASSUME_ALIGNED( x, 32);
+  BFAM_ASSUME_ALIGNED( y, 32);
+  BFAM_ASSUME_ALIGNED(Dr, 32);
+  BFAM_ASSUME_ALIGNED(Jrx, 32);
+  BFAM_ASSUME_ALIGNED(Jsx, 32);
+  BFAM_ASSUME_ALIGNED(Jry, 32);
+  BFAM_ASSUME_ALIGNED(Jsy, 32);
+  BFAM_ASSUME_ALIGNED( J, 32);
+  */
+
+  BFAM_ASSERT(DIM > 0);
+  for (bfam_locidx_t k = 0, vsk = 0, fsk = 0; k < K; ++k)
+  {
+    if (DIM == 1)
+      for (int v = 0; v < num_Vi; v++)
+      {
+        for (int i = 0; i < N + 1; i++)
+          Jrx[v][vsk + i] = 0;
+        bfam_util_mvmult(N + 1, N + 1, Dr, N + 1, xi[v] + vsk, Jrx[v] + vsk);
+      }
+    else if (DIM == 2)
+      for (int v = 0; v < num_Vi; v++)
+      {
+        BFAM_KRON_IXA(N + 1, Dr, xi[v] + vsk, Jrx[0 + 2 * v] + vsk); /* xr */
+        BFAM_KRON_AXI(N + 1, Dr, xi[v] + vsk, Jrx[1 + 2 * v] + vsk); /* xs */
+      }
+    else if (DIM == 3)
+      for (int v = 0; v < num_Vi; v++)
+      {
+        BFAM_KRON_IXIXA(N + 1, Dr, xi[v] + vsk,
+                        Jrx[0 + 3 * v] + vsk); /* xi_r */
+        BFAM_KRON_IXAXI(N + 1, Dr, xi[v] + vsk,
+                        Jrx[1 + 3 * v] + vsk); /* xi_s */
+        BFAM_KRON_AXIXI(N + 1, Dr, xi[v] + vsk,
+                        Jrx[2 + 3 * v] + vsk); /* xi_t */
+      }
+    else
+      BFAM_ABORT("Cannot handle dim = %d", DIM);
+
+    if (J)
+    {
+      if (DIM == 1)
+      {
+        for (int n = 0; n < Np; ++n)
+          J[n + vsk] = BFAM_LONG_REAL_ABS(Jrx[0][n + vsk]);
+        for (int n = 0; n < Nfp; ++n)
+        {
+          const bfam_locidx_t fidx0 = fsk + 0 * Nfp + n;
+          const bfam_locidx_t fidx1 = fsk + 1 * Nfp + n;
+
+          const bfam_locidx_t vidx0 = vsk + gmask[0][0][n];
+          const bfam_locidx_t vidx1 = vsk + gmask[0][1][n];
+
+          /* face 0 */
+          ni[0][fidx0] = -Jrx[0][vidx0]; /* -sy */
+
+          /* face 1 */
+          ni[0][fidx1] = Jrx[0][vidx1]; /*  sy */
+
+          sJ[fidx0] = BFAM_LONG_REAL_ABS(ni[0][fidx0]);
+          sJ[fidx1] = BFAM_LONG_REAL_ABS(ni[0][fidx1]);
+
+          ni[0][fidx0] /= sJ[fidx0];
+          ni[0][fidx1] /= sJ[fidx1];
+        }
+      }
+      else if (DIM == 2)
+      {
+        for (int n = 0; n < Np; ++n)
+        {
+          bfam_locidx_t idx = n + vsk;
+
+          const bfam_long_real_t xr = Jrx[0][idx];
+          const bfam_long_real_t xs = Jrx[1][idx];
+          const bfam_long_real_t yr = Jrx[2][idx];
+          const bfam_long_real_t ys = Jrx[3][idx];
+
+          /* xr*ys - xs*yr */
+          J[idx] = xr * ys - xs * yr;
+
+          /* J*rx = ys */
+          Jrx[0][idx] = ys;
+
+          /* J*ry = -xs */
+          Jrx[1][idx] = -xs;
+
+          /* J*sx = -yr */
+          Jrx[2][idx] = -yr;
+
+          /* J*sy = xr */
+          Jrx[3][idx] = xr;
+        }
+        for (int n = 0; n < Nfp; ++n)
+        {
+          const bfam_locidx_t fidx0 = fsk + 0 * Nfp + n;
+          const bfam_locidx_t fidx1 = fsk + 1 * Nfp + n;
+          const bfam_locidx_t fidx2 = fsk + 2 * Nfp + n;
+          const bfam_locidx_t fidx3 = fsk + 3 * Nfp + n;
+
+          const bfam_locidx_t vidx0 = vsk + gmask[0][0][n];
+          const bfam_locidx_t vidx1 = vsk + gmask[0][1][n];
+          const bfam_locidx_t vidx2 = vsk + gmask[0][2][n];
+          const bfam_locidx_t vidx3 = vsk + gmask[0][3][n];
+
+          /* rx = 0; ry = 1; sx = 2; sy = 3 */
+
+          /* face 0 */
+          ni[0][fidx0] = -Jrx[0][vidx0]; /* -Jrx/sJ */
+          ni[1][fidx0] = -Jrx[1][vidx0]; /* -Jry/sJ */
+
+          /* face 1 */
+          ni[0][fidx1] = Jrx[0][vidx1]; /*  Jrx/sJ */
+          ni[1][fidx1] = Jrx[1][vidx1]; /*  Jry/sJ */
+
+          /* face 2 */
+          ni[0][fidx2] = -Jrx[2][vidx2]; /* -Jsx/sJ */
+          ni[1][fidx2] = -Jrx[3][vidx2]; /* -Jsy/sJ */
+
+          /* face 3 */
+          ni[0][fidx3] = Jrx[2][vidx3]; /*  Jsx/sJ */
+          ni[1][fidx3] = Jrx[3][vidx3]; /*  Jsy/sJ */
+
+          sJ[fidx0] = BFAM_LONG_REAL_HYPOT(ni[0][fidx0], ni[1][fidx0]);
+          sJ[fidx1] = BFAM_LONG_REAL_HYPOT(ni[0][fidx1], ni[1][fidx1]);
+          sJ[fidx2] = BFAM_LONG_REAL_HYPOT(ni[0][fidx2], ni[1][fidx2]);
+          sJ[fidx3] = BFAM_LONG_REAL_HYPOT(ni[0][fidx3], ni[1][fidx3]);
+
+          ni[0][fidx0] /= sJ[fidx0];
+          ni[1][fidx0] /= sJ[fidx0];
+          ni[0][fidx1] /= sJ[fidx1];
+          ni[1][fidx1] /= sJ[fidx1];
+          ni[0][fidx2] /= sJ[fidx2];
+          ni[1][fidx2] /= sJ[fidx2];
+          ni[0][fidx3] /= sJ[fidx3];
+          ni[1][fidx3] /= sJ[fidx3];
+        }
+      }
+      else if (DIM == 3)
+      {
+        bfam_long_real_t u1[Np];
+        bfam_long_real_t u2[Np];
+        bfam_long_real_t u3[Np];
+
+        bfam_long_real_t v1[Np];
+        bfam_long_real_t v2[Np];
+        bfam_long_real_t v3[Np];
+
+        bfam_long_real_t w1[Np];
+        bfam_long_real_t w2[Np];
+        bfam_long_real_t w3[Np];
+
+        for (int n = 0; n < Np; ++n)
+        {
+          bfam_locidx_t idx = n + vsk;
+
+          const bfam_long_real_t xr = Jrx[0][idx];
+          const bfam_long_real_t xs = Jrx[1][idx];
+          const bfam_long_real_t xt = Jrx[2][idx];
+          const bfam_long_real_t yr = Jrx[3][idx];
+          const bfam_long_real_t ys = Jrx[4][idx];
+          const bfam_long_real_t yt = Jrx[5][idx];
+          const bfam_long_real_t zr = Jrx[6][idx];
+          const bfam_long_real_t zs = Jrx[7][idx];
+          const bfam_long_real_t zt = Jrx[8][idx];
+
+          /*       xr*(ys*zt-yt*zs) - xs*(yr*zt-yt*zr) + xt*(yr*zs-ys*zr) */
+          J[idx] = xr * (ys * zt - yt * zs) - xs * (yr * zt - yt * zr) +
+                   xt * (yr * zs - ys * zr);
+
+          const bfam_long_real_t x = xi[0][idx];
+          const bfam_long_real_t y = xi[1][idx];
+          const bfam_long_real_t z = xi[2][idx];
+
+          /* u = z \nabla y - y \nabla z */
+          u1[n] = z * yr - y * zr;
+          u2[n] = z * ys - y * zs;
+          u3[n] = z * yt - y * zt;
+
+          /* v = x \nabla z - z \nabla x */
+          v1[n] = x * zr - z * xr;
+          v2[n] = x * zs - z * xs;
+          v3[n] = x * zt - z * xt;
+
+          /* w = y \nabla x - x \nabla y */
+          w1[n] = y * xr - x * yr;
+          w2[n] = y * xs - x * ys;
+          w3[n] = y * xt - x * yt;
+
+#if 0
+          /* J*rx     =  ( ys * zt - yt * zs ) */
+          Jrx[0][idx] = (ys * zt - yt * zs);
+
+          /* J*ry     = -( xs * zt - xt * zs ) */
+          Jrx[1][idx] = -(xs * zt - xt * zs);
+
+          /* J*rz     =  ( xs * yt - xt * ys ) */
+          Jrx[2][idx] = (xs * yt - xt * ys);
+
+          /* J*sx     = -( yr * zt - yt * zr ) */
+          Jrx[3][idx] = -(yr * zt - yt * zr);
+
+          /* J*sy     =  ( xr * zt - xt * zr ) */
+          Jrx[4][idx] = (xr * zt - xt * zr);
+
+          /* J*sz     = -( xr * yt - xt * yr ) */
+          Jrx[5][idx] = -(xr * yt - xt * yr);
+
+          /* J*tx     =  ( yr * zs - ys * zr ) */
+          Jrx[6][idx] = (yr * zs - ys * zr);
+
+          /* J*ty     = -( xr * zs - xs * zr ) */
+          Jrx[7][idx] = -(xr * zs - xs * zr);
+
+          /* J*tz     =  ( xr * ys - xs * yr ) */
+          Jrx[8][idx] = (xr * ys - xs * yr);
+#endif
+        }
+
+        bfam_long_real_t tmp1[Np];
+        bfam_long_real_t tmp2[Np];
+
+        // DR: BFAM_KRON_IXIXA(N + 1, Dr, x, dx);
+        // DS: BFAM_KRON_IXAXI(N + 1, Dr, x, dx);
+        // DT: BFAM_KRON_AXIXI(N + 1, Dr, x, dx);
+
+        /* <Jrx,Jsx,Jtx> = (1/2) \nabla \times \vec{u} */
+        BFAM_KRON_AXIXI(N + 1, Dr, u2, tmp1);
+        BFAM_KRON_IXAXI(N + 1, Dr, u3, tmp2);
+        for (int n = 0; n < Np; n++)
+          Jrx[0][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
+
+        BFAM_KRON_IXIXA(N + 1, Dr, u3, tmp1);
+        BFAM_KRON_AXIXI(N + 1, Dr, u1, tmp2);
+        for (int n = 0; n < Np; n++)
+          Jrx[3][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
+
+        BFAM_KRON_IXAXI(N + 1, Dr, u1, tmp1);
+        BFAM_KRON_IXIXA(N + 1, Dr, u2, tmp2);
+        for (int n = 0; n < Np; n++)
+          Jrx[6][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
+
+        /* <Jry,Jsy,Jty> = (1/2) \nabla \times \vec{v} */
+        BFAM_KRON_AXIXI(N + 1, Dr, v2, tmp1);
+        BFAM_KRON_IXAXI(N + 1, Dr, v3, tmp2);
+        for (int n = 0; n < Np; n++)
+          Jrx[1][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
+
+        BFAM_KRON_IXIXA(N + 1, Dr, v3, tmp1);
+        BFAM_KRON_AXIXI(N + 1, Dr, v1, tmp2);
+        for (int n = 0; n < Np; n++)
+          Jrx[4][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
+
+        BFAM_KRON_IXAXI(N + 1, Dr, v1, tmp1);
+        BFAM_KRON_IXIXA(N + 1, Dr, v2, tmp2);
+        for (int n = 0; n < Np; n++)
+          Jrx[7][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
+
+        /* <Jrz,Jsz,Jtz> = (1/2) \nabla \times \vec{w} */
+        BFAM_KRON_AXIXI(N + 1, Dr, w2, tmp1);
+        BFAM_KRON_IXAXI(N + 1, Dr, w3, tmp2);
+        for (int n = 0; n < Np; n++)
+          Jrx[2][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
+
+        BFAM_KRON_IXIXA(N + 1, Dr, w3, tmp1);
+        BFAM_KRON_AXIXI(N + 1, Dr, w1, tmp2);
+        for (int n = 0; n < Np; n++)
+          Jrx[5][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
+
+        BFAM_KRON_IXAXI(N + 1, Dr, w1, tmp1);
+        BFAM_KRON_IXIXA(N + 1, Dr, w2, tmp2);
+        for (int n = 0; n < Np; n++)
+          Jrx[8][n + vsk] = 0.5 * (tmp1[n] - tmp2[n]);
+
+        for (int n = 0; n < Nfp; ++n)
+        {
+          const bfam_locidx_t fidx0 = fsk + 0 * Nfp + n;
+          const bfam_locidx_t fidx1 = fsk + 1 * Nfp + n;
+          const bfam_locidx_t fidx2 = fsk + 2 * Nfp + n;
+          const bfam_locidx_t fidx3 = fsk + 3 * Nfp + n;
+          const bfam_locidx_t fidx4 = fsk + 4 * Nfp + n;
+          const bfam_locidx_t fidx5 = fsk + 5 * Nfp + n;
+
+          const bfam_locidx_t vidx0 = vsk + gmask[0][0][n];
+          const bfam_locidx_t vidx1 = vsk + gmask[0][1][n];
+          const bfam_locidx_t vidx2 = vsk + gmask[0][2][n];
+          const bfam_locidx_t vidx3 = vsk + gmask[0][3][n];
+          const bfam_locidx_t vidx4 = vsk + gmask[0][4][n];
+          const bfam_locidx_t vidx5 = vsk + gmask[0][5][n];
+
+          /* face 0 */
+          ni[0][fidx0] = -Jrx[0][vidx0]; /* -Jrx/sJ */
+          ni[1][fidx0] = -Jrx[1][vidx0]; /* -Jry/sJ */
+          ni[2][fidx0] = -Jrx[2][vidx0]; /* -Jrz/sJ */
+
+          /* face 1 */
+          ni[0][fidx1] = Jrx[0][vidx1]; /*  Jrx/sJ */
+          ni[1][fidx1] = Jrx[1][vidx1]; /*  Jry/sJ */
+          ni[2][fidx1] = Jrx[2][vidx1]; /*  Jrz/sJ */
+
+          /* face 2 */
+          ni[0][fidx2] = -Jrx[3][vidx2]; /* -Jsx/sJ */
+          ni[1][fidx2] = -Jrx[4][vidx2]; /* -Jsy/sJ */
+          ni[2][fidx2] = -Jrx[5][vidx2]; /* -Jsz/sJ */
+
+          /* face 3 */
+          ni[0][fidx3] = Jrx[3][vidx3]; /*  Jsx/sJ */
+          ni[1][fidx3] = Jrx[4][vidx3]; /*  Jsy/sJ */
+          ni[2][fidx3] = Jrx[5][vidx3]; /*  Jsz/sJ */
+
+          /* face 4 */
+          ni[0][fidx4] = -Jrx[6][vidx4]; /* -Jtx/sJ */
+          ni[1][fidx4] = -Jrx[7][vidx4]; /* -Jty/sJ */
+          ni[2][fidx4] = -Jrx[8][vidx4]; /* -Jtz/sJ */
+
+          /* face 5 */
+          ni[0][fidx5] = Jrx[6][vidx5]; /*  Jtx/sJ */
+          ni[1][fidx5] = Jrx[7][vidx5]; /*  Jty/sJ */
+          ni[2][fidx5] = Jrx[8][vidx5]; /*  Jtz/sJ */
+
+          sJ[fidx0] = BFAM_LONG_REAL_HYPOT(
+              ni[0][fidx0], BFAM_LONG_REAL_HYPOT(ni[1][fidx0], ni[2][fidx0]));
+          sJ[fidx1] = BFAM_LONG_REAL_HYPOT(
+              ni[0][fidx1], BFAM_LONG_REAL_HYPOT(ni[1][fidx1], ni[2][fidx1]));
+          sJ[fidx2] = BFAM_LONG_REAL_HYPOT(
+              ni[0][fidx2], BFAM_LONG_REAL_HYPOT(ni[1][fidx2], ni[2][fidx2]));
+          sJ[fidx3] = BFAM_LONG_REAL_HYPOT(
+              ni[0][fidx3], BFAM_LONG_REAL_HYPOT(ni[1][fidx3], ni[2][fidx3]));
+          sJ[fidx4] = BFAM_LONG_REAL_HYPOT(
+              ni[0][fidx4], BFAM_LONG_REAL_HYPOT(ni[1][fidx4], ni[2][fidx4]));
+          sJ[fidx5] = BFAM_LONG_REAL_HYPOT(
+              ni[0][fidx5], BFAM_LONG_REAL_HYPOT(ni[1][fidx5], ni[2][fidx5]));
+
+          ni[0][fidx0] /= sJ[fidx0];
+          ni[1][fidx0] /= sJ[fidx0];
+          ni[2][fidx0] /= sJ[fidx0];
+          ni[0][fidx1] /= sJ[fidx1];
+          ni[1][fidx1] /= sJ[fidx1];
+          ni[2][fidx1] /= sJ[fidx1];
+          ni[0][fidx2] /= sJ[fidx2];
+          ni[1][fidx2] /= sJ[fidx2];
+          ni[2][fidx2] /= sJ[fidx2];
+          ni[0][fidx3] /= sJ[fidx3];
+          ni[1][fidx3] /= sJ[fidx3];
+          ni[2][fidx3] /= sJ[fidx3];
+          ni[0][fidx4] /= sJ[fidx4];
+          ni[1][fidx4] /= sJ[fidx4];
+          ni[2][fidx4] /= sJ[fidx4];
+          ni[0][fidx5] /= sJ[fidx5];
+          ni[1][fidx5] /= sJ[fidx5];
+          ni[2][fidx5] /= sJ[fidx5];
+        }
+      }
+    }
+
+    vsk += Np;
+    fsk += Nfaces * Nfp;
+  }
+}
+
+
+void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_, BFAM_DGX_DIMENSION)(
+    bfam_subdomain_dgx_t *subdomain, const bfam_locidx_t id,
+    const bfam_locidx_t uid, const char *name, const int N,
+    const bfam_locidx_t Nv, const int num_Vi, const bfam_long_real_t **Vi,
+    const bfam_locidx_t K, const bfam_locidx_t *EToQ, const bfam_locidx_t *EToV,
+    const bfam_locidx_t *EToE, const int8_t *EToF,
+    void (*nodes_transform)(const bfam_locidx_t num_Vi,
+                            const bfam_locidx_t num_pnts,
+                            bfam_long_real_t **lxi, void *user_args),
+    void *user_args, const int inDIM)
+{
+#ifdef USE_GENERIC_DGX_DIMENSION
+  BFAM_WARNING("Using generic bfam_subdomain_dgx_init");
+  const int DIM = inDIM;
+#endif
+  bfam_subdomain_dgx_generic_init(subdomain, id, uid, name, N, K, inDIM);
+
+  const int *Ng = subdomain->Ng;
+  const int *Ngp = subdomain->Ngp;
+  const int numg = subdomain->numg;
+  const int Np = subdomain->Np;
+
+  if (EToQ)
+  {
+    subdomain->EToQ = bfam_malloc_aligned(K * sizeof(bfam_locidx_t));
+    for (bfam_locidx_t k = 0; k < K; k++)
+      subdomain->EToQ[k] = EToQ[k];
+  }
+
+  if (DIM > 0)
+  {
+    const int Nrp = N + 1;
+    bfam_long_real_t *lr, *lw;
+    lr = bfam_malloc_aligned(Nrp * sizeof(bfam_long_real_t));
+    lw = bfam_malloc_aligned(Nrp * sizeof(bfam_long_real_t));
+
+    bfam_jacobi_gauss_lobatto_quadrature(0, 0, N, lr, lw);
+
+    bfam_long_real_t **lxi =
+        bfam_malloc_aligned(num_Vi * sizeof(bfam_long_real_t *));
+
+    for (int i = 0; i < num_Vi; i++)
+      lxi[i] = bfam_malloc_aligned(K * Np * sizeof(bfam_long_real_t));
+
+    /* Loop over all the elements and set up the grid*/
+    int Ncorners = Ng[numg - 1];
+    for (bfam_locidx_t k = 0; k < K; ++k)
+    {
+      const bfam_locidx_t *v = EToV + Ncorners * k;
+      bfam_long_real_t w[Ncorners];
+
+      if (DIM == 1)
+        for (int n = 0; n < Nrp; ++n)
+        {
+          int offset = n;
+          w[0] = 1 - lr[n];
+          w[1] = 1 + lr[n];
+          for (int i = 0; i < num_Vi; i++)
+          {
+            lxi[i][Np * k + offset] = 0;
+            for (int c = 0; c < Ncorners; c++)
+              lxi[i][Np * k + offset] += w[c] * Vi[i][v[c]];
+            lxi[i][Np * k + offset] /= Ncorners;
+          }
+        }
+      else if (DIM == 2)
+        for (int n = 0; n < Nrp; ++n)
+          for (int m = 0; m < Nrp; ++m)
+          {
+            int offset = n * Nrp + m;
+            w[0] = (1 - lr[m]) * (1 - lr[n]);
+            w[1] = (1 + lr[m]) * (1 - lr[n]);
+            w[2] = (1 - lr[m]) * (1 + lr[n]);
+            w[3] = (1 + lr[m]) * (1 + lr[n]);
+            for (int i = 0; i < num_Vi; i++)
+            {
+              lxi[i][Np * k + offset] = 0;
+              for (int c = 0; c < Ncorners; c++)
+                lxi[i][Np * k + offset] += w[c] * Vi[i][v[c]];
+              lxi[i][Np * k + offset] /= Ncorners;
+            }
+          }
+      else if (DIM == 3)
+        for (int n = 0; n < Nrp; ++n)
+          for (int m = 0; m < Nrp; ++m)
+            for (int l = 0; l < Nrp; ++l)
+            {
+              int offset = n * Nrp * Nrp + m * Nrp + l;
+              w[0] = (1 - lr[l]) * (1 - lr[m]) * (1 - lr[n]);
+              w[1] = (1 + lr[l]) * (1 - lr[m]) * (1 - lr[n]);
+              w[2] = (1 - lr[l]) * (1 + lr[m]) * (1 - lr[n]);
+              w[3] = (1 + lr[l]) * (1 + lr[m]) * (1 - lr[n]);
+              w[4] = (1 - lr[l]) * (1 - lr[m]) * (1 + lr[n]);
+              w[5] = (1 + lr[l]) * (1 - lr[m]) * (1 + lr[n]);
+              w[6] = (1 - lr[l]) * (1 + lr[m]) * (1 + lr[n]);
+              w[7] = (1 + lr[l]) * (1 + lr[m]) * (1 + lr[n]);
+              for (int i = 0; i < num_Vi; i++)
+              {
+                lxi[i][Np * k + offset] = 0;
+                for (int c = 0; c < Ncorners; c++)
+                  lxi[i][Np * k + offset] += w[c] * Vi[i][v[c]];
+                lxi[i][Np * k + offset] /= Ncorners;
+              }
+            }
+      else
+        BFAM_ABORT("not setup of dim = %d", DIM);
+    }
+
+    if (nodes_transform)
+      nodes_transform(num_Vi, K * Np, lxi, user_args);
+
+    bfam_long_real_t *restrict V = subdomain->V;
+
+    bfam_long_real_t *restrict D =
+        bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_long_real_t));
+
+    bfam_jacobi_p_differentiation(0, 0, N, Nrp, lr, V, D);
+
+    bfam_long_real_t **lJrx =
+        bfam_malloc_aligned(num_Vi * DIM * sizeof(bfam_long_real_t *));
+    for (int n = 0; n < num_Vi * DIM; n++)
+      lJrx[n] = bfam_malloc_aligned(K * Np * sizeof(bfam_long_real_t));
+
+    bfam_long_real_t *lJ = NULL;
+    bfam_long_real_t **lni = NULL;
+    bfam_long_real_t *lsJ = NULL;
+    if (DIM == num_Vi)
+    {
+      lJ = bfam_malloc_aligned(K * Np * sizeof(bfam_long_real_t));
+
+      /* Ng[0] = number of faces, Ngp[0] = number of face points */
+      lni = bfam_malloc_aligned(num_Vi * sizeof(bfam_long_real_t *));
+      for (int n = 0; n < num_Vi; n++)
+        lni[n] =
+            bfam_malloc_aligned(K * Ng[0] * Ngp[0] * sizeof(bfam_long_real_t));
+
+      lsJ = bfam_malloc_aligned(K * Ng[0] * Ngp[0] * sizeof(bfam_long_real_t));
+    }
+
+    bfam_subdomain_dgx_geo(N, K, Np, subdomain->gmask, Ng, Ngp, num_Vi, lxi, D,
+                           lJrx, lJ, lni, lsJ, DIM);
+
+    /* store the grid */
+    for (int i = 0; i < num_Vi; i++)
+    {
+      char name[BFAM_BUFSIZ];
+      snprintf(name, BFAM_BUFSIZ, "_grid_x%d", i);
+      int rval = bfam_subdomain_dgx_field_add(&subdomain->base, name);
+      BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s", name);
+      bfam_real_t *restrict xi =
+          bfam_dictionary_get_value_ptr(&subdomain->base.fields, name);
+      for (int n = 0; n < K * Np; ++n)
+      {
+        xi[n] = (bfam_real_t)lxi[i][n];
+      }
+    }
+
+    /* store the metric stuff */
+    if (lJ)
+    {
+      for (int d = 0; d < DIM; d++)
+      {
+        for (int v = 0; v < num_Vi; v++)
+        {
+          char name[BFAM_BUFSIZ];
+          snprintf(name, BFAM_BUFSIZ, "_grid_Jr%dx%d", d, v);
+          int rval = bfam_subdomain_dgx_field_add(&subdomain->base, name);
+          BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s", name);
+          bfam_real_t *restrict Jrx =
+              bfam_dictionary_get_value_ptr(&subdomain->base.fields, name);
+          for (int n = 0; n < K * Np; ++n)
+            Jrx[n] = (bfam_real_t)lJrx[v + d * num_Vi][n];
+        }
+      }
+      {
+        char name[] = "_grid_J";
+        int rval = bfam_subdomain_dgx_field_add(&subdomain->base, name);
+        BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s", name);
+        bfam_real_t *restrict J =
+            bfam_dictionary_get_value_ptr(&subdomain->base.fields, name);
+        for (int n = 0; n < K * Np; ++n)
+          J[n] = (bfam_real_t)lJ[n];
+      }
+      {
+        char name[] = "_grid_JI";
+        int rval = bfam_subdomain_dgx_field_add(&subdomain->base, name);
+        BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s", name);
+        bfam_real_t *restrict JI =
+            bfam_dictionary_get_value_ptr(&subdomain->base.fields, name);
+        for (int n = 0; n < K * Np; ++n)
+          JI[n] = (bfam_real_t)(BFAM_LONG_REAL(1.0) / lJ[n]);
+      }
+      BFAM_ASSERT(lni != NULL && lsJ != NULL);
+      for (int v = 0; v < num_Vi; v++)
+      {
+        char name[BFAM_BUFSIZ];
+        snprintf(name, BFAM_BUFSIZ, "_grid_nx%d", v);
+        int rval = bfam_subdomain_dgx_field_face_add(&subdomain->base, name);
+        BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s", name);
+        bfam_real_t *restrict ni =
+            bfam_dictionary_get_value_ptr(&subdomain->base.fields_face, name);
+        for (int n = 0; n < K * Ng[0] * Ngp[0]; ++n)
+          ni[n] = (bfam_real_t)lni[v][n];
+      }
+      {
+        char name[] = "_grid_sJ";
+        int rval = bfam_subdomain_dgx_field_face_add(&subdomain->base, name);
+        BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s", name);
+        bfam_real_t *restrict sJ =
+            bfam_dictionary_get_value_ptr(&subdomain->base.fields_face, name);
+
+        for (int n = 0; n < K * Ng[0] * Ngp[0]; ++n)
+          sJ[n] = (bfam_real_t)lsJ[n];
+      }
+    }
+    else
+    {
+      /* In this Jrx really has dx/dr */
+      for (int v = 0; v < num_Vi; v++)
+      {
+        for (int d = 0; d < DIM; d++)
+        {
+          char name[BFAM_BUFSIZ];
+          snprintf(name, BFAM_BUFSIZ, "_grid_x%dr%d", v, d);
+          int rval = bfam_subdomain_dgx_field_add(&subdomain->base, name);
+          BFAM_ABORT_IF_NOT(rval == 2, "Error adding %s", name);
+          bfam_real_t *restrict xr =
+              bfam_dictionary_get_value_ptr(&subdomain->base.fields, name);
+          for (int n = 0; n < K * Np; ++n)
+            xr[n] = (bfam_real_t)lJrx[d + v * DIM][n];
+        }
+      }
+      BFAM_ASSERT(lni == NULL && lsJ == NULL);
+    }
+
+    /* store the face stuff */
+
+    subdomain->vmapP =
+        bfam_malloc_aligned(K * Ngp[0] * Ng[0] * sizeof(bfam_locidx_t));
+    subdomain->vmapM =
+        bfam_malloc_aligned(K * Ngp[0] * Ng[0] * sizeof(bfam_locidx_t));
+
+    bfam_subdomain_dgx_buildmaps(N, K, Np, Ngp[0], Ng[0], EToE, EToF,
+                                 subdomain->gmask, subdomain->vmapP,
+                                 subdomain->vmapM, DIM);
+
+    /* free stuff */
+    if (lsJ)
+      bfam_free_aligned(lsJ);
+    if (lni)
+    {
+      for (int n = 0; n < num_Vi; n++)
+        bfam_free_aligned(lni[n]);
+      bfam_free_aligned(lni);
+    }
+
+    if (lJ)
+      bfam_free_aligned(lJ);
+
+    for (int n = 0; n < num_Vi * DIM; n++)
+      bfam_free_aligned(lJrx[n]);
+    bfam_free_aligned(lJrx);
+
+    bfam_free_aligned(D);
+
+    bfam_free_aligned(lr);
+    bfam_free_aligned(lw);
+
+    for (int i = 0; i < num_Vi; i++)
+      bfam_free_aligned(lxi[i]);
+    bfam_free_aligned(lxi);
+  }
+}
+#endif

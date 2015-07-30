@@ -1106,8 +1106,7 @@ static void bfam_domain_pxest_boundary_subdomain_face_mapping(
 void bfam_domain_pxest_split_dgx_subdomains(
     bfam_domain_pxest_t *domain, bfam_locidx_t numSubdomains,
     bfam_locidx_t *subdomainID, bfam_locidx_t *roots, int *N,
-    bfam_locidx_t *glueID, bfam_dgx_nodes_transform_t nodes_transform,
-    void *nt_user_args, bfam_glue_order_t glue_order, void *go_user_args)
+    bfam_locidx_t *glueID, bfam_glue_order_t glue_order, void *go_user_args)
 {
   BFAM_ROOT_LDEBUG("Begin splitting p4est domain into subdomains.");
   const int HF = P4EST_HALF * P4EST_FACES;
@@ -1117,16 +1116,9 @@ void bfam_domain_pxest_split_dgx_subdomains(
   p4est_mesh_t *mesh = p4est_mesh_new(pxest, ghost, BFAM_PXEST_CONNECT);
   p4est_nodes_t *nodes = p4est_nodes_new(pxest, NULL);
 
-  const p4est_locidx_t Nv = (p4est_locidx_t)nodes->indep_nodes.elem_count;
-
-  bfam_long_real_t *VX = bfam_malloc_aligned(Nv * sizeof(bfam_long_real_t));
-  bfam_long_real_t *VY = bfam_malloc_aligned(Nv * sizeof(bfam_long_real_t));
-  bfam_long_real_t *VZ = bfam_malloc_aligned(Nv * sizeof(bfam_long_real_t));
-
   p4est_locidx_t *subK = bfam_calloc(numSubdomains, sizeof(p4est_locidx_t));
   p4est_locidx_t *subk = bfam_calloc(numSubdomains, sizeof(p4est_locidx_t));
   char **name = bfam_malloc(numSubdomains * sizeof(char *));
-  bfam_locidx_t **EToV = bfam_malloc(numSubdomains * sizeof(bfam_locidx_t *));
   bfam_locidx_t **EToE = bfam_malloc(numSubdomains * sizeof(bfam_locidx_t *));
   bfam_locidx_t **EToQ = bfam_malloc(numSubdomains * sizeof(bfam_locidx_t *));
   int8_t **EToF = bfam_malloc(numSubdomains * sizeof(int8_t *));
@@ -1197,22 +1189,6 @@ void bfam_domain_pxest_split_dgx_subdomains(
   bfam_domain_pxest_boundary_subdomain_face_mapping(
       mesh, subdomainID, glueID, numBoundaryFaces, bfmapping);
 
-  for (p4est_locidx_t v = 0; v < Nv; ++v)
-  {
-    double xyz[3];
-    p4est_quadrant_t *quad = p4est_quadrant_array_index(&nodes->indep_nodes, v);
-    p4est_qcoord_to_vertex(pxest->connectivity, quad->p.which_tree, quad->x,
-                           quad->y,
-#if DIM == 3
-                           quad->z,
-#endif
-                           xyz);
-
-    VX[v] = xyz[0];
-    VY[v] = xyz[1];
-    VZ[v] = xyz[2];
-  }
-
   /*
    * Count the number of elements in each new subdomain
    */
@@ -1232,7 +1208,6 @@ void bfam_domain_pxest_split_dgx_subdomains(
     snprintf(name[id], BFAM_BUFSIZ, "dgx_dim_%1d_%05jd", (int)DIM,
              (intmax_t)id);
 
-    EToV[id] = bfam_malloc(subK[id] * P4EST_CHILDREN * sizeof(bfam_locidx_t));
     EToQ[id] = bfam_malloc(subK[id] * sizeof(bfam_locidx_t));
     EToE[id] = bfam_malloc(subK[id] * P4EST_FACES * sizeof(bfam_locidx_t));
     EToF[id] = bfam_malloc(subK[id] * P4EST_FACES * sizeof(int8_t));
@@ -1271,12 +1246,6 @@ void bfam_domain_pxest_split_dgx_subdomains(
 
     EToQ[idk][subk[idk]] = k;
 
-    for (int v = 0; v < P4EST_CHILDREN; ++v)
-    {
-      EToV[idk][P4EST_CHILDREN * subk[idk] + v] =
-          nodes->local_nodes[P4EST_CHILDREN * k + v];
-    }
-
     for (int f = 0; f < P4EST_FACES; ++f)
     {
       const p4est_locidx_t ck = mesh->quad_to_quad[P4EST_FACES * k + f];
@@ -1307,10 +1276,8 @@ void bfam_domain_pxest_split_dgx_subdomains(
       bfam_malloc(numSubdomains * sizeof(bfam_subdomain_dgx_t **));
   for (bfam_locidx_t id = 0; id < numSubdomains; ++id)
   {
-    const bfam_long_real_t *Vi[] = {VX, VY, VZ};
-    subdomains[id] = bfam_subdomain_dgx_new(
-        id, -1, name[id], N[id], Nv, DIM, Vi, subK[id], EToQ[id], EToV[id],
-        EToE[id], EToF[id], nodes_transform, nt_user_args, DIM);
+    subdomains[id] = bfam_subdomain_dgx_new(id, -1, name[id], N[id], subK[id],
+                                            EToQ[id], EToE[id], EToF[id], DIM);
 
     bfam_subdomain_add_tag((bfam_subdomain_t *)subdomains[id], "_volume");
     char root_id_tag[BFAM_BUFSIZ];
@@ -1585,14 +1552,12 @@ void bfam_domain_pxest_split_dgx_subdomains(
   for (bfam_locidx_t id = 0; id < numSubdomains; ++id)
   {
     bfam_free(name[id]);
-    bfam_free(EToV[id]);
     bfam_free(EToE[id]);
     bfam_free(EToQ[id]);
     bfam_free(EToF[id]);
   }
 
   bfam_free(name);
-  bfam_free(EToV);
   bfam_free(EToE);
   bfam_free(EToQ);
   bfam_free(EToF);
@@ -1611,10 +1576,6 @@ void bfam_domain_pxest_split_dgx_subdomains(
   bfam_free_aligned(pfmapping);
   bfam_free(ghostN);
   bfam_free(ghostSubdomainID);
-
-  bfam_free_aligned(VX);
-  bfam_free_aligned(VY);
-  bfam_free_aligned(VZ);
 
   p4est_nodes_destroy(nodes);
   p4est_mesh_destroy(mesh);
@@ -2343,11 +2304,10 @@ static void bfam_domain_pxest_transfer_fields(bfam_domain_pxest_t *domain_dst,
  * in the subdomain.
  *
  */
-static void
-bfam_domain_pxest_adapt_flag(uint8_t flags, bfam_domain_pxest_t *domain,
-                             bfam_dgx_nodes_transform_t nodes_transform,
-                             void *nt_user_args, bfam_glue_order_t glue_order,
-                             void *go_user_args)
+static void bfam_domain_pxest_adapt_flag(uint8_t flags,
+                                         bfam_domain_pxest_t *domain,
+                                         bfam_glue_order_t glue_order,
+                                         void *go_user_args)
 {
   bfam_locidx_t new_num_subdomains;
   bfam_locidx_t *new_subdomain_id;
@@ -2388,9 +2348,9 @@ bfam_domain_pxest_adapt_flag(uint8_t flags, bfam_domain_pxest_t *domain,
                                   &new_roots, &new_N, &new_glue_id);
 
   /* Split domains */
-  bfam_domain_pxest_split_dgx_subdomains(
-      domain, new_num_subdomains, new_subdomain_id, new_roots, new_N,
-      new_glue_id, nodes_transform, nt_user_args, glue_order, go_user_args);
+  bfam_domain_pxest_split_dgx_subdomains(domain, new_num_subdomains,
+                                         new_subdomain_id, new_roots, new_N,
+                                         new_glue_id, glue_order, go_user_args);
 
   /* Transfer fields */
   bfam_domain_pxest_transfer_fields(domain, old_domain);
@@ -2407,19 +2367,17 @@ bfam_domain_pxest_adapt_flag(uint8_t flags, bfam_domain_pxest_t *domain,
 }
 
 void bfam_domain_pxest_adapt(bfam_domain_pxest_t *domain,
-                             bfam_dgx_nodes_transform_t nodes_transform,
-                             void *nt_user_args, bfam_glue_order_t glue_order,
-                             void *go_user_args)
+                             bfam_glue_order_t glue_order, void *go_user_args)
 {
   /* coarsen and balance */
-  bfam_domain_pxest_adapt_flag(BFAM_FLAG_COARSEN, domain, nodes_transform,
-                               nt_user_args, glue_order, go_user_args);
+  bfam_domain_pxest_adapt_flag(BFAM_FLAG_COARSEN, domain, glue_order,
+                               go_user_args);
 
   /* TODO split and partition based on guessed elements */
 
   /* refine and balance */
-  bfam_domain_pxest_adapt_flag(BFAM_FLAG_REFINE, domain, nodes_transform,
-                               nt_user_args, glue_order, go_user_args);
+  bfam_domain_pxest_adapt_flag(BFAM_FLAG_REFINE, domain, glue_order,
+                               go_user_args);
 
   /* TODO split and partition based on actual elements */
 }

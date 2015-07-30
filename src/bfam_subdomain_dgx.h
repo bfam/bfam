@@ -153,33 +153,23 @@ typedef struct bfam_subdomain_dgx_point_interp
  * \param [in] uid    user id number for this subdomain
  * \param [in] name   name of this subdomain
  * \param [in] N      polynomial order of elements in each dimension
- * \param [in] Nv     number of vertices in the subdomain
- * \param [in] num_Vi number of coordinate for vertices to store
- * \param [in] Vi     array of array of coordinates for the vertives
  * \param [in] K      number of elements in the subdomain
- * \param [in] EToV   Mapping such that \c EToV[k*4+c] gives the vertex number
- *                    for corner \c c of element \c k.
  * \param [in] EToE   Mapping such that \c EToE[k*4+f] gives the element number
  *                    connected to face \c f of element \c k.
  * \param [in] EToF   Mapping such that \c EToF[k*4+f] gives the
  *                    face+orientation number connected to face \c f of element
  *                    \c k.
- * \param [in] nodes_transform
- *                    user callback function to allow the user to further
- *                    transform the nodal locations
  * \param [in] dim    number of (computational) dimensions
  *
  * \return Initialized dgx subdomain
  *
  */
 
-bfam_subdomain_dgx_t *bfam_subdomain_dgx_new_(
-    const bfam_locidx_t id, const bfam_locidx_t uid, const char *name,
-    const int N, const bfam_locidx_t Nv, const int num_Vi,
-    const bfam_long_real_t **Vi, const bfam_locidx_t K,
-    const bfam_locidx_t *EToQ, const bfam_locidx_t *EToV,
-    const bfam_locidx_t *EToE, const int8_t *EToF,
-    bfam_dgx_nodes_transform_t nodes_transform, void *user_args, const int dim);
+bfam_subdomain_dgx_t *
+bfam_subdomain_dgx_new_(const bfam_locidx_t id, const bfam_locidx_t uid,
+                        const char *name, const int N, const bfam_locidx_t K,
+                        const bfam_locidx_t *EToQ, const bfam_locidx_t *EToE,
+                        const int8_t *EToF, const int inDIM);
 
 /** initializes a dgx subdomain
  *
@@ -188,31 +178,22 @@ bfam_subdomain_dgx_t *bfam_subdomain_dgx_new_(
  * \param [in]     uid       user id number for this subdomain
  * \param [in]     name      name of this subdomain
  * \param [in]     N         polynomial order of elements in each dimension
- * \param [in]     Nv        number of vertices in the subdomain
- * \param [in]     num_Vi    number of coordinate for vertices to store
- * \param [in]     Vi        array of array of coordinates for the vertives
  * \param [in]     K         number of elements in the subdomain
  * \param [in]     EToQ      Mapping such that \c EToQ[k] gives the pxest
  *                           quadrant number of element \c k.
- * \param [in]     EToV      Mapping such that \c EToV[k*4+c] gives the vertex
- *                           number for corner \c c of element \c k.
  * \param [in]     EToE      Mapping such that \c EToE[k*4+f] gives the element
  *                           number connected to face \c f of element \c k.
  * \param [in]     EToF      Mapping such that \c EToF[k*4+f] gives the
  *                           face+orientation number connected to face \c f of
  *                           element \c k.
- * \param [in] nodes_transform
- *                    user callback function to allow the user to further
- *                    transform the nodal locations
  * \param [in]     dim       number of (computational) dimensions
  */
-void bfam_subdomain_dgx_init_(
-    bfam_subdomain_dgx_t *subdomain, const bfam_locidx_t id,
-    const bfam_locidx_t uid, const char *name, const int N,
-    const bfam_locidx_t Nv, const int num_Vi, const bfam_long_real_t **Vi,
-    const bfam_locidx_t K, const bfam_locidx_t *EToQ, const bfam_locidx_t *EToV,
-    const bfam_locidx_t *EToE, const int8_t *EToF,
-    bfam_dgx_nodes_transform_t nodes_transform, void *user_args, const int dim);
+void bfam_subdomain_dgx_init_(bfam_subdomain_dgx_t *subdomain,
+                              const bfam_locidx_t id, const bfam_locidx_t uid,
+                              const char *name, const int N,
+                              const bfam_locidx_t K, const bfam_locidx_t *EToQ,
+                              const bfam_locidx_t *EToE, const int8_t *EToF,
+                              const int inDIM);
 
 /** create a dgx glue subdomain.
  *
@@ -379,20 +360,13 @@ int bfam_subdomain_dgx_clear_interpolation_dict_(const char *key, void *val,
           const int dim);                                                      \
   bfam_subdomain_dgx_t *bfam_subdomain_dgx_new_##dg_dim(                       \
       const bfam_locidx_t id, const bfam_locidx_t uid, const char *name,       \
-      const int N, const bfam_locidx_t Nv, const int num_Vi,                   \
-      const bfam_long_real_t **Vi, const bfam_locidx_t K,                      \
-      const bfam_locidx_t *EToQ, const bfam_locidx_t *EToV,                    \
-      const bfam_locidx_t *EToE, const int8_t *EToF,                           \
-      bfam_dgx_nodes_transform_t nodes_transform, void *user_args,             \
-      const int dim);                                                          \
+      const int N, const bfam_locidx_t K, const bfam_locidx_t *EToQ,           \
+      const bfam_locidx_t *EToE, const int8_t *EToF, const int dim);           \
   void bfam_subdomain_dgx_init_##dg_dim(                                       \
       bfam_subdomain_dgx_t *subdomain, const bfam_locidx_t id,                 \
       const bfam_locidx_t uid, const char *name, const int N,                  \
-      const bfam_locidx_t Nv, const int num_Vi, const bfam_long_real_t **Vi,   \
       const bfam_locidx_t K, const bfam_locidx_t *EToQ,                        \
-      const bfam_locidx_t *EToV, const bfam_locidx_t *EToE,                    \
-      const int8_t *EToF, bfam_dgx_nodes_transform_t nodes_transform,          \
-      void *user_args, const int dim);                                         \
+      const bfam_locidx_t *EToE, const int8_t *EToF, const int inDIM);         \
   void bfam_subdomain_dgx_free_##dg_dim(bfam_subdomain_t *subdomain);          \
   bfam_subdomain_dgx_t *bfam_subdomain_dgx_glue_new_##dg_dim(                  \
       const bfam_locidx_t id, const bfam_locidx_t uid, const char *name,       \

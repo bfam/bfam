@@ -292,8 +292,7 @@ static int test_geo_dgx(MPI_Comm mpicomm)
       bfam_calloc(domain->pxest->local_num_quadrants, sizeof(bfam_locidx_t));
 
   bfam_domain_pxest_split_dgx_subdomains(domain, numSubdomains, subdomainID,
-                                         NULL, &N, NULL, NULL, NULL, NULL,
-                                         NULL);
+                                         NULL, &N, NULL, NULL, NULL);
 
   bfam_subdomain_t **subdomains =
       bfam_malloc(domain->base.numSubdomains * sizeof(bfam_subdomain_t **));
