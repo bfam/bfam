@@ -241,6 +241,7 @@ static int build_mesh(MPI_Comm mpicomm)
 
   bfam_domain_pxest_split_dgx_subdomains_2(domain, numSubdomains, subdomainID,
                                            NULL, N, NULL, NULL, NULL);
+  bfam_domain_pxest_create_mesh_2(domain, NULL, NULL);
 
   const char *volume[] = {"_volume", NULL};
 
@@ -269,6 +270,7 @@ static int build_mesh(MPI_Comm mpicomm)
 
   mark_elements(domain);
   bfam_domain_pxest_adapt_2(domain, NULL, NULL);
+  bfam_domain_pxest_create_mesh_2(domain, NULL, NULL);
 
   p4est_vtk_write_file(domain->pxest, NULL, "p4est_mesh_post");
   bfam_vtk_write_file((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume, NULL,

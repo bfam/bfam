@@ -49,12 +49,16 @@
 #define bfam_subdomain_dgx_new BFAM_APPEND_EXPAND(bfam_subdomain_dgx_new_, DIM)
 #define bfam_subdomain_dgx_interpolate_data                                    \
   BFAM_APPEND_EXPAND(bfam_subdomain_dgx_interpolate_data_, DIM)
+#define bfam_subdomain_dgx_init_grid                                           \
+  BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_grid_, DIM)
 #define bfam_subdomain_dgx_glue_new                                            \
   BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_new_, BDIM)
 #define bfam_domain_pxest_quad_to_glueid                                       \
   BFAM_APPEND_EXPAND(bfam_domain_pxest_quad_to_glueid_, DIM)
 #define bfam_domain_pxest_split_dgx_subdomains                                 \
   BFAM_APPEND_EXPAND(bfam_domain_pxest_split_dgx_subdomains_, DIM)
+#define bfam_domain_pxest_create_mesh                                          \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_create_mesh_, DIM)
 #define bfam_domain_pxest_adapt                                                \
   BFAM_APPEND_EXPAND(bfam_domain_pxest_adapt_, DIM)
 #define bfam_pxest_user_data_t BFAM_APPEND_EXPAND(bfam_pxest_user_data_t_, DIM)
@@ -1101,6 +1105,76 @@ static void bfam_domain_pxest_boundary_subdomain_face_mapping(
       }
     }
   }
+}
+
+void bfam_domain_pxest_create_mesh(bfam_domain_pxest_t *domain,
+                                   bfam_dgx_nodes_transform_t nodes_transform,
+                                   void *nt_user_args)
+{
+  BFAM_ROOT_LDEBUG("Begin creating the domain mesh.");
+
+  bfam_locidx_t numSubdomains = 0;
+  bfam_subdomain_t **subdomains =
+      bfam_malloc(domain->base.numSubdomains * sizeof(bfam_subdomain_t **));
+  const char *volume[] = {"_volume", NULL};
+  bfam_domain_get_subdomains((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume,
+                             domain->base.numSubdomains, subdomains,
+                             &numSubdomains);
+
+  p4est_t *pxest = domain->pxest;
+  p4est_nodes_t *nodes = p4est_nodes_new(pxest, NULL);
+  const p4est_locidx_t Nv = (p4est_locidx_t)nodes->indep_nodes.elem_count;
+  bfam_locidx_t **EToV = bfam_malloc(numSubdomains * sizeof(bfam_locidx_t *));
+  for (int id = 0; id < numSubdomains; id++)
+  {
+    bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t *)subdomains[id];
+    EToV[id] = bfam_malloc(sub->K * P4EST_CHILDREN * sizeof(bfam_locidx_t));
+
+    for (int subk = 0; subk < sub->K; subk++)
+    {
+      bfam_locidx_t k = sub->EToQ[subk];
+
+      for (int v = 0; v < P4EST_CHILDREN; ++v)
+      {
+        EToV[id][P4EST_CHILDREN * subk + v] =
+            nodes->local_nodes[P4EST_CHILDREN * k + v];
+      }
+    }
+  }
+
+  bfam_long_real_t *VX = bfam_malloc_aligned(Nv * sizeof(bfam_long_real_t));
+  bfam_long_real_t *VY = bfam_malloc_aligned(Nv * sizeof(bfam_long_real_t));
+  bfam_long_real_t *VZ = bfam_malloc_aligned(Nv * sizeof(bfam_long_real_t));
+  for (p4est_locidx_t v = 0; v < Nv; ++v)
+  {
+    double xyz[3];
+    p4est_quadrant_t *quad = p4est_quadrant_array_index(&nodes->indep_nodes, v);
+    p4est_qcoord_to_vertex(pxest->connectivity, quad->p.which_tree, quad->x,
+                           quad->y,
+#if DIM == 3
+                           quad->z,
+#endif
+                           xyz);
+
+    VX[v] = xyz[0];
+    VY[v] = xyz[1];
+    VZ[v] = xyz[2];
+  }
+
+  const bfam_long_real_t *Vi[] = {VX, VY, VZ};
+  for (int id = 0; id < numSubdomains; id++)
+    bfam_subdomain_dgx_init_grid((bfam_subdomain_dgx_t *)subdomains[id], DIM,
+                                 Vi, EToV[id], nodes_transform, nt_user_args,
+                                 DIM);
+
+  p4est_nodes_destroy(nodes);
+  bfam_free_aligned(VX);
+  bfam_free_aligned(VY);
+  bfam_free_aligned(VZ);
+  for (int id = 0; id < numSubdomains; id++)
+    bfam_free(EToV[id]);
+  bfam_free(EToV);
+  bfam_free(subdomains);
 }
 
 void bfam_domain_pxest_split_dgx_subdomains(

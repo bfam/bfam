@@ -1,5 +1,6 @@
 #include <bfam.h>
 #include <bfam_domain_pxest_2.h>
+#include <bfam_subdomain_dgx.h>
 
 #define REAL_APPROX_EQ(x, y, K)                                                \
   BFAM_APPROX_EQ((x), (y), (K), BFAM_REAL_ABS, BFAM_REAL_EPS,                  \
@@ -13,6 +14,10 @@
 #define bfam_domain_pxest_free BFAM_APPEND_EXPAND(bfam_domain_pxest_free_, DIM)
 #define bfam_domain_pxest_split_dgx_subdomains                                 \
   BFAM_APPEND_EXPAND(bfam_domain_pxest_split_dgx_subdomains_, DIM)
+#define bfam_domain_pxest_create_mesh                                          \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_create_mesh_, DIM)
+#define bfam_subdomain_dgx_init_grid                                           \
+  BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_grid_, DIM)
 
 bfam_real_t xex[] = {
     0.0,                1.000000000000000,  0.500000000000000,
@@ -293,6 +298,8 @@ static int test_geo_dgx(MPI_Comm mpicomm)
 
   bfam_domain_pxest_split_dgx_subdomains(domain, numSubdomains, subdomainID,
                                          NULL, &N, NULL, NULL, NULL);
+
+  bfam_domain_pxest_create_mesh(domain, NULL, NULL);
 
   bfam_subdomain_t **subdomains =
       bfam_malloc(domain->base.numSubdomains * sizeof(bfam_subdomain_t **));

@@ -152,6 +152,20 @@ void bfam_domain_pxest_split_dgx_subdomains_3(
     bfam_locidx_t *subdomainID, bfam_locidx_t *roots, int *N,
     bfam_locidx_t *glueID, bfam_glue_order_t glue_order, void *go_user_args);
 
+/** Takes an initialized domain and generates a DG hex mesh
+ *
+ * \param [in,out] domain        pointer to the pxest managed domain to create a
+ *                               grid for
+ * \param [in] nodes_transform   user callback function to allow the user to
+ *                               further transform the nodal locations
+ * \param [in] nt_user_args      user argument for nodes_transform
+ *
+ */
+
+void bfam_domain_pxest_create_mesh_3(bfam_domain_pxest_t_3 *domain,
+                                     bfam_dgx_nodes_transform_t nodes_transform,
+                                     void *nt_user_args);
+
 /** Adapt the mesh.
  *
  * This will adapt the mesh based on \c hadapt and \c padapt in the \c

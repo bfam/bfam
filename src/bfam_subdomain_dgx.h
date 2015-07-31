@@ -171,6 +171,26 @@ bfam_subdomain_dgx_new_(const bfam_locidx_t id, const bfam_locidx_t uid,
                         const bfam_locidx_t *EToQ, const bfam_locidx_t *EToE,
                         const int8_t *EToF, const int inDIM);
 
+/** initializes a dgx subdomain grid
+ *
+ * \param [in,out] subdomain pointer to the subdomain to initialize
+ * \param [in]     num_Vi    number of coordinate for vertices to store
+ * \param [in]     Vi        array of array of coordinates for the vertives
+ * \param [in]     EToV      Mapping such that \c EToV[k*4+c] gives the vertex
+ *                           number for corner \c c of element \c k.
+ * \param [in] nodes_transform
+ *                    user callback function to allow the user to further
+ *                    transform the nodal locations
+ * \param [in]     dim       number of (computational) dimensions
+ */
+void bfam_subdomain_dgx_init_grid_(
+    bfam_subdomain_dgx_t *subdomain, const int num_Vi,
+    const bfam_long_real_t **Vi, const bfam_locidx_t *EToV,
+    void (*nodes_transform)(const bfam_locidx_t num_Vi,
+                            const bfam_locidx_t num_pnts,
+                            bfam_long_real_t **lxi, void *user_args),
+    void *user_args, const int inDIM);
+
 /** initializes a dgx subdomain
  *
  * \param [in,out] subdomain pointer to the subdomain to initialize
@@ -393,7 +413,14 @@ int bfam_subdomain_dgx_clear_interpolation_dict_(const char *key, void *val,
       int8_t c_dst, int N_dst, uint8_t flags, bfam_dictionary_t *N2N,          \
       const int inDIM);                                                        \
   int bfam_subdomain_dgx_clear_interpolation_dict_##dg_dim(                    \
-      const char *key, void *val, void *args);
+      const char *key, void *val, void *args);                                 \
+  void bfam_subdomain_dgx_init_grid_##dg_dim(                                  \
+      bfam_subdomain_dgx_t *subdomain, const int num_Vi,                       \
+      const bfam_long_real_t **Vi, const bfam_locidx_t *EToV,                  \
+      void (*nodes_transform)(const bfam_locidx_t num_Vi,                      \
+                              const bfam_locidx_t num_pnts,                    \
+                              bfam_long_real_t **lxi, void *user_args),        \
+      void *user_args, const int inDIM);
 BFAM_LIST_OF_DGX_DIMENSIONS
 #undef X
 

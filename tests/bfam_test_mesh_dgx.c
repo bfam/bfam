@@ -16,6 +16,8 @@ static int refine_level = 0;
 #define bfam_domain_pxest_free BFAM_APPEND_EXPAND(bfam_domain_pxest_free_, DIM)
 #define bfam_domain_pxest_split_dgx_subdomains                                 \
   BFAM_APPEND_EXPAND(bfam_domain_pxest_split_dgx_subdomains_, DIM)
+#define bfam_domain_pxest_create_mesh                                          \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_create_mesh_, DIM)
 
 static int refine_fn(p4est_t *pxest, p4est_topidx_t which_tree,
                      p4est_quadrant_t *quadrant)
@@ -403,6 +405,7 @@ static int build_mesh(MPI_Comm mpicomm)
 
   bfam_domain_pxest_split_dgx_subdomains(domain, numSubdomains, subdomainID,
                                          NULL, N, NULL, NULL, NULL);
+  bfam_domain_pxest_create_mesh(domain, NULL, NULL);
 
   const char *volume[] = {"_volume", NULL};
   const char *glue[] = {"_glue_parallel", "_glue_local", NULL};
