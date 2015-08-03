@@ -111,7 +111,8 @@ message(STATUS "Use occa2 cxx flags: ${OCCA2_CXX_FLAGS}")
 message(STATUS "Use occa2 cpp flags: ${OCCA2_CPP_FLAGS}")
 
 macro(occa2_build)
-  set (occa2_buildoptions "OCCA_DIR='${OCCA2_BUILD_PREFIX}'")
+  set (occa2_env "OCCA_DIR='${OCCA2_BUILD_PREFIX}'")
+  set (occa2_buildoptions "")
   set (occa2_cxx "${CMAKE_CXX_COMPILER}")
   set (occa2_cxxflags "")
 
@@ -132,8 +133,8 @@ macro(occa2_build)
   if ("${PROJECT_BINARY_DIR}" STREQUAL "${PROJECT_SOURCE_DIR}")
     add_custom_command(OUTPUT ${OCCA2_BUNDLED_LIBRARIES}
       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/third_party/OCCA2
-      COMMAND $(MAKE) ${occa2_buildoptions} clean
-      COMMAND $(MAKE) ${occa2_buildoptions}
+      COMMAND env ${occa2_env} $(MAKE) ${occa2_buildoptions} clean
+      COMMAND env ${occa2_env} $(MAKE) ${occa2_buildoptions}
       COMMAND sh ${PROJECT_SOURCE_DIR}/cmake/install_occa.sh ${CMAKE_INSTALL_PREFIX}
       DEPENDS ${CMAKE_SOURCE_DIR}/CMakeCache.txt
               ${PROJECT_SOURCE_DIR}/cmake/install_occa.sh
@@ -145,8 +146,8 @@ macro(occa2_build)
     add_custom_command(OUTPUT ${OCCA2_BUNDLED_LIBRARIES}
       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/third_party/OCCA2
       COMMAND cp -r ${PROJECT_SOURCE_DIR}/third_party/OCCA2/* .
-      COMMAND $(MAKE) ${occa2_buildoptions} clean
-      COMMAND $(MAKE) ${occa2_buildoptions}
+      COMMAND env ${occa2_env} $(MAKE) ${occa2_buildoptions} clean
+      COMMAND env ${occa2_env} $(MAKE) ${occa2_buildoptions}
       COMMAND sh ${PROJECT_SOURCE_DIR}/cmake/install_occa.sh ${CMAKE_INSTALL_PREFIX}
       DEPENDS ${PROJECT_BINARY_DIR}/CMakeCache.txt ${PROJECT_BINARY_DIR}/third_party/OCCA2
               ${PROJECT_SOURCE_DIR}/cmake/install_occa.sh

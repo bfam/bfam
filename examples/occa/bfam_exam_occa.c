@@ -25,8 +25,8 @@ int main(int argc, char **argv)
   float *ab = (float*) malloc(entries*sizeof(float));
 
   for(i = 0; i < entries; ++i){
-    a[i]  = i;
-    b[i]  = 1 - i;
+    a[i]  = (float)i;
+    b[i]  = (float)(1 - i);
     ab[i] = 0;
   }
 
@@ -35,13 +35,13 @@ int main(int argc, char **argv)
   occaMemory o_a, o_b, o_ab;
 
   //---[ Device setup with string flags ]-------------------
-  // const char *Serial_Info   = "mode = Serial";
-  const char *OpenMP_Info   = "mode = OpenMP  , schedule = compact, chunk = 10";
-  // const char *OpenCL_Info   = "mode = OpenCL  , platformID = 0, deviceID = 0";
-  // const char *CUDA_Info     = "mode = CUDA    , deviceID = 0";
-  // const char *COI_Info      = "mode = COI     , deviceID = 0";
+  // const char *deviceInfo   = "mode = Serial";
+  const char *deviceInfo   = "mode = OpenMP  , schedule = compact, chunk = 10";
+  // const char *deviceInfo   = "mode = OpenCL  , platformID = 0, deviceID = 0";
+  // const char *deviceInfo   = "mode = CUDA    , deviceID = 0";
+  // const char *deviceInfo   = "mode = COI     , deviceID = 0";
 
-  device = occaGetDevice(OpenMP_Info);
+  device = occaCreateDevice(deviceInfo);
 
   o_a  = occaDeviceMalloc(device, entries*sizeof(float), NULL);
   o_b  = occaDeviceMalloc(device, entries*sizeof(float), NULL);
@@ -50,9 +50,9 @@ int main(int argc, char **argv)
   occaKernelInfo info = occaCreateKernelInfo();
   occaKernelInfoAddDefine(info, "DIMENSION", occaInt(10));
 
-  addVectors = occaBuildKernelFromSource(device,
-                                         "addVectors.occa", "addVectors",
-                                         info);
+  addVectors = occaDeviceBuildKernel(device,
+                                     "addVectors.occa", "addVectors",
+                                     info);
 
   int dims = 1;
   occaDim itemsPerGroup, groups;
