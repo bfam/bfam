@@ -263,6 +263,10 @@ TM occaAtomicCAS(TM *ptr, const int comp, const TM &update){
 #define occaFastFabs   fabs
 #define occaNativeFabs fabs
 
+#define occaHypot       hypot
+#define occaFastHypot   hypot
+#define occaNativeHypot hypot
+
 #define occaSqrt       sqrt
 #define occaFastSqrt   sqrt
 #define occaNativeSqrt sqrt

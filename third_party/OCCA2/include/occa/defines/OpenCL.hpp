@@ -183,6 +183,10 @@
 #define occaFastFabs   fabs
 #define occaNativeFabs fabs
 
+#define occaHypot       hypot
+#define occaFastHypot   hypot
+#define occaNativeHypot hypot
+
 #define occaSqrt       sqrt
 #define occaFastSqrt   half_sqrt
 #define occaNativeSqrt native_sqrt

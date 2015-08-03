@@ -160,6 +160,13 @@ __device__ inline double occaCuda_fabs(const double x){ return fabs(x);  }
 #define occaFastFabs   occaCuda_fabs
 #define occaNativeFabs occaCuda_fabs
 
+__device__ inline float  occaCuda_hypot(const float x){      return hypot(x);      }
+__device__ inline double occaCuda_hypot(const double x){     return hypot(x);       }
+
+#define occaHypot       occaCuda_hypot
+#define occaFastHypot   occaHypot
+#define occaNativeHypot occaHypot
+
 __device__ inline float  occaCuda_sqrt(const float x){      return sqrtf(x);      }
 __device__ inline double occaCuda_sqrt(const double x){     return sqrt(x);       }
 __device__ inline float  occaCuda_fastSqrt(const float x){  return __fsqrt_rn(x); }
