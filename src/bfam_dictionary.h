@@ -1,7 +1,7 @@
 #ifndef BFAM_DICTIONARY_H
 #define BFAM_DICTIONARY_H
 
-#define BFAM_PTR_STR_LEN 128
+#define BFAM_PTR_STR_LEN BFAM_BUFSIZ
 
 #include <bfam_base.h>
 #include <bfam_critbit.h>
