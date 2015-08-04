@@ -104,7 +104,7 @@ int test_1d()
   for (int d = 0; d < 3; d++)
   {
     bfam_subdomain_dgx_t *d1 =
-        bfam_subdomain_dgx_new_1(0, -1, "1d", 2, 1, NULL, EToE, EToF, 1);
+        bfam_subdomain_dgx_new_1(0, -1, "1d", 2, 1, NULL, EToE, EToF, NULL, 1);
     bfam_subdomain_dgx_init_grid_1(d1, d + 1, Vi, EToV, NULL, NULL, 1);
     for (int v = 0; v < d + 1; v++)
     {
@@ -251,7 +251,7 @@ int test_2d()
   for (int d = 1; d < 3; d++)
   {
     bfam_subdomain_dgx_t *d2 =
-        bfam_subdomain_dgx_new_2(0, -1, "2d", N, K, NULL, EToE, EToF, 2);
+        bfam_subdomain_dgx_new_2(0, -1, "2d", N, K, NULL, EToE, EToF, NULL, 2);
     bfam_subdomain_dgx_init_grid_2(d2, d + 1, Vi, EToV, NULL, NULL, 2);
     for (int v = 0; v < d + 1; v++)
     {
@@ -765,7 +765,7 @@ int test_3d()
   for (int d = 2; d < 4; d++)
   {
     bfam_subdomain_dgx_t *d3 =
-        bfam_subdomain_dgx_new_3(0, -1, "3d", N, K, NULL, EToE, EToF, 3);
+        bfam_subdomain_dgx_new_3(0, -1, "3d", N, K, NULL, EToE, EToF, NULL, 3);
     bfam_subdomain_dgx_init_grid_3(d3, d + 1, Vi, EToV, NULL, NULL, 3);
     for (int v = 0; v < d + 1; v++)
     {

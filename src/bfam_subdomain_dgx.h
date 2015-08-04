@@ -159,6 +159,7 @@ typedef struct bfam_subdomain_dgx_point_interp
  * \param [in] EToF   Mapping such that \c EToF[k*4+f] gives the
  *                    face+orientation number connected to face \c f of element
  *                    \c k.
+ * \param [in]        dgx_ops   dictionary of dgx operators (derivative, etc.)
  * \param [in] dim    number of (computational) dimensions
  *
  * \return Initialized dgx subdomain
@@ -169,7 +170,8 @@ bfam_subdomain_dgx_t *
 bfam_subdomain_dgx_new_(const bfam_locidx_t id, const bfam_locidx_t uid,
                         const char *name, const int N, const bfam_locidx_t K,
                         const bfam_locidx_t *EToQ, const bfam_locidx_t *EToE,
-                        const int8_t *EToF, const int inDIM);
+                        const int8_t *EToF, bfam_dictionary_t *dgx_ops,
+                        const int inDIM);
 
 /** initializes a dgx subdomain grid
  *
@@ -206,6 +208,7 @@ void bfam_subdomain_dgx_init_grid_(
  * \param [in]     EToF      Mapping such that \c EToF[k*4+f] gives the
  *                           face+orientation number connected to face \c f of
  *                           element \c k.
+ * \param [in]     dgx_ops   dictionary of dgx operators (derivative, etc.)
  * \param [in]     dim       number of (computational) dimensions
  */
 void bfam_subdomain_dgx_init_(bfam_subdomain_dgx_t *subdomain,
@@ -213,7 +216,7 @@ void bfam_subdomain_dgx_init_(bfam_subdomain_dgx_t *subdomain,
                               const char *name, const int N,
                               const bfam_locidx_t K, const bfam_locidx_t *EToQ,
                               const bfam_locidx_t *EToE, const int8_t *EToF,
-                              const int inDIM);
+                              bfam_dictionary_t *dgx_ops, const int inDIM);
 
 /** create a dgx glue subdomain.
  *
@@ -233,7 +236,8 @@ void bfam_subdomain_dgx_init_(bfam_subdomain_dgx_t *subdomain,
  * \param [in]     ktok_m      map: element number -> minus side element number
  * \param [in]     K           number of elements in the glue grid
  * \param [in,out] mapping     face mapping (might get sorted)
- * \param [in]     inDIM        dimension of the subdomain
+ * \param [in]     dgx_ops     dictionary of dgx operators (derivative, etc.)
+ * \param [in]     inDIM       dimension of the subdomain
  *
  * \return Initialized dg quad glue subdomain
  *
@@ -244,7 +248,8 @@ bfam_subdomain_dgx_t *bfam_subdomain_dgx_glue_new_(
     const bfam_locidx_t rank_p, const bfam_locidx_t id_m,
     const bfam_locidx_t id_p, bfam_subdomain_dgx_t *sub_m,
     bfam_locidx_t *ktok_m, const bfam_locidx_t K,
-    bfam_subdomain_face_map_entry_t *mapping, const int inDIM);
+    bfam_subdomain_face_map_entry_t *mapping, bfam_dictionary_t *dgx_ops,
+    const int inDIM);
 
 /** initializes a dg glue subdomain.
  *
@@ -265,6 +270,7 @@ bfam_subdomain_dgx_t *bfam_subdomain_dgx_glue_new_(
  * \param [in]     ktok_m       map: element number -> minus side element number
  * \param [in]     K            number of elements in the glue grid
  * \param [in,out] mapping      face mapping (might get sorted)
+ * \param [in]     dgx_ops      dictionary of dgx operators (derivative, etc.)
  * \param [in]     inDIM        dimension of the subdomain
  *
  */
@@ -274,7 +280,8 @@ void bfam_subdomain_dgx_glue_init_(
     const int N_g, const bfam_locidx_t rank_m, const bfam_locidx_t rank_p,
     const bfam_locidx_t id_m, const bfam_locidx_t id_p,
     bfam_subdomain_dgx_t *sub_m, bfam_locidx_t *ktok_m, const bfam_locidx_t K,
-    bfam_subdomain_face_map_entry_t *mapping, const int inDIM);
+    bfam_subdomain_face_map_entry_t *mapping, bfam_dictionary_t *dgx_ops,
+    const int inDIM);
 
 /** init a dgx subdomain interpolation point
  *
@@ -381,12 +388,14 @@ int bfam_subdomain_dgx_clear_interpolation_dict_(const char *key, void *val,
   bfam_subdomain_dgx_t *bfam_subdomain_dgx_new_##dg_dim(                       \
       const bfam_locidx_t id, const bfam_locidx_t uid, const char *name,       \
       const int N, const bfam_locidx_t K, const bfam_locidx_t *EToQ,           \
-      const bfam_locidx_t *EToE, const int8_t *EToF, const int dim);           \
+      const bfam_locidx_t *EToE, const int8_t *EToF,                           \
+      bfam_dictionary_t *dgx_ops, const int inDIM);                            \
   void bfam_subdomain_dgx_init_##dg_dim(                                       \
       bfam_subdomain_dgx_t *subdomain, const bfam_locidx_t id,                 \
       const bfam_locidx_t uid, const char *name, const int N,                  \
       const bfam_locidx_t K, const bfam_locidx_t *EToQ,                        \
-      const bfam_locidx_t *EToE, const int8_t *EToF, const int inDIM);         \
+      const bfam_locidx_t *EToE, const int8_t *EToF,                           \
+      bfam_dictionary_t *dgx_ops, const int inDIM);                            \
   void bfam_subdomain_dgx_free_##dg_dim(bfam_subdomain_t *subdomain);          \
   bfam_subdomain_dgx_t *bfam_subdomain_dgx_glue_new_##dg_dim(                  \
       const bfam_locidx_t id, const bfam_locidx_t uid, const char *name,       \
@@ -394,7 +403,8 @@ int bfam_subdomain_dgx_clear_interpolation_dict_(const char *key, void *val,
       const bfam_locidx_t rank_p, const bfam_locidx_t id_m,                    \
       const bfam_locidx_t id_p, bfam_subdomain_dgx_t *sub_m,                   \
       bfam_locidx_t *ktok_m, const bfam_locidx_t K,                            \
-      bfam_subdomain_face_map_entry_t *mapping, const int inDIM);              \
+      bfam_subdomain_face_map_entry_t *mapping, bfam_dictionary_t *dgx_ops,    \
+      const int inDIM);                                                        \
   void bfam_subdomain_dgx_glue_init_##dg_dim(                                  \
       bfam_subdomain_dgx_t *subdomain, const bfam_locidx_t id,                 \
       const bfam_locidx_t uid, const char *name, const int N_m, const int N_p, \
@@ -402,7 +412,7 @@ int bfam_subdomain_dgx_clear_interpolation_dict_(const char *key, void *val,
       const bfam_locidx_t id_m, const bfam_locidx_t id_p,                      \
       bfam_subdomain_dgx_t *sub_m, bfam_locidx_t *ktok_m,                      \
       const bfam_locidx_t K, bfam_subdomain_face_map_entry_t *mapping,         \
-      const int inDIM);                                                        \
+      bfam_dictionary_t *dgx_ops, const int inDIM);                            \
   void bfam_subdomain_dgx_add_rates_glue_p_##dg_dim(                           \
       bfam_subdomain_dgx_t *sub, const char *field_prefix_lhs,                 \
       const char *field_prefix_rhs, const char *rate_prefix,                   \

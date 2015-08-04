@@ -26,6 +26,7 @@ typedef struct bfam_domain_pxest_2
   bfam_dictionary_t *N2N;     /** Dictionary of projection operators */
   p4est_connectivity_t *conn; /** connectivity for p4est */
   p4est_t *pxest;             /** forest of quadtrees */
+  bfam_dictionary_t *dgx_ops; /** Dictionary of dgx operators operators */
 } bfam_domain_pxest_t_2;
 
 /* Domain managed by pxest based functions */

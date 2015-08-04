@@ -2717,12 +2717,10 @@ static void bfam_subdomain_dgx_null_all_values(bfam_subdomain_dgx_t *sub)
   sub->EToQ = NULL;
 }
 
-static void bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
-                                            const bfam_locidx_t id,
-                                            const bfam_locidx_t uid,
-                                            const char *name, const int N,
-                                            const bfam_locidx_t K,
-                                            const int inDIM)
+static void bfam_subdomain_dgx_generic_init(
+    bfam_subdomain_dgx_t *subdomain, const bfam_locidx_t id,
+    const bfam_locidx_t uid, const char *name, const int N,
+    const bfam_locidx_t K, bfam_dictionary_t *dgx_ops, const int inDIM)
 {
 #ifdef USE_GENERIC_DGX_DIMENSION
   BFAM_WARNING("Using generic bfam_subdomain_dgx_init");
@@ -2776,6 +2774,10 @@ static void bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
 
   if (DIM > 0)
   {
+    /*
+     * TODO: query dictionary to see if we need to create this, otherwise used
+     * stored values
+     */
     const int Nrp = N + 1;
     bfam_long_real_t *lr, *lw;
     lr = bfam_malloc_aligned(Nrp * sizeof(bfam_long_real_t));
@@ -2848,13 +2850,14 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_, BFAM_DGX_DIMENSION)(
     bfam_subdomain_dgx_t *subdomain, const bfam_locidx_t id,
     const bfam_locidx_t uid, const char *name, const int N,
     const bfam_locidx_t K, const bfam_locidx_t *EToQ, const bfam_locidx_t *EToE,
-    const int8_t *EToF, const int inDIM)
+    const int8_t *EToF, bfam_dictionary_t *dgx_ops, const int inDIM)
 {
 #ifdef USE_GENERIC_DGX_DIMENSION
   BFAM_WARNING("Using generic bfam_subdomain_dgx_init");
   const int DIM = inDIM;
 #endif
-  bfam_subdomain_dgx_generic_init(subdomain, id, uid, name, N, K, inDIM);
+  bfam_subdomain_dgx_generic_init(subdomain, id, uid, name, N, K, dgx_ops,
+                                  inDIM);
 
   const int *Ng = subdomain->Ng;
   const int *Ngp = subdomain->Ngp;
@@ -2885,7 +2888,8 @@ bfam_subdomain_dgx_t *BFAM_APPEND_EXPAND(bfam_subdomain_dgx_new_,
                                          BFAM_DGX_DIMENSION)(
     const bfam_locidx_t id, const bfam_locidx_t uid, const char *name,
     const int N, const bfam_locidx_t K, const bfam_locidx_t *EToQ,
-    const bfam_locidx_t *EToE, const int8_t *EToF, const int inDIM)
+    const bfam_locidx_t *EToE, const int8_t *EToF, bfam_dictionary_t *dgx_ops,
+    const int inDIM)
 {
 #ifdef USE_GENERIC_DGX_DIMENSION
   BFAM_WARNING("Using generic bfam_subdomain_dgx_new");
@@ -2897,7 +2901,7 @@ bfam_subdomain_dgx_t *BFAM_APPEND_EXPAND(bfam_subdomain_dgx_new_,
       bfam_malloc(sizeof(bfam_subdomain_dgx_t));
 
   BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_, BFAM_DGX_DIMENSION)(
-      newSubdomain, id, uid, name, N, K, EToQ, EToE, EToF, DIM);
+      newSubdomain, id, uid, name, N, K, EToQ, EToE, EToF, dgx_ops, DIM);
   return newSubdomain;
 }
 
@@ -3051,7 +3055,8 @@ bfam_subdomain_dgx_t *BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_new_,
     const bfam_locidx_t rank_p, const bfam_locidx_t id_m,
     const bfam_locidx_t id_p, bfam_subdomain_dgx_t *sub_m,
     bfam_locidx_t *ktok_m, const bfam_locidx_t K,
-    bfam_subdomain_face_map_entry_t *mapping, const int inDIM)
+    bfam_subdomain_face_map_entry_t *mapping, bfam_dictionary_t *dgx_ops,
+    const int inDIM)
 {
 #ifdef USE_GENERIC_DGX_DIMENSION
   BFAM_WARNING("Using generic bfam_subdomain_dgx_glue_new");
@@ -3066,7 +3071,7 @@ bfam_subdomain_dgx_t *BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_new_,
 
   BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
       newSubdomain, id, uid, name, N_m, N_p, N_g, rank_m, rank_p, id_m, id_p,
-      sub_m, ktok_m, K, mapping, inDIM);
+      sub_m, ktok_m, K, mapping, dgx_ops, inDIM);
   return newSubdomain;
 }
 
@@ -3153,7 +3158,8 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
     const int N_g, const bfam_locidx_t rank_m, const bfam_locidx_t rank_p,
     const bfam_locidx_t id_m, const bfam_locidx_t id_p,
     bfam_subdomain_dgx_t *sub_m, bfam_locidx_t *ktok_m, const bfam_locidx_t K,
-    bfam_subdomain_face_map_entry_t *mapping, const int inDIM)
+    bfam_subdomain_face_map_entry_t *mapping, bfam_dictionary_t *dgx_ops,
+    const int inDIM)
 {
 #ifdef USE_GENERIC_DGX_DIMENSION
   BFAM_WARNING("Using generic bfam_subdomain_dgx_glue_init");
@@ -3162,7 +3168,8 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
   BFAM_ASSERT(DIM == inDIM);
   BFAM_ASSERT(DIM > 0);
 
-  bfam_subdomain_dgx_generic_init(subdomain, id, uid, name, N_g, K, inDIM);
+  bfam_subdomain_dgx_generic_init(subdomain, id, uid, name, N_g, K, dgx_ops,
+                                  inDIM);
 
 #ifdef BFAM_DEBUG
   {

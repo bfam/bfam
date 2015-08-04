@@ -124,6 +124,15 @@ void bfam_domain_pxest_init_ext(bfam_domain_pxest_t *domain, MPI_Comm domComm,
                     bfam_domain_pxest_init_callback, &default_user_data);
   domain->N2N = bfam_malloc(sizeof(bfam_dictionary_t));
   bfam_dictionary_init(domain->N2N);
+
+  domain->dgx_ops = bfam_malloc(sizeof(bfam_dictionary_t));
+  bfam_dictionary_init(domain->dgx_ops);
+}
+
+static int dgx_ops_clear(const char *key, void *val, void *args)
+{
+  bfam_free(val);
+  return 1;
 }
 
 void bfam_domain_pxest_free(bfam_domain_pxest_t *domain)
@@ -144,6 +153,14 @@ void bfam_domain_pxest_free(bfam_domain_pxest_t *domain)
     bfam_free(domain->N2N);
   }
   domain->N2N = NULL;
+
+  if (domain->dgx_ops)
+  {
+    bfam_dictionary_allprefixed_ptr(domain->dgx_ops, "", dgx_ops_clear, NULL);
+    bfam_dictionary_clear(domain->dgx_ops);
+    bfam_free(domain->dgx_ops);
+  }
+  domain->dgx_ops = NULL;
 
   bfam_domain_free(&domain->base);
 }
@@ -1350,8 +1367,9 @@ void bfam_domain_pxest_split_dgx_subdomains(
       bfam_malloc(numSubdomains * sizeof(bfam_subdomain_dgx_t **));
   for (bfam_locidx_t id = 0; id < numSubdomains; ++id)
   {
-    subdomains[id] = bfam_subdomain_dgx_new(id, -1, name[id], N[id], subK[id],
-                                            EToQ[id], EToE[id], EToF[id], DIM);
+    subdomains[id] =
+        bfam_subdomain_dgx_new(id, -1, name[id], N[id], subK[id], EToQ[id],
+                               EToE[id], EToF[id], domain->dgx_ops, DIM);
 
     bfam_subdomain_add_tag((bfam_subdomain_t *)subdomains[id], "_volume");
     char root_id_tag[BFAM_BUFSIZ];
@@ -1427,7 +1445,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
       bfam_subdomain_dgx_t *glue = bfam_subdomain_dgx_glue_new(
           id, glueid, glueName, N[id_m], N[id_p], N_g, rank_m, rank_p,
           sign_p * (id_m + 1), sign_p * (id_p + 1), subdomains[id_m], ktosubk,
-          Kglue, ifmapping + ifk, DIM - 1);
+          Kglue, ifmapping + ifk, domain->dgx_ops, DIM - 1);
 
       bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue");
       bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue_local");
@@ -1490,7 +1508,8 @@ void bfam_domain_pxest_split_dgx_subdomains(
       N_g = glue_order(N[id_m], N[id_p], glueid, go_user_args);
     bfam_subdomain_dgx_t *glue = bfam_subdomain_dgx_glue_new(
         id, glueid, glueName, N[id_m], N[id_p], N_g, rank_m, rank_p, id_m + 1,
-        id_p + 1, subdomains[id_m], ktosubk, Kglue, bfmapping + bfk, DIM - 1);
+        id_p + 1, subdomains[id_m], ktosubk, Kglue, bfmapping + bfk,
+        domain->dgx_ops, DIM - 1);
 
     bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue");
     bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue_boundary");
@@ -1549,7 +1568,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
     bfam_subdomain_dgx_t *glue = bfam_subdomain_dgx_glue_new(
         id, glueid, glueName, N[id_m], ghostN[gid_p], N_g, rank_m, rank_p,
         id_m + 1, id_p + 1, subdomains[id_m], ktosubk, Kglue, pfmapping + pfk,
-        DIM - 1);
+        domain->dgx_ops, DIM - 1);
 
     bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue");
     bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue_parallel");
@@ -1718,6 +1737,7 @@ bfam_domain_pxest_base_copy(bfam_domain_pxest_t *domain)
   new_domain->conn = NULL;
   new_domain->pxest = NULL;
   new_domain->N2N = NULL;
+  new_domain->dgx_ops = NULL;
 
   return new_domain;
 }

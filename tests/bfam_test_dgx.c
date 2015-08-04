@@ -3,7 +3,7 @@
 int test_0d()
 {
   bfam_subdomain_dgx_t *d0 =
-      bfam_subdomain_dgx_new_0(1, -1, "dim0", 0, 1, NULL, NULL, NULL, 0);
+      bfam_subdomain_dgx_new_0(1, -1, "dim0", 0, 1, NULL, NULL, NULL, NULL, 0);
   bfam_subdomain_dgx_init_grid_0(d0, 1, NULL, NULL, NULL, NULL, 0);
 
   d0->base.free((bfam_subdomain_t *)d0);
@@ -28,7 +28,7 @@ int test_1d()
     bfam_domain_init(&domain, MPI_COMM_WORLD);
 
     bfam_subdomain_dgx_t *d1 =
-        bfam_subdomain_dgx_new_1(0, -1, "1d", 8, 2, NULL, EToE, EToF, 1);
+        bfam_subdomain_dgx_new_1(0, -1, "1d", 8, 2, NULL, EToE, EToF, NULL, 1);
     bfam_subdomain_dgx_init_grid_1(d1, 3, Vi, EToV, NULL, NULL, 0);
 
     bfam_domain_add_subdomain(&domain, (bfam_subdomain_t *)d1);
@@ -70,7 +70,7 @@ int test_2d()
     bfam_domain_init(&domain, MPI_COMM_WORLD);
 
     bfam_subdomain_dgx_t *d2 =
-        bfam_subdomain_dgx_new_2(0, -1, "2d", N, K, NULL, EToE, EToF, 2);
+        bfam_subdomain_dgx_new_2(0, -1, "2d", N, K, NULL, EToE, EToF, NULL, 2);
     bfam_subdomain_dgx_init_grid_2(d2, 3, Vi, EToV, NULL, NULL, 0);
 
     bfam_domain_add_subdomain(&domain, (bfam_subdomain_t *)d2);
@@ -125,7 +125,7 @@ int test_3d()
   bfam_domain_init(&domain, MPI_COMM_WORLD);
 
   bfam_subdomain_dgx_t *d3 =
-      bfam_subdomain_dgx_new_3(0, -1, "3d", N, K, NULL, EToE, EToF, 3);
+      bfam_subdomain_dgx_new_3(0, -1, "3d", N, K, NULL, EToE, EToF, NULL, 3);
   bfam_subdomain_dgx_init_grid_3(d3, 3, Vi, EToV, NULL, NULL, 0);
 
   bfam_domain_add_subdomain(&domain, (bfam_subdomain_t *)d3);
