@@ -12,6 +12,9 @@
 #define DIM (BFAM_DGX_DIMENSION)
 #endif
 
+#define bfam_subdomain_dgx_get_interpolator                                    \
+  BFAM_APPEND_EXPAND(bfam_subdomain_dgx_get_interpolator_, BFAM_DGX_DIMENSION)
+
 #define BFAM_LOAD_FIELD_RESTRICT_ALIGNED(field, prefix, base, dictionary)      \
   bfam_real_t *restrict field;                                                 \
   {                                                                            \
@@ -31,27 +34,6 @@
   }                                                                            \
   BFAM_ASSUME_ALIGNED(field, 32);
 
-/*
- * -+-            -+-
- *  |  Coasen ->   |
- * -+-             |
- *  |  <- Refine   |
- * -+-            -+-
- */
-typedef struct
-{
-  int N_src;
-  int N_dst;
-  bfam_locidx_t num_prj;
-  bfam_real_t **prj; /* array of projection operators;
-                      * no refinement (NULL is no change in order)
-                      * coarsen from bottom
-                      * coarsen from top
-                      * refine  to   bottom
-                      * refine  to   top
-                      */
-} interpolator_t;
-
 int BFAM_APPEND_EXPAND(bfam_subdomain_dgx_clear_dgx_ops_dict_,
                        BFAM_DGX_DIMENSION)(const char *key, void *val,
                                            void *args)
@@ -64,7 +46,8 @@ int BFAM_APPEND_EXPAND(bfam_subdomain_dgx_clear_interpolation_dict_,
                        BFAM_DGX_DIMENSION)(const char *key, void *val,
                                            void *args)
 {
-  interpolator_t *interp = (interpolator_t *)val;
+  bfam_subdomain_dgx_interpolator_t *interp =
+      (bfam_subdomain_dgx_interpolator_t *)val;
   for (bfam_locidx_t k = 0; k < interp->num_prj; k++)
     if (interp->prj[k])
       bfam_free_aligned(interp->prj[k]);
@@ -73,8 +56,8 @@ int BFAM_APPEND_EXPAND(bfam_subdomain_dgx_clear_interpolation_dict_,
   return 1;
 }
 
-static void init_interpolator(interpolator_t *interp_a2b, const int N_a,
-                              const int N_b)
+static void init_interpolator(bfam_subdomain_dgx_interpolator_t *interp_a2b,
+                              const int N_a, const int N_b)
 {
   const bfam_locidx_t num_prj = 5;
   const bfam_locidx_t Np_a = N_a + 1;
@@ -217,9 +200,9 @@ static void multiply_projections(const int N_b, const int N_a, const int N_g,
     P_a2b[n] = (bfam_real_t)l_P[n];
 }
 
-static void create_interpolators(interpolator_t *interp_a2b,
-                                 interpolator_t *interp_b2a, const int N_a,
-                                 const int N_b)
+static void create_interpolators(bfam_subdomain_dgx_interpolator_t *interp_a2b,
+                                 bfam_subdomain_dgx_interpolator_t *interp_b2a,
+                                 const int N_a, const int N_b)
 {
   /* Figure out the glue space and the number of points */
   const int N_g = BFAM_MAX(N_a, N_b);
@@ -302,6 +285,42 @@ static void create_interpolators(interpolator_t *interp_a2b,
   bfam_free_aligned(prj_g[4]);
 }
 
+bfam_subdomain_dgx_interpolator_t *
+    BFAM_APPEND_EXPAND(bfam_subdomain_dgx_get_interpolator_,
+                       BFAM_DGX_DIMENSION)(bfam_dictionary_t *N2N,
+                                           const int N_src, const int N_dst,
+                                           const int inDIM)
+{
+  char str[BFAM_BUFSIZ];
+  snprintf(str, BFAM_BUFSIZ, "%d_to_%d", N_src, N_dst);
+
+  bfam_subdomain_dgx_interpolator_t *interp =
+      (bfam_subdomain_dgx_interpolator_t *)bfam_dictionary_get_value_ptr(N2N,
+                                                                         str);
+  if (!interp)
+  {
+    interp = bfam_malloc(sizeof(bfam_subdomain_dgx_interpolator_t));
+    bfam_subdomain_dgx_interpolator_t *interp2 = NULL;
+    if (N_src != N_dst)
+      interp2 = bfam_malloc(sizeof(bfam_subdomain_dgx_interpolator_t));
+    create_interpolators(interp, interp2, N_src, N_dst);
+    BFAM_VERBOSE(">>>>>> Interpolator `%s' created", str);
+    int rval = bfam_dictionary_insert_ptr(N2N, str, interp);
+    BFAM_ASSERT(rval != 1);
+
+    if (interp2)
+    {
+      char str2[BFAM_BUFSIZ];
+      snprintf(str2, BFAM_BUFSIZ, "%d_to_%d", N_dst, N_src);
+      BFAM_VERBOSE(">>>>>> Interpolator `%s' created", str2);
+      rval = bfam_dictionary_insert_ptr(N2N, str2, interp2);
+      BFAM_ASSERT(rval != 1);
+    }
+  }
+
+  return interp;
+}
+
 void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_interpolate_data_,
                         BFAM_DGX_DIMENSION)(const bfam_real_t *src,
                                             int8_t c_src, int N_src,
@@ -319,33 +338,8 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_interpolate_data_,
   BFAM_VERBOSE("  src: c:%2d N:%02d p:%p", (int)c_src, (int)N_src, src);
   BFAM_VERBOSE("  dst: c:%2d N:%02d p:%p", (int)c_dst, (int)N_dst, dst);
 
-  char str[BFAM_BUFSIZ];
-  snprintf(str, BFAM_BUFSIZ, "%d_to_%d", N_src, N_dst);
-
-  interpolator_t *interp =
-      (interpolator_t *)bfam_dictionary_get_value_ptr(N2N, str);
-
-  if (!interp)
-  {
-    interp = bfam_malloc(sizeof(interpolator_t));
-    interpolator_t *interp2 = NULL;
-    if (N_src != N_dst)
-      interp2 = bfam_malloc(sizeof(interpolator_t));
-    create_interpolators(interp, interp2, N_src, N_dst);
-    BFAM_VERBOSE(">>>>>> Interpolator `%s' created", str);
-    int rval = bfam_dictionary_insert_ptr(N2N, str, interp);
-    BFAM_ASSERT(rval != 1);
-
-    if (interp2)
-    {
-      char str2[BFAM_BUFSIZ];
-      snprintf(str2, BFAM_BUFSIZ, "%d_to_%d", N_dst, N_src);
-      BFAM_VERBOSE(">>>>>> Interpolator `%s' created", str2);
-      rval = bfam_dictionary_insert_ptr(N2N, str2, interp2);
-      BFAM_ASSERT(rval != 1);
-    }
-  }
-
+  bfam_subdomain_dgx_interpolator_t *interp =
+      bfam_subdomain_dgx_get_interpolator(N2N, N_src, N_dst, inDIM);
   BFAM_ASSERT(interp);
 
   bfam_real_t *Px = NULL;
@@ -2978,21 +2972,12 @@ static void bfam_subdomain_dgx_free_glue(bfam_subdomain_dgx_glue_data_t *glue)
 {
   if (glue)
   {
-    if (glue->num_interp > 0)
-    {
-      for (int i = 0; i < glue->num_interp; i++)
-      {
-        if (glue->interpolation[i])
-          bfam_free_aligned(glue->interpolation[i]);
-        if (glue->massprojection[i])
-          bfam_free_aligned(glue->massprojection[i]);
-        if (glue->projection[i])
-          bfam_free_aligned(glue->projection[i]);
-      }
+    if (glue->interpolation)
       bfam_free_aligned(glue->interpolation);
+    if (glue->massprojection)
       bfam_free_aligned(glue->massprojection);
+    if (glue->projection)
       bfam_free_aligned(glue->projection);
-    }
     if (glue->exact_mass)
       bfam_free_aligned(glue->exact_mass);
 
@@ -3249,11 +3234,36 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
   bfam_subdomain_dgx_glue_generic_init(
       glue_p, rank_p, id_p, (bfam_locidx_t)(imaxabs(id_p) - 1), NULL, DIM);
 
+  const int num_interp = 3;
+  glue_m->num_interp = num_interp;
+
   const int N = subdomain->N;
   const int Nrp = N + 1;
+
+  bfam_subdomain_dgx_interpolator_t *proj_m2g =
+      bfam_subdomain_dgx_get_interpolator(N2N, N_m, N, DIM);
+  bfam_subdomain_dgx_interpolator_t *proj_g2m =
+      bfam_subdomain_dgx_get_interpolator(N2N, N_m, N, DIM);
+
+  BFAM_ASSERT(proj_m2g);
+  BFAM_ASSERT(proj_g2m);
+
+  glue_m->interpolation =
+      bfam_malloc_aligned(glue_m->num_interp * sizeof(bfam_real_t *));
+  glue_m->interpolation[0] = proj_m2g->prj[0];
+  glue_m->interpolation[1] = proj_m2g->prj[3];
+  glue_m->interpolation[2] = proj_m2g->prj[4];
+
+  glue_m->projection =
+      bfam_malloc_aligned(glue_m->num_interp * sizeof(bfam_real_t *));
+  glue_m->projection[0] = proj_g2m->prj[0];
+  glue_m->projection[1] = proj_g2m->prj[1];
+  glue_m->projection[2] = proj_g2m->prj[2];
+
+#if 0
   const int sub_m_Nrp = N_m + 1;
 
-  const int num_interp = 3;
+
   const bfam_long_real_t projection_scale[3] = {
       BFAM_LONG_REAL(1.0), BFAM_LONG_REAL(0.5), BFAM_LONG_REAL(0.5)};
 
@@ -3344,7 +3354,6 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
                      sub_m_Nrp, projection[i], sub_m_Nrp);
   }
 
-  glue_m->num_interp = num_interp;
   glue_m->interpolation =
       bfam_malloc_aligned(glue_m->num_interp * sizeof(bfam_real_t *));
 
@@ -3387,6 +3396,9 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
     for (int n = 0; n < Nrp * sub_m_Nrp; ++n)
       glue_m->projection[i][n] = (bfam_real_t)projection[i][n];
   }
+#endif
+
+  /* STOP */
 
   glue_p->same_order = (N_p == N) && (N_m == N);
   glue_p->EToEp = bfam_malloc_aligned(K * sizeof(bfam_locidx_t));
@@ -3472,26 +3484,26 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
 
   for (int i = 0; i < num_interp; ++i)
   {
-    bfam_free_aligned(lr[i]);
-    bfam_free_aligned(interpolation[i]);
-    bfam_free_aligned(massprojection[i]);
-    bfam_free_aligned(projection[i]);
+    // bfam_free_aligned(lr[i]);
+    // bfam_free_aligned(interpolation[i]);
+    // bfam_free_aligned(massprojection[i]);
+    // bfam_free_aligned(projection[i]);
   }
 
-  bfam_free_aligned(lV);
-  bfam_free_aligned(mass);
+  // bfam_free_aligned(lV);
+  // bfam_free_aligned(mass);
 
-  bfam_free_aligned(lr);
-  bfam_free_aligned(lw);
+  // bfam_free_aligned(lr);
+  // bfam_free_aligned(lw);
 
-  bfam_free_aligned(interpolation);
-  bfam_free_aligned(massprojection);
-  bfam_free_aligned(projection);
+  // bfam_free_aligned(interpolation);
+  // bfam_free_aligned(massprojection);
+  // bfam_free_aligned(projection);
 
-  bfam_free_aligned(sub_m_lr);
-  bfam_free_aligned(sub_m_lw);
-  bfam_free_aligned(sub_m_V);
-  bfam_free_aligned(Vt_MP);
+  // bfam_free_aligned(sub_m_lr);
+  // bfam_free_aligned(sub_m_lw);
+  // bfam_free_aligned(sub_m_V);
+  // bfam_free_aligned(Vt_MP);
 }
 
 static void bfam_subdomain_dgx_geo(

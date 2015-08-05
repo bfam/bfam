@@ -37,6 +37,27 @@
 
 struct bfam_subdomain_dgx;
 
+/*
+ * -+-            -+-
+ *  |  Coasen ->   |
+ * -+-             |
+ *  |  <- Refine   |
+ * -+-            -+-
+ */
+typedef struct
+{
+  int N_src;
+  int N_dst;
+  bfam_locidx_t num_prj;
+  bfam_real_t **prj; /* array of projection operators;
+                      * no refinement (NULL is no change in order)
+                      * coarsen from bottom
+                      * coarsen from top
+                      * refine  to   bottom
+                      * refine  to   top
+                      */
+} bfam_subdomain_dgx_interpolator_t;
+
 typedef struct bfam_subdomain_dgx_glue_data
 {
   bfam_subdomain_glue_data_t base;
