@@ -99,16 +99,18 @@ typedef struct bfam_subdomain_dgx
   // JK int              Nh;         /* Number of interpolations to glue */
   // JK int              No;         /* Number of orientations */
 
-  bfam_real_t *r;  /* 1D LGL Nodal Point in [-1,1] */
-  bfam_real_t *w;  /* 1D LGL Weights */
-  bfam_real_t *wi; /* inverse of 1D LGL Weights */
-
-  bfam_real_t *Dr; /* 1D LGL differentiation matrix */
-
+  /* These pointers are NOT `owned' by the subdomain, and thus not freed in
+   * cleanup
+   */
+  bfam_real_t *r;        /* 1D LGL Nodal Point in [-1,1] */
+  bfam_real_t *w;        /* 1D LGL Weights */
+  bfam_real_t *wi;       /* inverse of 1D LGL Weights */
+  bfam_real_t *Dr;       /* 1D LGL differentiation matrix */
   bfam_long_real_t *lr;  /* long format 1D LGL Nodal Point in [-1,1] */
   bfam_long_real_t *lw;  /* long format 1D LGL Nodal weights in [-1,1] */
   bfam_long_real_t *lDr; /* long format 1D LGL differentiation matrix */
   bfam_long_real_t *lV;  /* 1D Vandermonde matrix for this N */
+  /* end of un-owned pointers */
 
   bfam_locidx_t K; /* Number of elements in the subdomain */
 

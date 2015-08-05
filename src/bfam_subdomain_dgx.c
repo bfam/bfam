@@ -3034,34 +3034,6 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,
 
   bfam_subdomain_free(thisSubdomain);
 
-#if 0 /* These are now stared in a dictionary and thus not owned */
-  if (sub->Dr)
-    bfam_free_aligned(sub->Dr);
-  sub->Dr = NULL;
-  if (sub->lDr)
-    bfam_free_aligned(sub->lDr);
-  sub->lDr = NULL;
-  if (sub->lV)
-    bfam_free_aligned(sub->lV);
-  sub->lV = NULL;
-
-  if (sub->lr)
-    bfam_free_aligned(sub->lr);
-  sub->lr = NULL;
-  if (sub->lw)
-    bfam_free_aligned(sub->lw);
-  sub->lw = NULL;
-  if (sub->r)
-    bfam_free_aligned(sub->r);
-  sub->r = NULL;
-  if (sub->w)
-    bfam_free_aligned(sub->w);
-  sub->w = NULL;
-  if (sub->wi)
-    bfam_free_aligned(sub->wi);
-  sub->wi = NULL;
-#endif
-
   if (sub->gmask)
   {
     for (int g = 0; g < sub->numg; g++)
