@@ -1362,9 +1362,9 @@ void bfam_domain_pxest_split_dgx_subdomains(
       bfam_malloc(numSubdomains * sizeof(bfam_subdomain_dgx_t **));
   for (bfam_locidx_t id = 0; id < numSubdomains; ++id)
   {
-    subdomains[id] =
-        bfam_subdomain_dgx_new(id, -1, name[id], N[id], subK[id], EToQ[id],
-                               EToE[id], EToF[id], domain->dgx_ops, DIM);
+    subdomains[id] = bfam_subdomain_dgx_new(id, -1, name[id], N[id], subK[id],
+                                            EToQ[id], EToE[id], EToF[id],
+                                            domain->N2N, domain->dgx_ops, DIM);
 
     bfam_subdomain_add_tag((bfam_subdomain_t *)subdomains[id], "_volume");
     char root_id_tag[BFAM_BUFSIZ];
@@ -1440,7 +1440,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
       bfam_subdomain_dgx_t *glue = bfam_subdomain_dgx_glue_new(
           id, glueid, glueName, N[id_m], N[id_p], N_g, rank_m, rank_p,
           sign_p * (id_m + 1), sign_p * (id_p + 1), subdomains[id_m], ktosubk,
-          Kglue, ifmapping + ifk, domain->dgx_ops, DIM - 1);
+          Kglue, ifmapping + ifk, domain->N2N, domain->dgx_ops, DIM - 1);
 
       bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue");
       bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue_local");
@@ -1504,7 +1504,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
     bfam_subdomain_dgx_t *glue = bfam_subdomain_dgx_glue_new(
         id, glueid, glueName, N[id_m], N[id_p], N_g, rank_m, rank_p, id_m + 1,
         id_p + 1, subdomains[id_m], ktosubk, Kglue, bfmapping + bfk,
-        domain->dgx_ops, DIM - 1);
+        domain->N2N, domain->dgx_ops, DIM - 1);
 
     bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue");
     bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue_boundary");
@@ -1563,7 +1563,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
     bfam_subdomain_dgx_t *glue = bfam_subdomain_dgx_glue_new(
         id, glueid, glueName, N[id_m], ghostN[gid_p], N_g, rank_m, rank_p,
         id_m + 1, id_p + 1, subdomains[id_m], ktosubk, Kglue, pfmapping + pfk,
-        domain->dgx_ops, DIM - 1);
+        domain->N2N, domain->dgx_ops, DIM - 1);
 
     bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue");
     bfam_subdomain_add_tag((bfam_subdomain_t *)glue, "_glue_parallel");

@@ -2,15 +2,22 @@
 
 int test_0d()
 {
+  bfam_dictionary_t *N2N = bfam_malloc(sizeof(bfam_dictionary_t));
+  bfam_dictionary_init(N2N);
+
   bfam_dictionary_t *dgx_ops = bfam_malloc(sizeof(bfam_dictionary_t));
   bfam_dictionary_init(dgx_ops);
 
-  bfam_subdomain_dgx_t *d0 = bfam_subdomain_dgx_new_0(1, -1, "dim0", 0, 1, NULL,
-                                                      NULL, NULL, dgx_ops, 0);
+  bfam_subdomain_dgx_t *d0 = bfam_subdomain_dgx_new_0(
+      1, -1, "dim0", 0, 1, NULL, NULL, NULL, N2N, dgx_ops, 0);
   bfam_subdomain_dgx_init_grid_0(d0, 1, NULL, NULL, NULL, NULL, 0);
 
   d0->base.free((bfam_subdomain_t *)d0);
 
+  bfam_dictionary_allprefixed_ptr(N2N, "",
+                                  bfam_subdomain_dgx_clear_dgx_ops_dict_, NULL);
+  bfam_dictionary_clear(N2N);
+  bfam_free(N2N);
   bfam_dictionary_allprefixed_ptr(dgx_ops, "",
                                   bfam_subdomain_dgx_clear_dgx_ops_dict_, NULL);
   bfam_dictionary_clear(dgx_ops);
@@ -30,6 +37,9 @@ int test_1d()
   const bfam_locidx_t EToE[] = {0, 1, 0, 1};
   const int8_t EToF[] = {0, 0, 1, 1};
 
+  bfam_dictionary_t *N2N = bfam_malloc(sizeof(bfam_dictionary_t));
+  bfam_dictionary_init(N2N);
+
   bfam_dictionary_t *dgx_ops = bfam_malloc(sizeof(bfam_dictionary_t));
   bfam_dictionary_init(dgx_ops);
 
@@ -38,8 +48,8 @@ int test_1d()
     bfam_domain_t domain;
     bfam_domain_init(&domain, MPI_COMM_WORLD);
 
-    bfam_subdomain_dgx_t *d1 = bfam_subdomain_dgx_new_1(0, -1, "1d", 8, 2, NULL,
-                                                        EToE, EToF, dgx_ops, 1);
+    bfam_subdomain_dgx_t *d1 = bfam_subdomain_dgx_new_1(
+        0, -1, "1d", 8, 2, NULL, EToE, EToF, N2N, dgx_ops, 1);
     bfam_subdomain_dgx_init_grid_1(d1, 3, Vi, EToV, NULL, NULL, 0);
 
     bfam_domain_add_subdomain(&domain, (bfam_subdomain_t *)d1);
@@ -56,6 +66,11 @@ int test_1d()
 
     bfam_domain_free(&domain);
   }
+
+  bfam_dictionary_allprefixed_ptr(N2N, "",
+                                  bfam_subdomain_dgx_clear_dgx_ops_dict_, NULL);
+  bfam_dictionary_clear(N2N);
+  bfam_free(N2N);
 
   bfam_dictionary_allprefixed_ptr(dgx_ops, "",
                                   bfam_subdomain_dgx_clear_dgx_ops_dict_, NULL);
@@ -79,6 +94,9 @@ int test_2d()
 
   const int N = 8;
 
+  bfam_dictionary_t *N2N = bfam_malloc(sizeof(bfam_dictionary_t));
+  bfam_dictionary_init(N2N);
+
   bfam_dictionary_t *dgx_ops = bfam_malloc(sizeof(bfam_dictionary_t));
   bfam_dictionary_init(dgx_ops);
 
@@ -88,8 +106,8 @@ int test_2d()
     bfam_domain_t domain;
     bfam_domain_init(&domain, MPI_COMM_WORLD);
 
-    bfam_subdomain_dgx_t *d2 = bfam_subdomain_dgx_new_2(0, -1, "2d", N, K, NULL,
-                                                        EToE, EToF, dgx_ops, 2);
+    bfam_subdomain_dgx_t *d2 = bfam_subdomain_dgx_new_2(
+        0, -1, "2d", N, K, NULL, EToE, EToF, N2N, dgx_ops, 2);
     bfam_subdomain_dgx_init_grid_2(d2, 3, Vi, EToV, NULL, NULL, 0);
 
     bfam_domain_add_subdomain(&domain, (bfam_subdomain_t *)d2);
@@ -106,6 +124,11 @@ int test_2d()
 
     bfam_domain_free(&domain);
   }
+
+  bfam_dictionary_allprefixed_ptr(N2N, "",
+                                  bfam_subdomain_dgx_clear_dgx_ops_dict_, NULL);
+  bfam_dictionary_clear(N2N);
+  bfam_free(N2N);
 
   bfam_dictionary_allprefixed_ptr(dgx_ops, "",
                                   bfam_subdomain_dgx_clear_dgx_ops_dict_, NULL);
@@ -148,11 +171,14 @@ int test_3d()
   bfam_domain_t domain;
   bfam_domain_init(&domain, MPI_COMM_WORLD);
 
+  bfam_dictionary_t *N2N = bfam_malloc(sizeof(bfam_dictionary_t));
+  bfam_dictionary_init(N2N);
+
   bfam_dictionary_t *dgx_ops = bfam_malloc(sizeof(bfam_dictionary_t));
   bfam_dictionary_init(dgx_ops);
 
-  bfam_subdomain_dgx_t *d3 =
-      bfam_subdomain_dgx_new_3(0, -1, "3d", N, K, NULL, EToE, EToF, dgx_ops, 3);
+  bfam_subdomain_dgx_t *d3 = bfam_subdomain_dgx_new_3(
+      0, -1, "3d", N, K, NULL, EToE, EToF, N2N, dgx_ops, 3);
   bfam_subdomain_dgx_init_grid_3(d3, 3, Vi, EToV, NULL, NULL, 0);
 
   bfam_domain_add_subdomain(&domain, (bfam_subdomain_t *)d3);
@@ -163,6 +189,11 @@ int test_3d()
   const char *vc[] = {"_grid_x0", "_grid_x1", "_grid_x2", NULL};
   bfam_vtk_write_file(&domain, BFAM_DOMAIN_AND, volume, NULL, "d3", 0, ps, ve,
                       vc, 1, 0, 0);
+
+  bfam_dictionary_allprefixed_ptr(N2N, "",
+                                  bfam_subdomain_dgx_clear_dgx_ops_dict_, NULL);
+  bfam_dictionary_clear(N2N);
+  bfam_free(N2N);
 
   bfam_dictionary_allprefixed_ptr(dgx_ops, "",
                                   bfam_subdomain_dgx_clear_dgx_ops_dict_, NULL);

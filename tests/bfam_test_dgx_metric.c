@@ -101,13 +101,16 @@ int test_1d()
 
   /* first check 1d */
   int failures = 0;
+  bfam_dictionary_t *N2N = bfam_malloc(sizeof(bfam_dictionary_t));
+  bfam_dictionary_init(N2N);
+
   bfam_dictionary_t *dgx_ops = bfam_malloc(sizeof(bfam_dictionary_t));
   bfam_dictionary_init(dgx_ops);
 
   for (int d = 0; d < 3; d++)
   {
-    bfam_subdomain_dgx_t *d1 = bfam_subdomain_dgx_new_1(0, -1, "1d", 2, 1, NULL,
-                                                        EToE, EToF, dgx_ops, 1);
+    bfam_subdomain_dgx_t *d1 = bfam_subdomain_dgx_new_1(
+        0, -1, "1d", 2, 1, NULL, EToE, EToF, N2N, dgx_ops, 1);
     bfam_subdomain_dgx_init_grid_1(d1, d + 1, Vi, EToV, NULL, NULL, 1);
     for (int v = 0; v < d + 1; v++)
     {
@@ -135,6 +138,11 @@ int test_1d()
                                   bfam_subdomain_dgx_clear_dgx_ops_dict_, NULL);
   bfam_dictionary_clear(dgx_ops);
   bfam_free(dgx_ops);
+
+  bfam_dictionary_allprefixed_ptr(N2N, "",
+                                  bfam_subdomain_dgx_clear_dgx_ops_dict_, NULL);
+  bfam_dictionary_clear(N2N);
+  bfam_free(N2N);
   return 0;
 }
 
@@ -256,13 +264,16 @@ int test_2d()
                             -Jsy[0] / sJ[6], -Jsy[1] / sJ[7], -Jsy[2] / sJ[8],
                             Jsy[6] / sJ[9],  Jsy[7] / sJ[10], Jsy[8] / sJ[11]};
 
+  bfam_dictionary_t *N2N = bfam_malloc(sizeof(bfam_dictionary_t));
+  bfam_dictionary_init(N2N);
+
   bfam_dictionary_t *dgx_ops = bfam_malloc(sizeof(bfam_dictionary_t));
   bfam_dictionary_init(dgx_ops);
 
   for (int d = 1; d < 3; d++)
   {
-    bfam_subdomain_dgx_t *d2 = bfam_subdomain_dgx_new_2(0, -1, "2d", N, K, NULL,
-                                                        EToE, EToF, dgx_ops, 2);
+    bfam_subdomain_dgx_t *d2 = bfam_subdomain_dgx_new_2(
+        0, -1, "2d", N, K, NULL, EToE, EToF, N2N, dgx_ops, 2);
     bfam_subdomain_dgx_init_grid_2(d2, d + 1, Vi, EToV, NULL, NULL, 2);
     for (int v = 0; v < d + 1; v++)
     {
@@ -298,6 +309,11 @@ int test_2d()
     d2->base.free((bfam_subdomain_t *)d2);
     bfam_free(d2);
   }
+
+  bfam_dictionary_allprefixed_ptr(N2N, "",
+                                  bfam_subdomain_dgx_clear_dgx_ops_dict_, NULL);
+  bfam_dictionary_clear(N2N);
+  bfam_free(N2N);
 
   bfam_dictionary_allprefixed_ptr(dgx_ops, "",
                                   bfam_subdomain_dgx_clear_dgx_ops_dict_, NULL);
@@ -778,13 +794,16 @@ int test_3d()
       +Jtz[21] / sJ[48], +Jtz[22] / sJ[49], +Jtz[23] / sJ[50],
       +Jtz[24] / sJ[51], +Jtz[25] / sJ[52], +Jtz[26] / sJ[53]};
 
+  bfam_dictionary_t *N2N = bfam_malloc(sizeof(bfam_dictionary_t));
+  bfam_dictionary_init(N2N);
+
   bfam_dictionary_t *dgx_ops = bfam_malloc(sizeof(bfam_dictionary_t));
   bfam_dictionary_init(dgx_ops);
 
   for (int d = 2; d < 4; d++)
   {
-    bfam_subdomain_dgx_t *d3 = bfam_subdomain_dgx_new_3(0, -1, "3d", N, K, NULL,
-                                                        EToE, EToF, dgx_ops, 3);
+    bfam_subdomain_dgx_t *d3 = bfam_subdomain_dgx_new_3(
+        0, -1, "3d", N, K, NULL, EToE, EToF, N2N, dgx_ops, 3);
     bfam_subdomain_dgx_init_grid_3(d3, d + 1, Vi, EToV, NULL, NULL, 3);
     for (int v = 0; v < d + 1; v++)
     {
@@ -826,6 +845,11 @@ int test_3d()
     d3->base.free((bfam_subdomain_t *)d3);
     bfam_free(d3);
   }
+
+  bfam_dictionary_allprefixed_ptr(N2N, "",
+                                  bfam_subdomain_dgx_clear_dgx_ops_dict_, NULL);
+  bfam_dictionary_clear(N2N);
+  bfam_free(N2N);
 
   bfam_dictionary_allprefixed_ptr(dgx_ops, "",
                                   bfam_subdomain_dgx_clear_dgx_ops_dict_, NULL);
