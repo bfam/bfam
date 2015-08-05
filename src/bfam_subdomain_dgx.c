@@ -2846,7 +2846,7 @@ bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
       rval = bfam_dictionary_insert_ptr(dgx_ops, name, lV);
       BFAM_ASSERT(rval != 1);
 
-      snprintf(name, BFAM_BUFSIZ, "lDr%d", N);
+      snprintf(name, BFAM_BUFSIZ, "lDr_%d", N);
       rval = bfam_dictionary_insert_ptr(dgx_ops, name, lDr);
       BFAM_ASSERT(rval != 1);
 
@@ -2879,7 +2879,7 @@ bfam_subdomain_dgx_generic_init(bfam_subdomain_dgx_t *subdomain,
     subdomain->lV = bfam_dictionary_get_value_ptr(dgx_ops, name);
     BFAM_ASSERT(subdomain->lV != NULL);
 
-    snprintf(name, BFAM_BUFSIZ, "lDr%d", N);
+    snprintf(name, BFAM_BUFSIZ, "lDr_%d", N);
     subdomain->lDr = bfam_dictionary_get_value_ptr(dgx_ops, name);
     BFAM_ASSERT(subdomain->lDr != NULL);
 
