@@ -108,8 +108,7 @@ typedef struct bfam_subdomain_dgx
   bfam_long_real_t *lr;  /* long format 1D LGL Nodal Point in [-1,1] */
   bfam_long_real_t *lw;  /* long format 1D LGL Nodal weights in [-1,1] */
   bfam_long_real_t *lDr; /* long format 1D LGL differentiation matrix */
-
-  bfam_long_real_t *V; /* 1D Vandermonde matrix for this N */
+  bfam_long_real_t *lV;  /* 1D Vandermonde matrix for this N */
 
   bfam_locidx_t K; /* Number of elements in the subdomain */
 
@@ -357,6 +356,11 @@ void bfam_subdomain_dgx_interpolate_data_(const bfam_real_t *src, int8_t c_src,
  */
 void bfam_subdomain_dgx_free_(bfam_subdomain_t *subdomain);
 
+/** free the dgx_ops data put in the dgx_ops dictionary
+ */
+int bfam_subdomain_dgx_clear_dgx_ops_dict_(const char *key, void *val,
+                                           void *args);
+
 /** free the interpolator data put in the interpolation dictionary
  */
 int bfam_subdomain_dgx_clear_interpolation_dict_(const char *key, void *val,
@@ -422,6 +426,8 @@ int bfam_subdomain_dgx_clear_interpolation_dict_(const char *key, void *val,
       const bfam_real_t *src, int8_t c_src, int N_src, bfam_real_t *dst,       \
       int8_t c_dst, int N_dst, uint8_t flags, bfam_dictionary_t *N2N,          \
       const int inDIM);                                                        \
+  int bfam_subdomain_dgx_clear_dgx_ops_dict_##dg_dim(const char *key,          \
+                                                     void *val, void *args);   \
   int bfam_subdomain_dgx_clear_interpolation_dict_##dg_dim(                    \
       const char *key, void *val, void *args);                                 \
   void bfam_subdomain_dgx_init_grid_##dg_dim(                                  \

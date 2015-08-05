@@ -570,6 +570,7 @@ static int build_mesh(MPI_Comm mpicomm)
       failures += check_vmaps((bfam_subdomain_dgx_t *)subdomains[s], "p5");
       failures += check_vmaps((bfam_subdomain_dgx_t *)subdomains[s], "p6");
     }
+    bfam_free(subdomains);
   }
 
   /*

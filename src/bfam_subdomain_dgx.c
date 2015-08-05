@@ -52,6 +52,14 @@ typedef struct
                       */
 } interpolator_t;
 
+int BFAM_APPEND_EXPAND(bfam_subdomain_dgx_clear_dgx_ops_dict_,
+                       BFAM_DGX_DIMENSION)(const char *key, void *val,
+                                           void *args)
+{
+  bfam_free_aligned(val);
+  return 1;
+}
+
 int BFAM_APPEND_EXPAND(bfam_subdomain_dgx_clear_interpolation_dict_,
                        BFAM_DGX_DIMENSION)(const char *key, void *val,
                                            void *args)
@@ -89,12 +97,12 @@ static void init_interpolator(interpolator_t *interp_a2b, const int N_a,
 }
 
 static void fill_grid_data(bfam_locidx_t N, bfam_long_real_t *lr,
-                           bfam_long_real_t *lw, bfam_long_real_t *V,
+                           bfam_long_real_t *lw, bfam_long_real_t *lV,
                            bfam_long_real_t *M)
 {
   bfam_jacobi_gauss_lobatto_quadrature(0, 0, N, lr, lw);
-  bfam_jacobi_p_vandermonde(0, 0, N, N + 1, lr, V);
-  bfam_jacobi_p_mass(0, 0, N, V, M);
+  bfam_jacobi_p_vandermonde(0, 0, N, N + 1, lr, lV);
+  bfam_jacobi_p_mass(0, 0, N, lV, M);
 }
 
 /* Build interpolation and projection between space a and g. Space a is the
@@ -147,7 +155,7 @@ static void fill_interp_proj_data(bfam_locidx_t N_a, bfam_locidx_t N_g,
 
 static void fill_hanging_data(bfam_locidx_t N, bfam_locidx_t Np,
                               bfam_long_real_t *lr_f, bfam_long_real_t *M,
-                              bfam_long_real_t *V, bfam_long_real_t *P_b2f,
+                              bfam_long_real_t *lV, bfam_long_real_t *P_b2f,
                               bfam_long_real_t *P_t2f, bfam_long_real_t *I_f2b,
                               bfam_long_real_t *I_f2t)
 {
@@ -168,8 +176,8 @@ static void fill_hanging_data(bfam_locidx_t N, bfam_locidx_t Np,
   for (bfam_locidx_t k = 0; k < Np * Np; k++)
     Mh[k] = HALF * M[k];
 
-  fill_interp_proj_data(N, N, V, M, Mh, lr_t, I_f2t, P_t2f);
-  fill_interp_proj_data(N, N, V, M, Mh, lr_b, I_f2b, P_b2f);
+  fill_interp_proj_data(N, N, lV, M, Mh, lr_t, I_f2t, P_t2f);
+  fill_interp_proj_data(N, N, lV, M, Mh, lr_b, I_f2b, P_b2f);
 }
 
 static void multiply_projections(const int N_b, const int N_a, const int N_g,
@@ -575,7 +583,7 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_point_interp_init_,
   for (int n = 0; n < DIM; n++)
   {
     lr[0] = r[n];
-    bfam_jacobi_p_interpolation(0, 0, sub->N, 1, lr, sub->V, cal_interp);
+    bfam_jacobi_p_interpolation(0, 0, sub->N, 1, lr, sub->lV, cal_interp);
     for (int m = 0; m < (sub->N + 1); m++)
       point->interp[n][m] = (bfam_real_t)cal_interp[m];
   }
@@ -1908,7 +1916,8 @@ static int bfam_subdomain_dgx_vtk_write_vtu_piece(
     for (int r = 0; r < Np_write; r++)
       lr[r] = -1 + 2 * (bfam_long_real_t)r / (Np_write - 1);
 
-    bfam_jacobi_p_interpolation(0, 0, sub->N, Np_write, lr, sub->V, cal_interp);
+    bfam_jacobi_p_interpolation(0, 0, sub->N, Np_write, lr, sub->lV,
+                                cal_interp);
 
     for (int n = 0; n < (sub->N + 1) * (N_vtk + 1); n++)
       interp[n] = (bfam_real_t)cal_interp[n];
@@ -2709,7 +2718,7 @@ static void bfam_subdomain_dgx_null_all_values(bfam_subdomain_dgx_t *sub)
   sub->lDr = NULL;
   sub->lr = NULL;
   sub->lw = NULL;
-  sub->V = NULL;
+  sub->lV = NULL;
   sub->K = 0;
   sub->vmapM = NULL;
   sub->vmapP = NULL;
@@ -2774,66 +2783,8 @@ static void bfam_subdomain_dgx_generic_init(
 
   if (DIM > 0)
   {
-    /*
-     * TODO: query dictionary to see if we need to create this, otherwise used
-     * stored values
-     */
-    const int Nrp = N + 1;
-    bfam_long_real_t *lr, *lw;
-    lr = bfam_malloc_aligned(Nrp * sizeof(bfam_long_real_t));
-    lw = bfam_malloc_aligned(Nrp * sizeof(bfam_long_real_t));
-
-    bfam_jacobi_gauss_lobatto_quadrature(0, 0, N, lr, lw);
-
-    subdomain->V = bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_long_real_t));
-    bfam_long_real_t *restrict V = subdomain->V;
-
-    bfam_jacobi_p_vandermonde(0, 0, N, Nrp, lr, V);
-
-    bfam_long_real_t *restrict D =
-        bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_long_real_t));
-
-    bfam_jacobi_p_differentiation(0, 0, N, Nrp, lr, V, D);
-
-    bfam_long_real_t *restrict M =
-        bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_long_real_t));
-
-    bfam_jacobi_p_mass(0, 0, N, V, M);
-
-    subdomain->lr = bfam_malloc_aligned(Nrp * sizeof(bfam_long_real_t));
-    subdomain->lw = bfam_malloc_aligned(Nrp * sizeof(bfam_long_real_t));
-    subdomain->r = bfam_malloc_aligned(Nrp * sizeof(bfam_real_t));
-    subdomain->w = bfam_malloc_aligned(Nrp * sizeof(bfam_real_t));
-    subdomain->wi = bfam_malloc_aligned(Nrp * sizeof(bfam_real_t));
-
-    for (int n = 0; n < Nrp; ++n)
-    {
-      subdomain->lr[n] = lr[n];
-      subdomain->lw[n] = lw[n];
-      subdomain->r[n] = (bfam_real_t)lr[n];
-      subdomain->w[n] = (bfam_real_t)lw[n];
-      subdomain->wi[n] = (bfam_real_t)(1.0l / lw[n]);
-    }
-
     subdomain->K = K;
-
-    /* store the volume stuff */
     subdomain->N = N;
-
-    subdomain->Dr = bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_real_t));
-    subdomain->lDr = bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_long_real_t));
-    for (int n = 0; n < Nrp * Nrp; ++n)
-    {
-      subdomain->lDr[n] = D[n];
-      subdomain->Dr[n] = (bfam_real_t)D[n];
-    }
-
-    bfam_free_aligned(D);
-    bfam_free_aligned(M);
-
-    bfam_free_aligned(lr);
-    bfam_free_aligned(lw);
-
     subdomain->hadapt = bfam_malloc_aligned(K * sizeof(uint8_t));
     subdomain->padapt = bfam_malloc_aligned(K * sizeof(int8_t));
     subdomain->q_id = bfam_malloc_aligned(K * sizeof(bfam_locidx_t));
@@ -2843,6 +2794,114 @@ static void bfam_subdomain_dgx_generic_init(
       subdomain->padapt[k] = (int8_t)N;
       subdomain->q_id[k] = -1;
     }
+
+    /*
+     * TODO: query dictionary to see if we need to create this, otherwise used
+     * stored values
+     */
+    BFAM_ASSERT(dgx_ops);
+
+    char name[BFAM_BUFSIZ];
+    snprintf(name, BFAM_BUFSIZ, "lr_%d", N);
+    if (!bfam_dictionary_contains(dgx_ops, name))
+    {
+
+      const int Nrp = N + 1;
+      bfam_long_real_t *lr =
+          bfam_malloc_aligned(Nrp * sizeof(bfam_long_real_t));
+      bfam_long_real_t *lw =
+          bfam_malloc_aligned(Nrp * sizeof(bfam_long_real_t));
+      bfam_long_real_t *lV =
+          bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_long_real_t));
+      bfam_long_real_t *lDr =
+          bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_long_real_t));
+      bfam_real_t *Dr = bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_real_t));
+      bfam_real_t *r = bfam_malloc_aligned(Nrp * sizeof(bfam_real_t));
+      bfam_real_t *w = bfam_malloc_aligned(Nrp * sizeof(bfam_real_t));
+      bfam_real_t *wi = bfam_malloc_aligned(Nrp * sizeof(bfam_real_t));
+
+      bfam_jacobi_gauss_lobatto_quadrature(0, 0, N, lr, lw);
+      bfam_jacobi_p_vandermonde(0, 0, N, Nrp, lr, lV);
+      bfam_jacobi_p_differentiation(0, 0, N, Nrp, lr, lV, lDr);
+
+      /* store the volume stuff */
+      for (int n = 0; n < Nrp; ++n)
+      {
+        r[n] = (bfam_real_t)lr[n];
+        w[n] = (bfam_real_t)lw[n];
+        wi[n] = (bfam_real_t)(1.0l / lw[n]);
+      }
+      for (int n = 0; n < Nrp * Nrp; ++n)
+      {
+        Dr[n] = (bfam_real_t)lDr[n];
+      }
+
+      int rval = 1;
+
+      snprintf(name, BFAM_BUFSIZ, "lr_%d", N);
+      rval = bfam_dictionary_insert_ptr(dgx_ops, name, lr);
+      BFAM_ASSERT(rval != 1);
+
+      snprintf(name, BFAM_BUFSIZ, "lw_%d", N);
+      rval = bfam_dictionary_insert_ptr(dgx_ops, name, lw);
+      BFAM_ASSERT(rval != 1);
+
+      snprintf(name, BFAM_BUFSIZ, "lV_%d", N);
+      rval = bfam_dictionary_insert_ptr(dgx_ops, name, lV);
+      BFAM_ASSERT(rval != 1);
+
+      snprintf(name, BFAM_BUFSIZ, "lDr%d", N);
+      rval = bfam_dictionary_insert_ptr(dgx_ops, name, lDr);
+      BFAM_ASSERT(rval != 1);
+
+      snprintf(name, BFAM_BUFSIZ, "Dr_%d", N);
+      rval = bfam_dictionary_insert_ptr(dgx_ops, name, Dr);
+      BFAM_ASSERT(rval != 1);
+
+      snprintf(name, BFAM_BUFSIZ, "r_%d", N);
+      rval = bfam_dictionary_insert_ptr(dgx_ops, name, r);
+      BFAM_ASSERT(rval != 1);
+
+      snprintf(name, BFAM_BUFSIZ, "w_%d", N);
+      rval = bfam_dictionary_insert_ptr(dgx_ops, name, w);
+      BFAM_ASSERT(rval != 1);
+
+      snprintf(name, BFAM_BUFSIZ, "wi_%d", N);
+      rval = bfam_dictionary_insert_ptr(dgx_ops, name, wi);
+      BFAM_ASSERT(rval != 1);
+    }
+
+    snprintf(name, BFAM_BUFSIZ, "lr_%d", N);
+    subdomain->lr = bfam_dictionary_get_value_ptr(dgx_ops, name);
+    BFAM_ASSERT(subdomain->lr != NULL);
+
+    snprintf(name, BFAM_BUFSIZ, "lw_%d", N);
+    subdomain->lw = bfam_dictionary_get_value_ptr(dgx_ops, name);
+    BFAM_ASSERT(subdomain->lw != NULL);
+
+    snprintf(name, BFAM_BUFSIZ, "lV_%d", N);
+    subdomain->lV = bfam_dictionary_get_value_ptr(dgx_ops, name);
+    BFAM_ASSERT(subdomain->lV != NULL);
+
+    snprintf(name, BFAM_BUFSIZ, "lDr%d", N);
+    subdomain->lDr = bfam_dictionary_get_value_ptr(dgx_ops, name);
+    BFAM_ASSERT(subdomain->lDr != NULL);
+
+    snprintf(name, BFAM_BUFSIZ, "Dr_%d", N);
+    subdomain->Dr = bfam_dictionary_get_value_ptr(dgx_ops, name);
+    BFAM_ASSERT(subdomain->Dr != NULL);
+
+    snprintf(name, BFAM_BUFSIZ, "r_%d", N);
+    subdomain->r = bfam_dictionary_get_value_ptr(dgx_ops, name);
+    BFAM_ASSERT(subdomain->r != NULL);
+
+    snprintf(name, BFAM_BUFSIZ, "w_%d", N);
+    subdomain->w = bfam_dictionary_get_value_ptr(dgx_ops, name);
+    BFAM_ASSERT(subdomain->w != NULL);
+
+    snprintf(name, BFAM_BUFSIZ, "wi_%d", N);
+    subdomain->wi = bfam_dictionary_get_value_ptr(dgx_ops, name);
+    BFAM_ASSERT(subdomain->wi != NULL);
   }
 }
 
@@ -2975,15 +3034,16 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,
 
   bfam_subdomain_free(thisSubdomain);
 
+#if 0 /* These are now stared in a dictionary and thus not owned */
   if (sub->Dr)
     bfam_free_aligned(sub->Dr);
   sub->Dr = NULL;
   if (sub->lDr)
     bfam_free_aligned(sub->lDr);
   sub->lDr = NULL;
-  if (sub->V)
-    bfam_free_aligned(sub->V);
-  sub->V = NULL;
+  if (sub->lV)
+    bfam_free_aligned(sub->lV);
+  sub->lV = NULL;
 
   if (sub->lr)
     bfam_free_aligned(sub->lr);
@@ -3000,6 +3060,7 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_free_,
   if (sub->wi)
     bfam_free_aligned(sub->wi);
   sub->wi = NULL;
+#endif
 
   if (sub->gmask)
   {
@@ -3266,13 +3327,13 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
   bfam_long_real_t **massprojection =
       bfam_malloc_aligned(num_interp * sizeof(bfam_long_real_t *));
 
-  bfam_long_real_t *restrict V;
-  V = bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_long_real_t));
-  bfam_jacobi_p_vandermonde(0, 0, N, N + 1, lr[0], V);
+  bfam_long_real_t *restrict lV;
+  lV = bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_long_real_t));
+  bfam_jacobi_p_vandermonde(0, 0, N, N + 1, lr[0], lV);
 
   bfam_long_real_t *restrict mass =
       bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_long_real_t));
-  bfam_jacobi_p_mass(0, 0, N, V, mass);
+  bfam_jacobi_p_mass(0, 0, N, lV, mass);
 
   for (int i = 0; i < num_interp; ++i)
   {
@@ -3442,7 +3503,7 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
     bfam_free_aligned(projection[i]);
   }
 
-  bfam_free_aligned(V);
+  bfam_free_aligned(lV);
   bfam_free_aligned(mass);
 
   bfam_free_aligned(lr);
@@ -3940,12 +4001,12 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_init_grid_, BFAM_DGX_DIMENSION)(
     if (nodes_transform)
       nodes_transform(num_Vi, K * Np, lxi, user_args);
 
-    bfam_long_real_t *restrict V = subdomain->V;
+    bfam_long_real_t *restrict lV = subdomain->lV;
 
     bfam_long_real_t *restrict D =
         bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_long_real_t));
 
-    bfam_jacobi_p_differentiation(0, 0, N, Nrp, lr, V, D);
+    bfam_jacobi_p_differentiation(0, 0, N, Nrp, lr, lV, D);
 
     bfam_long_real_t **lJrx =
         bfam_malloc_aligned(num_Vi * DIM * sizeof(bfam_long_real_t *));

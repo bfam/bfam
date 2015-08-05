@@ -129,12 +129,6 @@ void bfam_domain_pxest_init_ext(bfam_domain_pxest_t *domain, MPI_Comm domComm,
   bfam_dictionary_init(domain->dgx_ops);
 }
 
-static int dgx_ops_clear(const char *key, void *val, void *args)
-{
-  bfam_free(val);
-  return 1;
-}
-
 void bfam_domain_pxest_free(bfam_domain_pxest_t *domain)
 {
   /* Memory we don't manage */
@@ -156,7 +150,8 @@ void bfam_domain_pxest_free(bfam_domain_pxest_t *domain)
 
   if (domain->dgx_ops)
   {
-    bfam_dictionary_allprefixed_ptr(domain->dgx_ops, "", dgx_ops_clear, NULL);
+    bfam_dictionary_allprefixed_ptr(
+        domain->dgx_ops, "", bfam_subdomain_dgx_clear_dgx_ops_dict_, NULL);
     bfam_dictionary_clear(domain->dgx_ops);
     bfam_free(domain->dgx_ops);
   }
