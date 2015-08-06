@@ -49,13 +49,22 @@ typedef struct
   int N_src;
   int N_dst;
   bfam_locidx_t num_prj;
-  bfam_real_t **prj; /* array of projection operators;
-                      * no refinement (NULL is no change in order)
-                      * coarsen from bottom
-                      * coarsen from top
-                      * refine  to   bottom
-                      * refine  to   top
-                      */
+  bfam_real_t **prj;      /* array of projection operators;
+                           * no refinement (NULL is no change in order)
+                           * coarsen from bottom
+                           * coarsen from top
+                           * refine  to   bottom
+                           * refine  to   top
+                           */
+  bfam_real_t **mass_prj; /* array of mass projection operators:
+                           * (i.e., the mass matrix for the source is multiplied
+                           * before the projection: Pr * M * q)
+                           * no refinement (i.e., just mass)
+                           * coarsen from bottom
+                           * coarsen from top
+                           * refine  to   bottom
+                           * refine  to   top
+                           */
 } bfam_subdomain_dgx_interpolator_t;
 
 typedef struct bfam_subdomain_dgx_glue_data
@@ -394,6 +403,20 @@ int bfam_subdomain_dgx_clear_dgx_ops_dict_(const char *key, void *val,
 int bfam_subdomain_dgx_clear_interpolation_dict_(const char *key, void *val,
                                                  void *args);
 
+/** return a pointer to the interpolator for the given orders (created and
+ *  stored if it does not exsit)
+ *
+ * \param [in,out] N2N    dictionary for interpolator pointers
+ * \param [in] N_src      source order
+ * \param [in] N_dst      destination order
+ * \param [in] inDim      dimensions of the subdomain
+ *
+ * \return pointer to bfam_subdomain_dgx_interpolator_t
+ */
+bfam_subdomain_dgx_interpolator_t *
+bfam_subdomain_dgx_get_interpolator_(bfam_dictionary_t *N2N, const int N_src,
+                                     const int N_dst, const int inDIM);
+
 #define X(dg_dim)                                                              \
   void bfam_subdomain_dgx_point_interp_fields_##dg_dim(                        \
       bfam_subdomain_dgx_point_interp_t *point, bfam_real_t t,                 \
@@ -458,6 +481,10 @@ int bfam_subdomain_dgx_clear_interpolation_dict_(const char *key, void *val,
                                                      void *val, void *args);   \
   int bfam_subdomain_dgx_clear_interpolation_dict_##dg_dim(                    \
       const char *key, void *val, void *args);                                 \
+  bfam_subdomain_dgx_interpolator_t *                                          \
+      bfam_subdomain_dgx_get_interpolator_##dg_dim(                            \
+          bfam_dictionary_t *N2N, const int N_src, const int N_dst,            \
+          const int inDIM);                                                    \
   void bfam_subdomain_dgx_init_grid_##dg_dim(                                  \
       bfam_subdomain_dgx_t *subdomain, const int num_Vi,                       \
       const bfam_long_real_t **Vi, const bfam_locidx_t *EToV,                  \

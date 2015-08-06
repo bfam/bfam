@@ -52,6 +52,10 @@ int BFAM_APPEND_EXPAND(bfam_subdomain_dgx_clear_interpolation_dict_,
     if (interp->prj[k])
       bfam_free_aligned(interp->prj[k]);
   bfam_free(interp->prj);
+  for (bfam_locidx_t k = 0; k < interp->num_prj; k++)
+    if (interp->mass_prj[k])
+      bfam_free_aligned(interp->mass_prj[k]);
+  bfam_free(interp->mass_prj);
   bfam_free(val);
   return 1;
 }
@@ -77,6 +81,13 @@ static void init_interpolator(bfam_subdomain_dgx_interpolator_t *interp_a2b,
       interp_a2b->prj[k] =
           bfam_malloc_aligned(Np_a * Np_b * sizeof(bfam_real_t));
   }
+
+  interp_a2b->mass_prj = bfam_malloc(num_prj * sizeof(bfam_real_t *));
+
+  /* Storage for the projection operators */
+  for (bfam_locidx_t k = 0; k < num_prj; k++)
+    interp_a2b->mass_prj[k] =
+        bfam_malloc_aligned(Np_a * Np_b * sizeof(bfam_real_t));
 }
 
 static void fill_grid_data(bfam_locidx_t N, bfam_long_real_t *lr,
@@ -166,22 +177,34 @@ static void fill_hanging_data(bfam_locidx_t N, bfam_locidx_t Np,
 static void multiply_projections(const int N_b, const int N_a, const int N_g,
                                  bfam_long_real_t *P_g2b,
                                  bfam_long_real_t *P_g2g,
-                                 bfam_long_real_t *P_a2g, bfam_real_t *P_a2b)
+                                 bfam_long_real_t *P_a2g, bfam_real_t *P_a2b,
+                                 bfam_long_real_t *M_a, bfam_real_t *MP_a2b)
 {
   const int Np_b = N_b + 1;
   const int Np_g = N_g + 1;
   const int Np_a = N_a + 1;
 
+  BFAM_ASSERT(MP_a2b);
+
   /* In the case the target is NULL return */
   if (!P_a2b)
+  {
+    for (bfam_locidx_t n = 0; n < Np_a * Np_b; n++)
+      MP_a2b[n] = (bfam_real_t)M_a[n];
     return;
+  }
 
   /* First set up the long storage for multiplication */
 
   bfam_long_real_t tmp[Np_b * Np_a];
   bfam_long_real_t *l_P = tmp;
+  bfam_long_real_t l_MP[Np_b * Np_a];
+
   for (bfam_locidx_t n = 0; n < Np_a * Np_b; n++)
+  {
     tmp[n] = 0;
+    l_MP[n] = 0;
+  }
   /* No glue to b (thus b is glue) */
   if (!P_g2b && P_g2g && P_a2g)
     bfam_util_mmmult(Np_b, Np_a, Np_g, P_g2g, Np_b, P_a2g, Np_g, l_P, Np_b);
@@ -196,8 +219,14 @@ static void multiply_projections(const int N_b, const int N_a, const int N_g,
   else
     BFAM_ABORT("Case of all NULL or all not NULL is not handled");
 
+  /* MP_a2b = P_a2b * M_a */
+  /* [Np_b X Np_a] = [Np_b X Np_a] [Np_a X Np_a] */
+  bfam_util_mmmult(Np_b, Np_a, Np_a, l_P, Np_a, M_a, Np_a, l_MP, Np_a);
   for (bfam_locidx_t n = 0; n < Np_a * Np_b; n++)
+  {
     P_a2b[n] = (bfam_real_t)l_P[n];
+    MP_a2b[n] = (bfam_real_t)l_MP[n];
+  }
 }
 
 static void create_interpolators(bfam_subdomain_dgx_interpolator_t *interp_a2b,
@@ -265,11 +294,11 @@ static void create_interpolators(bfam_subdomain_dgx_interpolator_t *interp_a2b,
 
   for (bfam_locidx_t k = 0; k < 5; k++)
     multiply_projections(N_b, N_a, N_g, P_g2b, prj_g[k], I_a2g,
-                         interp_a2b->prj[k]);
+                         interp_a2b->prj[k], M_a, interp_a2b->mass_prj[k]);
   if (interp_b2a)
     for (bfam_locidx_t k = 0; k < 5; k++)
       multiply_projections(N_a, N_b, N_g, P_g2a, prj_g[k], I_b2g,
-                           interp_b2a->prj[k]);
+                           interp_b2a->prj[k], M_b, interp_b2a->mass_prj[k]);
 
   if (I_a2g)
     bfam_free_aligned(I_a2g);
@@ -3259,6 +3288,12 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
   glue_m->projection[0] = proj_g2m->prj[0];
   glue_m->projection[1] = proj_g2m->prj[1];
   glue_m->projection[2] = proj_g2m->prj[2];
+
+  glue_m->massprojection =
+      bfam_malloc_aligned(glue_m->num_interp * sizeof(bfam_real_t *));
+  glue_m->massprojection[0] = proj_g2m->mass_prj[0];
+  glue_m->massprojection[1] = proj_g2m->mass_prj[1];
+  glue_m->massprojection[2] = proj_g2m->mass_prj[2];
 
 #if 0
   const int sub_m_Nrp = N_m + 1;
