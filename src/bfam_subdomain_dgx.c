@@ -221,7 +221,7 @@ static void multiply_projections(const int N_b, const int N_a, const int N_g,
 
   /* MP_a2b = P_a2b * M_a */
   /* [Np_b X Np_a] = [Np_b X Np_a] [Np_a X Np_a] */
-  bfam_util_mmmult(Np_b, Np_a, Np_a, l_P, Np_a, M_a, Np_a, l_MP, Np_a);
+  bfam_util_mmmult(Np_b, Np_a, Np_a, l_P, Np_b, M_a, Np_a, l_MP, Np_b);
   for (bfam_locidx_t n = 0; n < Np_a * Np_b; n++)
   {
     P_a2b[n] = (bfam_real_t)l_P[n];
