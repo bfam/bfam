@@ -171,12 +171,12 @@ void bfam_domain_pxest_split_dgx_subdomains_2(
  *                               pxest->local_num_quadrants*NumberOfFaces
  *                               if \c NULL it will be ignored.
  */
-static void bfam_domain_pxest_compute_split_2(bfam_domain_pxest_t_2 *domain,
-                                              p4est_t *pxest, uint8_t pflags,
-                                              bfam_locidx_t *num_subdomains,
-                                              bfam_locidx_t **subdomain_id,
-                                              bfam_locidx_t **roots, int **N,
-                                              bfam_locidx_t **glue_id);
+void bfam_domain_pxest_compute_split_2(bfam_domain_pxest_t_2 *domain,
+                                       p4est_t *pxest, uint8_t pflags,
+                                       bfam_locidx_t *num_subdomains,
+                                       bfam_locidx_t **subdomain_id,
+                                       bfam_locidx_t **roots, int **N,
+                                       bfam_locidx_t **glue_id);
 
 /** Mark pxest quadrants with refinement info
  *
@@ -221,6 +221,9 @@ void bfam_domain_pxest_init_callback_2(p4est_t *p4est,
                                        p4est_quadrant_t *quadrant);
 
 /* Callbacks for pxest quadrants */
+int bfam_domain_pxest_quadrant_coarsen_2(p4est_t *p4est,
+                                         p4est_topidx_t which_tree,
+                                         p4est_quadrant_t *quadrants[]);
 int bfam_domain_pxest_quadrant_refine_2(p4est_t *p4est,
                                         p4est_topidx_t which_tree,
                                         p4est_quadrant_t *quadrant);

@@ -1683,7 +1683,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
  *                        info in the subdomain (any currently set refinement
  *                        flags will be zeroed.)
  */
-static void bfam_domain_pxest_mark_elements(bfam_domain_pxest_t *domain)
+void bfam_domain_pxest_mark_elements(bfam_domain_pxest_t *domain)
 {
   p4est_t *pxest = domain->pxest;
   /*
@@ -1737,9 +1737,9 @@ bfam_domain_pxest_base_copy(bfam_domain_pxest_t *domain)
   return new_domain;
 }
 
-static int bfam_domain_pxest_quadrant_coarsen(p4est_t *p4est,
-                                              p4est_topidx_t which_tree,
-                                              p4est_quadrant_t *quadrants[])
+int bfam_domain_pxest_quadrant_coarsen(p4est_t *p4est,
+                                       p4est_topidx_t which_tree,
+                                       p4est_quadrant_t *quadrants[])
 {
   bfam_pxest_user_data_t *ud = quadrants[0]->p.user_data;
   bfam_locidx_t root_id = ud->root_id;
