@@ -151,6 +151,40 @@ void bfam_domain_pxest_split_dgx_subdomains_2(
     bfam_locidx_t *subdomainID, bfam_locidx_t *roots, int *N,
     bfam_locidx_t *glueID, bfam_glue_order_t glue_order, void *go_user_args);
 
+/** Given a domain and a refined p4est generates a subdomain spliting
+ *
+ * \param [in]     domain        pointer to the initialized pxest managed
+ *                               domain to split
+ * \param [in]     pxest         pointer to a p4est
+ * \param [in]     pflags        flags on what type of p adaptivity
+ * \param [out]    numSubdomains number of volume subdomains to generate
+ * \param [in]     subdomainID   array of length \c pxest->local_num_quadrants
+ *                               which indicates the subdomain id for each
+ *                               element
+ * \param [in]     roots         array of roots for the volume subdomains
+ * \param [in]     N             array of orders for the volume subdomains
+ * \param [in]     glueID        array indicating what glue subdomains exist.
+ *                               If the number is negative than no glue
+ *                               subdomain will be created and if the number
+ *                               is positive a subdomain will be created.
+ *                               This is of length \c
+ *                               pxest->local_num_quadrants*NumberOfFaces
+ *                               if \c NULL it will be ignored.
+ */
+static void bfam_domain_pxest_compute_split_2(bfam_domain_pxest_t_2 *domain,
+                                              p4est_t *pxest, uint8_t pflags,
+                                              bfam_locidx_t *num_subdomains,
+                                              bfam_locidx_t **subdomain_id,
+                                              bfam_locidx_t **roots, int **N,
+                                              bfam_locidx_t **glue_id);
+
+/** Mark pxest quadrants with refinement info
+ *
+ * \param [in,out] domain        pointer to the initialized pxest managed
+ *                               domain
+ */
+void bfam_domain_pxest_mark_elements_2(bfam_domain_pxest_t_2 *domain);
+
 /** Takes an initialized domain and generates a DG hex mesh
  *
  * \param [in,out] domain        pointer to the pxest managed domain to create a
@@ -186,4 +220,17 @@ void bfam_domain_pxest_init_callback_2(p4est_t *p4est,
                                        p4est_topidx_t which_tree,
                                        p4est_quadrant_t *quadrant);
 
+/* Callbacks for pxest quadrants */
+int bfam_domain_pxest_quadrant_refine_2(p4est_t *p4est,
+                                        p4est_topidx_t which_tree,
+                                        p4est_quadrant_t *quadrant);
+void bfam_domain_pxest_quadrant_init_2(p4est_t *p4est,
+                                       p4est_topidx_t which_tree,
+                                       p4est_quadrant_t *quadrant);
+void bfam_domain_pxest_quadrant_replace_2(p4est_t *p4est,
+                                          p4est_topidx_t which_tree,
+                                          int num_outgoing,
+                                          p4est_quadrant_t *outgoing[],
+                                          int num_incoming,
+                                          p4est_quadrant_t *incoming[]);
 #endif

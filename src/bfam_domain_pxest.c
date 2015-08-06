@@ -1778,9 +1778,8 @@ static int bfam_domain_pxest_quadrant_coarsen(p4est_t *p4est,
   return 1;
 }
 
-static int bfam_domain_pxest_quadrant_refine(p4est_t *p4est,
-                                             p4est_topidx_t which_tree,
-                                             p4est_quadrant_t *quadrant)
+int bfam_domain_pxest_quadrant_refine(p4est_t *p4est, p4est_topidx_t which_tree,
+                                      p4est_quadrant_t *quadrant)
 {
   bfam_pxest_user_data_t *ud = quadrant->p.user_data;
 
@@ -1794,19 +1793,18 @@ static int bfam_domain_pxest_quadrant_refine(p4est_t *p4est,
   BFAM_VERBOSE("  Refine!");
   return 1;
 }
-static void bfam_domain_pxest_quadrant_init(p4est_t *p4est,
-                                            p4est_topidx_t which_tree,
-                                            p4est_quadrant_t *quadrant)
+void bfam_domain_pxest_quadrant_init(p4est_t *p4est, p4est_topidx_t which_tree,
+                                     p4est_quadrant_t *quadrant)
 {
   memset(quadrant->p.user_data, 0, sizeof(bfam_pxest_user_data_t));
 }
 
-static void bfam_domain_pxest_quadrant_replace(p4est_t *p4est,
-                                               p4est_topidx_t which_tree,
-                                               int num_outgoing,
-                                               p4est_quadrant_t *outgoing[],
-                                               int num_incoming,
-                                               p4est_quadrant_t *incoming[])
+void bfam_domain_pxest_quadrant_replace(p4est_t *p4est,
+                                        p4est_topidx_t which_tree,
+                                        int num_outgoing,
+                                        p4est_quadrant_t *outgoing[],
+                                        int num_incoming,
+                                        p4est_quadrant_t *incoming[])
 {
   BFAM_ASSERT(num_outgoing != 1 || num_incoming != 1);
   if (num_outgoing == 1)
@@ -1870,12 +1868,12 @@ static int bfam_domain_pxest_select_N(uint8_t pflags, int N_old, int N_req)
   return N_new;
 }
 
-static void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *old_domain,
-                                            p4est_t *pxest, uint8_t pflags,
-                                            bfam_locidx_t *num_subdomains,
-                                            bfam_locidx_t **subdomain_id,
-                                            bfam_locidx_t **roots, int **N,
-                                            bfam_locidx_t **glue_id)
+void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *old_domain,
+                                     p4est_t *pxest, uint8_t pflags,
+                                     bfam_locidx_t *num_subdomains,
+                                     bfam_locidx_t **subdomain_id,
+                                     bfam_locidx_t **roots, int **N,
+                                     bfam_locidx_t **glue_id)
 {
   char key[BFAM_BUFSIZ];
   bfam_dictionary_t rootN_to_sub;
