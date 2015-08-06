@@ -62,6 +62,18 @@
 #define bfam_domain_pxest_adapt                                                \
   BFAM_APPEND_EXPAND(bfam_domain_pxest_adapt_, DIM)
 #define bfam_pxest_user_data_t BFAM_APPEND_EXPAND(bfam_pxest_user_data_t_, DIM)
+#define bfam_domain_pxest_mark_elements                                        \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_mark_elements_, DIM)
+#define bfam_domain_pxest_quadrant_replace                                     \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_quadrant_replace_, DIM)
+#define bfam_domain_pxest_quadrant_coarsen                                     \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_quadrant_coarsen_, DIM)
+#define bfam_domain_pxest_quadrant_refine                                      \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_quadrant_refine_, DIM)
+#define bfam_domain_pxest_compute_split                                        \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_compute_split_, DIM)
+#define bfam_domain_pxest_quadrant_init                                        \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_quadrant_init_, DIM)
 
 void bfam_domain_pxest_init_callback(p4est_t *p4est, p4est_topidx_t which_tree,
                                      p4est_quadrant_t *quadrant)
