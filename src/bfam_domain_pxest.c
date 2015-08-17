@@ -1374,9 +1374,14 @@ void bfam_domain_pxest_split_dgx_subdomains(
       bfam_malloc(numSubdomains * sizeof(bfam_subdomain_dgx_t **));
   for (bfam_locidx_t id = 0; id < numSubdomains; ++id)
   {
-    subdomains[id] = bfam_subdomain_dgx_new(id, -1, name[id], N[id], subK[id],
-                                            EToQ[id], EToE[id], EToF[id],
-                                            domain->N2N, domain->dgx_ops, DIM);
+    if (roots)
+      subdomains[id] = bfam_subdomain_dgx_new(
+          id, roots[id], name[id], N[id], subK[id], EToQ[id], EToE[id],
+          EToF[id], domain->N2N, domain->dgx_ops, DIM);
+    else
+      subdomains[id] = bfam_subdomain_dgx_new(
+          id, -1, name[id], N[id], subK[id], EToQ[id], EToE[id], EToF[id],
+          domain->N2N, domain->dgx_ops, DIM);
 
     bfam_subdomain_add_tag((bfam_subdomain_t *)subdomains[id], "_volume");
     char root_id_tag[BFAM_BUFSIZ];

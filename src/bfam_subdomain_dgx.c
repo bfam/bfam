@@ -2209,7 +2209,8 @@ static int bfam_subdomain_dgx_vtk_write_vtu_piece(
   /*
    * Cell Data
    */
-  fprintf(file, "      <CellData Scalars=\"time,mpirank,subdomain_id\">\n");
+  fprintf(file,
+          "      <CellData Scalars=\"time,mpirank,subdomain_id,root_id\">\n");
   fprintf(file, "        <DataArray type=\"%s\" Name=\"time\""
                 " format=\"%s\">\n",
           BFAM_REAL_VTK, format);
@@ -2280,7 +2281,7 @@ static int bfam_subdomain_dgx_vtk_write_vtu_piece(
     bfam_locidx_t *ids = bfam_malloc_aligned(idsSize);
 
     for (bfam_locidx_t i = 0; i < Ncells; ++i)
-      ids[i] = id;
+      ids[i] = subdomain->id;
 
     int rval =
         bfam_vtk_write_binary_data(writeCompressed, file, (char *)ids, idsSize);
@@ -2293,7 +2294,37 @@ static int bfam_subdomain_dgx_vtk_write_vtu_piece(
   {
     for (bfam_locidx_t i = 0, sk = 1; i < Ncells; ++i, ++sk)
     {
-      fprintf(file, " %6jd", (intmax_t)id);
+      fprintf(file, " %6jd", (intmax_t)subdomain->id);
+      if (!(sk % 8) && i != (Ncells - 1))
+        fprintf(file, "\n         ");
+    }
+  }
+  fprintf(file, "\n");
+  fprintf(file, "        </DataArray>\n");
+  fprintf(file, "        <DataArray type=\"%s\" Name=\"root_id\""
+                " format=\"%s\">\n",
+          BFAM_LOCIDX_VTK, format);
+  fprintf(file, "          ");
+  if (writeBinary)
+  {
+    size_t idsSize = Ncells * sizeof(bfam_locidx_t);
+    bfam_locidx_t *ids = bfam_malloc_aligned(idsSize);
+
+    for (bfam_locidx_t i = 0; i < Ncells; ++i)
+      ids[i] = subdomain->uid;
+
+    int rval =
+        bfam_vtk_write_binary_data(writeCompressed, file, (char *)ids, idsSize);
+    if (rval)
+      BFAM_WARNING("Error encoding ids");
+
+    bfam_free_aligned(ids);
+  }
+  else
+  {
+    for (bfam_locidx_t i = 0, sk = 1; i < Ncells; ++i, ++sk)
+    {
+      fprintf(file, " %6jd", (intmax_t)subdomain->uid);
       if (!(sk % 8) && i != (Ncells - 1))
         fprintf(file, "\n         ");
     }
