@@ -164,6 +164,8 @@ typedef struct bfam_subdomain_dgx
                    * order for each element after p-adaptation
                    */
 
+  int8_t *lvl; /* lenght K where entries indicate current level */
+
   bfam_locidx_t *q_id; /* lenght K where entries are used by the subdomain
                           generator */
 } bfam_subdomain_dgx_t;

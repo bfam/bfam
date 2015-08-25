@@ -1633,6 +1633,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
           new_subdomain->padapt[new_elem_id] = ud->N;
 
         new_subdomain->q_id[new_elem_id] = k;
+        new_subdomain->lvl[new_elem_id] = quad->level;
 
         ud->N = N[subdomainID[k]];
         ud->subd_id = new_subd_id;
