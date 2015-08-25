@@ -392,12 +392,6 @@ namespace occa {
       size = k.size;
       info = k.info;
 
-      std::cout << "getBits(k.data.double_) = " << getBits(k.data.double_) << '\n'
-                << "k.data.double_          = " << k.data.double_ << '\n'
-                << "data.double_            = " << data.double_ << '\n'
-                << "&(k.data)               = " << &(k.data) << '\n'
-                << "&(k.data.double_)       = " << &(k.data.double_) << '\n' << '\n';
-
       return *this;
     }
 
@@ -657,6 +651,11 @@ namespace occa {
 
     kernel(const kernel &k);
     kernel& operator = (const kernel &k);
+
+    inline void checkIfInitialized() const {
+      OCCA_CHECK(kHandle != NULL,
+                 "Kernel is not initialized");
+    }
 
     void* getKernelHandle();
     void* getProgramHandle();
@@ -982,6 +981,11 @@ namespace occa {
 
     memory(const memory &m);
     memory& operator = (const memory &m);
+
+    inline void checkIfInitialized() const {
+      OCCA_CHECK(mHandle != NULL,
+                 "Memory is not initialized");
+    }
 
     memory_v* getMHandle();
     device_v* getDHandle();
@@ -1442,6 +1446,11 @@ namespace occa {
     device(const device &d);
     device& operator = (const device &d);
 
+    inline void checkIfInitialized() const {
+      OCCA_CHECK(dHandle != NULL,
+                 "Device is not initialized");
+    }
+
     void* getContextHandle();
     device_v* getDHandle();
 
@@ -1461,6 +1470,12 @@ namespace occa {
     uintptr_t memoryAllocated() const;
     // Old name for [memoryAllocated()]
     uintptr_t bytesAllocated() const;
+
+    inline bool hasUvaEnabled(){
+      checkIfInitialized();
+
+      return dHandle->hasUvaEnabled();
+    }
 
     deviceIdentifier getIdentifier() const;
 
@@ -1550,16 +1565,16 @@ namespace occa {
     memory wrapMemory(void *handle_,
                       const uintptr_t bytes);
 
-    void* wrapManagedMemory(void *handle_,
-                            const uintptr_t bytes);
+    void wrapManagedMemory(void *handle_,
+                           const uintptr_t bytes);
 
     memory wrapTexture(void *handle_,
                        const int dim, const occa::dim &dims,
                        occa::formatType type, const int permissions);
 
-    void* wrapManagedTexture(void *handle_,
-                             const int dim, const occa::dim &dims,
-                             occa::formatType type, const int permissions);
+    void wrapManagedTexture(void *handle_,
+                            const int dim, const occa::dim &dims,
+                            occa::formatType type, const int permissions);
 
     memory malloc(const uintptr_t bytes,
                   void *src = NULL);
@@ -1663,16 +1678,16 @@ namespace occa {
   memory wrapMemory(void *handle_,
                     const uintptr_t bytes);
 
-  void* wrapManagedMemory(void *handle_,
-                          const uintptr_t bytes);
+  void wrapManagedMemory(void *handle_,
+                         const uintptr_t bytes);
 
   memory wrapTexture(void *handle_,
                      const int dim, const occa::dim &dims,
                      occa::formatType type, const int permissions);
 
-  void* wrapManagedTexture(void *handle_,
-                           const int dim, const occa::dim &dims,
-                           occa::formatType type, const int permissions);
+  void wrapManagedTexture(void *handle_,
+                          const int dim, const occa::dim &dims,
+                          occa::formatType type, const int permissions);
 
   memory malloc(const uintptr_t bytes,
                 void *src = NULL);
