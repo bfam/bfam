@@ -30,6 +30,20 @@ typedef struct bfam_domain_pxest_3
   bfam_dictionary_t *dgx_ops; /** Dictionary of dgx operators operators */
 } bfam_domain_pxest_t_3;
 
+typedef struct
+{
+  uint8_t *dst_to_adapt_flags;
+  int8_t *dst_to_dst_chld_id;
+  bfam_locidx_t *dst_to_src_subd_id;
+  bfam_locidx_t *dst_to_src_elem_id;
+  bfam_locidx_t num_dst;
+
+  int8_t *coarse_dst_to_src_chld_id;
+  bfam_locidx_t *coarse_dst_to_src_subd_id;
+  bfam_locidx_t *coarse_dst_to_src_elem_id;
+  bfam_locidx_t num_coarse_dst;
+} bfam_domain_pxest_transfer_maps_t;
+
 /* Domain managed by pxest based functions */
 /** create a pxest managed domain
  *
@@ -200,6 +214,24 @@ void bfam_domain_pxest_mark_elements_3(bfam_domain_pxest_t_3 *domain);
 void bfam_domain_pxest_create_mesh_3(bfam_domain_pxest_t_3 *domain,
                                      bfam_dgx_nodes_transform_t nodes_transform,
                                      void *nt_user_args);
+
+/** Generate mesh transfer maps
+ *
+ * \param [in,out] maps     pointer to the transfer maps to be filled
+ * \param [in] domain_dst   destination domain
+ * \param [in] domain_src   source domain
+ *
+ */
+void
+bfam_domain_pxest_transfer_maps_init_3(bfam_domain_pxest_transfer_maps_t *maps,
+                                       bfam_domain_pxest_t_3 *domain_dst,
+                                       bfam_domain_pxest_t_3 *domain_src);
+/** Generate mesh transfer maps
+ *
+ * \param [in,out] maps     pointer to the transfer maps to be freed
+ */
+void
+bfam_domain_pxest_transfer_maps_free_3(bfam_domain_pxest_transfer_maps_t *maps);
 
 /** Adapt the mesh.
  *

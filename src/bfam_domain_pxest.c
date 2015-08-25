@@ -74,6 +74,10 @@
   BFAM_APPEND_EXPAND(bfam_domain_pxest_compute_split_, DIM)
 #define bfam_domain_pxest_quadrant_init                                        \
   BFAM_APPEND_EXPAND(bfam_domain_pxest_quadrant_init_, DIM)
+#define bfam_domain_pxest_transfer_maps_init                                   \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_transfer_maps_init_, DIM)
+#define bfam_domain_pxest_transfer_maps_free                                   \
+  BFAM_APPEND_EXPAND(bfam_domain_pxest_transfer_maps_free_, DIM)
 
 void bfam_domain_pxest_init_callback(p4est_t *p4est, p4est_topidx_t which_tree,
                                      p4est_quadrant_t *quadrant)
@@ -2000,18 +2004,6 @@ static int bfam_subdomain_dgx_add_fields_iter(const char *key, void *val,
 
 typedef struct
 {
-  uint8_t *dst_to_adapt_flags;
-  int8_t *dst_to_dst_chld_id;
-  bfam_locidx_t *dst_to_src_subd_id;
-  bfam_locidx_t *dst_to_src_elem_id;
-
-  int8_t *coarse_dst_to_src_chld_id;
-  bfam_locidx_t *coarse_dst_to_src_subd_id;
-  bfam_locidx_t *coarse_dst_to_src_elem_id;
-} bfam_domain_pxest_transfer_maps_t;
-
-typedef struct
-{
   bfam_subdomain_dgx_t *subdomain_dst;
   bfam_domain_pxest_t *domain_src;
   bfam_domain_pxest_transfer_maps_t *maps;
@@ -2133,7 +2125,7 @@ static int quadrant_compare(const p4est_quadrant_t *quad_dst,
   }
 }
 
-static void
+void
 bfam_domain_pxest_transfer_maps_init(bfam_domain_pxest_transfer_maps_t *maps,
                                      bfam_domain_pxest_t *domain_dst,
                                      bfam_domain_pxest_t *domain_src)
@@ -2197,15 +2189,17 @@ bfam_domain_pxest_transfer_maps_init(bfam_domain_pxest_transfer_maps_t *maps,
   BFAM_VERBOSE("Building transfer maps with %zd coarsened elements",
                num_coarsened);
 
+  maps->num_dst = pxest_dst->local_num_quadrants;
   maps->dst_to_adapt_flags =
-      bfam_malloc_aligned(pxest_dst->local_num_quadrants * sizeof(uint8_t));
+      bfam_malloc_aligned(maps->num_dst * sizeof(uint8_t));
   maps->dst_to_dst_chld_id =
-      bfam_malloc_aligned(pxest_dst->local_num_quadrants * sizeof(int8_t));
-  maps->dst_to_src_subd_id = bfam_malloc_aligned(
-      pxest_dst->local_num_quadrants * sizeof(bfam_locidx_t));
-  maps->dst_to_src_elem_id = bfam_malloc_aligned(
-      pxest_dst->local_num_quadrants * sizeof(bfam_locidx_t));
+      bfam_malloc_aligned(maps->num_dst * sizeof(int8_t));
+  maps->dst_to_src_subd_id =
+      bfam_malloc_aligned(maps->num_dst * sizeof(bfam_locidx_t));
+  maps->dst_to_src_elem_id =
+      bfam_malloc_aligned(maps->num_dst * sizeof(bfam_locidx_t));
 
+  maps->num_coarse_dst = num_coarsened;
   maps->coarse_dst_to_src_chld_id =
       bfam_malloc_aligned(P4EST_CHILDREN * num_coarsened * sizeof(int8_t));
   maps->coarse_dst_to_src_subd_id = bfam_malloc_aligned(
@@ -2314,7 +2308,7 @@ bfam_domain_pxest_transfer_maps_init(bfam_domain_pxest_transfer_maps_t *maps,
   }
 }
 
-static void
+void
 bfam_domain_pxest_transfer_maps_free(bfam_domain_pxest_transfer_maps_t *maps)
 {
   bfam_free_aligned(maps->dst_to_adapt_flags);
