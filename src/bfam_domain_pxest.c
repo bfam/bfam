@@ -1769,12 +1769,14 @@ int bfam_domain_pxest_quadrant_coarsen(p4est_t *p4est,
   BFAM_VERBOSE("Coarsen Callback: root_id %jd coarsen flag %02x",
                (intmax_t)root_id, BFAM_FLAG_COARSEN);
 
+  int N = ud->N;
   for (int k = 0; k < P4EST_CHILDREN; ++k)
   {
     ud = quadrants[k]->p.user_data;
-    BFAM_VERBOSE("Coarsen Callback: child[%d] s:%03jd k:%03jd h:%02x r:%jd", k,
-                 (intmax_t)ud->subd_id, (intmax_t)ud->elem_id, ud->flags,
-                 (intmax_t)ud->root_id);
+    BFAM_VERBOSE(
+        "Coarsen Callback: child[%d] s:%03jd k:%03jd h:%02x r:%jd N:%jd", k,
+        (intmax_t)ud->subd_id, (intmax_t)ud->elem_id, ud->flags,
+        (intmax_t)ud->root_id, (intmax_t)ud->N);
 
     /* only coarsen if we all want to coarsen */
     if (!(ud->flags & BFAM_FLAG_COARSEN))
@@ -1782,6 +1784,9 @@ int bfam_domain_pxest_quadrant_coarsen(p4est_t *p4est,
 
     /* only coarsen if we have the same root ids */
     if (ud->root_id != root_id)
+      return 0;
+
+    if (N != ud->N)
       return 0;
   }
 
@@ -1853,6 +1858,9 @@ void bfam_domain_pxest_quadrant_replace(p4est_t *p4est,
     bfam_pxest_user_data_t *out_ud;
 
     memcpy(in_ud, outgoing[0]->p.user_data, sizeof(bfam_pxest_user_data_t));
+    for (int c = 0; c < num_outgoing; ++c)
+      in_ud->N = BFAM_MAX(
+          in_ud->N, ((bfam_pxest_user_data_t *)outgoing[c]->p.user_data)->N);
 
     for (unsigned int f = 0; f < P4EST_FACES; ++f)
     {
