@@ -107,8 +107,7 @@ static void bfam_vtk_write_file_pvtu(int size, const char *directory,
           BFAM_REAL_VTK, format);
   fprintf(file, "    </PPoints>\n");
 
-  fprintf(file,
-          "    <PCellData Scalars=\"time,mpirank,subdomain_id,root_id\">\n");
+  fprintf(file, "    <PCellData Scalars=\"time,mpirank,subdomain_id\">\n");
   fprintf(file, "      <PDataArray type=\"%s\" Name=\"time\""
                 " format=\"%s\"/>\n",
           BFAM_REAL_VTK, format);
@@ -116,9 +115,6 @@ static void bfam_vtk_write_file_pvtu(int size, const char *directory,
                 " format=\"%s\"/>\n",
           BFAM_LOCIDX_VTK, format);
   fprintf(file, "      <PDataArray type=\"%s\" Name=\"subdomain_id\""
-                " format=\"%s\"/>\n",
-          BFAM_LOCIDX_VTK, format);
-  fprintf(file, "      <PDataArray type=\"%s\" Name=\"root_id\""
                 " format=\"%s\"/>\n",
           BFAM_LOCIDX_VTK, format);
   fprintf(file, "    </PCellData>\n");

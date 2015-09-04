@@ -56,6 +56,10 @@ int BFAM_APPEND_EXPAND(bfam_subdomain_dgx_clear_interpolation_dict_,
     if (interp->mass_prj[k])
       bfam_free_aligned(interp->mass_prj[k]);
   bfam_free(interp->mass_prj);
+  for (bfam_locidx_t k = 0; k < interp->num_prj; k++)
+    if (interp->wi_mass_prj[k])
+      bfam_free_aligned(interp->wi_mass_prj[k]);
+  bfam_free(interp->wi_mass_prj);
   bfam_free(val);
   return 1;
 }
@@ -84,9 +88,14 @@ static void init_interpolator(bfam_subdomain_dgx_interpolator_t *interp_a2b,
 
   interp_a2b->mass_prj = bfam_malloc(num_prj * sizeof(bfam_real_t *));
 
+  interp_a2b->wi_mass_prj = bfam_malloc(num_prj * sizeof(bfam_real_t *));
+
   /* Storage for the projection operators */
   for (bfam_locidx_t k = 0; k < num_prj; k++)
     interp_a2b->mass_prj[k] =
+        bfam_malloc_aligned(Np_a * Np_b * sizeof(bfam_real_t));
+  for (bfam_locidx_t k = 0; k < num_prj; k++)
+    interp_a2b->wi_mass_prj[k] =
         bfam_malloc_aligned(Np_a * Np_b * sizeof(bfam_real_t));
 }
 
@@ -178,7 +187,8 @@ static void multiply_projections(const int N_b, const int N_a, const int N_g,
                                  bfam_long_real_t *P_g2b,
                                  bfam_long_real_t *P_g2g,
                                  bfam_long_real_t *P_a2g, bfam_real_t *P_a2b,
-                                 bfam_long_real_t *M_a, bfam_real_t *MP_a2b)
+                                 bfam_long_real_t *M_b, bfam_real_t *MP_a2b,
+                                 bfam_long_real_t *w_b, bfam_real_t *wiMP_a2b)
 {
   const int Np_b = N_b + 1;
   const int Np_g = N_g + 1;
@@ -189,8 +199,12 @@ static void multiply_projections(const int N_b, const int N_a, const int N_g,
   /* In the case the target is NULL return */
   if (!P_a2b)
   {
+    BFAM_ASSERT(Np_a == Np_b);
     for (bfam_locidx_t n = 0; n < Np_a * Np_b; n++)
-      MP_a2b[n] = (bfam_real_t)M_a[n];
+      MP_a2b[n] = (bfam_real_t)(M_b[n]);
+    for (bfam_locidx_t j = 0; j < Np_a; j++)
+      for (bfam_locidx_t i = 0; i < Np_b; i++)
+        wiMP_a2b[i + j * Np_b] = (bfam_real_t)(M_b[i + j * Np_b] / w_b[i]);
     return;
   }
 
@@ -219,14 +233,17 @@ static void multiply_projections(const int N_b, const int N_a, const int N_g,
   else
     BFAM_ABORT("Case of all NULL or all not NULL is not handled");
 
-  /* MP_a2b = P_a2b * M_a */
-  /* [Np_b X Np_a] = [Np_b X Np_a] [Np_a X Np_a] */
-  bfam_util_mmmult(Np_b, Np_a, Np_a, l_P, Np_b, M_a, Np_a, l_MP, Np_b);
+  /* MP_a2b = M_b * P_a2b */
+  /* [Np_b X Np_a] = [Np_b X Np_b] [Np_b X Np_a]  */
+  bfam_util_mmmult(Np_b, Np_a, Np_b, M_b, Np_b, l_P, Np_b, l_MP, Np_b);
   for (bfam_locidx_t n = 0; n < Np_a * Np_b; n++)
   {
     P_a2b[n] = (bfam_real_t)l_P[n];
-    MP_a2b[n] = (bfam_real_t)l_MP[n];
+    MP_a2b[n] = (bfam_real_t)(l_MP[n]);
   }
+  for (bfam_locidx_t j = 0; j < Np_a; j++)
+    for (bfam_locidx_t i = 0; i < Np_b; i++)
+      wiMP_a2b[i + j * Np_b] = (bfam_real_t)(l_MP[i + j * Np_b] / w_b[i]);
 }
 
 static void create_interpolators(bfam_subdomain_dgx_interpolator_t *interp_a2b,
@@ -294,11 +311,13 @@ static void create_interpolators(bfam_subdomain_dgx_interpolator_t *interp_a2b,
 
   for (bfam_locidx_t k = 0; k < 5; k++)
     multiply_projections(N_b, N_a, N_g, P_g2b, prj_g[k], I_a2g,
-                         interp_a2b->prj[k], M_a, interp_a2b->mass_prj[k]);
+                         interp_a2b->prj[k], M_b, interp_a2b->mass_prj[k], lw_b,
+                         interp_a2b->wi_mass_prj[k]);
   if (interp_b2a)
     for (bfam_locidx_t k = 0; k < 5; k++)
       multiply_projections(N_a, N_b, N_g, P_g2a, prj_g[k], I_b2g,
-                           interp_b2a->prj[k], M_b, interp_b2a->mass_prj[k]);
+                           interp_b2a->prj[k], M_a, interp_b2a->mass_prj[k],
+                           lw_a, interp_b2a->wi_mass_prj[k]);
 
   if (I_a2g)
     bfam_free_aligned(I_a2g);
@@ -2209,8 +2228,7 @@ static int bfam_subdomain_dgx_vtk_write_vtu_piece(
   /*
    * Cell Data
    */
-  fprintf(file,
-          "      <CellData Scalars=\"time,mpirank,subdomain_id,root_id\">\n");
+  fprintf(file, "      <CellData Scalars=\"time,mpirank,subdomain_id\">\n");
   fprintf(file, "        <DataArray type=\"%s\" Name=\"time\""
                 " format=\"%s\">\n",
           BFAM_REAL_VTK, format);
@@ -2295,36 +2313,6 @@ static int bfam_subdomain_dgx_vtk_write_vtu_piece(
     for (bfam_locidx_t i = 0, sk = 1; i < Ncells; ++i, ++sk)
     {
       fprintf(file, " %6jd", (intmax_t)subdomain->id);
-      if (!(sk % 8) && i != (Ncells - 1))
-        fprintf(file, "\n         ");
-    }
-  }
-  fprintf(file, "\n");
-  fprintf(file, "        </DataArray>\n");
-  fprintf(file, "        <DataArray type=\"%s\" Name=\"root_id\""
-                " format=\"%s\">\n",
-          BFAM_LOCIDX_VTK, format);
-  fprintf(file, "          ");
-  if (writeBinary)
-  {
-    size_t idsSize = Ncells * sizeof(bfam_locidx_t);
-    bfam_locidx_t *ids = bfam_malloc_aligned(idsSize);
-
-    for (bfam_locidx_t i = 0; i < Ncells; ++i)
-      ids[i] = subdomain->uid;
-
-    int rval =
-        bfam_vtk_write_binary_data(writeCompressed, file, (char *)ids, idsSize);
-    if (rval)
-      BFAM_WARNING("Error encoding ids");
-
-    bfam_free_aligned(ids);
-  }
-  else
-  {
-    for (bfam_locidx_t i = 0, sk = 1; i < Ncells; ++i, ++sk)
-    {
-      fprintf(file, " %6jd", (intmax_t)subdomain->uid);
       if (!(sk % 8) && i != (Ncells - 1))
         fprintf(file, "\n         ");
     }
@@ -3310,7 +3298,7 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
   bfam_subdomain_dgx_interpolator_t *proj_m2g =
       bfam_subdomain_dgx_get_interpolator(N2N, N_m, N, DIM);
   bfam_subdomain_dgx_interpolator_t *proj_g2m =
-      bfam_subdomain_dgx_get_interpolator(N2N, N_m, N, DIM);
+      bfam_subdomain_dgx_get_interpolator(N2N, N, N_m, DIM);
 
   BFAM_ASSERT(proj_m2g);
   BFAM_ASSERT(proj_g2m);
@@ -3332,9 +3320,20 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
   glue_m->massprojection[0] = proj_g2m->mass_prj[0];
   glue_m->massprojection[1] = proj_g2m->mass_prj[1];
   glue_m->massprojection[2] = proj_g2m->mass_prj[2];
+  const int sub_m_Nrp = N_m + 1;
+  for (int i = 0; i < 3; i++)
+  {
+    if (glue_m->massprojection[i])
+      for (int n = 0; n < Nrp * sub_m_Nrp; ++n)
+        BFAM_INFO("MP: %d :: (%d, %d) :: %d :: %e", (int)i, (int)Nrp,
+                  (int)sub_m_Nrp, (int)n, (double)glue_m->massprojection[i][n]);
+    if (glue_m->projection[i])
+      for (int n = 0; n < Nrp * sub_m_Nrp; ++n)
+        BFAM_INFO(" P: %d :: (%d, %d) :: %d :: %e", (int)i, (int)Nrp,
+                  (int)sub_m_Nrp, (int)n, (double)glue_m->projection[i][n]);
+  }
 
 #if 0
-  const int sub_m_Nrp = N_m + 1;
 
 
   const bfam_long_real_t projection_scale[3] = {
