@@ -1770,6 +1770,7 @@ int bfam_domain_pxest_quadrant_coarsen(p4est_t *p4est,
                (intmax_t)root_id, BFAM_FLAG_COARSEN);
 
   int N = ud->N;
+  bfam_locidx_t subd_id = ud->subd_id;
   for (int k = 0; k < P4EST_CHILDREN; ++k)
   {
     ud = quadrants[k]->p.user_data;
@@ -1787,6 +1788,10 @@ int bfam_domain_pxest_quadrant_coarsen(p4est_t *p4est,
       return 0;
 
     if (N != ud->N)
+      return 0;
+
+    /* Make sure all elements are in the same subdomain to coarsen */
+    if (subd_id != ud->subd_id)
       return 0;
   }
 
