@@ -49,22 +49,34 @@ typedef struct
   int N_src;
   int N_dst;
   bfam_locidx_t num_prj;
-  bfam_real_t **prj;      /* array of projection operators;
-                           * no refinement (NULL is no change in order)
-                           * coarsen from bottom
-                           * coarsen from top
-                           * refine  to   bottom
-                           * refine  to   top
-                           */
-  bfam_real_t **mass_prj; /* array of mass projection operators:
-                           * (i.e., the mass matrix for the source is multiplied
-                           * before the projection: Pr * M * q)
-                           * no refinement (i.e., just mass)
-                           * coarsen from bottom
-                           * coarsen from top
-                           * refine  to   bottom
-                           * refine  to   top
-                           */
+  bfam_real_t **prj; /* array of projection operators;
+                      * no refinement (NULL is no change in order)
+                      * coarsen from bottom
+                      * coarsen from top
+                      * refine  to   bottom
+                      * refine  to   top
+                      */
+  bfam_real_t **
+      mass_prj; /* array of exact mass projection operators:
+                 * (i.e., the mass matrix for the destination is multiplied
+                 * times the projection: M * Pr * q)
+                 * no refinement (i.e., just mass)
+                 * coarsen from bottom
+                 * coarsen from top
+                 * refine  to   bottom
+                 * refine  to   top
+                 */
+  bfam_real_t **
+      wi_mass_prj; /* array of LGL mass inv exact mass projection operators:
+                 * (i.e., the LGL diag mass and exact mass matrix for the
+                 * destination
+                 * are multiplied times the projection: diag(wi) * M * Pr * q)
+                 * no refinement (i.e., just mass)
+                 * coarsen from bottom
+                 * coarsen from top
+                 * refine  to   bottom
+                 * refine  to   top
+                 */
 } bfam_subdomain_dgx_interpolator_t;
 
 typedef struct bfam_subdomain_dgx_glue_data
