@@ -1795,6 +1795,8 @@ int bfam_domain_pxest_quadrant_coarsen(p4est_t *p4est,
       return 0;
   }
 
+#if 0
+  /* TODO: FIXME: Problem with this logic / or data */
   /* Only coarsen if the parent faces have the same glue id */
   for (unsigned int f = 0; f < P4EST_FACES; ++f)
   {
@@ -1806,6 +1808,7 @@ int bfam_domain_pxest_quadrant_coarsen(p4est_t *p4est,
         return 0;
     }
   }
+#endif
   BFAM_VERBOSE("  Coarsen!");
   return 1;
 }
