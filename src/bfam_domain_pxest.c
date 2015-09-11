@@ -1932,12 +1932,21 @@ void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *old_domain,
       p4est_quadrant_t *quad = p4est_quadrant_array_index(quadrants, zz);
       bfam_pxest_user_data_t *ud = quad->p.user_data;
 
-      /* Change order if we are refining or coarsening */
-      bfam_subdomain_dgx_t *sub =
-          (bfam_subdomain_dgx_t *)bfam_domain_get_subdomain_by_num(
-              (bfam_domain_t *)old_domain, ud->subd_id);
+      int N_new = 0;
+      if (old_domain)
+      {
+        /* Change order if we are refining or coarsening */
+        bfam_subdomain_dgx_t *sub =
+            (bfam_subdomain_dgx_t *)bfam_domain_get_subdomain_by_num(
+                (bfam_domain_t *)old_domain, ud->subd_id);
 
-      int N_new = bfam_domain_pxest_select_N(pflags, sub->N, ud->N);
+        N_new = bfam_domain_pxest_select_N(pflags, sub->N, ud->N);
+      }
+      else
+      {
+        /* If it is a repartition use the requested order */
+        N_new = ud->N;
+      }
 
       snprintf(key, BFAM_BUFSIZ, "%jd_%d", (intmax_t)ud->root_id, (int)N_new);
 
@@ -1975,12 +1984,22 @@ void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *old_domain,
       p4est_quadrant_t *quad = p4est_quadrant_array_index(quadrants, zz);
       bfam_pxest_user_data_t *ud = quad->p.user_data;
 
-      /* Change order if we are refining or coarsening */
-      bfam_subdomain_dgx_t *sub =
-          (bfam_subdomain_dgx_t *)bfam_domain_get_subdomain_by_num(
-              (bfam_domain_t *)old_domain, ud->subd_id);
+      int N_new = -1;
 
-      int N_new = bfam_domain_pxest_select_N(pflags, sub->N, ud->N);
+      if (old_domain)
+      {
+        /* Change order if we are refining or coarsening */
+        bfam_subdomain_dgx_t *sub =
+            (bfam_subdomain_dgx_t *)bfam_domain_get_subdomain_by_num(
+                (bfam_domain_t *)old_domain, ud->subd_id);
+
+        N_new = bfam_domain_pxest_select_N(pflags, sub->N, ud->N);
+      }
+      else
+      {
+        /* If it is a repartition use the requested order */
+        N_new = ud->N;
+      }
 
       snprintf(key, BFAM_BUFSIZ, "%jd_%d", (intmax_t)ud->root_id, (int)N_new);
 

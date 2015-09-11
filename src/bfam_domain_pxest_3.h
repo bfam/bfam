@@ -170,7 +170,8 @@ void bfam_domain_pxest_split_dgx_subdomains_3(
 /** Given a domain and a refined p4est generates a subdomain spliting
  *
  * \param [in]     domain        pointer to the initialized pxest managed
- *                               domain to split
+ *                               domain to split (if null the order of the
+ *                               elements will be taken from pxest)
  * \param [in]     pxest         pointer to a p8est
  * \param [in]     pflags        flags on what type of p adaptivity
  * \param [out]    numSubdomains number of volume subdomains to generate
