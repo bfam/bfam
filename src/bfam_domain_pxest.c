@@ -1901,6 +1901,8 @@ static int bfam_domain_pxest_select_N(uint8_t pflags, int N_old, int N_req)
       N_new = BFAM_MIN(N_old, N_req);
     else if (pflags & BFAM_FLAG_REFINE)
       N_new = BFAM_MAX(N_old, N_req);
+    else
+      N_new = N_old;
   }
   else
     N_new = N_old;
