@@ -427,6 +427,7 @@ typedef struct
 {
   uint8_t flags;
   int8_t N;
+  int8_t Nold;
   bfam_locidx_t subd_id;
   bfam_locidx_t elem_id;
   bfam_locidx_t root_id;    /* used for element merging */
@@ -437,6 +438,7 @@ typedef struct
 {
   uint8_t flags;
   int8_t N;
+  int8_t Nold;
   bfam_locidx_t subd_id;
   bfam_locidx_t elem_id;
   bfam_locidx_t root_id;    /* used for element merging */

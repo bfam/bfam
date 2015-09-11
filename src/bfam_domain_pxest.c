@@ -87,6 +87,7 @@ void bfam_domain_pxest_init_callback(p4est_t *p4est, p4est_topidx_t which_tree,
 
   ud->flags = 0;
   ud->N = -1;
+  ud->Nold = -1;
   ud->subd_id = -1;
   ud->elem_id = -1;
   ud->root_id = BFAM_DEFAULT_SUBDOMAIN_ROOT;
@@ -1640,6 +1641,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
         new_subdomain->lvl[new_elem_id] = quad->level;
 
         ud->N = N[subdomainID[k]];
+        ud->Nold = N[subdomainID[k]];
         ud->subd_id = new_subd_id;
         ud->elem_id = new_elem_id;
 
