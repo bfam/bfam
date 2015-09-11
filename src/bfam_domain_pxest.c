@@ -1910,8 +1910,7 @@ static int bfam_domain_pxest_select_N(uint8_t pflags, int N_old, int N_req)
   return N_new;
 }
 
-void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *old_domain,
-                                     p4est_t *pxest, uint8_t pflags,
+void bfam_domain_pxest_compute_split(p4est_t *pxest, uint8_t pflags,
                                      bfam_locidx_t *num_subdomains,
                                      bfam_locidx_t **subdomain_id,
                                      bfam_locidx_t **roots, int **N,
@@ -1939,21 +1938,8 @@ void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *old_domain,
       p4est_quadrant_t *quad = p4est_quadrant_array_index(quadrants, zz);
       bfam_pxest_user_data_t *ud = quad->p.user_data;
 
-      int N_new = 0;
-      if (old_domain)
-      {
-        /* Change order if we are refining or coarsening */
-        bfam_subdomain_dgx_t *sub =
-            (bfam_subdomain_dgx_t *)bfam_domain_get_subdomain_by_num(
-                (bfam_domain_t *)old_domain, ud->subd_id);
-
-        N_new = bfam_domain_pxest_select_N(pflags, sub->N, ud->N);
-      }
-      else
-      {
-        /* If it is a repartition use the requested order */
-        N_new = ud->N;
-      }
+      /* Change order if we are refining or coarsening */
+      const int N_new = bfam_domain_pxest_select_N(pflags, ud->Nold, ud->N);
 
       snprintf(key, BFAM_BUFSIZ, "%jd_%d", (intmax_t)ud->root_id, (int)N_new);
 
@@ -1991,22 +1977,7 @@ void bfam_domain_pxest_compute_split(bfam_domain_pxest_t *old_domain,
       p4est_quadrant_t *quad = p4est_quadrant_array_index(quadrants, zz);
       bfam_pxest_user_data_t *ud = quad->p.user_data;
 
-      int N_new = -1;
-
-      if (old_domain)
-      {
-        /* Change order if we are refining or coarsening */
-        bfam_subdomain_dgx_t *sub =
-            (bfam_subdomain_dgx_t *)bfam_domain_get_subdomain_by_num(
-                (bfam_domain_t *)old_domain, ud->subd_id);
-
-        N_new = bfam_domain_pxest_select_N(pflags, sub->N, ud->N);
-      }
-      else
-      {
-        /* If it is a repartition use the requested order */
-        N_new = ud->N;
-      }
+      const int N_new = bfam_domain_pxest_select_N(pflags, ud->Nold, ud->N);
 
       snprintf(key, BFAM_BUFSIZ, "%jd_%d", (intmax_t)ud->root_id, (int)N_new);
 
@@ -2481,7 +2452,7 @@ static void bfam_domain_pxest_adapt_flag(uint8_t flags,
                     bfam_domain_pxest_quadrant_replace);
 
   /* Create subdomain ids and glue ids */
-  bfam_domain_pxest_compute_split(old_domain, domain->pxest, BFAM_FLAG_COARSEN,
+  bfam_domain_pxest_compute_split(domain->pxest, BFAM_FLAG_COARSEN,
                                   &new_num_subdomains, &new_subdomain_id,
                                   &new_roots, &new_N, &new_glue_id);
 

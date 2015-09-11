@@ -169,9 +169,6 @@ void bfam_domain_pxest_split_dgx_subdomains_3(
 
 /** Given a domain and a refined p4est generates a subdomain spliting
  *
- * \param [in]     domain        pointer to the initialized pxest managed
- *                               domain to split (if null the order of the
- *                               elements will be taken from pxest)
  * \param [in]     pxest         pointer to a p8est
  * \param [in]     pflags        flags on what type of p adaptivity
  * \param [out]    numSubdomains number of volume subdomains to generate
@@ -188,8 +185,7 @@ void bfam_domain_pxest_split_dgx_subdomains_3(
  *                               pxest->local_num_quadrants*NumberOfFaces
  *                               if \c NULL it will be ignored.
  */
-void bfam_domain_pxest_compute_split_3(bfam_domain_pxest_t_3 *domain,
-                                       p4est_t *pxest, uint8_t pflags,
+void bfam_domain_pxest_compute_split_3(p4est_t *pxest, uint8_t pflags,
                                        bfam_locidx_t *num_subdomains,
                                        bfam_locidx_t **subdomain_id,
                                        bfam_locidx_t **roots, int **N,
