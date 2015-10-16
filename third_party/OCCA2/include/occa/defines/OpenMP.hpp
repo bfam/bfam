@@ -436,7 +436,7 @@ TM occaAtomicCAS(TM *ptr, const int comp, const TM &update){
 // - - - - - - - - - - - - - - - - - - - - - - - -
 #define occaUnroll3(N) OCCA_PRAGMA(#N)
 #define occaUnroll2(N) occaUnroll3(N)
-#define occaUnroll(N)  occaUnroll2(unroll N)
+#define occaUnroll(N)  occaUnroll2(unroll(N))
 //================================================
 
 
