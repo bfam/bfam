@@ -43,10 +43,10 @@ static int build_state(MPI_Comm mpicomm, state_t *state)
 
   p8est_vtk_write_file(domain->pxest, NULL, "p8est_mesh");
 
-  bfam_locidx_t numSubdomains = 1;
+  bfam_locidx_t num_subdomains = 1;
   bfam_locidx_t *subdomainID =
       bfam_malloc(domain->pxest->local_num_quadrants * sizeof(bfam_locidx_t));
-  bfam_locidx_t *N = bfam_malloc(numSubdomains * sizeof(int));
+  bfam_locidx_t *N = bfam_malloc(num_subdomains * sizeof(int));
 
   bfam_locidx_t *glueID = bfam_malloc(domain->pxest->local_num_quadrants *
                                       P4EST_FACES * sizeof(bfam_locidx_t));
@@ -61,17 +61,17 @@ static int build_state(MPI_Comm mpicomm, state_t *state)
    * For no particular reason increase element order with id
    */
   BFAM_ROOT_INFO("Splitting pxest into %jd DG Quad subdomains",
-                 (intmax_t)numSubdomains);
-  for (bfam_locidx_t id = 0; id < numSubdomains; ++id)
+                 (intmax_t)num_subdomains);
+  for (bfam_locidx_t id = 0; id < num_subdomains; ++id)
   {
     N[id] = 1 + id;
 
     p4est_gloidx_t first = p4est_partition_cut_gloidx(
-        domain->pxest->global_num_quadrants, id, numSubdomains);
+        domain->pxest->global_num_quadrants, id, num_subdomains);
 
     p4est_gloidx_t last =
         p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants, id + 1,
-                                   numSubdomains) -
+                                   num_subdomains) -
         1;
 
     BFAM_ROOT_INFO("  id:%jd N:%d GIDs:%jd--%jd", (intmax_t)id, N[id],
@@ -83,7 +83,7 @@ static int build_state(MPI_Comm mpicomm, state_t *state)
   bfam_locidx_t idStart = 0;
   while (gkOffset >
          p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
-                                    idStart + 1, numSubdomains) -
+                                    idStart + 1, num_subdomains) -
              1)
     ++idStart;
 
@@ -93,15 +93,15 @@ static int build_state(MPI_Comm mpicomm, state_t *state)
     p4est_gloidx_t gk = gkOffset + lk;
 
     if (gk > p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
-                                        id + 1, numSubdomains) -
+                                        id + 1, num_subdomains) -
                  1)
       ++id;
 
     BFAM_ASSERT(
         (gk >= p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
-                                          id, numSubdomains)) &&
+                                          id, num_subdomains)) &&
         (gk < p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
-                                         id + 1, numSubdomains)));
+                                         id + 1, num_subdomains)));
 
     subdomainID[lk] = id;
   }
@@ -117,7 +117,7 @@ static int build_state(MPI_Comm mpicomm, state_t *state)
     }
   }
 
-  bfam_domain_pxest_split_dgx_subdomains_3(domain, numSubdomains, subdomainID,
+  bfam_domain_pxest_split_dgx_subdomains_3(domain, num_subdomains, subdomainID,
                                            NULL, N, glueID, NULL, NULL);
   bfam_domain_pxest_create_mesh_3(domain, NULL, NULL);
 
@@ -176,15 +176,15 @@ static int build_state(MPI_Comm mpicomm, state_t *state)
   bfam_free(communicator);
 
   {
-    bfam_locidx_t numElements = d->numSubdomains;
+    bfam_locidx_t numElements = d->num_subdomains;
     bfam_subdomain_t **subdomains =
         bfam_malloc(numElements * sizeof(bfam_subdomain_t *));
-    bfam_locidx_t numSubdomains;
+    bfam_locidx_t num_subdomains;
 
     bfam_domain_get_subdomains(d, BFAM_DOMAIN_OR, glue, numElements, subdomains,
-                               &numSubdomains);
+                               &num_subdomains);
 
-    for (bfam_locidx_t i = 0; i < numSubdomains; ++i)
+    for (bfam_locidx_t i = 0; i < num_subdomains; ++i)
     {
       bfam_subdomain_t *s = subdomains[i];
       bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t *)s;
@@ -524,15 +524,15 @@ static int test_conn(MPI_Comm mpicomm, state_t *state)
   bfam_communicator_finish(communicator);
 
   {
-    bfam_locidx_t numElements = domain->base.numSubdomains;
+    bfam_locidx_t numElements = domain->base.num_subdomains;
     bfam_subdomain_t **subdomains =
         bfam_malloc(numElements * sizeof(bfam_subdomain_t *));
-    bfam_locidx_t numSubdomains;
+    bfam_locidx_t num_subdomains;
 
     bfam_domain_get_subdomains((bfam_domain_t *)domain, BFAM_DOMAIN_OR, glue,
-                               numElements, subdomains, &numSubdomains);
+                               numElements, subdomains, &num_subdomains);
 
-    for (bfam_locidx_t i = 0; i < numSubdomains; ++i)
+    for (bfam_locidx_t i = 0; i < num_subdomains; ++i)
     {
       bfam_subdomain_t *s = subdomains[i];
       bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t *)s;
@@ -602,17 +602,17 @@ static int test_conn(MPI_Comm mpicomm, state_t *state)
    */
   {
     bfam_subdomain_t **subdomains =
-        bfam_malloc(domain->base.numSubdomains * sizeof(bfam_subdomain_t **));
+        bfam_malloc(domain->base.num_subdomains * sizeof(bfam_subdomain_t **));
 
-    bfam_locidx_t numSubdomains = 0;
+    bfam_locidx_t num_subdomains = 0;
 
     bfam_domain_get_subdomains((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume,
-                               domain->base.numSubdomains, subdomains,
-                               &numSubdomains);
+                               domain->base.num_subdomains, subdomains,
+                               &num_subdomains);
 
-    BFAM_LDEBUG("Number of volume subdomains %jd", (intmax_t)numSubdomains);
+    BFAM_LDEBUG("Number of volume subdomains %jd", (intmax_t)num_subdomains);
 
-    for (bfam_locidx_t s = 0; s < numSubdomains; ++s)
+    for (bfam_locidx_t s = 0; s < num_subdomains; ++s)
     {
       failures += check_vmaps((bfam_subdomain_dgx_t *)subdomains[s], "p1");
       failures += check_vmaps((bfam_subdomain_dgx_t *)subdomains[s], "p2");
@@ -627,18 +627,18 @@ static int test_conn(MPI_Comm mpicomm, state_t *state)
 
   {
     bfam_subdomain_t **subdomains =
-        bfam_malloc(domain->base.numSubdomains * sizeof(bfam_subdomain_t **));
+        bfam_malloc(domain->base.num_subdomains * sizeof(bfam_subdomain_t **));
 
-    bfam_locidx_t numSubdomains = 0;
+    bfam_locidx_t num_subdomains = 0;
 
     bfam_domain_get_subdomains((bfam_domain_t *)domain, BFAM_DOMAIN_OR, glue,
-                               domain->base.numSubdomains, subdomains,
-                               &numSubdomains);
+                               domain->base.num_subdomains, subdomains,
+                               &num_subdomains);
 
     BFAM_LDEBUG("Number of local and parallel glue grids %jd",
-                (intmax_t)numSubdomains);
+                (intmax_t)num_subdomains);
 
-    for (bfam_locidx_t s = 0; s < numSubdomains; ++s)
+    for (bfam_locidx_t s = 0; s < num_subdomains; ++s)
     {
       failures += check_pm((bfam_subdomain_dgx_t *)subdomains[s], "p1", 1);
       failures += check_pm((bfam_subdomain_dgx_t *)subdomains[s], "p2", 1);

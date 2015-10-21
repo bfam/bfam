@@ -90,8 +90,8 @@ void bfam_communicator_init(bfam_communicator_t *communicator,
   communicator->tag = tag;
 
   /* get the subdomains */
-  bfam_subdomain_t *subdomains[domain->numSubdomains];
-  bfam_domain_get_subdomains(domain, match, tags, domain->numSubdomains,
+  bfam_subdomain_t *subdomains[domain->num_subdomains];
+  bfam_domain_get_subdomains(domain, match, tags, domain->num_subdomains,
                              subdomains, &communicator->num_subs);
 
   communicator->sub_data =

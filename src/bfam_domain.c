@@ -13,7 +13,7 @@ void bfam_domain_init(bfam_domain_t *thisDomain, MPI_Comm domComm)
 {
   const bfam_locidx_t sizeSubdomains = 16;
   thisDomain->comm = domComm; // Perhaps we should duplicate it?
-  thisDomain->numSubdomains = 0;
+  thisDomain->num_subdomains = 0;
   thisDomain->sizeSubdomains = sizeSubdomains;
   thisDomain->subdomains =
       bfam_malloc(sizeSubdomains * sizeof(bfam_subdomain_t *));
@@ -22,13 +22,13 @@ void bfam_domain_init(bfam_domain_t *thisDomain, MPI_Comm domComm)
 
 void bfam_domain_free(bfam_domain_t *thisDomain)
 {
-  for (bfam_locidx_t i = 0; i < thisDomain->numSubdomains; i++)
+  for (bfam_locidx_t i = 0; i < thisDomain->num_subdomains; i++)
   {
     thisDomain->subdomains[i]->free(thisDomain->subdomains[i]);
     bfam_free(thisDomain->subdomains[i]);
   }
   thisDomain->comm = MPI_COMM_NULL;
-  thisDomain->numSubdomains = 0;
+  thisDomain->num_subdomains = 0;
   thisDomain->sizeSubdomains = 0;
   bfam_free(thisDomain->subdomains);
   thisDomain->subdomains = NULL;
@@ -56,16 +56,16 @@ void bfam_domain_get_subdomains(bfam_domain_t *thisDomain,
                                 bfam_domain_match_t matchType,
                                 const char **tags, bfam_locidx_t numEntries,
                                 bfam_subdomain_t **subdomains,
-                                bfam_locidx_t *numSubdomains)
+                                bfam_locidx_t *num_subdomains)
 {
   BFAM_ASSERT(subdomains != NULL);
-  BFAM_ASSERT(numSubdomains != NULL);
+  BFAM_ASSERT(num_subdomains != NULL);
 
   if (numEntries <= 0)
     return;
 
-  *numSubdomains = 0;
-  for (bfam_locidx_t d = 0; d < thisDomain->numSubdomains; ++d)
+  *num_subdomains = 0;
+  for (bfam_locidx_t d = 0; d < thisDomain->num_subdomains; ++d)
   {
     bfam_subdomain_t *subdomain = thisDomain->subdomains[d];
     int matched = 0;
@@ -90,18 +90,18 @@ void bfam_domain_get_subdomains(bfam_domain_t *thisDomain,
 
     if (matched)
     {
-      subdomains[*numSubdomains] = subdomain;
-      ++(*numSubdomains);
+      subdomains[*num_subdomains] = subdomain;
+      ++(*num_subdomains);
     }
 
-    if (*numSubdomains == numEntries)
+    if (*num_subdomains == numEntries)
       break;
   }
 
   /*
    * Sort subdomains by id number
    */
-  qsort(subdomains, *numSubdomains, sizeof(bfam_subdomain_t *),
+  qsort(subdomains, *num_subdomains, sizeof(bfam_subdomain_t *),
         bfam_domain_compare_subdomain_by_id);
 
   return;
@@ -130,16 +130,16 @@ void bfam_domain_get_subdomains_critbit(bfam_domain_t *thisDomain,
                                         bfam_critbit0_tree_t *tags,
                                         bfam_locidx_t numEntries,
                                         bfam_subdomain_t **subdomains,
-                                        bfam_locidx_t *numSubdomains)
+                                        bfam_locidx_t *num_subdomains)
 {
   BFAM_ASSERT(subdomains != NULL);
-  BFAM_ASSERT(numSubdomains != NULL);
+  BFAM_ASSERT(num_subdomains != NULL);
 
   if (numEntries <= 0)
     return;
 
-  *numSubdomains = 0;
-  for (bfam_locidx_t d = 0; d < thisDomain->numSubdomains; ++d)
+  *num_subdomains = 0;
+  for (bfam_locidx_t d = 0; d < thisDomain->num_subdomains; ++d)
   {
     bfam_subdomain_t *subdomain = thisDomain->subdomains[d];
     int matched = 0;
@@ -164,18 +164,18 @@ void bfam_domain_get_subdomains_critbit(bfam_domain_t *thisDomain,
 
     if (matched)
     {
-      subdomains[*numSubdomains] = subdomain;
-      ++(*numSubdomains);
+      subdomains[*num_subdomains] = subdomain;
+      ++(*num_subdomains);
     }
 
-    if (*numSubdomains == numEntries)
+    if (*num_subdomains == numEntries)
       break;
   }
 
   /*
    * Sort subdomains by id number
    */
-  qsort(subdomains, *numSubdomains, sizeof(bfam_subdomain_t *),
+  qsort(subdomains, *num_subdomains, sizeof(bfam_subdomain_t *),
         bfam_domain_compare_subdomain_by_id);
 
   return;
@@ -186,7 +186,7 @@ bfam_locidx_t bfam_domain_add_subdomain(bfam_domain_t *thisDomain,
 {
   bfam_locidx_t sub_id;
   // double size
-  if (thisDomain->numSubdomains == thisDomain->sizeSubdomains)
+  if (thisDomain->num_subdomains == thisDomain->sizeSubdomains)
   {
     BFAM_VERBOSE("Doubling domain size");
     thisDomain->sizeSubdomains = 2 * thisDomain->sizeSubdomains;
@@ -197,27 +197,27 @@ bfam_locidx_t bfam_domain_add_subdomain(bfam_domain_t *thisDomain,
 
   // create the key value pair
   BFAM_VERBOSE("adding subdomain %3" BFAM_LOCIDX_PRId " with name %s",
-               thisDomain->numSubdomains, newSubdomain->name);
+               thisDomain->num_subdomains, newSubdomain->name);
 
   // check if it's already there
   if (1 == bfam_dictionary_insert_locidx(&(thisDomain->name2num),
                                          newSubdomain->name,
-                                         thisDomain->numSubdomains))
+                                         thisDomain->num_subdomains))
   {
     BFAM_ABORT("domain already contains subdomain \"%s\"", newSubdomain->name);
   }
 
   // add block
-  sub_id = thisDomain->numSubdomains;
+  sub_id = thisDomain->num_subdomains;
   thisDomain->subdomains[sub_id] = newSubdomain;
-  thisDomain->numSubdomains++;
+  thisDomain->num_subdomains++;
   return sub_id;
 }
 
 bfam_subdomain_t *bfam_domain_get_subdomain_by_num(bfam_domain_t *thisDomain,
                                                    bfam_locidx_t id)
 {
-  BFAM_ABORT_IF(id >= thisDomain->numSubdomains || id < 0,
+  BFAM_ABORT_IF(id >= thisDomain->num_subdomains || id < 0,
                 "Bad subdomain id: %jd", (intmax_t)id);
   return thisDomain->subdomains[id];
 }
@@ -233,15 +233,15 @@ void bfam_domain_add_tags(bfam_domain_t *thisDomain, bfam_domain_match_t match,
                           const char **mtags, const char **tags)
 {
   bfam_subdomain_t **subdomains =
-      bfam_malloc(thisDomain->numSubdomains * sizeof(bfam_subdomain_t **));
+      bfam_malloc(thisDomain->num_subdomains * sizeof(bfam_subdomain_t **));
 
-  bfam_locidx_t numSubdomains = 0;
+  bfam_locidx_t num_subdomains = 0;
 
   bfam_domain_get_subdomains(thisDomain, match, mtags,
-                             thisDomain->numSubdomains, subdomains,
-                             &numSubdomains);
+                             thisDomain->num_subdomains, subdomains,
+                             &num_subdomains);
 
-  for (bfam_locidx_t s = 0; s < numSubdomains; ++s)
+  for (bfam_locidx_t s = 0; s < num_subdomains; ++s)
     for (size_t t = 0; tags[t]; ++t)
       bfam_subdomain_add_tag(subdomains[s], tags[t]);
 
@@ -269,14 +269,15 @@ void bfam_domain_add_fields(bfam_domain_t *thisDomain,
                             const char **fields)
 {
   bfam_subdomain_t **subdomains =
-      bfam_malloc(thisDomain->numSubdomains * sizeof(bfam_subdomain_t **));
+      bfam_malloc(thisDomain->num_subdomains * sizeof(bfam_subdomain_t **));
 
-  bfam_locidx_t numSubdomains = 0;
+  bfam_locidx_t num_subdomains = 0;
 
-  bfam_domain_get_subdomains(thisDomain, match, tags, thisDomain->numSubdomains,
-                             subdomains, &numSubdomains);
+  bfam_domain_get_subdomains(thisDomain, match, tags,
+                             thisDomain->num_subdomains, subdomains,
+                             &num_subdomains);
 
-  for (bfam_locidx_t s = 0; s < numSubdomains; ++s)
+  for (bfam_locidx_t s = 0; s < num_subdomains; ++s)
     for (size_t f = 0; fields[f]; ++f)
       bfam_subdomain_field_add(subdomains[s], fields[f]);
 
@@ -289,15 +290,15 @@ void bfam_domain_add_fields_critbit(bfam_domain_t *thisDomain,
                                     const char **fields)
 {
   bfam_subdomain_t **subdomains =
-      bfam_malloc(thisDomain->numSubdomains * sizeof(bfam_subdomain_t **));
+      bfam_malloc(thisDomain->num_subdomains * sizeof(bfam_subdomain_t **));
 
-  bfam_locidx_t numSubdomains = 0;
+  bfam_locidx_t num_subdomains = 0;
 
   bfam_domain_get_subdomains_critbit(thisDomain, match, tags,
-                                     thisDomain->numSubdomains, subdomains,
-                                     &numSubdomains);
+                                     thisDomain->num_subdomains, subdomains,
+                                     &num_subdomains);
 
-  for (bfam_locidx_t s = 0; s < numSubdomains; ++s)
+  for (bfam_locidx_t s = 0; s < num_subdomains; ++s)
     for (size_t f = 0; fields[f]; ++f)
       bfam_subdomain_field_add(subdomains[s], fields[f]);
 
@@ -326,14 +327,15 @@ void bfam_domain_add_minus_fields(bfam_domain_t *thisDomain,
                                   const char **fields)
 {
   bfam_subdomain_t **subdomains =
-      bfam_malloc(thisDomain->numSubdomains * sizeof(bfam_subdomain_t **));
+      bfam_malloc(thisDomain->num_subdomains * sizeof(bfam_subdomain_t **));
 
-  bfam_locidx_t numSubdomains = 0;
+  bfam_locidx_t num_subdomains = 0;
 
-  bfam_domain_get_subdomains(thisDomain, match, tags, thisDomain->numSubdomains,
-                             subdomains, &numSubdomains);
+  bfam_domain_get_subdomains(thisDomain, match, tags,
+                             thisDomain->num_subdomains, subdomains,
+                             &num_subdomains);
 
-  for (bfam_locidx_t s = 0; s < numSubdomains; ++s)
+  for (bfam_locidx_t s = 0; s < num_subdomains; ++s)
     for (size_t f = 0; fields[f]; ++f)
       bfam_subdomain_field_minus_add(subdomains[s], fields[f]);
 
@@ -346,15 +348,15 @@ void bfam_domain_add_minus_fields_critbit(bfam_domain_t *thisDomain,
                                           const char **fields)
 {
   bfam_subdomain_t **subdomains =
-      bfam_malloc(thisDomain->numSubdomains * sizeof(bfam_subdomain_t **));
+      bfam_malloc(thisDomain->num_subdomains * sizeof(bfam_subdomain_t **));
 
-  bfam_locidx_t numSubdomains = 0;
+  bfam_locidx_t num_subdomains = 0;
 
   bfam_domain_get_subdomains_critbit(thisDomain, match, tags,
-                                     thisDomain->numSubdomains, subdomains,
-                                     &numSubdomains);
+                                     thisDomain->num_subdomains, subdomains,
+                                     &num_subdomains);
 
-  for (bfam_locidx_t s = 0; s < numSubdomains; ++s)
+  for (bfam_locidx_t s = 0; s < num_subdomains; ++s)
     for (size_t f = 0; fields[f]; ++f)
       bfam_subdomain_field_minus_add(subdomains[s], fields[f]);
 
@@ -383,14 +385,15 @@ void bfam_domain_add_plus_fields(bfam_domain_t *thisDomain,
                                  const char **fields)
 {
   bfam_subdomain_t **subdomains =
-      bfam_malloc(thisDomain->numSubdomains * sizeof(bfam_subdomain_t **));
+      bfam_malloc(thisDomain->num_subdomains * sizeof(bfam_subdomain_t **));
 
-  bfam_locidx_t numSubdomains = 0;
+  bfam_locidx_t num_subdomains = 0;
 
-  bfam_domain_get_subdomains(thisDomain, match, tags, thisDomain->numSubdomains,
-                             subdomains, &numSubdomains);
+  bfam_domain_get_subdomains(thisDomain, match, tags,
+                             thisDomain->num_subdomains, subdomains,
+                             &num_subdomains);
 
-  for (bfam_locidx_t s = 0; s < numSubdomains; ++s)
+  for (bfam_locidx_t s = 0; s < num_subdomains; ++s)
     for (size_t f = 0; fields[f]; ++f)
       bfam_subdomain_field_plus_add(subdomains[s], fields[f]);
 
@@ -403,15 +406,15 @@ void bfam_domain_add_plus_fields_critbit(bfam_domain_t *thisDomain,
                                          const char **fields)
 {
   bfam_subdomain_t **subdomains =
-      bfam_malloc(thisDomain->numSubdomains * sizeof(bfam_subdomain_t **));
+      bfam_malloc(thisDomain->num_subdomains * sizeof(bfam_subdomain_t **));
 
-  bfam_locidx_t numSubdomains = 0;
+  bfam_locidx_t num_subdomains = 0;
 
   bfam_domain_get_subdomains_critbit(thisDomain, match, tags,
-                                     thisDomain->numSubdomains, subdomains,
-                                     &numSubdomains);
+                                     thisDomain->num_subdomains, subdomains,
+                                     &num_subdomains);
 
-  for (bfam_locidx_t s = 0; s < numSubdomains; ++s)
+  for (bfam_locidx_t s = 0; s < num_subdomains; ++s)
     for (size_t f = 0; fields[f]; ++f)
       bfam_subdomain_field_plus_add(subdomains[s], fields[f]);
 
@@ -424,14 +427,15 @@ void bfam_domain_init_field(bfam_domain_t *thisDomain,
                             bfam_subdomain_init_field_t init_field, void *arg)
 {
   bfam_subdomain_t **subdomains =
-      bfam_malloc(thisDomain->numSubdomains * sizeof(bfam_subdomain_t **));
+      bfam_malloc(thisDomain->num_subdomains * sizeof(bfam_subdomain_t **));
 
-  bfam_locidx_t numSubdomains = 0;
+  bfam_locidx_t num_subdomains = 0;
 
-  bfam_domain_get_subdomains(thisDomain, match, tags, thisDomain->numSubdomains,
-                             subdomains, &numSubdomains);
+  bfam_domain_get_subdomains(thisDomain, match, tags,
+                             thisDomain->num_subdomains, subdomains,
+                             &num_subdomains);
 
-  for (bfam_locidx_t s = 0; s < numSubdomains; ++s)
+  for (bfam_locidx_t s = 0; s < num_subdomains; ++s)
     bfam_subdomain_field_init(subdomains[s], field, time, init_field, arg);
 
   bfam_free(subdomains);
@@ -445,15 +449,15 @@ void bfam_domain_init_fields_critbit(bfam_domain_t *thisDomain,
                                      void *arg)
 {
   bfam_subdomain_t **subdomains =
-      bfam_malloc(thisDomain->numSubdomains * sizeof(bfam_subdomain_t **));
+      bfam_malloc(thisDomain->num_subdomains * sizeof(bfam_subdomain_t **));
 
-  bfam_locidx_t numSubdomains = 0;
+  bfam_locidx_t num_subdomains = 0;
 
   bfam_domain_get_subdomains_critbit(thisDomain, match, tags,
-                                     thisDomain->numSubdomains, subdomains,
-                                     &numSubdomains);
+                                     thisDomain->num_subdomains, subdomains,
+                                     &num_subdomains);
 
-  for (bfam_locidx_t s = 0; s < numSubdomains; ++s)
+  for (bfam_locidx_t s = 0; s < num_subdomains; ++s)
     bfam_subdomain_field_init(subdomains[s], field, time, init_field, arg);
 
   bfam_free(subdomains);

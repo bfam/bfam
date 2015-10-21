@@ -131,14 +131,15 @@ static void mark_elements(bfam_domain_pxest_t_2 *domain)
 {
   bfam_domain_t *dbase = &domain->base;
   bfam_subdomain_t **subdomains =
-      bfam_malloc(dbase->numSubdomains * sizeof(bfam_subdomain_t *));
+      bfam_malloc(dbase->num_subdomains * sizeof(bfam_subdomain_t *));
 
   bfam_locidx_t num_subdomains = 0;
 
   const char *volume[] = {"_volume", NULL};
 
   bfam_domain_get_subdomains(dbase, BFAM_DOMAIN_AND, volume,
-                             dbase->numSubdomains, subdomains, &num_subdomains);
+                             dbase->num_subdomains, subdomains,
+                             &num_subdomains);
 
   for (bfam_locidx_t s = 0; s < num_subdomains / 2; ++s)
   {
@@ -179,10 +180,10 @@ static int build_mesh(MPI_Comm mpicomm)
                 bfam_domain_pxest_init_callback_2);
   p4est_partition(domain->pxest, 1, NULL);
 
-  bfam_locidx_t numSubdomains = 11;
+  bfam_locidx_t num_subdomains = 11;
   bfam_locidx_t *subdomainID =
       bfam_malloc(domain->pxest->local_num_quadrants * sizeof(bfam_locidx_t));
-  bfam_locidx_t *N = bfam_malloc(numSubdomains * sizeof(int));
+  bfam_locidx_t *N = bfam_malloc(num_subdomains * sizeof(int));
 
   /*
    * Create an arbitrary splitting of the domain to test things.
@@ -194,17 +195,17 @@ static int build_mesh(MPI_Comm mpicomm)
    * For no particular reason increase element order with id
    */
   BFAM_ROOT_INFO("Splitting pxest into %jd DG Quad subdomains",
-                 (intmax_t)numSubdomains);
-  for (bfam_locidx_t id = 0; id < numSubdomains; ++id)
+                 (intmax_t)num_subdomains);
+  for (bfam_locidx_t id = 0; id < num_subdomains; ++id)
   {
     N[id] = 5 + id;
 
     p4est_gloidx_t first = p4est_partition_cut_gloidx(
-        domain->pxest->global_num_quadrants, id, numSubdomains);
+        domain->pxest->global_num_quadrants, id, num_subdomains);
 
     p4est_gloidx_t last =
         p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants, id + 1,
-                                   numSubdomains) -
+                                   num_subdomains) -
         1;
 
     BFAM_ROOT_INFO("  id:%jd N:%d GIDs:%jd--%jd", (intmax_t)id, N[id],
@@ -216,7 +217,7 @@ static int build_mesh(MPI_Comm mpicomm)
   bfam_locidx_t idStart = 0;
   while (gkOffset >
          p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
-                                    idStart + 1, numSubdomains) -
+                                    idStart + 1, num_subdomains) -
              1)
     ++idStart;
 
@@ -226,20 +227,20 @@ static int build_mesh(MPI_Comm mpicomm)
     p4est_gloidx_t gk = gkOffset + lk;
 
     if (gk > p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
-                                        id + 1, numSubdomains) -
+                                        id + 1, num_subdomains) -
                  1)
       ++id;
 
     BFAM_ASSERT(
         (gk >= p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
-                                          id, numSubdomains)) &&
+                                          id, num_subdomains)) &&
         (gk < p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
-                                         id + 1, numSubdomains)));
+                                         id + 1, num_subdomains)));
 
     subdomainID[lk] = id;
   }
 
-  bfam_domain_pxest_split_dgx_subdomains_2(domain, numSubdomains, subdomainID,
+  bfam_domain_pxest_split_dgx_subdomains_2(domain, num_subdomains, subdomainID,
                                            NULL, N, NULL, NULL, NULL);
   bfam_domain_pxest_create_mesh_2(domain, NULL, NULL);
 

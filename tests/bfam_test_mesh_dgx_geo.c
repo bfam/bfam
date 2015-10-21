@@ -290,26 +290,26 @@ static int test_geo_dgx(MPI_Comm mpicomm)
   p4est_balance(domain->pxest, P4EST_CONNECT_CORNER, NULL);
   p4est_partition(domain->pxest, 1, NULL);
 
-  bfam_locidx_t numSubdomains = 1;
+  bfam_locidx_t num_subdomains = 1;
   int N = 1;
 
   bfam_locidx_t *subdomainID =
       bfam_calloc(domain->pxest->local_num_quadrants, sizeof(bfam_locidx_t));
 
-  bfam_domain_pxest_split_dgx_subdomains(domain, numSubdomains, subdomainID,
+  bfam_domain_pxest_split_dgx_subdomains(domain, num_subdomains, subdomainID,
                                          NULL, &N, NULL, NULL, NULL);
 
   bfam_domain_pxest_create_mesh(domain, NULL, NULL);
 
   bfam_subdomain_t **subdomains =
-      bfam_malloc(domain->base.numSubdomains * sizeof(bfam_subdomain_t **));
+      bfam_malloc(domain->base.num_subdomains * sizeof(bfam_subdomain_t **));
 
   const char *volume[] = {"_volume", NULL};
   bfam_domain_get_subdomains((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume,
-                             domain->base.numSubdomains, subdomains,
-                             &numSubdomains);
+                             domain->base.num_subdomains, subdomains,
+                             &num_subdomains);
 
-  BFAM_ABORT_IF_NOT(numSubdomains == 1, "We should only have one subdomain");
+  BFAM_ABORT_IF_NOT(num_subdomains == 1, "We should only have one subdomain");
 
   failures += check_field_dgx(subdomains[0], "_grid_x0", xex);
   failures += check_field_dgx(subdomains[0], "_grid_x1", yex);

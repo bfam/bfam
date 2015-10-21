@@ -181,14 +181,15 @@ static void bfam_domain_pxest_dgx_print_stats(bfam_domain_pxest_t *domain)
 {
   bfam_domain_t *dbase = &domain->base;
   bfam_subdomain_t **subdomains =
-      bfam_malloc(dbase->numSubdomains * sizeof(bfam_subdomain_t **));
+      bfam_malloc(dbase->num_subdomains * sizeof(bfam_subdomain_t **));
 
-  bfam_locidx_t numSubdomains = 0;
+  bfam_locidx_t num_subdomains = 0;
 
   const char *volume[] = {"_volume", NULL};
 
   bfam_domain_get_subdomains(dbase, BFAM_DOMAIN_AND, volume,
-                             dbase->numSubdomains, subdomains, &numSubdomains);
+                             dbase->num_subdomains, subdomains,
+                             &num_subdomains);
 
   const size_t GRID_PTS = 0;
   const size_t ELEMENTS = 1;
@@ -203,7 +204,7 @@ static void bfam_domain_pxest_dgx_print_stats(bfam_domain_pxest_t *domain)
     vals_glo[i] = 0;
   }
 
-  for (bfam_locidx_t s = 0; s < numSubdomains; ++s)
+  for (bfam_locidx_t s = 0; s < num_subdomains; ++s)
   {
     bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t *)subdomains[s];
 
@@ -1142,19 +1143,19 @@ void bfam_domain_pxest_create_mesh(bfam_domain_pxest_t *domain,
 {
   BFAM_ROOT_LDEBUG("Begin creating the domain mesh.");
 
-  bfam_locidx_t numSubdomains = 0;
+  bfam_locidx_t num_subdomains = 0;
   bfam_subdomain_t **subdomains =
-      bfam_malloc(domain->base.numSubdomains * sizeof(bfam_subdomain_t **));
+      bfam_malloc(domain->base.num_subdomains * sizeof(bfam_subdomain_t **));
   const char *volume[] = {"_volume", NULL};
   bfam_domain_get_subdomains((bfam_domain_t *)domain, BFAM_DOMAIN_OR, volume,
-                             domain->base.numSubdomains, subdomains,
-                             &numSubdomains);
+                             domain->base.num_subdomains, subdomains,
+                             &num_subdomains);
 
   p4est_t *pxest = domain->pxest;
   p4est_nodes_t *nodes = p4est_nodes_new(pxest, NULL);
   const p4est_locidx_t Nv = (p4est_locidx_t)nodes->indep_nodes.elem_count;
-  bfam_locidx_t **EToV = bfam_malloc(numSubdomains * sizeof(bfam_locidx_t *));
-  for (int id = 0; id < numSubdomains; id++)
+  bfam_locidx_t **EToV = bfam_malloc(num_subdomains * sizeof(bfam_locidx_t *));
+  for (int id = 0; id < num_subdomains; id++)
   {
     bfam_subdomain_dgx_t *sub = (bfam_subdomain_dgx_t *)subdomains[id];
     EToV[id] = bfam_malloc(sub->K * P4EST_CHILDREN * sizeof(bfam_locidx_t));
@@ -1191,7 +1192,7 @@ void bfam_domain_pxest_create_mesh(bfam_domain_pxest_t *domain,
   }
 
   const bfam_long_real_t *Vi[] = {VX, VY, VZ};
-  for (int id = 0; id < numSubdomains; id++)
+  for (int id = 0; id < num_subdomains; id++)
     bfam_subdomain_dgx_init_grid((bfam_subdomain_dgx_t *)subdomains[id], DIM,
                                  Vi, EToV[id], nodes_transform, nt_user_args,
                                  DIM);
@@ -1200,14 +1201,14 @@ void bfam_domain_pxest_create_mesh(bfam_domain_pxest_t *domain,
   bfam_free_aligned(VX);
   bfam_free_aligned(VY);
   bfam_free_aligned(VZ);
-  for (int id = 0; id < numSubdomains; id++)
+  for (int id = 0; id < num_subdomains; id++)
     bfam_free(EToV[id]);
   bfam_free(EToV);
   bfam_free(subdomains);
 }
 
 void bfam_domain_pxest_split_dgx_subdomains(
-    bfam_domain_pxest_t *domain, bfam_locidx_t numSubdomains,
+    bfam_domain_pxest_t *domain, bfam_locidx_t num_subdomains,
     bfam_locidx_t *subdomainID, bfam_locidx_t *roots, int *N,
     bfam_locidx_t *glueID, bfam_glue_order_t glue_order, void *go_user_args)
 {
@@ -1219,15 +1220,15 @@ void bfam_domain_pxest_split_dgx_subdomains(
   p4est_mesh_t *mesh = p4est_mesh_new(pxest, ghost, BFAM_PXEST_CONNECT);
   p4est_nodes_t *nodes = p4est_nodes_new(pxest, NULL);
 
-  p4est_locidx_t *subK = bfam_calloc(numSubdomains, sizeof(p4est_locidx_t));
-  p4est_locidx_t *subk = bfam_calloc(numSubdomains, sizeof(p4est_locidx_t));
-  char **name = bfam_malloc(numSubdomains * sizeof(char *));
-  bfam_locidx_t **EToE = bfam_malloc(numSubdomains * sizeof(bfam_locidx_t *));
-  bfam_locidx_t **EToQ = bfam_malloc(numSubdomains * sizeof(bfam_locidx_t *));
-  int8_t **EToF = bfam_malloc(numSubdomains * sizeof(int8_t *));
+  p4est_locidx_t *subK = bfam_calloc(num_subdomains, sizeof(p4est_locidx_t));
+  p4est_locidx_t *subk = bfam_calloc(num_subdomains, sizeof(p4est_locidx_t));
+  char **name = bfam_malloc(num_subdomains * sizeof(char *));
+  bfam_locidx_t **EToE = bfam_malloc(num_subdomains * sizeof(bfam_locidx_t *));
+  bfam_locidx_t **EToQ = bfam_malloc(num_subdomains * sizeof(bfam_locidx_t *));
+  int8_t **EToF = bfam_malloc(num_subdomains * sizeof(int8_t *));
 
   bfam_locidx_t *sub_to_actual_sub_id =
-      bfam_malloc(numSubdomains * sizeof(bfam_locidx_t));
+      bfam_malloc(num_subdomains * sizeof(bfam_locidx_t));
 
   bfam_locidx_t *ktosubk =
       bfam_malloc(mesh->local_num_quadrants * sizeof(bfam_locidx_t));
@@ -1299,13 +1300,13 @@ void bfam_domain_pxest_split_dgx_subdomains(
   {
     bfam_locidx_t id = (bfam_locidx_t)subdomainID[k];
 
-    BFAM_ABORT_IF(id < 0 || id >= numSubdomains, "Bad Subdomain id: %jd",
+    BFAM_ABORT_IF(id < 0 || id >= num_subdomains, "Bad Subdomain id: %jd",
                   (intmax_t)id);
 
     ++subK[id];
   }
 
-  for (bfam_locidx_t id = 0; id < numSubdomains; ++id)
+  for (bfam_locidx_t id = 0; id < num_subdomains; ++id)
   {
     name[id] = bfam_malloc(BFAM_BUFSIZ * sizeof(char));
     snprintf(name[id], BFAM_BUFSIZ, "dgx_dim_%1d_%05jd", (int)DIM,
@@ -1320,7 +1321,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
 
   BFAM_ASSERT(K == pxest->local_num_quadrants);
 
-  for (bfam_locidx_t id = 0; id < numSubdomains; ++id)
+  for (bfam_locidx_t id = 0; id < num_subdomains; ++id)
   {
     subk[id] = 0;
   }
@@ -1339,7 +1340,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
   /*
    * First build up the volume grids
    */
-  for (bfam_locidx_t id = 0; id < numSubdomains; ++id)
+  for (bfam_locidx_t id = 0; id < num_subdomains; ++id)
   {
     subk[id] = 0;
   }
@@ -1376,8 +1377,8 @@ void bfam_domain_pxest_split_dgx_subdomains(
   }
 
   bfam_subdomain_dgx_t **subdomains =
-      bfam_malloc(numSubdomains * sizeof(bfam_subdomain_dgx_t **));
-  for (bfam_locidx_t id = 0; id < numSubdomains; ++id)
+      bfam_malloc(num_subdomains * sizeof(bfam_subdomain_dgx_t **));
+  for (bfam_locidx_t id = 0; id < num_subdomains; ++id)
   {
     if (roots)
       subdomains[id] = bfam_subdomain_dgx_new(
@@ -1433,7 +1434,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
 
     for (int r = 0; r <= repeat; ++r)
     {
-      const bfam_locidx_t id = numSubdomains + numGlue;
+      const bfam_locidx_t id = num_subdomains + numGlue;
 
       const bfam_locidx_t rank_m = rank;
       const bfam_locidx_t rank_p = rank;
@@ -1505,7 +1506,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
            bfmapping[bfk + Kglue].id == bfmapping[bfk + Kglue - 1].id)
       ++Kglue;
 
-    const bfam_locidx_t id = numSubdomains + numGlue;
+    const bfam_locidx_t id = num_subdomains + numGlue;
 
     const bfam_locidx_t id_m = bfmapping[bfk].s;
     const bfam_locidx_t id_p = bfmapping[bfk].ns;
@@ -1564,7 +1565,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
            pfmapping[pfk + Kglue].id == pfmapping[pfk + Kglue - 1].id)
       ++Kglue;
 
-    const bfam_locidx_t id = numSubdomains + numGlue;
+    const bfam_locidx_t id = num_subdomains + numGlue;
 
     const bfam_locidx_t id_m = pfmapping[pfk].s;
     const bfam_locidx_t id_p = pfmapping[pfk].ns;
@@ -1661,7 +1662,7 @@ void bfam_domain_pxest_split_dgx_subdomains(
 
   bfam_free(subdomains);
 
-  for (bfam_locidx_t id = 0; id < numSubdomains; ++id)
+  for (bfam_locidx_t id = 0; id < num_subdomains; ++id)
   {
     bfam_free(name[id]);
     bfam_free(EToE[id]);
@@ -2337,7 +2338,7 @@ static void bfam_domain_pxest_transfer_fields_volume(
   /* Transfer Volume Fields */
   bfam_domain_t *dbase_dst = &domain_dst->base;
   bfam_subdomain_t **subdomains_dst =
-      bfam_malloc(dbase_dst->numSubdomains * sizeof(bfam_subdomain_t *));
+      bfam_malloc(dbase_dst->num_subdomains * sizeof(bfam_subdomain_t *));
 
   bfam_subdomain_dgx_transfer_field_data_t fd;
 
@@ -2346,7 +2347,7 @@ static void bfam_domain_pxest_transfer_fields_volume(
   const char *volume[] = {"_volume", NULL};
 
   bfam_domain_get_subdomains(dbase_dst, BFAM_DOMAIN_AND, volume,
-                             dbase_dst->numSubdomains, subdomains_dst,
+                             dbase_dst->num_subdomains, subdomains_dst,
                              &num_subdomains_dst);
 
   for (bfam_locidx_t s = 0; s < num_subdomains_dst; ++s)

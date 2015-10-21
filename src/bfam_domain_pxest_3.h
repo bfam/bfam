@@ -145,7 +145,7 @@ void bfam_domain_pxest_quad_to_glueid_3(p4est_t *pxest,
  *
  * \param [in,out] domain        pointer to the initialized pxest managed
  *                               domain
- * \param [in]     numSubdomains number of volume subdomains to generate
+ * \param [in]     num_subdomains number of volume subdomains to generate
  * \param [in]     subdomainID   array of length \c pxest->local_num_quadrants
  *                               which indicates the subdomain id for each
  *                               element
@@ -163,7 +163,7 @@ void bfam_domain_pxest_quad_to_glueid_3(p4est_t *pxest,
  * \param [in] go_user_args      user argument for glue_order
  */
 void bfam_domain_pxest_split_dgx_subdomains_3(
-    bfam_domain_pxest_t_3 *domain, bfam_locidx_t numSubdomains,
+    bfam_domain_pxest_t_3 *domain, bfam_locidx_t num_subdomains,
     bfam_locidx_t *subdomainID, bfam_locidx_t *roots, int *N,
     bfam_locidx_t *glueID, bfam_glue_order_t glue_order, void *go_user_args);
 
@@ -171,7 +171,7 @@ void bfam_domain_pxest_split_dgx_subdomains_3(
  *
  * \param [in]     pxest         pointer to a p8est
  * \param [in]     pflags        flags on what type of p adaptivity
- * \param [out]    numSubdomains number of volume subdomains to generate
+ * \param [out]    num_subdomains number of volume subdomains to generate
  * \param [in]     subdomainID   array of length \c pxest->local_num_quadrants
  *                               which indicates the subdomain id for each
  *                               element

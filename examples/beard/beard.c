@@ -3412,10 +3412,10 @@ static bfam_real_t compute_energy(beard_t *beard, prefs_t *prefs, bfam_real_t t,
                                   const char *prefix)
 {
   const char *tags[] = {"_volume", NULL};
-  bfam_subdomain_t *subs[beard->domain->base.numSubdomains];
+  bfam_subdomain_t *subs[beard->domain->base.num_subdomains];
   bfam_locidx_t num_subs = 0;
   bfam_domain_get_subdomains((bfam_domain_t *)beard->domain, BFAM_DOMAIN_OR,
-                             tags, beard->domain->base.numSubdomains, subs,
+                             tags, beard->domain->base.num_subdomains, subs,
                              &num_subs);
   bfam_real_t energy = 0;
   bfam_real_t energy_local = 0;
@@ -3652,20 +3652,20 @@ static bfam_real_t compute_domain_dt(beard_t *beard, prefs_t *prefs,
 
   /* first we get all the volume subdomains */
   bfam_subdomain_t **subdomains =
-      bfam_malloc(((bfam_domain_t *)beard->domain)->numSubdomains *
+      bfam_malloc(((bfam_domain_t *)beard->domain)->num_subdomains *
                   sizeof(bfam_subdomain_t **));
 
-  bfam_locidx_t numSubdomains = 0;
+  bfam_locidx_t num_subdomains = 0;
 
   bfam_domain_get_subdomains(((bfam_domain_t *)beard->domain), BFAM_DOMAIN_OR,
                              volume,
-                             ((bfam_domain_t *)beard->domain)->numSubdomains,
-                             subdomains, &numSubdomains);
+                             ((bfam_domain_t *)beard->domain)->num_subdomains,
+                             subdomains, &num_subdomains);
 
-  bfam_real_t ldt[numSubdomains];
+  bfam_real_t ldt[num_subdomains];
   bfam_real_t min_ldt = INFINITY;
 
-  for (bfam_locidx_t s = 0; s < numSubdomains; ++s)
+  for (bfam_locidx_t s = 0; s < num_subdomains; ++s)
   {
     ldt[s] = INFINITY;
     bfam_subdomain_field_init(subdomains[s], "_grid_JI", 0,
@@ -3818,11 +3818,11 @@ static void run_simulation(beard_t *beard, prefs_t *prefs)
       {
         /* get the subdomains being handled by DL plasticity */
         const char *DL_plastic[] = {DUVAUT_LIONS_TAG, NULL};
-        bfam_subdomain_t *subs[beard->domain->base.numSubdomains];
+        bfam_subdomain_t *subs[beard->domain->base.num_subdomains];
         bfam_locidx_t num_subs = 0;
         bfam_domain_get_subdomains(
             (bfam_domain_t *)beard->domain, BFAM_DOMAIN_OR, DL_plastic,
-            beard->domain->base.numSubdomains, subs, &num_subs);
+            beard->domain->base.num_subdomains, subs, &num_subs);
 
         BFAM_ABORT_IF_NOT(prefs->lsrk_method != BFAM_TS_LSRK_NOOP,
                           "right now plasticity requires LSRK time stepping");
@@ -3842,11 +3842,11 @@ static void run_simulation(beard_t *beard, prefs_t *prefs)
 
     /* Compute the rupture time */
     {
-      bfam_subdomain_t *subs[beard->domain->base.numSubdomains];
+      bfam_subdomain_t *subs[beard->domain->base.num_subdomains];
       bfam_locidx_t num_subs = 0;
       bfam_domain_get_subdomains(
           (bfam_domain_t *)beard->domain, BFAM_DOMAIN_OR, friction_tags,
-          beard->domain->base.numSubdomains, subs, &num_subs);
+          beard->domain->base.num_subdomains, subs, &num_subs);
 
       /* call the return map algorithm on these subdomains */
       for (bfam_locidx_t n = 0; n < num_subs; n++)
@@ -4124,10 +4124,10 @@ static void init_fault_stations(beard_t *beard, prefs_t *prefs)
     /* Now we handle finding where we interp */
 
     const char *fault[] = {"friction", NULL};
-    bfam_subdomain_t *subs[beard->domain->base.numSubdomains];
+    bfam_subdomain_t *subs[beard->domain->base.num_subdomains];
     bfam_locidx_t num_subs = 0;
     bfam_domain_get_subdomains((bfam_domain_t *)beard->domain, BFAM_DOMAIN_OR,
-                               fault, beard->domain->base.numSubdomains, subs,
+                               fault, beard->domain->base.num_subdomains, subs,
                                &num_subs);
 
     for (bfam_locidx_t n = 0; n < num_subs; n++)
@@ -4262,10 +4262,10 @@ static void init_volume_stations(beard_t *beard, prefs_t *prefs)
     /* Now we handle finding where we interp */
 
     const char *volume[] = {"_volume", NULL};
-    bfam_subdomain_t *subs[beard->domain->base.numSubdomains];
+    bfam_subdomain_t *subs[beard->domain->base.num_subdomains];
     bfam_locidx_t num_subs = 0;
     bfam_domain_get_subdomains((bfam_domain_t *)beard->domain, BFAM_DOMAIN_OR,
-                               volume, beard->domain->base.numSubdomains, subs,
+                               volume, beard->domain->base.num_subdomains, subs,
                                &num_subs);
 
     for (int n = 0; n < num_subs; n++)

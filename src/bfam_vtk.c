@@ -178,7 +178,7 @@ void bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match,
 {
   const int endian = bfam_endian();
 
-  bfam_locidx_t numElements = domain->numSubdomains;
+  bfam_locidx_t numElements = domain->num_subdomains;
 
   int rank, size;
   BFAM_MPI_CHECK(MPI_Comm_rank(domain->comm, &rank));
@@ -190,10 +190,10 @@ void bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match,
 
   bfam_subdomain_t **subdomains =
       bfam_malloc(numElements * sizeof(bfam_subdomain_t *));
-  bfam_locidx_t numSubdomains;
+  bfam_locidx_t num_subdomains;
 
   bfam_domain_get_subdomains(domain, match, tags, numElements, subdomains,
-                             &numSubdomains);
+                             &num_subdomains);
 
   char filename[BFAM_BUFSIZ];
   if (directory)
@@ -225,7 +225,7 @@ void bfam_vtk_write_file(bfam_domain_t *domain, bfam_domain_match_t match,
   fprintf(file, "  <UnstructuredGrid>\n");
 
   int files_written = 0;
-  for (bfam_locidx_t s = 0; s < numSubdomains; ++s)
+  for (bfam_locidx_t s = 0; s < num_subdomains; ++s)
   {
     bfam_subdomain_t *subdomain = subdomains[s];
 
@@ -365,7 +365,7 @@ void bfam_vtk_write_struc_file(bfam_domain_t *domain, bfam_domain_match_t match,
 {
   const int endian = bfam_endian();
 
-  bfam_locidx_t numElements = domain->numSubdomains;
+  bfam_locidx_t numElements = domain->num_subdomains;
 
   int rank, size;
   BFAM_MPI_CHECK(MPI_Comm_rank(domain->comm, &rank));
@@ -373,12 +373,12 @@ void bfam_vtk_write_struc_file(bfam_domain_t *domain, bfam_domain_match_t match,
 
   bfam_subdomain_t **subdomains =
       bfam_malloc(numElements * sizeof(bfam_subdomain_t *));
-  bfam_locidx_t numSubdomains = 0;
+  bfam_locidx_t num_subdomains = 0;
 
   bfam_domain_get_subdomains(domain, match, tags, numElements, subdomains,
-                             &numSubdomains);
+                             &num_subdomains);
 
-  for (bfam_locidx_t s = 0; s < numSubdomains; s++)
+  for (bfam_locidx_t s = 0; s < num_subdomains; s++)
   {
     char filename[BFAM_BUFSIZ];
     char suffix[BFAM_BUFSIZ];

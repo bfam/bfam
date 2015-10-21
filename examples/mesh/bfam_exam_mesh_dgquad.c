@@ -101,10 +101,10 @@ static void build_mesh(MPI_Comm mpicomm)
 
   p4est_vtk_write_file(domain->pxest, NULL, "p4est_mesh");
 
-  bfam_locidx_t numSubdomains = 4;
+  bfam_locidx_t num_subdomains = 4;
   bfam_locidx_t *subdomainID =
       bfam_malloc(domain->pxest->local_num_quadrants * sizeof(bfam_locidx_t));
-  bfam_locidx_t *N = bfam_malloc(numSubdomains * sizeof(int));
+  bfam_locidx_t *N = bfam_malloc(num_subdomains * sizeof(int));
 
   /*
    * Create an arbitrary splitting of the domain to test things.
@@ -116,17 +116,17 @@ static void build_mesh(MPI_Comm mpicomm)
    * For no particular reason increase element order with id
    */
   BFAM_ROOT_INFO("Splitting p4est into %jd DG Quad subdomains",
-                 (intmax_t)numSubdomains);
-  for (bfam_locidx_t id = 0; id < numSubdomains; ++id)
+                 (intmax_t)num_subdomains);
+  for (bfam_locidx_t id = 0; id < num_subdomains; ++id)
   {
     N[id] = 3 + id;
 
     p4est_gloidx_t first = p4est_partition_cut_gloidx(
-        domain->pxest->global_num_quadrants, id, numSubdomains);
+        domain->pxest->global_num_quadrants, id, num_subdomains);
 
     p4est_gloidx_t last =
         p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants, id + 1,
-                                   numSubdomains) -
+                                   num_subdomains) -
         1;
 
     BFAM_ROOT_INFO("  id:%jd N:%d GIDs:%jd--%jd", (intmax_t)id, N[id],
@@ -138,7 +138,7 @@ static void build_mesh(MPI_Comm mpicomm)
   bfam_locidx_t idStart = 0;
   while (gkOffset >
          p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
-                                    idStart + 1, numSubdomains) -
+                                    idStart + 1, num_subdomains) -
              1)
     ++idStart;
 
@@ -148,20 +148,20 @@ static void build_mesh(MPI_Comm mpicomm)
     p4est_gloidx_t gk = gkOffset + lk;
 
     if (gk > p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
-                                        id + 1, numSubdomains) -
+                                        id + 1, num_subdomains) -
                  1)
       ++id;
 
     BFAM_ASSERT(
         (gk >= p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
-                                          id, numSubdomains)) &&
+                                          id, num_subdomains)) &&
         (gk < p4est_partition_cut_gloidx(domain->pxest->global_num_quadrants,
-                                         id + 1, numSubdomains)));
+                                         id + 1, num_subdomains)));
 
     subdomainID[lk] = id;
   }
 
-  bfam_domain_pxest_split_dgx_subdomains_2(domain, numSubdomains, subdomainID,
+  bfam_domain_pxest_split_dgx_subdomains_2(domain, num_subdomains, subdomainID,
                                            NULL, N, NULL, NULL, NULL);
 
   const char *volume[] = {"_volume", NULL};

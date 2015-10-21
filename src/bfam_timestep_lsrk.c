@@ -73,7 +73,7 @@ static void bfam_ts_lsrk_step_extended(bfam_ts_t *a_ts, bfam_long_real_t dt,
   data.field_prefix_rhs = field_prefix_rhs;
   data.user_data = user_data;
 
-  for (int s = 0; s < ts->nStages; s++)
+  for (int s = 0; s < ts->n_stages; s++)
   {
     /* set the stage time */
     bfam_long_real_t t = ts->t + ts->C[s] * dt;
@@ -124,13 +124,13 @@ static void bfam_ts_lsrk_step_extended(bfam_ts_t *a_ts, bfam_long_real_t dt,
 
     if (ts->update_soln)
     {
-      data.arg = ts->A[(s + 1) % ts->nStages];
+      data.arg = ts->A[(s + 1) % ts->n_stages];
       data.arg2 = ts->B[s] * dt;
       bfam_dictionary_allprefixed_ptr(&ts->elems, "", &bfam_ts_lsrk_update_soln,
                                       &data);
     }
   }
-  ts->t += ts->C[ts->nStages] * dt;
+  ts->t += ts->C[ts->n_stages] * dt;
 }
 
 static void bfam_ts_lsrk_step(bfam_ts_t *a_ts, bfam_long_real_t dt,
@@ -249,10 +249,10 @@ void bfam_ts_lsrk_init_extended(
   /*
    * get the subdomains and create rates we will need
    */
-  bfam_subdomain_t *subs[dom->numSubdomains + 1];
+  bfam_subdomain_t *subs[dom->num_subdomains + 1];
   bfam_locidx_t numSubs = 0;
-  bfam_domain_get_subdomains(dom, subdom_match, subdom_tags, dom->numSubdomains,
-                             subs, &numSubs);
+  bfam_domain_get_subdomains(dom, subdom_match, subdom_tags,
+                             dom->num_subdomains, subs, &numSubs);
   for (int s = 0; s < numSubs; s++)
   {
     int rval = bfam_dictionary_insert_ptr(&ts->elems, subs[s]->name, subs[s]);
@@ -273,10 +273,10 @@ void bfam_ts_lsrk_init_extended(
   default:
     BFAM_WARNING("Invalid LSRK scheme, using KC54");
   case BFAM_TS_LSRK_KC54:
-    ts->nStages = 5;
-    ts->A = bfam_malloc_aligned(ts->nStages * sizeof(bfam_long_real_t));
-    ts->B = bfam_malloc_aligned(ts->nStages * sizeof(bfam_long_real_t));
-    ts->C = bfam_malloc_aligned((ts->nStages + 1) * sizeof(bfam_long_real_t));
+    ts->n_stages = 5;
+    ts->A = bfam_malloc_aligned(ts->n_stages * sizeof(bfam_long_real_t));
+    ts->B = bfam_malloc_aligned(ts->n_stages * sizeof(bfam_long_real_t));
+    ts->C = bfam_malloc_aligned((ts->n_stages + 1) * sizeof(bfam_long_real_t));
 
     ts->A[0] = BFAM_LONG_REAL(0.0);
     ts->A[1] =
@@ -311,10 +311,10 @@ void bfam_ts_lsrk_init_extended(
     ts->C[5] = BFAM_LONG_REAL(1.0);
     break;
   case BFAM_TS_LSRK_W33:
-    ts->nStages = 3;
-    ts->A = bfam_malloc_aligned(ts->nStages * sizeof(bfam_long_real_t));
-    ts->B = bfam_malloc_aligned(ts->nStages * sizeof(bfam_long_real_t));
-    ts->C = bfam_malloc_aligned((ts->nStages + 1) * sizeof(bfam_long_real_t));
+    ts->n_stages = 3;
+    ts->A = bfam_malloc_aligned(ts->n_stages * sizeof(bfam_long_real_t));
+    ts->B = bfam_malloc_aligned(ts->n_stages * sizeof(bfam_long_real_t));
+    ts->C = bfam_malloc_aligned((ts->n_stages + 1) * sizeof(bfam_long_real_t));
 
     ts->A[0] = BFAM_LONG_REAL(0.0);
     ts->A[1] = BFAM_LONG_REAL(-5.0) / BFAM_LONG_REAL(9.0);
@@ -330,10 +330,10 @@ void bfam_ts_lsrk_init_extended(
     ts->C[3] = BFAM_LONG_REAL(1.0);
     break;
   case BFAM_TS_LSRK_HEUN:
-    ts->nStages = 2;
-    ts->A = bfam_malloc_aligned(ts->nStages * sizeof(bfam_long_real_t));
-    ts->B = bfam_malloc_aligned(ts->nStages * sizeof(bfam_long_real_t));
-    ts->C = bfam_malloc_aligned((ts->nStages + 1) * sizeof(bfam_long_real_t));
+    ts->n_stages = 2;
+    ts->A = bfam_malloc_aligned(ts->n_stages * sizeof(bfam_long_real_t));
+    ts->B = bfam_malloc_aligned(ts->n_stages * sizeof(bfam_long_real_t));
+    ts->C = bfam_malloc_aligned((ts->n_stages + 1) * sizeof(bfam_long_real_t));
 
     ts->A[0] = BFAM_LONG_REAL(0.0);
     ts->A[1] = -BFAM_LONG_REAL(1.0);
@@ -346,10 +346,10 @@ void bfam_ts_lsrk_init_extended(
     ts->C[2] = BFAM_LONG_REAL(1.0);
     break;
   case BFAM_TS_LSRK_FE:
-    ts->nStages = 1;
+    ts->n_stages = 1;
     ts->A = bfam_malloc_aligned(sizeof(bfam_long_real_t));
     ts->B = bfam_malloc_aligned(sizeof(bfam_long_real_t));
-    ts->C = bfam_malloc_aligned((ts->nStages + 1) * sizeof(bfam_long_real_t));
+    ts->C = bfam_malloc_aligned((ts->n_stages + 1) * sizeof(bfam_long_real_t));
 
     ts->A[0] = BFAM_LONG_REAL(0.0);
 
@@ -374,7 +374,7 @@ void bfam_ts_lsrk_free(bfam_ts_lsrk_t *ts)
   ts->B = NULL;
   bfam_free_aligned(ts->C);
   ts->C = NULL;
-  ts->nStages = 0;
+  ts->n_stages = 0;
   ts->t = NAN;
   bfam_ts_free(&ts->base);
 }

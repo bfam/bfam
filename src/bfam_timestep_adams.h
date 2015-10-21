@@ -20,7 +20,7 @@ typedef struct bfam_ts_adams
 {
   bfam_ts_t base; /**< parent timestepper */
   // bfam_long_real_t* A;       /**< coefficients */
-  int nStages;               /**< number of steps */
+  int n_stages;              /**< number of steps */
   int currentStage;          /**< current stage counter */
   int numSteps;              /**< number of steps completed */
   bfam_long_real_t t;        /**< domain time */

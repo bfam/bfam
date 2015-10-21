@@ -31,21 +31,21 @@ static inline int bfam_ts_adams_do_update(bfam_subdomain_t *sub,
                                           const bfam_long_real_t *A,
                                           const bfam_ts_adams_t *ts,
                                           const bfam_long_real_t dt,
-                                          const int nStages, void *user_data)
+                                          const int n_stages, void *user_data)
 {
   BFAM_LDEBUG("BFAM_TS_ADAMS_DO_UPDATE");
 
   /* Loop through the stages to scale rates and add in */
   /*
-   * nStages is the computing number of stages whereas ts->nStages is the
+   * n_stages is the computing number of stages whereas ts->n_stages is the
    * storage number of stages
    */
-  for (int k = 0; k < nStages; k++)
+  for (int k = 0; k < n_stages; k++)
   {
     char prefix[BFAM_BUFSIZ];
     snprintf(prefix, BFAM_BUFSIZ, "%s%d_", BFAM_ADAMS_PREFIX,
-             (ts->currentStage + ts->nStages - k) % ts->nStages);
-    BFAM_LDEBUG("Adams step: stage %d of %d using prefix %s", k, nStages,
+             (ts->currentStage + ts->n_stages - k) % ts->n_stages);
+    BFAM_LDEBUG("Adams step: stage %d of %d using prefix %s", k, n_stages,
                 prefix);
     ts->add_rates(sub, "", "", prefix, dt * A[k], user_data);
   }
@@ -58,7 +58,7 @@ static int bfam_ts_adams_update(const char *key, void *val, void *arg)
   bfam_subdomain_t *sub = (bfam_subdomain_t *)val;
   bfam_ts_adams_t *ts = data->ts;
 
-  switch (BFAM_MIN(ts->numSteps + 1, ts->nStages))
+  switch (BFAM_MIN(ts->numSteps + 1, ts->n_stages))
   {
   case 1:
   {
@@ -97,7 +97,7 @@ static int bfam_ts_adams_update(const char *key, void *val, void *arg)
   }
   break;
   default:
-    BFAM_ABORT("Adams-Bashforth order %d not implemented", ts->nStages);
+    BFAM_ABORT("Adams-Bashforth order %d not implemented", ts->n_stages);
   }
   return 1;
 }
@@ -108,7 +108,7 @@ static int bfam_ts_adams_intra_rhs(const char *key, void *val, void *arg)
   bfam_subdomain_t *sub = (bfam_subdomain_t *)val;
   char prefix[BFAM_BUFSIZ];
   snprintf(prefix, BFAM_BUFSIZ, "%s%d_", BFAM_ADAMS_PREFIX,
-           data->ts->currentStage % data->ts->nStages);
+           data->ts->currentStage % data->ts->n_stages);
   BFAM_LDEBUG("Adams intra: using prefix %s", prefix);
   data->ts->scale_rates(sub, prefix, 0, data->user_data);
   data->ts->intra_rhs(sub, prefix, prefix, "", data->ts->t, data->user_data);
@@ -121,7 +121,7 @@ static int bfam_ts_adams_inter_rhs(const char *key, void *val, void *arg)
   bfam_subdomain_t *sub = (bfam_subdomain_t *)val;
   char prefix[BFAM_BUFSIZ];
   snprintf(prefix, BFAM_BUFSIZ, "%s%d_", BFAM_ADAMS_PREFIX,
-           data->ts->currentStage % data->ts->nStages);
+           data->ts->currentStage % data->ts->n_stages);
   BFAM_LDEBUG("Adams inter: using prefix %s", prefix);
   data->ts->inter_rhs(sub, prefix, prefix, "", data->ts->t, data->user_data);
   return 1;
@@ -169,12 +169,12 @@ static void bfam_ts_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt,
     ts->lsrk->t = ts->t;
     char rate_prefix[BFAM_BUFSIZ];
     snprintf(rate_prefix, BFAM_BUFSIZ, "%s%d_", BFAM_ADAMS_PREFIX,
-             (ts->currentStage + 1) % ts->nStages);
+             (ts->currentStage + 1) % ts->n_stages);
     BFAM_LDEBUG("Adams step: RK rate rate_prefix %s", rate_prefix);
     BFAM_ASSERT(ts->lsrk->step_extended);
     ts->lsrk->step_extended((bfam_ts_t *)ts->lsrk, dt, rate_prefix, "", "",
                             user_data);
-    if (ts->numSteps + 2 >= ts->nStages)
+    if (ts->numSteps + 2 >= ts->n_stages)
     {
       bfam_ts_lsrk_free(ts->lsrk);
       bfam_free(ts->lsrk);
@@ -187,7 +187,7 @@ static void bfam_ts_adams_step(bfam_ts_t *a_ts, bfam_long_real_t dt,
                                     &data);
 
   /* shift the stage counter */
-  ts->currentStage = (ts->currentStage + 1) % ts->nStages;
+  ts->currentStage = (ts->currentStage + 1) % ts->n_stages;
   ts->numSteps++;
 
   /* update the stage time */
@@ -230,9 +230,9 @@ void bfam_ts_adams_init(
   default:
     BFAM_WARNING("Invalid Adams scheme, using ADAMS_3");
   case BFAM_TS_ADAMS_3:
-    ts->nStages = 3;
+    ts->n_stages = 3;
     /*
-    ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
+    ts->A = bfam_malloc_aligned(ts->n_stages*sizeof(bfam_long_real_t));
 
     ts->A[0] = BFAM_LONG_REAL(23.0)/
                BFAM_LONG_REAL(12.0);
@@ -253,9 +253,9 @@ void bfam_ts_adams_init(
 
     break;
   case BFAM_TS_ADAMS_1:
-    ts->nStages = 1;
+    ts->n_stages = 1;
     /*
-    ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
+    ts->A = bfam_malloc_aligned(ts->n_stages*sizeof(bfam_long_real_t));
 
     ts->A[0] = BFAM_LONG_REAL(1.0);
     */
@@ -271,9 +271,9 @@ void bfam_ts_adams_init(
 
     break;
   case BFAM_TS_ADAMS_2:
-    ts->nStages = 2;
+    ts->n_stages = 2;
     /*
-    ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
+    ts->A = bfam_malloc_aligned(ts->n_stages*sizeof(bfam_long_real_t));
 
     ts->A[0] = BFAM_LONG_REAL( 3.0)/
                BFAM_LONG_REAL( 2.0);
@@ -292,9 +292,9 @@ void bfam_ts_adams_init(
 
     break;
   case BFAM_TS_ADAMS_4:
-    ts->nStages = 4;
+    ts->n_stages = 4;
     /*
-    ts->A = bfam_malloc_aligned(ts->nStages*sizeof(bfam_long_real_t));
+    ts->A = bfam_malloc_aligned(ts->n_stages*sizeof(bfam_long_real_t));
 
     ts->A[0] = BFAM_LONG_REAL( 55.0)/
                BFAM_LONG_REAL( 24.0);
@@ -321,16 +321,16 @@ void bfam_ts_adams_init(
   /*
    * get the subdomains and create rates we will need
    */
-  bfam_subdomain_t *subs[dom->numSubdomains + 1];
+  bfam_subdomain_t *subs[dom->num_subdomains + 1];
   bfam_locidx_t numSubs = 0;
-  bfam_domain_get_subdomains(dom, subdom_match, subdom_tags, dom->numSubdomains,
-                             subs, &numSubs);
+  bfam_domain_get_subdomains(dom, subdom_match, subdom_tags,
+                             dom->num_subdomains, subs, &numSubs);
   for (int s = 0; s < numSubs; s++)
   {
     int rval = bfam_dictionary_insert_ptr(&ts->elems, subs[s]->name, subs[s]);
     BFAM_ABORT_IF_NOT(rval != 1, "Issue adding subdomain %s", subs[s]->name);
 
-    for (int n = 0; n < ts->nStages; n++)
+    for (int n = 0; n < ts->n_stages; n++)
     {
       char aux_rates_name[BFAM_BUFSIZ];
       snprintf(aux_rates_name, BFAM_BUFSIZ, "%s%d_", BFAM_ADAMS_PREFIX, n);
@@ -362,7 +362,7 @@ void bfam_ts_adams_free(bfam_ts_adams_t *ts)
   bfam_free_aligned(ts->A);
   ts->A = NULL;
   */
-  ts->nStages = 0;
+  ts->n_stages = 0;
   ts->t = NAN;
   bfam_ts_free(&ts->base);
 }

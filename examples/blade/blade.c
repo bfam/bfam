@@ -1492,20 +1492,20 @@ static bfam_real_t compute_domain_dt(blade_t *blade, prefs_t *prefs,
 
   /* first we get all the volume subdomains */
   bfam_subdomain_t **subdomains =
-      bfam_malloc(((bfam_domain_t *)blade->domain)->numSubdomains *
+      bfam_malloc(((bfam_domain_t *)blade->domain)->num_subdomains *
                   sizeof(bfam_subdomain_t **));
 
-  bfam_locidx_t numSubdomains = 0;
+  bfam_locidx_t num_subdomains = 0;
 
   bfam_domain_get_subdomains(((bfam_domain_t *)blade->domain), BFAM_DOMAIN_OR,
                              volume,
-                             ((bfam_domain_t *)blade->domain)->numSubdomains,
-                             subdomains, &numSubdomains);
+                             ((bfam_domain_t *)blade->domain)->num_subdomains,
+                             subdomains, &num_subdomains);
 
-  bfam_real_t ldt[numSubdomains];
+  bfam_real_t ldt[num_subdomains];
   bfam_real_t min_ldt = INFINITY;
 
-  for (bfam_locidx_t s = 0; s < numSubdomains; ++s)
+  for (bfam_locidx_t s = 0; s < num_subdomains; ++s)
   {
     ldt[s] = INFINITY;
     bfam_subdomain_field_init(subdomains[s], "_grid_JI", 0,
@@ -1549,10 +1549,10 @@ static bfam_real_t compute_energy(blade_t *blade, prefs_t *prefs, bfam_real_t t,
                                   const char *prefix)
 {
   const char *tags[] = {"_volume", NULL};
-  bfam_subdomain_t *subs[blade->domain->base.numSubdomains];
+  bfam_subdomain_t *subs[blade->domain->base.num_subdomains];
   bfam_locidx_t num_subs = 0;
   bfam_domain_get_subdomains((bfam_domain_t *)blade->domain, BFAM_DOMAIN_OR,
-                             tags, blade->domain->base.numSubdomains, subs,
+                             tags, blade->domain->base.num_subdomains, subs,
                              &num_subs);
   bfam_real_t energy = 0;
   bfam_real_t energy_local = 0;

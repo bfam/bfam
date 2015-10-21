@@ -14,8 +14,8 @@
 typedef struct bfam_domain
 {
   bfam_subdomain_t **subdomains; /**< array of pointers to subdomains */
-  bfam_locidx_t numSubdomains;   /**< number of subdomains that are
-                                      currently in the domain */
+  bfam_locidx_t num_subdomains;  /**< number of subdomains that are
+                                     currently in the domain */
   bfam_locidx_t sizeSubdomains;  /**< total number of subdomains the domain
                                       can hold, i.e.  size of the array*/
   MPI_Comm comm;                 /**< communicator for the whole domain */
@@ -84,14 +84,14 @@ bfam_subdomain_t *bfam_domain_get_subdomain_by_num(bfam_domain_t *thisDomain,
  * \param [in]  numEntries    number of entries in the \a subdomains array
  * \param [out] subdomains    array of pointers to be filled with matching
  *                            subdomains
- * \param [out] numSubdomains number of matching subdomains
+ * \param [out] num_subdomains number of matching subdomains
  *
  */
 void bfam_domain_get_subdomains(bfam_domain_t *thisDomain,
                                 bfam_domain_match_t match, const char **tags,
                                 bfam_locidx_t numEntries,
                                 bfam_subdomain_t **subdomains,
-                                bfam_locidx_t *numSubdomains);
+                                bfam_locidx_t *num_subdomains);
 
 /** Get subdomains with tags passed in
  *
@@ -104,7 +104,7 @@ void bfam_domain_get_subdomains(bfam_domain_t *thisDomain,
  * \param [in]  numEntries    number of entries in the \a subdomains array
  * \param [out] subdomains    array of pointers to be filled with matching
  *                            subdomains
- * \param [out] numSubdomains number of matching subdomains
+ * \param [out] num_subdomains number of matching subdomains
  *
  */
 void bfam_domain_get_subdomains_critbit(bfam_domain_t *thisDomain,
@@ -112,7 +112,7 @@ void bfam_domain_get_subdomains_critbit(bfam_domain_t *thisDomain,
                                         bfam_critbit0_tree_t *tags,
                                         bfam_locidx_t numEntries,
                                         bfam_subdomain_t **subdomains,
-                                        bfam_locidx_t *numSubdomains);
+                                        bfam_locidx_t *num_subdomains);
 
 /** Add tag to subdomains matching the tags passed in.
  *
