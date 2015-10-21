@@ -26,6 +26,9 @@ namespace occa {
   }
 
   bool charIsIn2(const char *c, const char *delimiters){
+    if((c[0] == '\0') || (c[1] == '\0'))
+      return false;
+
     const char c0 = c[0];
     const char c1 = c[1];
 
@@ -40,6 +43,9 @@ namespace occa {
   }
 
   bool charIsIn3(const char *c, const char *delimiters){
+    if((c[0] == '\0') || (c[1] == '\0') || (c[2] == '\0'))
+      return false;
+
     const char c0 = c[0];
     const char c1 = c[1];
     const char c2 = c[2];
@@ -757,4 +763,35 @@ namespace occa {
 
     return ret.str();
   }
+
+  //---[ Flag Holder ]----------------------------
+  bool flags_t::has(const std::string &flag){
+    return (flags.find(flag) != flags.end());
+  }
+
+  bool flags_t::hasSet(const std::string &flag, const std::string &value){
+    strToStrMapIterator it = flags.find(flag);
+
+    if(it == flags.end())
+      return false;
+
+    return (it->second == value);
+  }
+
+  bool flags_t::hasEnabled(const std::string &flag, bool defaultValue){
+    strToStrMapIterator it = flags.find(flag);
+
+    if(it == flags.end())
+      return defaultValue;
+
+    if(upStringCheck(it->second, "enabled") ||
+       upStringCheck(it->second, "yes")     ||
+       upStringCheck(it->second, "y")){
+
+      return true;
+    }
+
+    return false;
+  }
+  //==============================================
 }

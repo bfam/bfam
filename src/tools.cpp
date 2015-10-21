@@ -1,4 +1,3 @@
-#include "occa/varFiles.hpp"
 #include "occa/tools.hpp"
 #include "occa/base.hpp"
 
@@ -413,6 +412,23 @@ namespace occa {
       delete [] found_;
 
       return foundMatch;
+    }
+
+    int call(const std::string &cmdline){
+      FILE *fp = popen(cmdline.c_str(), "r");
+      return pclose(fp);
+    }
+
+    int call(const std::string &cmdline, std::string &output){
+      FILE *fp = popen(cmdline.c_str(), "r");
+
+      size_t lineBytes = 512;
+      char lineBuffer[512];
+
+      while(fgets(lineBuffer, lineBytes, fp))
+        output += lineBuffer;
+
+      return pclose(fp);
     }
 
     std::string echo(const std::string &var){
@@ -965,22 +981,23 @@ namespace occa {
                                         const kernelInfo &info){
 
     parser fileParser;
-    strToStrMap_t compilerFlags;
 
     const std::string extension = getFileExtension(filename);
 
-    compilerFlags["mode"]     = deviceMode;
-    compilerFlags["language"] = ((extension != "ofl") ? "C" : "Fortran");
+    flags_t parserFlags = info.getParserFlags();
+
+    parserFlags["mode"]     = deviceMode;
+    parserFlags["language"] = ((extension != "ofl") ? "C" : "Fortran");
 
     if((extension == "oak") ||
        (extension == "oaf")){
 
-      compilerFlags["magic"] = "enabled";
+      parserFlags["magic"] = "enabled";
     }
 
     std::string parsedContent = fileParser.parseFile(info.header,
                                                      filename,
-                                                     compilerFlags);
+                                                     parserFlags);
 
     if(!sys::fileExists(parsedFile)){
       sys::mkpath(getFileDirectory(parsedFile));
@@ -1018,6 +1035,53 @@ namespace occa {
     return ret;
   }
 
+  char* getCachedOccaFile(const std::string &filename){
+    static std::map<std::string, char*> sourceMap;
+
+    char *&source = sourceMap[filename];
+
+    if(source == NULL)
+      source = cReadFile(env::OCCA_DIR + "/" + filename);
+
+    return source;
+  }
+
+  char* getCachedDefines(const std::string &filename){
+    return getCachedOccaFile("include/occa/defines/" + filename);
+  }
+
+  char* getCachedScript(const std::string &filename){
+    return getCachedOccaFile("scripts/" + filename);
+  }
+
+  char* getVectorDefines(){
+    return getCachedDefines("vector.hpp");
+  }
+
+  char* getSerialDefines(){
+    return getCachedDefines("Serial.hpp");
+  }
+
+  char* getOpenMPDefines(){
+    return getCachedDefines("OpenMP.hpp");
+  }
+
+  char* getOpenCLDefines(){
+    return getCachedDefines("OpenCL.hpp");
+  }
+
+  char* getCUDADefines(){
+    return getCachedDefines("CUDA.hpp");
+  }
+
+  char* getHSADefines(){
+    return getCachedDefines("HSA.hpp");
+  }
+
+  char* getPthreadsDefines(){
+    return getCachedDefines("Pthreads.hpp");
+  }
+
   void setupOccaHeaders(const kernelInfo &info){
     std::string primitivesFile = sys::getFilename("[occa]/primitives.hpp");
     std::string headerFile     = info.getModeHeaderFilename();
@@ -1028,7 +1092,7 @@ namespace occa {
       std::ofstream fs2;
       fs2.open(primitivesFile.c_str());
 
-      fs2 << occaVectorDefines;
+      fs2 << getVectorDefines();
 
       fs2.close();
     }
@@ -1039,13 +1103,12 @@ namespace occa {
       std::ofstream fs2;
       fs2.open(headerFile.c_str());
 
-      if(info.mode & Serial)   fs2 << occaSerialDefines;
-      if(info.mode & OpenMP)   fs2 << occaOpenMPDefines;
-      if(info.mode & OpenCL)   fs2 << occaOpenCLDefines;
-      if(info.mode & CUDA)     fs2 << occaCUDADefines;
-      // if(info.mode & HSA)      fs2 << occaHSADefines;
-      if(info.mode & Pthreads) fs2 << occaPthreadsDefines;
-      if(info.mode & COI)      fs2 << occaCOIDefines;
+      if(info.mode & Serial)   fs2 << getSerialDefines();
+      if(info.mode & OpenMP)   fs2 << getOpenMPDefines();
+      if(info.mode & OpenCL)   fs2 << getOpenCLDefines();
+      if(info.mode & CUDA)     fs2 << getCUDADefines();
+      // if(info.mode & HSA)      fs2 << getHSADefines();
+      if(info.mode & Pthreads) fs2 << getPthreadsDefines();
 
       fs2.close();
     }

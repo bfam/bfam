@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include <omp.h>
+
 #include <cstdlib>
 #include <cstdio>
 #include <cmath>
@@ -23,9 +25,8 @@
 #define OCCA_USING_OPENCL   0
 #define OCCA_USING_CUDA     0
 #define OCCA_USING_PTHREADS 0
-#define OCCA_USING_COI      0
 
-#define OCCA_USING_CPU (OCCA_USING_SERIAL || OCCA_USING_OPENMP || OCCA_USING_PTHREADS || OCCA_USING_COI)
+#define OCCA_USING_CPU (OCCA_USING_SERIAL || OCCA_USING_OPENMP || OCCA_USING_PTHREADS)
 #define OCCA_USING_GPU (OCCA_USING_OPENCL || OCCA_USING_CUDA)
 //================================================
 
@@ -338,6 +339,10 @@ TM occaAtomicCAS(TM *ptr, const int comp, const TM &update){
 #define occaFastMax   std::max
 #define occaNativeMax std::max
 
+#define occaHypot       hypot
+#define occaFastHypot   hypot
+#define occaNativeHypot hypot
+
 #define occaFabs       fabs
 #define occaFastFabs   fabs
 #define occaNativeFabs fabs
@@ -432,7 +437,12 @@ TM occaAtomicCAS(TM *ptr, const int comp, const TM &update){
 // - - - - - - - - - - - - - - - - - - - - - - - -
 #define occaUnroll3(N) OCCA_PRAGMA(#N)
 #define occaUnroll2(N) occaUnroll3(N)
-#define occaUnroll(N)  occaUnroll2(unroll N)
+
+#if (OCCA_COMPILED_WITH & OCCA_INTEL_COMPILER)
+#  define occaUnroll(N)  occaUnroll2(unroll(N))
+#else
+#  define occaUnroll(N)  occaUnroll2(unroll N)
+#endif
 //================================================
 
 

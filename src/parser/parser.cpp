@@ -17,7 +17,9 @@ namespace occa {
       const int ret = loadedLanguageVec.back();
 
       loadedLanguageVec.pop_back();
-      loadKeywords(loadedLanguageVec.back());
+
+      if(loadedLanguageVec.size())
+        loadKeywords(loadedLanguageVec.back());
 
       return ret;
     }
@@ -31,51 +33,36 @@ namespace occa {
 
       globalScope       = new statement(*this);
       globalScope->info = smntType::namespaceStatement;
+    }
 
-      warnForMissingBarriers     = true;
-      warnForBarrierConditionals = true;
-      magicEnabled               = false;
+    parserBase::~parserBase(){
+      if(globalScope){
+        delete globalScope;
+        globalScope = NULL;
+      }
     }
 
     const std::string parserBase::parseFile(const std::string &header,
                                             const std::string &filename_,
-                                            const strToStrMap_t &compilerFlags_){
+                                            const flags_t &flags_){
 
       filename = filename_;
 
-      compilerFlags = compilerFlags_;
+      parsingFlags = flags_;
 
       //---[ Language ]-------
-      strToStrMapIterator it = compilerFlags.find("language");
-
-      if((it          == compilerFlags.end()) ||
-         (it->second) != "Fortran"){
-
-        parsingLanguage = parserInfo::parsingC;
-      }
-      else {
+      if(parsingFlags.hasSet("language", "Fortran"))
         parsingLanguage = parserInfo::parsingFortran;
-      }
+      else
+        parsingLanguage = parserInfo::parsingC;
 
       pushLanguage(parsingLanguage);
 
       //---[ Mode ]-----------
-      it = compilerFlags.find("mode");
-
-      OCCA_CHECK(it != compilerFlags.end(),
+      OCCA_CHECK(parsingFlags.has("mode"),
                  "Compilation mode must be passed to the parser");
 
-      std::string &modeStr = (it->second);
-
-      cpuMode = ((modeStr == "Serial") ||
-                 (modeStr == "OpenMP"));
-
       //---[ Magic ]----------
-      it = compilerFlags.find("magic");
-
-      magicEnabled = (( it          != compilerFlags.end()) &&
-                      ((it->second) == "enabled"));
-
       std::string content = header;
       content += readFile(filename);
 
@@ -101,7 +88,7 @@ namespace occa {
       markKernelFunctions();
       labelNativeKernels();
 
-      if(magicEnabled){
+      if(hasMagicEnabled()){
         magician::castMagicOn(*this);
         std::cout << (std::string) *globalScope;
         throw 1;
@@ -135,6 +122,40 @@ namespace occa {
 
       return (std::string) *globalScope;
     }
+
+    //---[ Parser Warnings ]------------
+    bool parserBase::hasMagicEnabled(){
+      static bool ret = parsingFlags.has("magic");
+
+      return ret;
+    }
+
+    bool parserBase::compilingForCPU(){
+      static bool ret = ((parsingFlags["mode"] == "Serial")   ||
+                         (parsingFlags["mode"] == "Pthreads") ||
+                         (parsingFlags["mode"] == "OpenMP"));
+
+      return ret;
+    }
+
+    bool parserBase::warnForMissingBarriers(){
+      static bool ret = parsingFlags.hasEnabled("warn-for-missing-barriers", true);
+
+      return ret;
+    }
+
+    bool parserBase::warnForConditionalBarriers(){
+      static bool ret = parsingFlags.hasEnabled("warn-for-conditional-barriers", true);
+
+      return ret;
+    }
+
+    bool parserBase::insertBarriersAutomatically(){
+      static bool ret = parsingFlags.hasEnabled("automate-add-barriers", true);
+
+      return ret;
+    }
+    //==================================
 
     //---[ Macro Parser Functions ]-------
     std::string parserBase::getMacroName(const char *&c){
@@ -951,7 +972,7 @@ namespace occa {
     }
 
     void parserBase::setupOccaFors(statement &s){
-      if(cpuMode)
+      if(compilingForCPU())
         return;
 
       if(s.info != smntType::occaFor)
@@ -1980,8 +2001,7 @@ namespace occa {
           }
 
           if(snPos == lastLoop){
-            if(warnForMissingBarriers){
-
+            if(warnForMissingBarriers()){
               std::cout << "Warning: Placing a shared-memory barrier between:\n"
                         << "---[ A ]--------------------------------\n"
                         << *(firstLoop->value)
@@ -2352,7 +2372,7 @@ namespace occa {
       statementVector_t newKernels;
 
       // Add parallel for's
-      if(cpuMode){
+      if(compilingForCPU()){
         for(int k = 0; k < kernelCount; ++k){
           statement &omLoop  = *(omLoops[k]);
 
