@@ -162,14 +162,6 @@ OCCA_LFUNC occaKernel OCCA_RFUNC occaBuildKernelFromString(const char *str,
 
 OCCA_LFUNC occaKernel OCCA_RFUNC occaBuildKernelFromBinary(const char *filename,
                                                            const char *functionName);
-
-OCCA_LFUNC occaKernel OCCA_RFUNC occaBuildKernelFromLoopy(const char *filename,
-                                                          const char *functionName,
-                                                          occaKernelInfo info);
-
-OCCA_LFUNC occaKernel OCCA_RFUNC occaBuildKernelFromFloopy(const char *filename,
-                                                           const char *functionName,
-                                                           occaKernelInfo info);
 //  |=================================
 
 //  |---[ Memory ]--------------------
@@ -256,16 +248,6 @@ OCCA_LFUNC occaKernel OCCA_RFUNC occaDeviceBuildKernelFromBinary(occaDevice devi
                                                                  const char *filename,
                                                                  const char *functionName);
 
-OCCA_LFUNC occaKernel OCCA_RFUNC occaDeviceBuildKernelFromLoopy(occaDevice device,
-                                                                const char *filename,
-                                                                const char *functionName,
-                                                                occaKernelInfo info);
-
-OCCA_LFUNC occaKernel OCCA_RFUNC occaDeviceBuildKernelFromFloopy(occaDevice device,
-                                                                 const char *filename,
-                                                                 const char *functionName,
-                                                                 occaKernelInfo info);
-
 OCCA_LFUNC occaMemory OCCA_RFUNC occaDeviceMalloc(occaDevice device,
                                                   uintptr_t bytes,
                                                   void *src);
@@ -351,6 +333,12 @@ OCCA_LFUNC void OCCA_RFUNC occaKernelInfoFree(occaKernelInfo info);
 //====================================
 
 
+//---[ Helper Functions ]-------------
+OCCA_LFUNC int OCCA_RFUNC occaSysCall(const char *cmdline,
+                                      char **output);
+//====================================
+
+
 //---[ Wrappers ]---------------------
 #if OCCA_OPENCL_ENABLED
 OCCA_LFUNC occaDevice OCCA_RFUNC occaWrapOpenCLDevice(cl_platform_id platformID,
@@ -364,10 +352,6 @@ OCCA_LFUNC occaDevice OCCA_RFUNC occaWrapCudaDevice(CUdevice device, CUcontext c
 
 #if OCCA_HSA_ENABLED
 OCCA_LFUNC occaDevice OCCA_RFUNC occaWrapHSADevice();
-#endif
-
-#if OCCA_COI_ENABLED
-OCCA_LFUNC occaDevice OCCA_RFUNC occaWrapCoiDevice(COIENGINE coiDevice);
 #endif
 
 OCCA_LFUNC occaMemory OCCA_RFUNC occaDeviceWrapMemory(occaDevice device,

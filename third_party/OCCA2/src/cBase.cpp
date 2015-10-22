@@ -370,36 +370,6 @@ occaKernel OCCA_RFUNC occaBuildKernelFromBinary(const char *filename,
 
   return (occaKernel) kernel.getKHandle();
 }
-
-occaKernel OCCA_RFUNC occaBuildKernelFromLoopy(const char *filename,
-                                               const char *functionName,
-                                               occaKernelInfo info){
-  occa::kernel kernel;
-
-  occa::kernelInfo &info_ = *((occa::kernelInfo*) info);
-
-  kernel = occa::buildKernelFromLoopy(filename,
-                                      functionName,
-                                      info_,
-                                      occa::useLoopy);
-
-  return (occaKernel) kernel.getKHandle();
-}
-
-occaKernel OCCA_RFUNC occaBuildKernelFromFloopy(const char *filename,
-                                                const char *functionName,
-                                                occaKernelInfo info){
-  occa::kernel kernel;
-
-  occa::kernelInfo &info_ = *((occa::kernelInfo*) info);
-
-  kernel = occa::buildKernelFromLoopy(filename,
-                                      functionName,
-                                      info_,
-                                      occa::useFloopy);
-
-  return (occaKernel) kernel.getKHandle();
-}
 //  |=================================
 
 //  |---[ Memory ]--------------------
@@ -654,40 +624,6 @@ occaKernel OCCA_RFUNC occaDeviceBuildKernelFromBinary(occaDevice device,
   occa::kernel kernel;
 
   kernel = device_.buildKernelFromBinary(filename, functionName);
-
-  return (occaKernel) kernel.getKHandle();
-}
-
-occaKernel OCCA_RFUNC occaDeviceBuildKernelFromLoopy(occaDevice device,
-                                                     const char *filename,
-                                                     const char *functionName,
-                                                     occaKernelInfo info){
-  occa::device device_((occa::device_v*) device);
-  occa::kernel kernel;
-
-  occa::kernelInfo &info_ = *((occa::kernelInfo*) info);
-
-  kernel = device_.buildKernelFromLoopy(filename,
-                                        functionName,
-                                        info_,
-                                        occa::useLoopy);
-
-  return (occaKernel) kernel.getKHandle();
-}
-
-occaKernel OCCA_RFUNC occaDeviceBuildKernelFromFloopy(occaDevice device,
-                                                      const char *filename,
-                                                      const char *functionName,
-                                                      occaKernelInfo info){
-  occa::device device_((occa::device_v*) device);
-  occa::kernel kernel;
-
-  occa::kernelInfo &info_ = *((occa::kernelInfo*) info);
-
-  kernel = device_.buildKernelFromLoopy(filename,
-                                        functionName,
-                                        info_,
-                                        occa::useFloopy);
 
   return (occaKernel) kernel.getKHandle();
 }
@@ -1012,6 +948,26 @@ void OCCA_RFUNC occaKernelInfoFree(occaKernelInfo info){
 //====================================
 
 
+//---[ Helper Functions ]-------------
+int OCCA_RFUNC occaSysCall(const char *cmdline,
+                           char **output){
+  if(output == NULL)
+    return occa::sys::call(cmdline);
+
+  std::string sOutput;
+  int ret = occa::sys::call(cmdline, sOutput);
+
+  const size_t chars = sOutput.size();
+  *output = (char*) ::malloc(chars + 1);
+
+  ::memcpy(*output, sOutput.c_str(), chars);
+  output[chars] = 0;
+
+  return ret;
+}
+//====================================
+
+
 //---[ Wrappers ]---------------------
 #if OCCA_OPENCL_ENABLED
 occaDevice OCCA_RFUNC occaWrapOpenCLDevice(cl_platform_id platformID,
@@ -1034,14 +990,6 @@ occaDevice OCCA_RFUNC occaWrapCudaDevice(CUdevice device, CUcontext context){
 #if OCCA_HSA_ENABLED
 occaDevice OCCA_RFUNC occaWrapHSADevice(){
   occa::device device_ = occa::hsa::wrapDevice();
-
-  return (occaDevice) device_.getDHandle();
-}
-#endif
-
-#if OCCA_COI_ENABLED
-occaDevice OCCA_RFUNC occaWrapCoiDevice(COIENGINE coiDevice){
-  occa::device device = occa::coi::wrapDevice(coiDevice);
 
   return (occaDevice) device_.getDHandle();
 }

@@ -56,14 +56,6 @@ namespace occa {
 #endif
   }
 
-  bool hasCOIEnabled(){
-#if OCCA_COI_ENABLED
-    return true;
-#else
-    return false;
-#endif
-  }
-
   bool hasHSAEnabled(){
 #if OCCA_HSA_ENABLED
     return true;
@@ -238,7 +230,6 @@ namespace occa {
     if(mode & CUDA)     return sys::getFilename("[occa]/defines/CUDA.hpp");
     if(mode & HSA)      return sys::getFilename("[occa]/defines/HSA.hpp");
     if(mode & Pthreads) return sys::getFilename("[occa]/defines/Pthreads.hpp");
-    if(mode & COI)      return sys::getFilename("[occa]/defines/COI.hpp");
 
     return "";
   }
@@ -252,7 +243,6 @@ namespace occa {
        (name == "OCCA_USING_OPENCL")   ||
        (name == "OCCA_USING_CUDA")     ||
        (name == "OCCA_USING_PTHREADS") ||
-       (name == "OCCA_USING_COI")      ||
 
        (name == "occaInnerDim0") ||
        (name == "occaInnerDim1") ||
@@ -297,6 +287,20 @@ namespace occa {
 #else
     flags += " /I \"" + path + "\"";
 #endif
+  }
+
+  flags_t& kernelInfo::getParserFlags(){
+    return parserFlags;
+  }
+
+  const flags_t& kernelInfo::getParserFlags() const {
+    return parserFlags;
+  }
+
+  void kernelInfo::addParserFlag(const std::string &flag,
+                                 const std::string &value){
+
+    parserFlags[flag] = value;
   }
 
   template <>
@@ -1184,7 +1188,7 @@ namespace occa {
   }
 
   device::device(){
-    dHandle = new device_t<Serial>();
+    dHandle = NULL;
   }
 
   device::device(device_v *dHandle_) :
@@ -1252,16 +1256,6 @@ namespace occa {
     case Pthreads:{
       std::cout << "OCCA mode [Pthreads] is still in development-mode (unstable)\n";
       dHandle = new device_t<Pthreads>();
-      break;
-    }
-    case COI:{
-#if OCCA_COI_ENABLED
-      std::cout << "OCCA mode [COI] is deprecated (unstable)\n";
-      dHandle = new device_t<COI>();
-#else
-      std::cout << "OCCA mode [COI] is not enabled, defaulting to [Serial] mode\n";
-      dHandle = new device_t<Serial>();
-#endif
       break;
     }
     default:{
@@ -1335,10 +1329,6 @@ namespace occa {
     case Pthreads:{
       aim.set("threadCount", arg1);
       aim.set("pinningInfo", arg2);
-      break;
-    }
-    case COI:{
-      aim.set("deviceID", arg1);
       break;
     }
     }
@@ -1725,78 +1715,6 @@ namespace occa {
     return ker;
   }
 
-  kernel device::buildKernelFromLoopy(const std::string &filename,
-                                      const std::string &functionName,
-                                      const int useLoopyOrFloopy){
-
-    return buildKernelFromLoopy(filename,
-                                functionName,
-                                defaultKernelInfo,
-                                useLoopyOrFloopy);
-  }
-
-  kernel device::buildKernelFromLoopy(const std::string &filename,
-                                      const std::string &functionName,
-                                      const kernelInfo &info_,
-                                      const int useLoopyOrFloopy){
-    checkIfInitialized();
-
-    const std::string realFilename = sys::getFilename(filename);
-
-    const std::string hash = getFileContentHash(realFilename,
-                                                dHandle->getInfoSalt(info_));
-
-    const std::string hashDir    = hashDirFor("", hash);
-    const std::string binaryFile = hashDir + "binary";
-
-    if(!haveHash(hash, 2)){
-      waitForHash(hash, 2);
-
-      if(verboseCompilation_f)
-        std::cout << "Found loo.py cached binary of [" << filename << "] in [" << binaryFile << "]\n";
-
-      return buildKernelFromBinary(binaryFile, functionName);
-    }
-
-    const std::string defsFile = hashDir + "loopy.defs";
-    const std::string clFile   = hashDir + "loopy.cl";
-
-    writeToFile(defsFile, info_.header);
-
-    std::string loopyLang = "loopy";
-
-    if(useLoopyOrFloopy == occa::useFloopy)
-      loopyLang = "fpp";
-
-    std::stringstream command;
-
-    command << "loopy"
-            << " --lang="         << loopyLang
-            << " --occa-defines=" << defsFile << ' '
-            << " --occa-add-dummy-arg "
-            << realFilename << ' ' << clFile;
-
-    const std::string &sCommand = command.str();
-
-    if(verboseCompilation_f)
-      std::cout << sCommand << '\n';
-
-#if (OCCA_OS & (LINUX_OS | OSX_OS))
-    const int compileError = system(sCommand.c_str());
-#else
-    const int compileError = system(("\"" +  sCommand + "\"").c_str());
-#endif
-
-    if(compileError)
-      OCCA_CHECK(false, "Compilation error");
-
-    kernel k = buildKernelFromSource(clFile, functionName);
-
-    releaseHash(hash, 2);
-
-    return k;
-  }
-
   memory device::wrapMemory(void *handle_,
                             const uintptr_t bytes){
     checkIfInitialized();
@@ -1955,8 +1873,10 @@ namespace occa {
   }
 
   //   ---[ Device Functions ]----------
-  device host;
-  device currentDevice;
+  device_t<Serial> hostHandle;
+
+  device host(&hostHandle);
+  device currentDevice = host;
 
   void setDevice(device d){
     currentDevice = d;
@@ -1996,9 +1916,6 @@ namespace occa {
 #endif
 #if OCCA_CUDA_ENABLED
     device_t<CUDA>::appendAvailableDevices(deviceList);
-#endif
-#if OCCA_COI_ENABLED
-    device_t<COI>::appendAvailableDevices(deviceList);
 #endif
 
     deviceListMutex.unlock();
@@ -2125,26 +2042,6 @@ namespace occa {
                                                functionName);
   }
 
-  kernel buildKernelFromLoopy(const std::string &filename,
-                              const std::string &functionName,
-                              const int loopyOrFloopy){
-
-    return currentDevice.buildKernelFromLoopy(filename,
-                                              functionName,
-                                              loopyOrFloopy);
-  }
-
-  kernel buildKernelFromLoopy(const std::string &filename,
-                              const std::string &functionName,
-                              const kernelInfo &info_,
-                              const int loopyOrFloopy){
-
-    return currentDevice.buildKernelFromLoopy(filename,
-                                              functionName,
-                                              info_,
-                                              loopyOrFloopy);
-  }
-
   //   ---[ Memory Functions ]----------
   memory wrapMemory(void *handle_,
                     const uintptr_t bytes){
@@ -2248,10 +2145,6 @@ namespace occa {
 #if OCCA_CUDA_ENABLED
     ss << "==============o=======================o==========================================\n";
     ss << cuda::getDeviceListInfo();
-#endif
-#if OCCA_COI_ENABLED
-    ss << "==============o=======================o==========================================\n";
-    ss << coi::getDeviceListInfo();
 #endif
     ss << "==============o=======================o==========================================\n";
 
@@ -2384,19 +2277,6 @@ namespace occa {
 #else
       OCCA_CHECK(false,
                  "OCCA was not compiled with [CUDA] enabled");
-
-      return occa::host;
-#endif
-    }
-  }
-
-  namespace coi {
-    occa::device wrapDevice(void *coiDevicePtr){
-#if OCCA_COI_ENABLED
-      return coi::wrapDevice(*((COIENGINE*) coiDevice));
-#else
-      OCCA_CHECK(false,
-                 "OCCA was not compiled with [COI] enabled");
 
       return occa::host;
 #endif

@@ -29,8 +29,6 @@ void OCCASETVERBOSECOMPILATION_FC(const bool value){
 void OCCAINT32_FC(occaType *type, int32_t *value){
   if(sizeof(int) == 4){
     *type = occaInt(*value);
-
-    printf("type = %p\n", *type);
   }
   else {
     OCCA_CHECK(false,
@@ -277,42 +275,6 @@ void OCCADEVICEBUILDKERNELFROMBINARY_FC(occaKernel *kernel, occaDevice *device,
   OCCA_F2C_ALLOC_STR(functionName, functionName_l, functionName_c);
 
   *kernel = occaDeviceBuildKernelFromBinary(*device, filename_c, functionName_c);
-
-  OCCA_F2C_FREE_STR(filename    , filename_c);
-  OCCA_F2C_FREE_STR(functionName, functionName_c);
-}
-
-void OCCADEVICEBUILDKERNELFROMLOOPY_FC(occaKernel *kernel, occaDevice *device,
-                                       const char *filename     OCCA_F2C_LSTR(filename_l),
-                                       const char *functionName OCCA_F2C_LSTR(functionName_l),
-                                       occaKernelInfo *info
-                                       OCCA_F2C_RSTR(filename_l)
-                                       OCCA_F2C_RSTR(functionName_l)
-                                       OCCA_F2C_RSTR(pythonCode_l)){
-  char *filename_c, *functionName_c;
-
-  OCCA_F2C_ALLOC_STR(filename    , filename_l    , filename_c);
-  OCCA_F2C_ALLOC_STR(functionName, functionName_l, functionName_c);
-
-  *kernel = occaDeviceBuildKernelFromLoopy(*device, filename_c, functionName_c, info);
-
-  OCCA_F2C_FREE_STR(filename    , filename_c);
-  OCCA_F2C_FREE_STR(functionName, functionName_c);
-}
-
-void OCCADEVICEBUILDKERNELFROMFLOOPY_FC(occaKernel *kernel, occaDevice *device,
-                                        const char *filename     OCCA_F2C_LSTR(filename_l),
-                                        const char *functionName OCCA_F2C_LSTR(functionName_l),
-                                        occaKernelInfo *info
-                                        OCCA_F2C_RSTR(filename_l)
-                                        OCCA_F2C_RSTR(functionName_l)
-                                        OCCA_F2C_RSTR(pythonCode_l)){
-  char *filename_c, *functionName_c;
-
-  OCCA_F2C_ALLOC_STR(filename    , filename_l    , filename_c);
-  OCCA_F2C_ALLOC_STR(functionName, functionName_l, functionName_c);
-
-  *kernel = occaDeviceBuildKernelFromFloopy(*device, filename_c, functionName_c, info);
 
   OCCA_F2C_FREE_STR(filename    , filename_c);
   OCCA_F2C_FREE_STR(functionName, functionName_c);
@@ -956,6 +918,21 @@ void OCCAASYNCCOPYMEMTOPTRAUTO_FC(void *dest, occaMemory *src){
 
 void OCCAMEMORYFREE_FC(occaMemory *memory){
   occaMemoryFree(*memory);
+}
+//====================================
+
+
+//---[ Helper Functions ]-------------
+void OCCASYSCALL_FC(int32_t *stat,
+                    const char *cmdline OCCA_F2C_LSTR(cmdline_l)
+                    OCCA_F2C_RSTR(cmdline_l)
+                    ){
+  char *cmdline_c;
+  OCCA_F2C_ALLOC_STR(cmdline, cmdline_l, cmdline_c);
+
+  *stat = occaSysCall(cmdline_c, NULL);
+
+  OCCA_F2C_FREE_STR(cmdline, cmdline_c);
 }
 //====================================
 

@@ -14,7 +14,7 @@ namespace occa {
         std::ofstream fs2;
         fs2.open(shellToolsFile.c_str());
 
-        fs2 << occaShellTools;
+        fs2 << getCachedScript("shellTools.sh");
 
         fs2.close();
       }
@@ -1496,7 +1496,12 @@ namespace occa {
   }
 
   template <>
-  void device_t<Serial>::free(){}
+  void device_t<Serial>::free(){
+    if(data){
+      delete (SerialDeviceData_t*) data;
+      data = NULL;
+    }
+  }
 
   template <>
   int device_t<Serial>::simdWidth(){

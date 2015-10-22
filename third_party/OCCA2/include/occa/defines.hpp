@@ -120,6 +120,40 @@
 #  define OCCA_MEM_ALIGN 16
 #endif
 
+//---[ Compiler ]-------------
+#define OCCA_GNU_COMPILER       (1 << 0)
+#define OCCA_LLVM_COMPILER      (1 << 1)
+#define OCCA_INTEL_COMPILER     (1 << 2)
+#define OCCA_PATHSCALE_COMPILER (1 << 3)
+#define OCCA_IBM_COMPILER       (1 << 4)
+#define OCCA_PGI_COMPILER       (1 << 5)
+#define OCCA_HP_COMPILER        (1 << 6)
+#define OCCA_VS_COMPILER        (1 << 7)
+#define OCCA_CRAY_COMPILER      (1 << 8)
+#define OCCA_UNKNOWN_COMPILER   (1 << 9)
+
+#if defined(__clang__)
+#  define OCCA_COMPILED_WITH OCCA_LLVM_COMPILER
+#elif defined(__ICC) || defined(__INTEL_COMPILER)
+#  define OCCA_COMPILED_WITH OCCA_INTEL_COMPILER
+#elif defined(__GNUC__) || defined(__GNUG__)
+#  define OCCA_COMPILED_WITH OCCA_GNU_COMPILER
+#elif defined(__HP_cc) || defined(__HP_aCC)
+#  define OCCA_COMPILED_WITH OCCA_HP_COMPILER
+#elif defined(__IBMC__) || defined(__IBMCPP__)
+#  define OCCA_COMPILED_WITH OCCA_IBM_COMPILER
+#elif defined(__PGI)
+#  define OCCA_COMPILED_WITH OCCA_PGI_COMPILER
+#elif defined(_CRAYC)
+#  define OCCA_COMPILED_WITH OCCA_CRAY_COMPILER
+#elif defined(__PATHSCALE__) || defined(__PATHCC__)
+#  define OCCA_COMPILED_WITH OCCA_PATHSCALE_COMPILER
+#elif defined(_MSC_VER)
+#  define OCCA_COMPILED_WITH OCCA_VS_COMPILER
+#else
+#  define OCCA_COMPILED_WITH OCCA_UNKNOWN_COMPILER
+#endif
+
 //---[ Vectorization ]--------
 #ifdef __MIC__
 #  define OCCA_MIC 1
@@ -213,9 +247,9 @@
 
 #if   OCCA_MIC
 #  define OCCA_SIMD_WIDTH 16
-#elif OCCA_AVX
+#elif OCCA_AVX | OCCA_AVX2
 #  define OCCA_SIMD_WIDTH 8
-#elif OCCA_SSE
+#elif OCCA_SSE | OCCA_SSE2 | OCCA_SSE3 | OCCA_SSE4
 #  define OCCA_SIMD_WIDTH 4
 #elif OCCA_MMX
 #  define OCCA_SIMD_WIDTH 2
@@ -314,27 +348,6 @@
 
 #else
 #  define OCCA_CL_CHECK( _str , _statement ) do { _statement; } while(0)
-#endif
-//======================================
-
-
-//---[ COI ]----------------------------
-#if OCCA_CHECK_ENABLED
-#  define OCCA_COI_CHECK( _str , _statement ) OCCA_COI_CHECK2( _str , _statement , __FILE__ , __LINE__ )
-#  define OCCA_COI_CHECK2( _str , _statement , file , line )            \
-  do {                                                                  \
-    COIRESULT errorCode = _statement;                                   \
-    if(errorCode != COI_SUCCESS){                                       \
-      std::cout << "Error\n"                                            \
-                << "    File    : " << file << '\n'                     \
-                << "    Line    : " << line << '\n'                     \
-                << "    Error   : " << occa::coiError(errorCode) << '\n' \
-                << "    Message : " << _str << '\n';                    \
-      throw 1;                                                          \
-    }                                                                   \
-  } while(0);
-#else
-#  define OCCA_COI_CHECK( _str , _statement ) do { _statement; } while(0);
 #endif
 //======================================
 

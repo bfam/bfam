@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <string.h>
 #include <errno.h>
@@ -134,6 +135,9 @@ namespace occa {
                    const char *c);
     };
 
+    int call(const std::string &cmdline);
+    int call(const std::string &cmdline, std::string &output);
+
     std::string echo(const std::string &var);
     std::string expandEnvVariables(const std::string &str);
 
@@ -226,6 +230,18 @@ namespace occa {
                                         const kernelInfo &info);
 
   std::string removeSlashes(const std::string &str);
+
+  char* getCachedOccaFile(const std::string &filename);
+  char* getCachedDefines(const std::string &filename);
+  char* getCachedScript(const std::string &filename);
+
+  char* getVectorDefines();
+  char* getSerialDefines();
+  char* getOpenMPDefines();
+  char* getOpenCLDefines();
+  char* getCUDADefines();
+  char* getHSADefines();
+  char* getPthreadsDefines();
 
   void setupOccaHeaders(const kernelInfo &info);
 

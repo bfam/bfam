@@ -9,10 +9,41 @@
 #define OCCA_USING_OPENCL   0
 #define OCCA_USING_CUDA     1
 #define OCCA_USING_PTHREADS 0
-#define OCCA_USING_COI      0
 
-#define OCCA_USING_CPU (OCCA_USING_SERIAL || OCCA_USING_OPENMP || OCCA_USING_PTHREADS || OCCA_USING_COI)
+#define OCCA_USING_CPU (OCCA_USING_SERIAL || OCCA_USING_OPENMP || OCCA_USING_PTHREADS)
 #define OCCA_USING_GPU (OCCA_USING_OPENCL || OCCA_USING_CUDA)
+//================================================
+
+//---[ Remove CPU Defines ]-----------------------
+//  |---[ Compiler ]----------
+#define OCCA_GNU_COMPILER       (1 << 0)
+#define OCCA_LLVM_COMPILER      (1 << 1)
+#define OCCA_INTEL_COMPILER     (1 << 2)
+#define OCCA_PATHSCALE_COMPILER (1 << 3)
+#define OCCA_IBM_COMPILER       (1 << 4)
+#define OCCA_PGI_COMPILER       (1 << 5)
+#define OCCA_HP_COMPILER        (1 << 6)
+#define OCCA_VS_COMPILER        (1 << 7)
+#define OCCA_CRAY_COMPILER      (1 << 8)
+#define OCCA_UNKNOWN_COMPILER   (1 << 9)
+
+#define OCCA_COMPILED_WITH OCCA_UNKNOWN_COMPILER
+
+//  |---[ Vectorization ]-----
+#define OCCA_MIC    0
+#define OCCA_AVX2   0
+#define OCCA_AVX    0
+#define OCCA_SSE4_2 0
+#define OCCA_SSE4_1 0
+#define OCCA_SSE4   0
+#define OCCA_SSE3   0
+#define OCCA_SSE2   0
+#define OCCA_SSE    0
+#define OCCA_MMX    0
+
+#define OCCA_VECTOR_SET
+
+#define OCCA_SIMD_WIDTH 0
 //================================================
 
 
@@ -152,6 +183,13 @@ __device__ inline TM occaCuda_max(const TM a, const TM b){ return (((a) > (b)) ?
 #define occaMax       occaCuda_max
 #define occaFastMax   occaCuda_max
 #define occaNativeMax occaCuda_max
+
+__device__ inline float  occaCuda_hypot(const float x){  return hypotf(x); }
+__device__ inline double occaCuda_hypot(const double x){ return hypot(x);  }
+
+#define occaHypot       occaCuda_hypot
+#define occaFastHypot   occaCuda_hypot
+#define occaNativeHypot occaCuda_hypot
 
 __device__ inline float  occaCuda_fabs(const float x){  return fabsf(x); }
 __device__ inline double occaCuda_fabs(const double x){ return fabs(x);  }
