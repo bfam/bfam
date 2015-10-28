@@ -204,17 +204,17 @@ with the license:
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-### OCCA2
+### libocca
 
-We include a version of OCCA2 from:
+We include a version of libocca from:
 
-    https://github.com/tcew/OCCA2
+    https://github.com/libocca/occa
 
 with the command:
 
-    git subtree pull --prefix=third_party/OCCA2 --squash git@github.com:tcew/OCCA2.git master
+    git subtree pull --prefix=third_party/OCCA2 --squash git@github.com:libocca/occa.git master
 
-OCCA2 has  the license:
+libocca has  the license:
 
     The MIT License (MIT)
 
