@@ -1,5 +1,5 @@
-#ifndef OCCA_SERIAL_DEFINES_HEADER
-#define OCCA_SERIAL_DEFINES_HEADER
+#ifndef OCCA_CPU_DEFINES_HEADER
+#define OCCA_CPU_DEFINES_HEADER
 
 #include <stdint.h>
 
@@ -16,16 +16,10 @@
 #  define OCCA_MEM_ALIGN 16
 #endif
 
-#define OCCA_IN_KERNEL      1
+#define OCCA_IN_KERNEL 1
 
-#define OCCA_USING_SERIAL   1
-#define OCCA_USING_OPENMP   0
-#define OCCA_USING_OPENCL   0
-#define OCCA_USING_CUDA     0
-#define OCCA_USING_PTHREADS 0
-
-#define OCCA_USING_CPU (OCCA_USING_SERIAL || OCCA_USING_OPENMP || OCCA_USING_PTHREADS)
-#define OCCA_USING_GPU (OCCA_USING_OPENCL || OCCA_USING_CUDA)
+#define OCCA_USING_CPU 1
+#define OCCA_USING_GPU 0
 //================================================
 
 
@@ -144,100 +138,6 @@
 
 
 //---[ Atomics ]----------------------------------
-template <class TM>
-TM occaAtomicAdd(TM *ptr, const TM &update){
-  const TM old = *ptr;
-  *ptr += update;
-
-  return old;
-}
-
-template <class TM>
-TM occaAtomicSub(TM *ptr, const TM &update){
-  const TM old = *ptr;
-  *ptr -= update;
-
-  return old;
-}
-
-template <class TM>
-TM occaAtomicSwap(TM *ptr, const TM &update){
-  const TM old = *ptr;
-  *ptr = update;
-
-  return old;
-}
-
-template <class TM>
-TM occaAtomicInc(TM *ptr){
-  const TM old = *ptr;
-  ++(*ptr);
-
-  return old;
-}
-
-template <class TM>
-TM occaAtomicDec(TM *ptr, const TM &update){
-  const TM old = *ptr;
-  --(*ptr);
-
-  return old;
-}
-
-template <class TM>
-TM occaAtomicMin(TM *ptr, const TM &update){
-  const TM old = *ptr;
-  *ptr = ((old < update) ? old : update);
-
-  return old;
-}
-
-template <class TM>
-TM occaAtomicMax(TM *ptr, const TM &update){
-  const TM old = *ptr;
-  *ptr = ((old < update) ? update : old);
-
-  return old;
-}
-
-template <class TM>
-TM occaAtomicAnd(TM *ptr, const TM &update){
-  const TM old = *ptr;
-  *ptr &= update;
-
-  return old;
-}
-
-template <class TM>
-TM occaAtomicOr(TM *ptr, const TM &update){
-  const TM old = *ptr;
-  *ptr |= update;
-
-  return old;
-}
-
-template <class TM>
-TM occaAtomicXor(TM *ptr, const TM &update){
-  const TM old = *ptr;
-  *ptr ^= update;
-
-  return old;
-}
-
-template <class TM>
-TM occaAtomicCAS(TM *ptr, const int comp, const TM &update){
-  TM old;
-
-#pragma omp critical
-  {
-    old = *ptr;
-    if(comp)
-      *ptr = update;
-  }
-
-  return old;
-}
-
 #define occaAtomicAdd64  occaAtomicAdd
 #define occaAtomicSub64  occaAtomicSub
 #define occaAtomicSwap64 occaAtomicSwap
@@ -247,101 +147,97 @@ TM occaAtomicCAS(TM *ptr, const int comp, const TM &update){
 
 
 //---[ Math ]-------------------------------------
-#define occaMin       std::min
-#define occaFastMin   std::min
-#define occaNativeMin std::min
+#define occaMin         std::min
+#define occaFastMin     std::min
+#define occaNativeMin   std::min
 
-#define occaMax       std::max
-#define occaFastMax   std::max
-#define occaNativeMax std::max
-
-#define occaHypot       hypot
-#define occaFastHypot   hypot
-#define occaNativeHypot hypot
-
-#define occaFabs       fabs
-#define occaFastFabs   fabs
-#define occaNativeFabs fabs
+#define occaMax         std::max
+#define occaFastMax     std::max
+#define occaNativeMax   std::max
 
 #define occaHypot       hypot
 #define occaFastHypot   hypot
 #define occaNativeHypot hypot
 
-#define occaSqrt       sqrt
-#define occaFastSqrt   sqrt
-#define occaNativeSqrt sqrt
+#define occaFabs        fabs
+#define occaFastFabs    fabs
+#define occaNativeFabs  fabs
 
-#define occaCbrt       cbrt
-#define occaFastCbrt   cbrt
-#define occaNativeCbrt cbrt
+#define occaSqrt        sqrt
+#define occaFastSqrt    sqrt
+#define occaNativeSqrt  sqrt
 
-#define occaSin       sin
-#define occaFastSin   sin
-#define occaNativeSin sin
+#define occaCbrt        cbrt
+#define occaFastCbrt    cbrt
+#define occaNativeCbrt  cbrt
 
-#define occaAsin       asin
-#define occaFastAsin   asin
-#define occaNativeAsin asin
+#define occaSin         sin
+#define occaFastSin     sin
+#define occaNativeSin   sin
 
-#define occaSinh       sinh
-#define occaFastSinh   sinh
-#define occaNativeSinh sinh
+#define occaAsin        asin
+#define occaFastAsin    asin
+#define occaNativeAsin  asin
+
+#define occaSinh        sinh
+#define occaFastSinh    sinh
+#define occaNativeSinh  sinh
 
 #define occaAsinh       asinh
 #define occaFastAsinh   asinh
 #define occaNativeAsinh asinh
 
-#define occaCos       cos
-#define occaFastCos   cos
-#define occaNativeCos cos
+#define occaCos         cos
+#define occaFastCos     cos
+#define occaNativeCos   cos
 
-#define occaAcos       acos
-#define occaFastAcos   acos
-#define occaNativeAcos acos
+#define occaAcos        acos
+#define occaFastAcos    acos
+#define occaNativeAcos  acos
 
-#define occaCosh       cosh
-#define occaFastCosh   cosh
-#define occaNativeCosh cosh
+#define occaCosh        cosh
+#define occaFastCosh    cosh
+#define occaNativeCosh  cosh
 
 #define occaAcosh       acosh
 #define occaFastAcosh   acosh
 #define occaNativeAcosh acosh
 
-#define occaTan       tan
-#define occaFastTan   tan
-#define occaNativeTan tan
+#define occaTan         tan
+#define occaFastTan     tan
+#define occaNativeTan   tan
 
-#define occaAtan       atan
-#define occaFastAtan   atan
-#define occaNativeAtan atan
+#define occaAtan        atan
+#define occaFastAtan    atan
+#define occaNativeAtan  atan
 
 #define occaAtan2       atan2
 #define occaFastAtan2   atan2
 #define occaNativeAtan2 atan2
 
-#define occaTanh       tanh
-#define occaFastTanh   tanh
-#define occaNativeTanh tanh
+#define occaTanh        tanh
+#define occaFastTanh    tanh
+#define occaNativeTanh  tanh
 
 #define occaAtanh       atanh
 #define occaFastAtanh   atanh
 #define occaNativeAtanh atanh
 
-#define occaExp       exp
-#define occaFastExp   exp
-#define occaNativeExp exp
+#define occaExp         exp
+#define occaFastExp     exp
+#define occaNativeExp   exp
 
 #define occaExpm1       expm1
 #define occaFastExpm1   expm1
 #define occaNativeExpm1 expm1
 
-#define occaPow       pow
-#define occaFastPow   pow
-#define occaNativePow pow
+#define occaPow         pow
+#define occaFastPow     pow
+#define occaNativePow   pow
 
-#define occaLog2       log2
-#define occaFastLog2   log2
-#define occaNativeLog2 log2
+#define occaLog2        log2
+#define occaFastLog2    log2
+#define occaNativeLog2  log2
 
 #define occaLog10       log10
 #define occaFastLog10   log10
@@ -350,11 +246,6 @@ TM occaAtomicCAS(TM *ptr, const int comp, const TM &update){
 
 
 //---[ Misc ]-------------------------------------
-#define occaParallelFor2
-#define occaParallelFor1
-#define occaParallelFor0
-#define occaParallelFor
-// - - - - - - - - - - - - - - - - - - - - - - - -
 #define occaUnroll3(N) OCCA_PRAGMA(#N)
 #define occaUnroll2(N) occaUnroll3(N)
 
@@ -375,8 +266,8 @@ public:
 
   TM data[OCCA_MAX_THREADS][SIZE] occaAligned;
 
-  occaPrivate_t(int dim0_, int dim1_, int dim2_,
-                int &id0_, int &id1_, int &id2_) :
+  inline occaPrivate_t(int dim0_, int dim1_, int dim2_,
+                       int &id0_, int &id1_, int &id2_) :
     dim0(dim0_),
     dim1(dim1_),
     dim2(dim2_),
@@ -384,13 +275,13 @@ public:
     id1(id1_),
     id2(id2_) {}
 
-  ~occaPrivate_t(){}
+  inline ~occaPrivate_t() {}
 
   inline int index() const {
     return ((id2*dim1 + id1)*dim0 + id0);
   }
 
-  inline TM& operator [] (const int n){
+  inline TM& operator [] (const int n) {
     return data[index()][n];
   }
 
@@ -398,11 +289,15 @@ public:
     return data[index()][n];
   }
 
-  inline operator TM(){
+  inline operator TM() {
     return data[index()][0];
   }
 
-  inline operator TM*(){
+  inline operator TM*() {
+    return data[index()];
+  }
+
+  inline TM& val() {
     return data[index()];
   }
 
@@ -411,85 +306,85 @@ public:
     return data[index()][0];
   }
 
-  inline TM& operator = (const TM &t){
+  inline TM& operator = (const TM &t) {
     data[index()][0] = t;
     return data[index()][0];
   }
 
-  inline TM& operator += (const TM &t){
+  inline TM& operator += (const TM &t) {
     data[index()][0] += t;
     return data[index()][0];
   }
 
-  inline TM& operator -= (const TM &t){
+  inline TM& operator -= (const TM &t) {
     data[index()][0] -= t;
     return data[index()][0];
   }
 
-  inline TM& operator /= (const TM &t){
+  inline TM& operator /= (const TM &t) {
     data[index()][0] /= t;
     return data[index()][0];
   }
 
-  inline TM& operator *= (const TM &t){
+  inline TM& operator *= (const TM &t) {
     data[index()][0] *= t;
     return data[index()][0];
   }
 
-  friend inline TM operator + (const TM &a, const occaPrivate_t &b){
+  friend inline TM operator + (const TM &a, const occaPrivate_t &b) {
     return (a + b.data[b.index()][0]);
   }
 
-  friend inline TM operator + (const occaPrivate_t &a, const TM &b){
+  friend inline TM operator + (const occaPrivate_t &a, const TM &b) {
     return (a.data[a.index()][0] + b);
   }
 
-  friend inline TM operator - (const TM &a, const occaPrivate_t &b){
+  friend inline TM operator - (const TM &a, const occaPrivate_t &b) {
     return (a - b.data[b.index()][0]);
   }
 
-  friend inline TM operator - (const occaPrivate_t &a, const TM &b){
+  friend inline TM operator - (const occaPrivate_t &a, const TM &b) {
     return (a.data[a.index()][0] - b);
   }
 
-  friend inline TM operator * (const TM &a, const occaPrivate_t &b){
+  friend inline TM operator * (const TM &a, const occaPrivate_t &b) {
     return (a * b.data[b.index()][0]);
   }
 
-  friend inline TM operator * (const occaPrivate_t &a, const TM &b){
+  friend inline TM operator * (const occaPrivate_t &a, const TM &b) {
     return (a.data[a.index()][0] * b);
   }
 
-  friend inline TM operator / (const TM &a, const occaPrivate_t &b){
+  friend inline TM operator / (const TM &a, const occaPrivate_t &b) {
     return (a / b.data[b.index()][0]);
   }
 
-  friend inline TM operator / (const occaPrivate_t &a, const TM &b){
+  friend inline TM operator / (const occaPrivate_t &a, const TM &b) {
     return (a.data[a.index()][0] / b);
   }
 
-  inline TM& operator ++ (){
+  inline TM& operator ++ () {
     return (++data[index()][0]);
   }
 
-  inline TM& operator ++ (int){
+  inline TM& operator ++ (int) {
     return (data[index()][0]++);
   }
 
-  inline TM& operator -- (){
+  inline TM& operator -- () {
     return (--data[index()][0]);
   }
 
-  inline TM& operator -- (int){
+  inline TM& operator -- (int) {
     return (data[index()][0]--);
   }
 };
 
-#define occaPrivateArray( TYPE , NAME , SIZE )                          \
+#define occaPrivateArray( TYPE , NAME , SIZE )                               \
   occaPrivate_t<TYPE,SIZE> NAME(occaInnerDim0, occaInnerDim1, occaInnerDim2, \
                                 occaInnerId0, occaInnerId1, occaInnerId2);
 
-#define occaPrivate( TYPE , NAME )                                      \
+#define occaPrivate( TYPE , NAME )                                        \
   occaPrivate_t<TYPE,1> NAME(occaInnerDim0, occaInnerDim1, occaInnerDim2, \
                              occaInnerId0, occaInnerId1, occaInnerId2);
 //================================================
