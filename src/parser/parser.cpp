@@ -263,7 +263,15 @@ namespace occa {
 
         skipTo(c, ",)");
 
-        macroArgMap[strip(cStart, c - cStart)] = (info.argc++);
+        const std::string macroArgName = strip(cStart, c - cStart);
+
+        if(macroArgName.size()){
+          macroArgMap[strip(cStart, c - cStart)] = (info.argc++);
+        }
+        else {
+          OCCA_CHECK((*c == ')') && (info.argc == 0),
+                     "Macro [" << info.name << "] has an argument without a name");
+        }
 
         if(*c == ')')
           break;
@@ -536,8 +544,9 @@ namespace occa {
               macroInfo &info = macros[it->second];
               word += info.parts[0];
             }
-            else
+            else{
               word += word2;
+            }
           }
           else
             break;
@@ -598,7 +607,9 @@ namespace occa {
         }
 
         cStart = c;
-        c += delimiterChars;
+
+        if(*c != '\0')
+          c += delimiterChars;
 
         if(cStart != c)
           newLine += std::string(cStart, c - cStart);
@@ -665,7 +676,7 @@ namespace occa {
         return;
 
       if(linesIgnored.back() != (allExp.leafCount - 1))
-        linesIgnored.push_back(allExp.leafCount - 1);
+        linesIgnored.push_back(allExp.leafCount);
 
       const int ignoreCount = (int) linesIgnored.size();
 
@@ -697,6 +708,8 @@ namespace occa {
       pushLanguage(parsingLanguage_);
 
       allExp = splitContent(cRoot, parsingLanguage_);
+      // allExp.print();
+      // throw 1;
 
       initMacros(parsingLanguage_);
       preprocessMacros(allExp);
@@ -1934,6 +1947,9 @@ namespace occa {
     }
 
     void parserBase::checkOccaBarriers(statement &s){
+      if(!warnForConditionalBarriers())
+        return;
+
       statementNode *statementPos = s.statementStart;
 
       while(statementPos){
@@ -1953,6 +1969,9 @@ namespace occa {
     }
 
     void parserBase::addOccaBarriers(){
+      if(!insertBarriersAutomatically())
+        return;
+
       statementNode *statementPos = globalScope->statementStart;
 
       while(statementPos){
@@ -3531,54 +3550,55 @@ namespace occa {
     expNode splitContent(const char *cRoot, const int parsingLanguage_){
       pushLanguage(parsingLanguage_);
 
-      const bool parsingFortran = (parsingLanguage_ & parserInfo::parsingFortran);
+      const bool parsingFortran   = (parsingLanguage_ & parserInfo::parsingFortran);
+      const char continuationChar = (parsingFortran ? '&' : '\\');
 
       const char *c = cRoot;
 
       int lineCount = 1 + countDelimiters(c, '\n');
-
       info_t status = readingCode;
 
       expNode allExp;
       allExp.addNodes(lineCount);
       int expPos = 0;
 
+      std::string line;
+
       while(*c != '\0'){
         const char *cEnd = readLine(c, parsingLanguage_);
 
-        std::string line = strip(c, cEnd - c, parsingLanguage_);
+        line += strip(c, cEnd - c, parsingLanguage_);
+        c = cEnd;
+
+        // Line carrying over to next line
+        if(line.size()                                 &&
+           (line[line.size() - 1] == continuationChar) &&
+           (*cEnd != '\0')){
+
+          line.erase(line.size() - 1);
+          continue;
+        }
 
         if(line.size()){
+          // Remove old-style Fortran line comment
           if(parsingFortran &&
-             (*c == 'c')){
+             (line[0] == 'c')){
 
-            c = cEnd;
+            line.clear();
             continue;
           }
 
-          if(status != insideCommentBlock){
-            status = stripComments(line, parsingLanguage_);
+          status = stripComments(line, parsingLanguage_);
+          strip(line, parsingLanguage_);
 
-            strip(line, parsingLanguage_);
+          if(line.size() &&
+             ((status != insideCommentBlock) ||
+              (status == finishedCommentBlock))){
 
-            if(line.size()){
-              allExp[expPos].value = line;
-              ++expPos;
-            }
-          }
-          else{
-            status = stripComments(line, parsingLanguage_);
-
-            strip(line, parsingLanguage_);
-
-            if((status == finishedCommentBlock) && line.size()){
-              allExp[expPos].value = line;
-              ++expPos;
-            }
+            allExp[expPos++].value = line;
+            line.clear();
           }
         }
-
-        c = cEnd;
       }
 
       allExp.leafCount = expPos;

@@ -223,15 +223,21 @@ function resolveRelativePath {
     fi
 }
 
+function manualReadlink {
+    pushd `dirname $1` > /dev/null
+    SCRIPTPATH=`pwd -P`
+    popd > /dev/null
+}
+
 function manualWhich {
     local input=$1
 
-    local typeOutput=$(command type $input)
+    local typeOutput=$(command type $input 2> /dev/null)
 
     if [[ $typeOutput == *" is hashed "* ]]; then
-        local mWhich=$(command type $input | sed "s/.*(\(.*\)).*/\1/g")
+        local mWhich=$(command type $input 2> /dev/null | sed "s/.*(\(.*\)).*/\1/g")
     else
-        local mWhich=$(command type $input | sed "s/.* is \(.*\)/\1/g")
+        local mWhich=$(command type $input 2> /dev/null | sed "s/.* is \(.*\)/\1/g")
     fi
 
     if [ ! -z "$mWhich" ]; then
@@ -246,8 +252,8 @@ function realCommand {
     local b
 
     case "$(uname)" in
-        Darwin) b="$(command readlink    $a)";;
-        *)      b="$(command readlink -f $a)";;
+        Darwin) b="$(manualReadlink $a)";;
+        *)      b="$(manualReadlink $a)";;
     esac
 
     if [ -z $b ]; then
@@ -260,8 +266,8 @@ function realCommand {
         a=$(manualWhich $b)
 
         case "$(uname)" in
-            Darwin) b="$(command readlink    $a)";;
-            *)      b="$(command readlink -f $a)";;
+            Darwin) b="$(manualReadlink $a)";;
+            *)      b="$(manualReadlink $a)";;
         esac
 
         if [ -z $b ]; then
