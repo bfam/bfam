@@ -164,12 +164,14 @@ static int check_pm(bfam_subdomain_dgx_t *sub, const char *name,
 
   bfam_subdomain_dgx_glue_data_t *glue_p =
       (bfam_subdomain_dgx_glue_data_t *)sub->base.glue_p;
+  bfam_subdomain_dgx_glue_data_t *glue_m =
+      (bfam_subdomain_dgx_glue_data_t *)sub->base.glue_m;
 
   for (bfam_locidx_t i = 0; i < sub->K; ++i)
   {
     BFAM_LDEBUG("Testing element %2jd face %d h %d o %d",
-                (intmax_t)glue_p->EToEm[i], glue_p->EToFm[i], glue_p->EToHm[i],
-                glue_p->EToOm[i]);
+                (intmax_t)glue_m->EToEm[i], glue_m->EToFm[i], glue_m->EToHm[i],
+                glue_p->EToOp[i]);
 
     for (int j = 0; j < sub->Np; ++j)
     {

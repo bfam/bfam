@@ -882,15 +882,15 @@ static void bfam_subdomain_dgx_fill_scalar_fields_m(const char *key, void *val,
   const int Np = sub->Np;
 
   const bfam_locidx_t *restrict EToEp = glue_p->EToEp;
-  const bfam_locidx_t *restrict EToEm = glue_p->EToEm;
-  const int8_t *restrict EToFm = glue_p->EToFm;
-  const int8_t *restrict EToHm = glue_p->EToHm;
-  const int8_t *restrict EToOm = glue_p->EToOm;
+  const bfam_locidx_t *restrict EToEm = glue_m->EToEm;
+  const int8_t *restrict EToFm = glue_m->EToFm;
+  const int8_t *restrict EToHm = glue_m->EToHm;
+  const int8_t *restrict EToOp = glue_p->EToOp;
   BFAM_ASSUME_ALIGNED(EToEp, 32);
   BFAM_ASSUME_ALIGNED(EToEm, 32);
   BFAM_ASSUME_ALIGNED(EToFm, 32);
   BFAM_ASSUME_ALIGNED(EToHm, 32);
-  BFAM_ASSUME_ALIGNED(EToOm, 32);
+  BFAM_ASSUME_ALIGNED(EToOp, 32);
 
   const int sub_m_Np = sub_m->Np;
 
@@ -909,7 +909,7 @@ static void bfam_subdomain_dgx_fill_scalar_fields_m(const char *key, void *val,
   BFAM_ASSUME_ALIGNED(EToEm, 32);
   BFAM_ASSUME_ALIGNED(EToFm, 32);
   BFAM_ASSUME_ALIGNED(EToHm, 32);
-  BFAM_ASSUME_ALIGNED(EToOm, 32);
+  BFAM_ASSUME_ALIGNED(EToOp, 32);
 
   for (bfam_locidx_t k = 0; k < K; ++k)
   {
@@ -917,7 +917,7 @@ static void bfam_subdomain_dgx_fill_scalar_fields_m(const char *key, void *val,
     BFAM_ASSERT(EToEm[k] < sub_m->K);
     BFAM_ASSERT(EToFm[k] < sub_m->Ng[0]);
     /* BFAM_ASSERT(EToHm[k] < sub_m->Nh); */
-    /* BFAM_ASSERT(EToOm[k] < sub_m->No); */
+    /* BFAM_ASSERT(EToOp[k] < sub_m->No); */
 
     bfam_locidx_t *restrict fmask = sub_m->gmask[0][EToFm[k]];
 
@@ -996,9 +996,9 @@ static void bfam_subdomain_dgx_fill_glue_m(void *val, void *arg)
   const int Np = sub->Np;
 
   const bfam_locidx_t *restrict EToEp = glue_p->EToEp;
-  const int8_t *restrict EToOm = glue_p->EToOm;
+  const int8_t *restrict EToOp = glue_p->EToOp;
   BFAM_ASSUME_ALIGNED(EToEp, 32);
-  BFAM_ASSUME_ALIGNED(EToOm, 32);
+  BFAM_ASSUME_ALIGNED(EToOp, 32);
 
   const size_t buffer_offset = data->field * Np * K;
 
@@ -1023,10 +1023,10 @@ static void bfam_subdomain_dgx_fill_glue_m(void *val, void *arg)
     /*
      * Copy data to send buffer based on orientation.
      */
-    BFAM_ASSERT(EToOm[k] >= 0 && EToOm[k] < glue_p->num_orient);
-    if (EToOm[k])
+    BFAM_ASSERT(EToOp[k] >= 0 && EToOp[k] < glue_p->num_orient);
+    if (EToOp[k])
       for (int n = 0; n < Np; ++n)
-        send_elem[n] = glue_elem[glue_p->mapOm[EToOm[k]][n]];
+        send_elem[n] = glue_elem[glue_p->mapOp[EToOp[k]][n]];
     else
       memcpy(send_elem, glue_elem, Np * sizeof(bfam_real_t));
   }
@@ -1078,15 +1078,15 @@ static void bfam_subdomain_dgx_fill_vector_fields_m(const char *prefix,
   const int sub_m_Nrp = sub_m->N + 1;
 
   const bfam_locidx_t *restrict EToEp = glue_p->EToEp;
-  const bfam_locidx_t *restrict EToEm = glue_p->EToEm;
-  const int8_t *restrict EToFm = glue_p->EToFm;
-  const int8_t *restrict EToHm = glue_p->EToHm;
-  const int8_t *restrict EToOm = glue_p->EToOm;
+  const bfam_locidx_t *restrict EToEm = glue_m->EToEm;
+  const int8_t *restrict EToFm = glue_m->EToFm;
+  const int8_t *restrict EToHm = glue_m->EToHm;
+  const int8_t *restrict EToOp = glue_p->EToOp;
   BFAM_ASSUME_ALIGNED(EToEp, 32);
   BFAM_ASSUME_ALIGNED(EToEm, 32);
   BFAM_ASSUME_ALIGNED(EToFm, 32);
   BFAM_ASSUME_ALIGNED(EToHm, 32);
-  BFAM_ASSUME_ALIGNED(EToOm, 32);
+  BFAM_ASSUME_ALIGNED(EToOp, 32);
 
   const int sub_m_Np = sub_m->Np;
 
@@ -1131,7 +1131,7 @@ static void bfam_subdomain_dgx_fill_vector_fields_m(const char *prefix,
     BFAM_ASSERT(EToEm[k] < sub_m->K);
     BFAM_ASSERT(EToFm[k] < sub_m->Ng[0]);
     /* BFAM_ASSERT(EToHm[k] < sub_m->Nh); */
-    /* BFAM_ASSERT(EToOm[k] < sub_m->No); */
+    /* BFAM_ASSERT(EToOp[k] < sub_m->No); */
 
     int8_t face = EToFm[k];
     bfam_locidx_t *restrict fmask = sub_m->gmask[0][face];
@@ -1306,15 +1306,15 @@ static void bfam_subdomain_dgx_fill_tensor_fields_m(const char *prefix,
   const int sub_m_Nrp = sub_m->N + 1;
 
   const bfam_locidx_t *restrict EToEp = glue_p->EToEp;
-  const bfam_locidx_t *restrict EToEm = glue_p->EToEm;
-  const int8_t *restrict EToFm = glue_p->EToFm;
-  const int8_t *restrict EToHm = glue_p->EToHm;
-  const int8_t *restrict EToOm = glue_p->EToOm;
+  const bfam_locidx_t *restrict EToEm = glue_m->EToEm;
+  const int8_t *restrict EToFm = glue_m->EToFm;
+  const int8_t *restrict EToHm = glue_m->EToHm;
+  const int8_t *restrict EToOp = glue_p->EToOp;
   BFAM_ASSUME_ALIGNED(EToEp, 32);
   BFAM_ASSUME_ALIGNED(EToEm, 32);
   BFAM_ASSUME_ALIGNED(EToFm, 32);
   BFAM_ASSUME_ALIGNED(EToHm, 32);
-  BFAM_ASSUME_ALIGNED(EToOm, 32);
+  BFAM_ASSUME_ALIGNED(EToOp, 32);
 
   const int sub_m_Np = sub_m->Np;
 
@@ -1377,7 +1377,7 @@ static void bfam_subdomain_dgx_fill_tensor_fields_m(const char *prefix,
     BFAM_ASSERT(EToEm[k] < sub_m->K);
     BFAM_ASSERT(EToFm[k] < sub_m->Ng[0]);
     /* BFAM_ASSERT(EToHm[k] < sub_m->Nh); */
-    /* BFAM_ASSERT(EToOm[k] < sub_m->No); */
+    /* BFAM_ASSERT(EToOp[k] < sub_m->No); */
 
     int8_t face = EToFm[k];
     bfam_locidx_t *restrict fmask = sub_m->gmask[0][face];
@@ -1566,15 +1566,15 @@ static void bfam_subdomain_dgx_fill_face_scalar_fields_m(const char *key,
   const int sub_m_Nfp = sub_m->Ngp[0];
 
   const bfam_locidx_t *restrict EToEp = glue_p->EToEp;
-  const bfam_locidx_t *restrict EToEm = glue_p->EToEm;
-  const int8_t *restrict EToFm = glue_p->EToFm;
-  const int8_t *restrict EToHm = glue_p->EToHm;
-  const int8_t *restrict EToOm = glue_p->EToOm;
+  const bfam_locidx_t *restrict EToEm = glue_m->EToEm;
+  const int8_t *restrict EToFm = glue_m->EToFm;
+  const int8_t *restrict EToHm = glue_m->EToHm;
+  const int8_t *restrict EToOp = glue_p->EToOp;
   BFAM_ASSUME_ALIGNED(EToEp, 32);
   BFAM_ASSUME_ALIGNED(EToEm, 32);
   BFAM_ASSUME_ALIGNED(EToFm, 32);
   BFAM_ASSUME_ALIGNED(EToHm, 32);
-  BFAM_ASSUME_ALIGNED(EToOm, 32);
+  BFAM_ASSUME_ALIGNED(EToOp, 32);
 
   const bfam_real_t *restrict sub_m_face_field =
       bfam_dictionary_get_value_ptr(&sub_m->base.fields_face, key);
@@ -1591,7 +1591,7 @@ static void bfam_subdomain_dgx_fill_face_scalar_fields_m(const char *key,
   BFAM_ASSUME_ALIGNED(EToEm, 32);
   BFAM_ASSUME_ALIGNED(EToFm, 32);
   BFAM_ASSUME_ALIGNED(EToHm, 32);
-  BFAM_ASSUME_ALIGNED(EToOm, 32);
+  BFAM_ASSUME_ALIGNED(EToOp, 32);
 
   for (bfam_locidx_t k = 0; k < K; ++k)
   {
@@ -1599,7 +1599,7 @@ static void bfam_subdomain_dgx_fill_face_scalar_fields_m(const char *key,
     BFAM_ASSERT(EToEm[k] < sub_m->K);
     BFAM_ASSERT(EToFm[k] < sub_m->Ng[0]);
     /* BFAM_ASSERT(EToHm[k] < sub_m->Nh); */
-    /* BFAM_ASSERT(EToOm[k] < sub_m->No); */
+    /* BFAM_ASSERT(EToOp[k] < sub_m->No); */
 
     int8_t face = EToFm[k];
     const bfam_real_t *restrict sub_m_face_elem =
@@ -3073,13 +3073,13 @@ static void bfam_subdomain_dgx_free_glue(bfam_subdomain_dgx_glue_data_t *glue)
       bfam_free_aligned(glue->EToFm);
     if (glue->EToHm)
       bfam_free_aligned(glue->EToHm);
-    if (glue->EToOm)
-      bfam_free_aligned(glue->EToOm);
-    if (glue->mapOm)
+    if (glue->EToOp)
+      bfam_free_aligned(glue->EToOp);
+    if (glue->mapOp)
     {
       for (int n = 0; n < glue->num_orient; n++)
-        bfam_free_aligned(glue->mapOm[n]);
-      bfam_free_aligned(glue->mapOm);
+        bfam_free_aligned(glue->mapOp[n]);
+      bfam_free_aligned(glue->mapOp);
     }
     bfam_critbit0_clear(&glue->base.tags);
     bfam_free(glue);
@@ -3248,8 +3248,8 @@ static void bfam_subdomain_dgx_glue_generic_init(
   glue->EToEm = NULL;
   glue->EToFm = NULL;
   glue->EToHm = NULL;
-  glue->EToOm = NULL;
-  glue->mapOm = NULL;
+  glue->EToOp = NULL;
+  glue->mapOp = NULL;
   glue->num_orient = 0;
   glue->num_interp = 0;
   glue->interpolation = NULL;
@@ -3495,10 +3495,10 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
   glue_p->same_order = (N_p == N) && (N_m == N);
   glue_p->EToEp = bfam_malloc_aligned(K * sizeof(bfam_locidx_t));
   glue_p->EToHp = bfam_malloc_aligned(K * sizeof(int8_t));
-  glue_p->EToEm = bfam_malloc_aligned(K * sizeof(bfam_locidx_t));
-  glue_p->EToFm = bfam_malloc_aligned(K * sizeof(int8_t));
-  glue_p->EToHm = bfam_malloc_aligned(K * sizeof(int8_t));
-  glue_p->EToOm = bfam_malloc_aligned(K * sizeof(int8_t));
+  glue_m->EToEm = bfam_malloc_aligned(K * sizeof(bfam_locidx_t));
+  glue_m->EToFm = bfam_malloc_aligned(K * sizeof(int8_t));
+  glue_m->EToHm = bfam_malloc_aligned(K * sizeof(int8_t));
+  glue_p->EToOp = bfam_malloc_aligned(K * sizeof(int8_t));
   if (DIM == 1)
     glue_p->num_orient = 2;
   else if (DIM == 2)
@@ -3506,36 +3506,36 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
   else
     BFAM_ABORT("Cannot handle dim = %d", DIM);
 
-  glue_p->mapOm =
+  glue_p->mapOp =
       bfam_malloc_aligned(glue_p->num_orient * sizeof(bfam_locidx_t *));
   if (DIM == 1)
   {
     for (int n = 0; n < glue_p->num_orient; n++)
-      glue_p->mapOm[n] = bfam_malloc_aligned(Nrp * sizeof(bfam_locidx_t));
+      glue_p->mapOp[n] = bfam_malloc_aligned(Nrp * sizeof(bfam_locidx_t));
     for (int n = 0; n < Nrp; n++)
     {
-      glue_p->mapOm[0][n] = n;
-      glue_p->mapOm[1][n] = Nrp - (n + 1);
+      glue_p->mapOp[0][n] = n;
+      glue_p->mapOp[1][n] = Nrp - (n + 1);
     }
   }
   else if (DIM == 2)
   {
     for (int n = 0; n < glue_p->num_orient; n++)
-      glue_p->mapOm[n] = bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_locidx_t));
+      glue_p->mapOp[n] = bfam_malloc_aligned(Nrp * Nrp * sizeof(bfam_locidx_t));
     for (int j = 0; j < Nrp; j++)
       for (int i = 0; i < Nrp; i++)
       {
         int ir = Nrp - (i + 1);
         int jr = Nrp - (j + 1);
 
-        glue_p->mapOm[0][i + j * Nrp] = i + j * Nrp;
-        glue_p->mapOm[1][i + j * Nrp] = j + i * Nrp;
-        glue_p->mapOm[2][i + j * Nrp] = ir + j * Nrp;
-        glue_p->mapOm[3][i + j * Nrp] = j + ir * Nrp;
-        glue_p->mapOm[4][i + j * Nrp] = jr + i * Nrp;
-        glue_p->mapOm[5][i + j * Nrp] = i + jr * Nrp;
-        glue_p->mapOm[6][i + j * Nrp] = jr + ir * Nrp;
-        glue_p->mapOm[7][i + j * Nrp] = ir + jr * Nrp;
+        glue_p->mapOp[0][i + j * Nrp] = i + j * Nrp;
+        glue_p->mapOp[1][i + j * Nrp] = j + i * Nrp;
+        glue_p->mapOp[2][i + j * Nrp] = ir + j * Nrp;
+        glue_p->mapOp[3][i + j * Nrp] = j + ir * Nrp;
+        glue_p->mapOp[4][i + j * Nrp] = jr + i * Nrp;
+        glue_p->mapOp[5][i + j * Nrp] = i + jr * Nrp;
+        glue_p->mapOp[6][i + j * Nrp] = jr + ir * Nrp;
+        glue_p->mapOp[7][i + j * Nrp] = ir + jr * Nrp;
       }
   }
   else
@@ -3552,10 +3552,10 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
 
   for (bfam_locidx_t k = 0; k < K; ++k)
   {
-    glue_p->EToEm[k] = ktok_m[mapping[k].k];
-    glue_p->EToFm[k] = mapping[k].f;
-    glue_p->EToHm[k] = mapping[k].h;
-    glue_p->EToOm[k] = mapping[k].o;
+    glue_m->EToEm[k] = ktok_m[mapping[k].k];
+    glue_m->EToFm[k] = mapping[k].f;
+    glue_m->EToHm[k] = mapping[k].h;
+    glue_p->EToOp[k] = mapping[k].o;
 
     glue_p->EToEp[k] = mapping[k].i;
     glue_p->EToHp[k] = mapping[k].nh;
@@ -3565,12 +3565,12 @@ void BFAM_APPEND_EXPAND(bfam_subdomain_dgx_glue_init_, BFAM_DGX_DIMENSION)(
   for (bfam_locidx_t k = 0; k < K; ++k)
     BFAM_ASSERT(mapping[k].s == glue_m->base.id_s &&
                 mapping[k].ns == glue_p->base.id_s);
-  BFAM_LDEBUG("    k EToEp EToHp EToEm EToFm EToHm EToOm");
+  BFAM_LDEBUG("    k EToEp EToHp EToEm EToFm EToHm EToOp");
   for (bfam_locidx_t k = 0; k < K; ++k)
   {
     BFAM_LDEBUG("%5d %5d %5d %5d %5d %5d %5d", k, glue_p->EToEp[k],
-                glue_p->EToHp[k], glue_p->EToEm[k], glue_p->EToFm[k],
-                glue_p->EToHm[k], glue_p->EToOm[k]);
+                glue_p->EToHp[k], glue_m->EToEm[k], glue_m->EToFm[k],
+                glue_m->EToHm[k], glue_p->EToOp[k]);
   }
 #endif
 
