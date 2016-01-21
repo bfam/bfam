@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 from os import environ as ENV
 
+EDIT_WARNING = """/*
+-------------[ DO NOT EDIT ]-------------
+ THIS IS AN AUTOMATICALLY GENERATED FILE
+ EDIT: scripts/setupVectorDefines.py
+=========================================
+*/
+"""
+
 types = ['bool' ,
          'char' ,
          'short',
@@ -48,27 +56,24 @@ def define_typeN(type_, n):
 
     define = ''
 
+    if typeN in defined_in_cuda:
+        define += '#if (defined(OCCA_IN_KERNEL) && OCCA_USING_CUDA)\n'
+        define += '#  define OCCA_' + TYPEN + ' make_' + typeN + '\n'
+        define += '#else\n'
+        define += '#  define OCCA_' + TYPEN + ' ' + typeN + '\n'
+        define += '#endif\n'
+    else:
+        define += '#define OCCA_' + TYPEN + ' ' + typeN + '\n'
+
     if n == 3:
-        if typeN in defined_in_cuda:
-            define += '#if (!defined(OCCA_IN_KERNEL) || (OCCA_USING_CUDA == 0))\n'
-
-        define += 'typedef ' + type_ + '4 ' + type_ + '3;\n'
-
-        if typeN in defined_in_cuda:
-            define += '#endif\n'
+        define += '#if (!defined(OCCA_IN_KERNEL) || (OCCA_USING_CUDA == 0))\n' if defined_in_cuda else ''
+        define += 'typedef {type4} {type3};\n'.format(type3=type_+'3', type4=type_+'4')
+        define += '#endif\n' if defined_in_cuda else ''
 
         return define
 
     if typeN in defined_in_cuda:
         define += '#if (!defined(OCCA_IN_KERNEL) || (OCCA_USING_CUDA == 0))\n'
-        define += '#  define OCCA_' + TYPEN + '_CONSTRUCTOR '      + typeN + '\n'
-        define += '#else\n'
-        define += '#  define OCCA_' + TYPEN + '_CONSTRUCTOR make_' + typeN + '\n'
-        define += '#endif\n'
-
-        define += '#if (!defined(OCCA_IN_KERNEL) || (OCCA_USING_CUDA == 0))\n'
-    else:
-        define += '#  define OCCA_' + TYPEN + '_CONSTRUCTOR ' + typeN + '\n'
 
     define += 'class ' + type_ + str(n) + '{\n' + \
              'public:\n'
@@ -146,7 +151,7 @@ def unary_op_def(type_, n, op):
     indent = ['  ', '  ', '  ']
 
     for d in range(1 if isFloat else 2):
-        ret         = '  return OCCA_' + TYPEN + '_CONSTRUCTOR(';
+        ret         = '  return OCCA_' + TYPEN + '(';
         indent[d]   = ' ' * len(ret)
         defines[d] += ret;
 
@@ -203,7 +208,7 @@ def binary_op_def(type_, n, op):
     a = [[('a.' + varL(i)) if aIsTypeN[define] else 'a' for i in range(n)] for define in range(5)]
     b = [[('b.' + varL(i)) if bIsTypeN[define] else 'b' for i in range(n)] for define in range(5)]
 
-    retDef = '  return OCCA_' + TYPEN + '_CONSTRUCTOR('
+    retDef = '  return OCCA_' + TYPEN + '('
 
     for d in range(5):
         for i in range(n):
@@ -248,12 +253,12 @@ def define_type(type_):
 
 def define_all_types():
     define  = '#if (!defined(OCCA_IN_KERNEL) || (!OCCA_USING_OPENCL))\n'
-    define += '#  if (!defined(OCCA_IN_KERNEL) || (OCCA_USING_SERIAL || OCCA_USING_OPENMP || OCCA_USING_PTHREADS))\n'
-    define += '#    include <iostream>\n'
-    define += '#  endif\n\n'
+    define += '#  include <iostream>\n'
+    define += '#  include <cmath>\n'
+    define += '#  include "occa/defines.hpp"\n\n'
 
     define += '#  ifndef OCCA_IN_KERNEL\n'
-    define += '#    define occaFunction\n'
+    define += '#  define occaFunction\n'
     define += 'namespace occa {\n'
     define += '#  endif\n\n'
 
@@ -265,8 +270,86 @@ def define_all_types():
     define += '#  endif\n\n'
 
     define += '#endif\n'
+    define += '#if OCCA_USING_OPENCL\n'
+    for type_ in types:
+        for n in Ns:
+            typeN = type_ + str(n)
+            TYPEN = (type_ + str(n)).upper();
+            args  = ', '.join([chr(ord('a') + i) for i in range(n)])
+            define += '#  define OCCA_' + TYPEN + '(' + args + ') (' + typeN + ')(' + args + ')\n'
+
+    define += '#endif\n'
 
     return define
+
+def define_vector_functions():
+    length    = ''
+    normalize = ''
+    dot       = ''
+    clamp     = ''
+    cross     = """
+OCCA_INLINE float3 cross(const float3 &a, const float3 &b) {
+  return OCCA_FLOAT3(a.z*b.y - b.z*a.y,
+                     a.x*b.z - b.x*a.z,
+                     a.y*b.x - b.y*a.x);
+}
+
+OCCA_INLINE double3 cross(const double3 &a, const double3 &b) {
+  return OCCA_DOUBLE3(a.z*b.y - b.z*a.y,
+                     a.x*b.z - b.x*a.z,
+                     a.y*b.x - b.y*a.x);
+}\n"""
+
+    for type_ in [t for t in types if t != 'bool']:
+        clamp += """
+OCCA_INLINE {type_} clamp(const {type_} val, const {type_} min, const {type_} max) {{
+  return (val < min) ? min : ((max < val) ? max : val);
+}}\n""".format(type_=type_)
+
+        for n in [n for n in Ns if n != 3]:
+            typeN = type_ + str(n)
+            TYPEN = (type_ + str(n)).upper();
+
+            length_func    = '+'.join(["v.{0}*v.{0}".format(varL(i)) for i in range(n)])
+            normalize_func = ','.join(["invNorm*v.{0}".format(varL(i)) for i in range(n)])
+            dot_func       = '+'.join(["a.{0}*b.{0}".format(varL(i)) for i in range(n)])
+            clamp_func     = ','.join(["clamp(v.{0},min,max)".format(varL(i)) for i in range(n)])
+
+            length += """
+OCCA_INLINE {type_} length(const {typeN} &v) {{
+  return sqrt({func});
+}}\n""".format(type_=type_,typeN=typeN,func=length_func)
+
+            normalize += """
+OCCA_INLINE {typeN} normalize(const {typeN} &v) {{
+  const {type_} invNorm = (1.0 / length(v));
+  return OCCA_{TYPEN}({func});
+}}\n""".format(type_=type_,typeN=typeN,TYPEN=TYPEN,func=normalize_func)
+
+            dot += """
+OCCA_INLINE {type_} dot(const {typeN} &a, const {typeN} &b) {{
+  return ({func});
+}}\n""".format(type_=type_,typeN=typeN,func=dot_func)
+
+            clamp += """
+OCCA_INLINE {typeN} clamp(const {typeN} &v, const {type_} min, const {type_} max) {{
+  return OCCA_{TYPEN}({func});
+}}\n""".format(type_=type_,typeN=typeN,TYPEN=TYPEN,func=clamp_func)
+
+    return """
+#if (!defined(OCCA_IN_KERNEL) || (OCCA_USING_SERIAL || OCCA_USING_OPENMP || OCCA_USING_PTHREADS || OCCA_USING_CUDA))
+#  if !defined(OCCA_IN_KERNEL)
+namespace occa {{
+#  endif
+{}
+#  ifndef OCCA_IN_KERNEL
+}}
+#  endif
+#endif""".format(length    +
+                 normalize +
+                 dot       +
+                 clamp     +
+                 cross)
 
 def intrinsic_headers():
     return """
@@ -405,7 +488,6 @@ def intrinsic_functions():
     return contents
 
 def intrinsic_contents():
-
     return (intrinsic_headers() +
             '\n'                +
             intrinsic_macros()  +
@@ -415,9 +497,15 @@ def intrinsic_contents():
             intrinsic_functions())
 
 def gen_file_contents():
-    return (define_all_types() +
-            '\n'             +
-            intrinsic_contents())
+    return ('#ifndef OCCA_VECTOR_DEFINE_HEADER\n' +
+            '#define OCCA_VECTOR_DEFINE_HEADER\n' +
+            EDIT_WARNING              +
+            define_all_types()        +
+            '\n'                      +
+            define_vector_functions() +
+            '\n'                      +
+            intrinsic_contents()      +
+            '#endif\n')
 
 occa_dir = ENV['OCCA_DIR']
 

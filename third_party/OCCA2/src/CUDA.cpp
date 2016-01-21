@@ -371,11 +371,17 @@ namespace occa {
 
     std::stringstream command;
 
+    if(verboseCompilation_f)
+      std::cout << "Compiling [" << functionName << "]\n";
+
+#if 0
     //---[ PTX Check Command ]----------
     if(dHandle->compilerEnvScript.size())
       command << dHandle->compilerEnvScript << " && ";
 
     command << dHandle->compiler
+            << " -I."
+            << " -I"  << env::OCCA_DIR << "/include"
             << ' '          << dHandle->compilerFlags
             << archSM
             << " -Xptxas -v,-dlcm=cg,-abi=no"
@@ -393,6 +399,7 @@ namespace occa {
 #else
     ignoreResult( system(("\"" +  ptxCommand + "\"").c_str()) );
 #endif
+#endif
 
     //---[ Compiling Command ]----------
     command.str("");
@@ -400,6 +407,7 @@ namespace occa {
     command << dHandle->compiler
             << " -o "       << binaryFile
             << " -ptx -I."
+            << " -I"  << env::OCCA_DIR << "/include"
             << ' '          << dHandle->compilerFlags
             << archSM
             << ' '          << info.flags

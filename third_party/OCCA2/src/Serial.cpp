@@ -500,10 +500,8 @@ namespace occa {
     void* malloc(uintptr_t bytes){
       void* ptr;
 
-#if   (OCCA_OS & LINUX_OS)
-      ignoreResult( posix_memalign(&ptr, OCCA_MEM_ALIGN, bytes) );
-#elif (OCCA_OS == OSX_OS)
-      ptr = ::malloc(bytes);
+#if   (OCCA_OS & (LINUX_OS | OSX_OS))
+      ignoreResult( posix_memalign(&ptr, env::OCCA_MEM_BYTE_ALIGN, bytes) );
 #elif (OCCA_OS == WINDOWS_OS)
       ptr = ::malloc(bytes);
 #endif

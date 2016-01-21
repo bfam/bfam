@@ -1,3 +1,5 @@
+#include <cstddef>
+
 #include "occa/tools.hpp"
 #include "occa/base.hpp"
 
@@ -12,18 +14,19 @@ namespace occa {
     std::string PATH, LD_LIBRARY_PATH;
 
     std::string OCCA_DIR, OCCA_CACHE_DIR;
+    size_t OCCA_MEM_BYTE_ALIGN;
     stringVector_t OCCA_INCLUDE_PATH;
 
-    void initialize(){
-      if(isInitialized)
+    void initialize() {
+      if (isInitialized)
         return;
 
       // Standard environment variables
 #if (OCCA_OS & (LINUX_OS | OSX_OS))
-      HOME            = sys::echo("HOME");
-      PWD             = sys::echo("PWD");
-      PATH            = sys::echo("PATH");
-      LD_LIBRARY_PATH = sys::echo("LD_LIBRARY_PATH");
+      HOME            = env::var("HOME");
+      PWD             = env::var("PWD");
+      PATH            = env::var("PATH");
+      LD_LIBRARY_PATH = env::var("LD_LIBRARY_PATH");
 
       endDirWithSlash(HOME);
       endDirWithSlash(PWD);
@@ -31,7 +34,7 @@ namespace occa {
 #endif
 
       // OCCA environment variables
-      OCCA_DIR = sys::echo("OCCA_DIR");
+      OCCA_DIR = env::var("OCCA_DIR");
       initCachePath();
       initIncludePath();
 
@@ -41,19 +44,33 @@ namespace occa {
       endDirWithSlash(OCCA_DIR);
       endDirWithSlash(OCCA_CACHE_DIR);
 
+      OCCA_MEM_BYTE_ALIGN = OCCA_DEFAULT_MEM_BYTE_ALIGN;
+      if(env::var("OCCA_MEM_BYTE_ALIGN").size() > 0){
+        const size_t align = (size_t) std::atoi(env::var("OCCA_MEM_BYTE_ALIGN").c_str());
+
+        if((align != 0) && ((align & (~align + 1)) == align)) {
+          OCCA_MEM_BYTE_ALIGN = align;
+        }
+        else {
+          std::cout << "Environment variable [OCCA_MEM_BYTE_ALIGN ("
+                    << align << ")] is not a power of two, defaulting to "
+                    << OCCA_DEFAULT_MEM_BYTE_ALIGN << '\n';
+        }
+      }
+
       isInitialized = true;
     }
 
-    void initCachePath(){
-      env::OCCA_CACHE_DIR = sys::echo("OCCA_CACHE_DIR");
+    void initCachePath() {
+      env::OCCA_CACHE_DIR = env::var("OCCA_CACHE_DIR");
 
-      if(env::OCCA_CACHE_DIR.size() == 0){
+      if (env::OCCA_CACHE_DIR.size() == 0) {
         std::stringstream ss;
 
 #if (OCCA_OS & (LINUX_OS | OSX_OS))
-        ss << sys::echo("HOME") << "/._occa";
+        ss << env::var("HOME") << "/._occa";
 #else
-        ss << sys::echo("USERPROFILE") << "\\AppData\\Local\\OCCA";
+        ss << env::var("USERPROFILE") << "\\AppData\\Local\\OCCA";
 
 #  if OCCA_64_BIT
         ss << "_amd64";  // use different dir's fro 32 and 64 bit
@@ -72,24 +89,26 @@ namespace occa {
 
       env::OCCA_CACHE_DIR = sys::getFilename(env::OCCA_CACHE_DIR);
 
-      if(!sys::dirExists(env::OCCA_CACHE_DIR))
+      if (!sys::dirExists(env::OCCA_CACHE_DIR))
         sys::mkpath(env::OCCA_CACHE_DIR);
     }
 
-    void initIncludePath(){
-      std::string oip = sys::echo("OCCA_INCLUDE_PATH");
+    void initIncludePath() {
+      env::OCCA_INCLUDE_PATH.clear();
+      std::string oip = env::var("OCCA_INCLUDE_PATH");
 
       const char *cStart = oip.c_str();
       const char *cEnd;
 
       stringVector_t tmpOIP;
 
-      while(cStart[0] != '\0'){
+      while(cStart[0] != '\0') {
         cEnd = cStart;
         skipTo(cEnd, ':');
 
-        if(0 < (cEnd - cStart)){
+        if (0 < (cEnd - cStart)) {
           std::string newPath(cStart, cEnd - cStart);
+          newPath = sys::getFilename(newPath);
           endDirWithSlash(newPath);
 
           tmpOIP.push_back(newPath);
@@ -99,6 +118,15 @@ namespace occa {
       }
 
       tmpOIP.swap(env::OCCA_INCLUDE_PATH);
+    }
+
+    std::string var(const std::string &varName) {
+      char *c_varName = getenv(varName.c_str());
+
+      if (c_varName != NULL)
+        return std::string(c_varName);
+
+      return "";
     }
 
     envInitializer_t envInitializer;
@@ -125,7 +153,7 @@ namespace occa {
 
       nestedDirNames(dt.nestedDirNames) {}
 
-    dirTree_t& dirTree_t::operator = (const dirTree_t &dt){
+    dirTree_t& dirTree_t::operator = (const dirTree_t &dt) {
       info = dt.info;
       name = dt.name;
 
@@ -151,7 +179,7 @@ namespace occa {
       load(dir);
     }
 
-    void dirTree_t::load(const std::string &dir_){
+    void dirTree_t::load(const std::string &dir_) {
       std::string dir = expandEnvVariables(dir_);
       strip(dir);
       dir = getFilename(dir);
@@ -165,7 +193,7 @@ namespace occa {
 
       load("/", path, 0);
 
-      if(dirCount == 0)
+      if (dirCount == 0)
         return;
 
       nestedDirNames = new std::string[nestedDirCount];
@@ -175,14 +203,14 @@ namespace occa {
 
     bool dirTree_t::load(const std::string &base,
                          stringVector_t &path,
-                         const int pathPos){
+                         const int pathPos) {
 
       // Return values (for readability)
       const bool somethingFound = true;
       const bool nothingFound   = false;
 
       // We reached the end
-      if(((int) path.size()) <= pathPos){
+      if (((int) path.size()) <= pathPos) {
         nestedDirCount = 1;
         return somethingFound;
       }
@@ -191,12 +219,12 @@ namespace occa {
       const char *c_nextDir     = nextDir.c_str();
 
       // Simple file traversal
-      if(!hasWildcard(c_nextDir)){
+      if (!hasWildcard(c_nextDir)) {
         std::string nextBase = base;
         nextBase += path[pathPos];
         nextBase += '/';
 
-        if(!fileExists(nextBase))
+        if (!fileExists(nextBase))
           return nothingFound;
 
         dirCount = 1;
@@ -210,7 +238,7 @@ namespace occa {
                                             path,
                                             pathPos + 1);
 
-        if(dirsCheck == nothingFound){
+        if (dirsCheck == nothingFound) {
           free();
           return nothingFound;
         }
@@ -223,22 +251,22 @@ namespace occa {
 #if (OCCA_OS & (LINUX_OS | OSX_OS))
       DIR *DIR_ = opendir(base.c_str());
 
-      if(DIR_ == NULL)
+      if (DIR_ == NULL)
         return nothingFound;
 
       std::vector<dirTree_t> vDirs;
 
       dirent *dirent_;
 
-      while(true){
+      while(true) {
         dirent_ = readdir(DIR_);
 
-        if(dirent_ == NULL)
+        if (dirent_ == NULL)
           break;
 
         const char *c_dirName = dirent_->d_name;
 
-        if(matches(c_nextDir, c_dirName)){
+        if (matches(c_nextDir, c_dirName)) {
           std::string nextBase = base;
           nextBase += c_dirName;
           nextBase += '/';
@@ -250,7 +278,7 @@ namespace occa {
                                            path,
                                            pathPos + 1);
 
-          if(dirsCheck == nothingFound){
+          if (dirsCheck == nothingFound) {
             vDir.free();
             vDirs.pop_back();
           }
@@ -264,13 +292,13 @@ namespace occa {
 
       closedir(DIR_);
 
-      if(vDirs.size() == 0)
+      if (vDirs.size() == 0)
         return nothingFound;
 
       dirCount = (int) vDirs.size();
       dirs     = new dirTree_t[dirCount];
 
-      for(int i = 0; i < dirCount; ++i){
+      for(int i = 0; i < dirCount; ++i) {
         dirs[i] = vDirs[i];
         nestedDirCount += dirs[i].nestedDirCount;
       }
@@ -282,10 +310,10 @@ namespace occa {
       return somethingFound;
     }
 
-    void dirTree_t::free(){
+    void dirTree_t::free() {
       info = dirType::none;
 
-      if(0 < dirCount){
+      if (0 < dirCount) {
         for(int i = 0; i < dirCount; ++i)
           dirs[i].free();
 
@@ -297,53 +325,52 @@ namespace occa {
     }
 
     void dirTree_t::setNestedDirNames(std::string *fdn,
-                                      int fdnPos){
+                                      int fdnPos) {
       // Empty
-      if(info == dirType::none)
+      if (info == dirType::none)
         return;
 
       // Last dir
-      if(dirCount == 0){
+      if (dirCount == 0) {
         fdn[fdnPos] += name;
 
-        if(info & dirType::dir)
+        if (info & dirType::dir)
           fdn[fdnPos] += '/';
 
         return;
       }
 
-      for(int i = 0; i < nestedDirCount; ++i){
+      for(int i = 0; i < nestedDirCount; ++i) {
         fdn[fdnPos + i] += name;
         fdn[fdnPos + i] += '/';
       }
 
-      for(int i = 0; i < dirCount; ++i){
+      for(int i = 0; i < dirCount; ++i) {
         dirs[i].setNestedDirNames(fdn, fdnPos);
         fdnPos += dirs[i].nestedDirCount;
       }
     }
 
     void dirTree_t::printOnString(std::string &str,
-                                  const char delimiter){
-
+                                  const char delimiter) {
       // Empty
-      if(info == dirType::none)
+      if (info == dirType::none)
         return;
 
-      for(int i = 0; i < nestedDirCount; ++i){
-        if(0 < i)
+      for(int i = 0; i < nestedDirCount; ++i) {
+        if (0 < i)
           str += delimiter;
 
         str += nestedDirNames[i];
       }
     }
 
-    bool dirTree_t::hasWildcard(const char *c){
+    bool dirTree_t::hasWildcard(const char *c) {
       const char *c0 = c;
 
-      while(*c != '\0'){
-        if(((c[0] == '*') || (c[0] == '?')) &&
-           ((c0 == c) || (c[-1] != '\\'))){
+      while(*c != '\0') {
+        if (((c[0] == '*') || (c[0] == '?')) &&
+           ((c0 == c) || (c[-1] != '\\'))) {
 
           return true;
         }
@@ -355,17 +382,17 @@ namespace occa {
     }
 
     bool dirTree_t::matches(const char *search,
-                            const char *c){
+                            const char *c) {
 
       const int sSize = (int) strlen(search);
       const int cSize = (int) strlen(c);
 
-      if((cSize == 0) || (sSize == 0))
+      if ((cSize == 0) || (sSize == 0))
         return false;
 
       // Hidden files only show up when [.] is explicitly used
-      if((c[0]      == '.') &&
-         (search[0] != '.')){
+      if ((c[0]      == '.') &&
+         (search[0] != '.')) {
 
         return false;
       }
@@ -379,7 +406,7 @@ namespace occa {
       // \0 matches \0
       found_[entries - 1] = true;
 
-      for(int sp = (sSize - 1); 0 <= sp; --sp){
+      for(int sp = (sSize - 1); 0 <= sp; --sp) {
         bool *found0 = found_ + ((sp + 0) * (cSize + 1));
         bool *found1 = found_ + ((sp + 1) * (cSize + 1));
 
@@ -389,12 +416,12 @@ namespace occa {
         const bool wcX = ((search[sp] == '*') &&
                           ((sp == 0) || search[sp - 1] != '\\'));
 
-        for(int cp = (cSize - 1); 0 <= cp; --cp){
+        for(int cp = (cSize - 1); 0 <= cp; --cp) {
 
-          if((search[sp] == c[cp]) || wc1){
+          if ((search[sp] == c[cp]) || wc1) {
             found0[cp] = found1[cp + 1];
           }
-          else if(wcX){
+          else if (wcX) {
             // [  ,+1]: Wildcard matched next char, wildcard still applies
             // [+1,  ]: Alive because of wildcard , wildcard still applies
             // [+1,+1]: Alive because of next char, wildcard starts
@@ -414,12 +441,12 @@ namespace occa {
       return foundMatch;
     }
 
-    int call(const std::string &cmdline){
+    int call(const std::string &cmdline) {
       FILE *fp = popen(cmdline.c_str(), "r");
       return pclose(fp);
     }
 
-    int call(const std::string &cmdline, std::string &output){
+    int call(const std::string &cmdline, std::string &output) {
       FILE *fp = popen(cmdline.c_str(), "r");
 
       size_t lineBytes = 512;
@@ -431,43 +458,34 @@ namespace occa {
       return pclose(fp);
     }
 
-    std::string echo(const std::string &var){
-      char *c_var = getenv(var.c_str());
-
-      if(c_var != NULL)
-        return std::string(c_var);
-
-      return "";
-    }
-
-    std::string expandEnvVariables(const std::string &str){
+    std::string expandEnvVariables(const std::string &str) {
       std::string ret;
 
       const char *cRoot = str.c_str();
       const char *c     = cRoot;
 
-      while(*c != '\0'){
+      while(*c != '\0') {
         const char C = c[0];
 
-        if((C == '$')     &&
+        if ((C == '$')     &&
            (c[1] != '\0') &&                   // Last $ doesn't expand
-           ((cRoot == c) || (c[-1] != '\\'))){ // Escape the '$'
+           ((cRoot == c) || (c[-1] != '\\'))) { // Escape the '$'
 
           ++c; // Skip $
 
           const bool hasBrace = (*c == '{');
           const char *c0 = (c + hasBrace);
 
-          if(hasBrace)
+          if (hasBrace)
             skipTo(c, '}');
           else
             skipToWhitespace(c);
 
-          std::string envVar = sys::echo(std::string(c0, c - c0));
+          std::string envVar = env::var(std::string(c0, c - c0));
 
           ret += envVar;
 
-          if(hasBrace)
+          if (hasBrace)
             ++c;
         }
         else {
@@ -479,7 +497,7 @@ namespace occa {
       return ret;
     }
 
-    void rmdir(const std::string &dir){
+    void rmdir(const std::string &dir) {
 #if (OCCA_OS & (LINUX_OS | OSX_OS))
       ::rmdir(dir.c_str());
 #else
@@ -487,7 +505,7 @@ namespace occa {
 #endif
     }
 
-    int mkdir(const std::string &dir){
+    int mkdir(const std::string &dir) {
       errno = 0;
 
 #if (OCCA_OS & (LINUX_OS | OSX_OS))
@@ -497,14 +515,14 @@ namespace occa {
 #endif
     }
 
-    void mkpath(const std::string &dir){
+    void mkpath(const std::string &dir) {
       stringVector_t path;
       sys::absolutePathVec(dir, path);
 
       const int dirCount = (int) path.size();
       int makeFrom = -1;
 
-      if(dirCount == 0)
+      if (dirCount == 0)
         return;
 
 #if (OCCA_OS & (LINUX_OS | OSX_OS))
@@ -515,20 +533,20 @@ namespace occa {
 
       std::string sPath;
 
-      for(int d = 0; d < dirCount; ++d){
+      for(int d = 0; d < dirCount; ++d) {
         sPath += slash;
         sPath += path[d];
 
-        if(!dirExists(sPath)){
+        if (!dirExists(sPath)) {
           makeFrom = d;
           break;
         }
       }
 
-      if(0 < makeFrom){
+      if (0 < makeFrom) {
         sys::mkdir(sPath);
 
-        for(int d = (makeFrom + 1); d < dirCount; ++d){
+        for(int d = (makeFrom + 1); d < dirCount; ++d) {
           sPath += slash;
           sPath += path[d];
 
@@ -537,7 +555,7 @@ namespace occa {
       }
     }
 
-    bool dirExists(const std::string &dir_){
+    bool dirExists(const std::string &dir_) {
       std::string dir = expandEnvVariables(dir_);
       strip(dir);
 
@@ -548,12 +566,12 @@ namespace occa {
     }
 
     bool fileExists(const std::string &filename_,
-                    const int flags){
+                    const int flags) {
 
       std::string filename = expandEnvVariables(filename_);
       strip(filename);
 
-      if(flags & flags::checkCacheDir)
+      if (flags & flags::checkCacheDir)
         return fileExists(getFilename(filename));
 
       struct stat statInfo;
@@ -561,7 +579,7 @@ namespace occa {
       return (stat(filename.c_str(), &statInfo) == 0);
     }
 
-    std::string getFilename(const std::string &filename){
+    std::string getFilename(const std::string &filename) {
       std::string ret;
 
       stringVector_t path;
@@ -569,7 +587,7 @@ namespace occa {
 
       const int dirCount = (int) path.size();
 
-      if(dirCount == 0)
+      if (dirCount == 0)
         return "";
 
 #if (OCCA_OS & (LINUX_OS | OSX_OS))
@@ -578,7 +596,7 @@ namespace occa {
       const char slash = '\\';
 #endif
 
-      for(int dir = 0; dir < dirCount; ++dir){
+      for(int dir = 0; dir < dirCount; ++dir) {
         ret += slash;
         ret += path[dir];
       }
@@ -587,7 +605,7 @@ namespace occa {
     }
 
     void absolutePathVec(const std::string &dir_,
-                         stringVector_t &pathVec){
+                         stringVector_t &pathVec) {
 
       std::string dir = expandEnvVariables(dir_);
       strip(dir);
@@ -597,27 +615,27 @@ namespace occa {
 
       bool foundIt = false;
 
-      if(chars == 0)
+      if (chars == 0)
         return;
 
       // Starts at home
-      if((c[0] == '~') &&
-         ((c[1] == '/') || (c[1] == '\0'))){
+      if ((c[0] == '~') &&
+         ((c[1] == '/') || (c[1] == '\0'))) {
 
         absolutePathVec(env::HOME, pathVec);
 
-        if(c[1] == '\0')
+        if (c[1] == '\0')
           return;
 
         foundIt = true;
         c += 2;
       }
       // OCCA path
-      else if(c[0] == '['){
+      else if (c[0] == '[') {
         const char *c0 = (c + 1);
         skipTo(c, ']');
 
-        if(c[0] == ']'){
+        if (c[0] == ']') {
           absolutePathVec(env::OCCA_CACHE_DIR, pathVec);
 
           pathVec.push_back("libraries");
@@ -629,13 +647,13 @@ namespace occa {
       }
 
       // Relative path
-      if((!foundIt) &&
-         (c[0] != '/')){
+      if ((!foundIt) &&
+         (c[0] != '/')) {
 
         stringVector_t::iterator it = env::OCCA_INCLUDE_PATH.begin();
 
-        while(it != env::OCCA_INCLUDE_PATH.end()){
-          if(sys::fileExists(*it + dir)){
+        while(it != env::OCCA_INCLUDE_PATH.end()) {
+          if (sys::fileExists(*it + dir)) {
             absolutePathVec(*it, pathVec);
 
             foundIt = true;
@@ -644,12 +662,12 @@ namespace occa {
           ++it;
         }
 
-        if(!foundIt)
+        if (!foundIt)
           absolutePathVec(env::PWD, pathVec);
       }
 
-      while(c[0] != '\0'){
-        if(c[0] == '/'){
+      while(c[0] != '\0') {
+        if (c[0] == '/') {
           ++c;
           continue;
         }
@@ -660,7 +678,7 @@ namespace occa {
 
         pathVec.push_back(std::string(c0, c - c0));
 
-        if(c[0] != '\0')
+        if (c[0] != '\0')
           ++c;
       }
     }
@@ -673,7 +691,7 @@ namespace occa {
   }
   //==================================
 
-  mutex_t::mutex_t(){
+  mutex_t::mutex_t() {
 #if (OCCA_OS & (LINUX_OS | OSX_OS))
     int error = pthread_mutex_init(&mutexHandle, NULL);
 
@@ -684,7 +702,7 @@ namespace occa {
 #endif
   }
 
-  void mutex_t::free(){
+  void mutex_t::free() {
 #if (OCCA_OS & (LINUX_OS | OSX_OS))
     int error = pthread_mutex_destroy(&mutexHandle);
 
@@ -695,7 +713,7 @@ namespace occa {
 #endif
   }
 
-  void mutex_t::lock(){
+  void mutex_t::lock() {
 #if (OCCA_OS & (LINUX_OS | OSX_OS))
     pthread_mutex_lock(&mutexHandle);
 #else
@@ -703,7 +721,7 @@ namespace occa {
 #endif
   }
 
-  void mutex_t::unlock(){
+  void mutex_t::unlock() {
 #if (OCCA_OS & (LINUX_OS | OSX_OS))
     pthread_mutex_unlock(&mutexHandle);
 #else
@@ -711,32 +729,32 @@ namespace occa {
 #endif
   }
 
-  fnvOutput_t::fnvOutput_t(){
+  fnvOutput_t::fnvOutput_t() {
     h[0] = 101527; h[1] = 101531;
     h[2] = 101533; h[3] = 101537;
     h[4] = 101561; h[5] = 101573;
     h[6] = 101581; h[7] = 101599;
   }
 
-  bool fnvOutput_t::operator == (const fnvOutput_t &fo){
-    for(int i = 0; i < 8; ++i){
-      if(h[i] != fo.h[i])
+  bool fnvOutput_t::operator == (const fnvOutput_t &fo) {
+    for(int i = 0; i < 8; ++i) {
+      if (h[i] != fo.h[i])
         return false;
     }
 
     return true;
   }
 
-  bool fnvOutput_t::operator != (const fnvOutput_t &fo){
-    for(int i = 0; i < 8; ++i){
-      if(h[i] != fo.h[i])
+  bool fnvOutput_t::operator != (const fnvOutput_t &fo) {
+    for(int i = 0; i < 8; ++i) {
+      if (h[i] != fo.h[i])
         return true;
     }
 
     return false;
   }
 
-  void fnvOutput_t::mergeWith(const fnvOutput_t &fo){
+  void fnvOutput_t::mergeWith(const fnvOutput_t &fo) {
     for(int i = 0; i < 8; ++i)
       h[i] ^= fo.h[i];
   }
@@ -750,7 +768,7 @@ namespace occa {
     return ss.str();
   }
 
-  double currentTime(){
+  double currentTime() {
 #if (OCCA_OS & LINUX_OS)
 
     timespec ct;
@@ -781,7 +799,7 @@ namespace occa {
     static LARGE_INTEGER freq;
     static bool haveFreq = false;
 
-    if(!haveFreq){
+    if (!haveFreq) {
       QueryPerformanceFrequency(&freq);
       haveFreq=true;
     }
@@ -795,16 +813,16 @@ namespace occa {
   }
 
   //---[ File Functions ]-------------------------
-  std::string getOnlyFilename(const std::string &filename){
+  std::string getOnlyFilename(const std::string &filename) {
     std::string dir = getFileDirectory(filename);
 
-    if(dir.size() < filename.size())
+    if (dir.size() < filename.size())
       return filename.substr(dir.size());
 
     return "";
   }
 
-  std::string getPlainFilename(const std::string &filename){
+  std::string getPlainFilename(const std::string &filename) {
     std::string ext = getFileExtension(filename);
     std::string dir = getFileDirectory(filename);
 
@@ -812,17 +830,17 @@ namespace occa {
     int end = (int) filename.size();
 
     // For the [/] character
-    if(0 < start)
+    if (0 < start)
       ++start;
 
     // For the [.ext] extension
-    if(0 < ext.size())
+    if (0 < ext.size())
       end -= (ext.size() - 1);
 
     return filename.substr(start, end - start);
   }
 
-  std::string getFileDirectory(const std::string &filename){
+  std::string getFileDirectory(const std::string &filename) {
     const int chars = (int) filename.size();
     const char *c   = filename.c_str();
 
@@ -830,52 +848,52 @@ namespace occa {
 
 #if (OCCA_OS & (LINUX_OS | OSX_OS))
     for(int i = 0; i < chars; ++i)
-      if(c[i] == '/')
+      if (c[i] == '/')
         lastSlash = i;
 #else
     for(int i = 0; i < chars; ++i)
-      if((c[i] == '/') ||
+      if ((c[i] == '/') ||
          (c[i] == '\\'))
         lastSlash = i;
 #endif
 
-    if(lastSlash || (c[0] == '/'))
+    if (lastSlash || (c[0] == '/'))
       ++lastSlash;
 
     return filename.substr(0, lastSlash);
   }
 
-  std::string getFileExtension(const std::string &filename){
+  std::string getFileExtension(const std::string &filename) {
     const char *c = filename.c_str();
     const char *i = NULL;
 
-    while(*c != '\0'){
-      if(*c == '.')
+    while(*c != '\0') {
+      if (*c == '.')
         i = c;
 
       ++c;
     }
 
-    if(i != NULL)
+    if (i != NULL)
       return filename.substr(i - filename.c_str() + 1);
 
     return "";
   }
 
-  std::string compressFilename(const std::string &filename){
-    if(filename.find(env::OCCA_CACHE_DIR) != 0)
+  std::string compressFilename(const std::string &filename) {
+    if (filename.find(env::OCCA_CACHE_DIR) != 0)
       return filename;
 
     const std::string libPath = env::OCCA_CACHE_DIR + "libraries/";
     const std::string kerPath = env::OCCA_CACHE_DIR + "kernels/";
 
-    if(filename.find(libPath) == 0){
+    if (filename.find(libPath) == 0) {
       std::string libName = getLibraryName(filename);
       std::string theRest = filename.substr(libPath.size() + libName.size() + 1);
 
       return ("[" + libName + "]/" + theRest);
     }
-    else if(filename.find(kerPath) == 0){
+    else if (filename.find(kerPath) == 0) {
       return filename.substr(kerPath.size());
     }
 
@@ -883,10 +901,10 @@ namespace occa {
   }
 
   // NBN: handle binary mode and EOL chars on Windows
-  std::string readFile(const std::string &filename, const bool readingBinary){
+  std::string readFile(const std::string &filename, const bool readingBinary) {
     FILE *fp = NULL;
 
-    if(!readingBinary){
+    if (!readingBinary) {
       fp = fopen(filename.c_str(), "r");
     }
     else{
@@ -915,7 +933,7 @@ namespace occa {
   }
 
   void writeToFile(const std::string &filename,
-                   const std::string &content){
+                   const std::string &content) {
 
     sys::mkpath(getFileDirectory(filename));
 
@@ -929,7 +947,7 @@ namespace occa {
     fclose(fp);
   }
 
-  std::string getFileLock(const std::string &hash, const int depth){
+  std::string getFileLock(const std::string &hash, const int depth) {
     std::string ret = (env::OCCA_CACHE_DIR + "locks/" + hash);
 
     ret += '_';
@@ -938,20 +956,20 @@ namespace occa {
     return ret;
   }
 
-  bool haveHash(const std::string &hash, const int depth){
+  bool haveHash(const std::string &hash, const int depth) {
     std::string lockDir = getFileLock(hash, depth);
 
     sys::mkpath(env::OCCA_CACHE_DIR + "locks/");
 
     int mkdirStatus = sys::mkdir(lockDir);
 
-    if(mkdirStatus && (errno == EEXIST))
+    if (mkdirStatus && (errno == EEXIST))
       return false;
 
     return true;
   }
 
-  void waitForHash(const std::string &hash, const int depth){
+  void waitForHash(const std::string &hash, const int depth) {
     struct stat buffer;
 
     std::string lockDir   = getFileLock(hash, depth);
@@ -961,11 +979,11 @@ namespace occa {
       ; // Do Nothing
   }
 
-  void releaseHash(const std::string &hash, const int depth){
+  void releaseHash(const std::string &hash, const int depth) {
     sys::rmdir( getFileLock(hash, depth) );
   }
 
-  bool fileNeedsParser(const std::string &filename){
+  bool fileNeedsParser(const std::string &filename) {
     std::string ext = getFileExtension(filename);
 
     return ((ext == "okl") ||
@@ -978,7 +996,7 @@ namespace occa {
                                         const std::string &filename,
                                         const std::string &parsedFile,
                                         const std::string &functionName,
-                                        const kernelInfo &info){
+                                        const kernelInfo &info) {
 
     parser fileParser;
 
@@ -989,8 +1007,8 @@ namespace occa {
     parserFlags["mode"]     = deviceMode;
     parserFlags["language"] = ((extension != "ofl") ? "C" : "Fortran");
 
-    if((extension == "oak") ||
-       (extension == "oaf")){
+    if ((extension == "oak") ||
+       (extension == "oaf")) {
 
       parserFlags["magic"] = "enabled";
     }
@@ -999,7 +1017,7 @@ namespace occa {
                                                      filename,
                                                      parserFlags);
 
-    if(!sys::fileExists(parsedFile)){
+    if (!sys::fileExists(parsedFile)) {
       sys::mkpath(getFileDirectory(parsedFile));
 
       std::ofstream fs;
@@ -1012,7 +1030,7 @@ namespace occa {
 
     kernelInfoIterator kIt = fileParser.kernelInfoMap.find(functionName);
 
-    if(kIt != fileParser.kernelInfoMap.end())
+    if (kIt != fileParser.kernelInfoMap.end())
       return (kIt->second)->makeParsedKernelInfo();
 
     OCCA_CHECK(false,
@@ -1023,70 +1041,70 @@ namespace occa {
     return parsedKernelInfo();
   }
 
-  std::string removeSlashes(const std::string &str){
+  std::string removeSlashes(const std::string &str) {
     std::string ret = str;
     const size_t chars = str.size();
 
-    for(size_t i = 0; i < chars; ++i){
-      if(ret[i] == '/')
+    for(size_t i = 0; i < chars; ++i) {
+      if (ret[i] == '/')
         ret[i] = '_';
     }
 
     return ret;
   }
 
-  char* getCachedOccaFile(const std::string &filename){
+  char* getCachedOccaFile(const std::string &filename) {
     static std::map<std::string, char*> sourceMap;
 
     char *&source = sourceMap[filename];
 
-    if(source == NULL)
+    if (source == NULL)
       source = cReadFile(env::OCCA_DIR + "/" + filename);
 
     return source;
   }
 
-  char* getCachedDefines(const std::string &filename){
+  char* getCachedDefines(const std::string &filename) {
     return getCachedOccaFile("include/occa/defines/" + filename);
   }
 
-  char* getCachedScript(const std::string &filename){
+  char* getCachedScript(const std::string &filename) {
     return getCachedOccaFile("scripts/" + filename);
   }
 
-  char* getVectorDefines(){
+  char* getVectorDefines() {
     return getCachedDefines("vector.hpp");
   }
 
-  char* getSerialDefines(){
+  char* getSerialDefines() {
     return getCachedDefines("Serial.hpp");
   }
 
-  char* getOpenMPDefines(){
+  char* getOpenMPDefines() {
     return getCachedDefines("OpenMP.hpp");
   }
 
-  char* getOpenCLDefines(){
+  char* getOpenCLDefines() {
     return getCachedDefines("OpenCL.hpp");
   }
 
-  char* getCUDADefines(){
+  char* getCUDADefines() {
     return getCachedDefines("CUDA.hpp");
   }
 
-  char* getHSADefines(){
+  char* getHSADefines() {
     return getCachedDefines("HSA.hpp");
   }
 
-  char* getPthreadsDefines(){
+  char* getPthreadsDefines() {
     return getCachedDefines("Pthreads.hpp");
   }
 
-  void setupOccaHeaders(const kernelInfo &info){
+  void setupOccaHeaders(const kernelInfo &info) {
     std::string primitivesFile = sys::getFilename("[occa]/primitives.hpp");
     std::string headerFile     = info.getModeHeaderFilename();
 
-    if(!sys::fileExists(primitivesFile)){
+    if (!sys::fileExists(primitivesFile)) {
       sys::mkpath(getFileDirectory(primitivesFile));
 
       std::ofstream fs2;
@@ -1097,18 +1115,18 @@ namespace occa {
       fs2.close();
     }
 
-    if(!sys::fileExists(headerFile)){
+    if (!sys::fileExists(headerFile)) {
       sys::mkpath(getFileDirectory(headerFile));
 
       std::ofstream fs2;
       fs2.open(headerFile.c_str());
 
-      if(info.mode & Serial)   fs2 << getSerialDefines();
-      if(info.mode & OpenMP)   fs2 << getOpenMPDefines();
-      if(info.mode & OpenCL)   fs2 << getOpenCLDefines();
-      if(info.mode & CUDA)     fs2 << getCUDADefines();
-      // if(info.mode & HSA)      fs2 << getHSADefines();
-      if(info.mode & Pthreads) fs2 << getPthreadsDefines();
+      if (info.mode & Serial)   fs2 << getSerialDefines();
+      if (info.mode & OpenMP)   fs2 << getOpenMPDefines();
+      if (info.mode & OpenCL)   fs2 << getOpenCLDefines();
+      if (info.mode & CUDA)     fs2 << getCUDADefines();
+      // if (info.mode & HSA)      fs2 << getHSADefines();
+      if (info.mode & Pthreads) fs2 << getPthreadsDefines();
 
       fs2.close();
     }
@@ -1116,11 +1134,11 @@ namespace occa {
 
   void createSourceFileFrom(const std::string &filename,
                             const std::string &hashDir,
-                            const kernelInfo &info){
+                            const kernelInfo &info) {
 
     const std::string sourceFile = hashDir + kc::sourceFile;
 
-    if(sys::fileExists(sourceFile))
+    if (sys::fileExists(sourceFile))
       return;
 
     sys::mkpath(hashDir);
@@ -1131,8 +1149,16 @@ namespace occa {
     fs.open(sourceFile.c_str());
 
     fs << "#include \"" << info.getModeHeaderFilename() << "\"\n"
-       << "#include \"" << sys::getFilename("[occa]/primitives.hpp") << "\"\n"
-       << info.header
+       << "#include \"" << sys::getFilename("[occa]/primitives.hpp") << "\"\n";
+
+    if (info.mode & (Serial | OpenMP | Pthreads | CUDA)) {
+      fs << "#if defined(OCCA_IN_KERNEL) && !OCCA_IN_KERNEL\n"
+         << "using namespace occa;\n"
+         << "#endif\n";
+    }
+
+
+    fs << info.header
        << readFile(filename);
 
     fs.close();
@@ -1141,7 +1167,7 @@ namespace occa {
 
 
   //---[ Hash Functions ]-------------------------
-  fnvOutput_t fnv(const void *ptr, uintptr_t bytes){
+  fnvOutput_t fnv(const void *ptr, uintptr_t bytes) {
     std::stringstream ss;
 
     const char *c = (char*) ptr;
@@ -1154,7 +1180,7 @@ namespace occa {
                       102769, 102793,
                       102797, 102811};
 
-    for(uintptr_t i = 0; i < bytes; ++i){
+    for(uintptr_t i = 0; i < bytes; ++i) {
       for(int j = 0; j < 8; ++j)
         h[j] = (h[j] * p[j]) ^ c[i];
     }
@@ -1175,12 +1201,12 @@ namespace occa {
   }
 
   template <>
-  fnvOutput_t fnv(const std::string &saltedString){
+  fnvOutput_t fnv(const std::string &saltedString) {
     return fnv(saltedString.c_str(), saltedString.size());
   }
 
   std::string getContentHash(const std::string &content,
-                             const std::string &salt){
+                             const std::string &salt) {
 
     std::string fo = fnv(content + salt);
 
@@ -1189,15 +1215,15 @@ namespace occa {
   }
 
   std::string getFileContentHash(const std::string &filename,
-                                 const std::string &salt){
+                                 const std::string &salt) {
 
     return getContentHash(readFile(filename), salt);
   }
 
-  std::string getLibraryName(const std::string &filename){
+  std::string getLibraryName(const std::string &filename) {
     const std::string cacheLibraryPath = (env::OCCA_CACHE_DIR + "libraries/");
 
-    if(filename.find(cacheLibraryPath) != 0)
+    if (filename.find(cacheLibraryPath) != 0)
       return "";
 
     const int chars = (int) filename.size();
@@ -1206,15 +1232,15 @@ namespace occa {
     int start = (int) cacheLibraryPath.size();
     int end;
 
-    for(end = start; end < chars; ++end){
-      if(c[end] == '/')
+    for(end = start; end < chars; ++end) {
+      if (c[end] == '/')
         break;
     }
 
     return filename.substr(start, end - start);
   }
 
-  std::string hashFrom(const std::string &filename){
+  std::string hashFrom(const std::string &filename) {
     std::string hashDir = hashDirFor(filename, "");
 
     const int chars = (int) filename.size();
@@ -1223,8 +1249,8 @@ namespace occa {
     int start = (int) hashDir.size();
     int end;
 
-    for(end = (start + 1); end < chars; ++end){
-      if(c[end] == '/')
+    for(end = (start + 1); end < chars; ++end) {
+      if (c[end] == '/')
         break;
     }
 
@@ -1232,10 +1258,10 @@ namespace occa {
   }
 
   std::string hashDirFor(const std::string &filename,
-                         const std::string &hash){
+                         const std::string &hash) {
 
-    if(filename.size() == 0){
-      if(hash.size() != 0)
+    if (filename.size() == 0) {
+      if (hash.size() != 0)
         return (env::OCCA_CACHE_DIR + "kernels/" + hash + "/");
       else
         return (env::OCCA_CACHE_DIR + "kernels/");
@@ -1243,8 +1269,8 @@ namespace occa {
 
     std::string occaLibName = getLibraryName(sys::getFilename(filename));
 
-    if(occaLibName.size() == 0){
-      if(hash.size() != 0)
+    if (occaLibName.size() == 0) {
+      if (hash.size() != 0)
         return (env::OCCA_CACHE_DIR + "kernels/" + hash + "/");
       else
         return (env::OCCA_CACHE_DIR + "kernels/");
@@ -1256,7 +1282,7 @@ namespace occa {
 
 
   //---[ String Functions ]-----------------------
-  uintptr_t atoi(const char *c){
+  uintptr_t atoi(const char *c) {
     uintptr_t ret = 0;
 
     const char *c0 = c;
@@ -1267,25 +1293,25 @@ namespace occa {
 
     skipWhitespace(c);
 
-    if((*c == '+') || (*c == '-')){
+    if ((*c == '+') || (*c == '-')) {
       negative = (*c == '-');
       ++c;
     }
 
-    if(c[0] == '0')
+    if (c[0] == '0')
       return atoiBase2(c0);
 
-    while(('0' <= *c) && (*c <= '9')){
+    while(('0' <= *c) && (*c <= '9')) {
       ret *= 10;
       ret += *(c++) - '0';
     }
 
-    while(*c != '\0'){
+    while(*c != '\0') {
       const char C = upChar(*c);
 
-      if(C == 'L')
+      if (C == 'L')
         ++longs;
-      else if(C == 'U')
+      else if (C == 'U')
         unsigned_ = true;
       else
         break;
@@ -1293,17 +1319,17 @@ namespace occa {
       ++c;
     }
 
-    if(negative)
+    if (negative)
       ret = ((~ret) + 1);
 
-    if(longs == 0){
-      if(!unsigned_)
+    if (longs == 0) {
+      if (!unsigned_)
         ret = ((uintptr_t) ((int) ret));
       else
         ret = ((uintptr_t) ((unsigned int) ret));
     }
-    else if(longs == 1){
-      if(!unsigned_)
+    else if (longs == 1) {
+      if (!unsigned_)
         ret = ((uintptr_t) ((long) ret));
       else
         ret = ((uintptr_t) ((unsigned long) ret));
@@ -1313,7 +1339,7 @@ namespace occa {
     return ret;
   }
 
-  uintptr_t atoiBase2(const char*c){
+  uintptr_t atoiBase2(const char*c) {
     uintptr_t ret = 0;
 
     const char *c0 = c;
@@ -1325,24 +1351,24 @@ namespace occa {
 
     skipWhitespace(c);
 
-    if((*c == '+') || (*c == '-')){
+    if ((*c == '+') || (*c == '-')) {
       negative = (*c == '-');
       ++c;
     }
 
-    if(*c == '0'){
+    if (*c == '0') {
       ++c;
 
       const char C = upChar(*c);
 
-      if(C == 'X'){
+      if (C == 'X') {
         bits = 4;
         ++c;
 
         maxDigitValue = 16;
         maxDigitChar  = 'F';
       }
-      else if(C == 'B'){
+      else if (C == 'B') {
         bits = 1;
         ++c;
 
@@ -1351,8 +1377,8 @@ namespace occa {
       }
     }
 
-    while(true){
-      if(('0' <= *c) && (*c <= '9')){
+    while(true) {
+      if (('0' <= *c) && (*c <= '9')) {
         const char digitValue = *(c++) - '0';
 
         OCCA_CHECK(digitValue < maxDigitValue,
@@ -1366,7 +1392,7 @@ namespace occa {
       else {
         const char C = upChar(*c);
 
-        if(('A' <= C) && (C <= 'F')){
+        if (('A' <= C) && (C <= 'F')) {
           const char digitValue = 10 + (C - 'A');
           ++c;
 
@@ -1383,26 +1409,26 @@ namespace occa {
       }
     }
 
-    if(negative)
+    if (negative)
       ret = ((~ret) + 1);
 
     return ret;
   }
 
-  std::string stringifyBytes(uintptr_t bytes){
-    if(0 < bytes){
+  std::string stringifyBytes(uintptr_t bytes) {
+    if (0 < bytes) {
       std::stringstream ss;
       uintptr_t big1 = 1;
 
-      if(bytes < (big1 << 10))
+      if (bytes < (big1 << 10))
         ss << bytes << " bytes";
-      else if(bytes < (big1 << 20))
+      else if (bytes < (big1 << 20))
         ss << (bytes >> 10) << " KB";
-      else if(bytes < (big1 << 30))
+      else if (bytes < (big1 << 30))
         ss << (bytes >> 20) << " MB";
-      else if(bytes < (big1 << 40))
+      else if (bytes < (big1 << 40))
         ss << (bytes >> 30) << " GB";
-      else if(bytes < (big1 << 50))
+      else if (bytes < (big1 << 50))
         ss << (bytes >> 40) << " TB";
       else
         ss << bytes << " bytes";
