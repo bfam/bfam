@@ -1,0 +1,25 @@
+language: c
+dist: trusty
+compiler: gcc
+
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq git gfortran libopenmpi-dev openmpi-bin
+
+before_script:
+
+script:
+  - make tpls
+  - make shared
+  - make clean
+  - USE_LUA=1 make shared
+  - make clean
+  - USE_BFAMO=1 make shared
+  - make clean
+  - USE_LUA=1 USE_BFAMO=1 make shared
+
+notifications:
+  email:
+    - bfam@bfam@librelist.com
+  on_success: change
+  on_failure: change
