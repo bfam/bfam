@@ -97,8 +97,8 @@ third_party/p4est:
 	tar zxf third_party/p4est-1.1.tar.gz
 	mv p4est-1.1 third_party/p4est
 	cd third_party/p4est \
-	         && ./configure CC=$(CC) CXX=$(CXX) F77=$(F77) FC=$(FC) --enable-mpi \
-	         && $(MAKE) install
+		&& ./configure CC=$(CC) CXX=$(CXX) F77=$(F77) FC=$(FC) --enable-mpi \
+		--without-blas && $(MAKE) install
 
 # Dependencies
 
