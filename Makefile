@@ -2,7 +2,7 @@ CC = mpicc
 CXX = mpicxx
 F77 = mpif77
 FC = mpif90
-CFLAGS = --std=gnu11 -g -O2
+CFLAGS = --std=gnu99 -g -O2
 
 CFLAGS +=-fno-common -fomit-frame-pointer
 
