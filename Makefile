@@ -9,7 +9,7 @@ CFLAGS +=-fno-common -fomit-frame-pointer
 CFLAGS += -Wconversion -Wno-sign-conversion \
           -Wcast-align -Wchar-subscripts -Wall -W \
           -Wpointer-arith -Wwrite-strings -Wformat-security -pedantic \
-          -Wextra -Wno-unused-parameter -fpic
+          -Wextra -Wno-unused-parameter -fPIC
 
 LDFLAGS += -shared
 
