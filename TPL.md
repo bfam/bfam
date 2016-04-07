@@ -86,15 +86,6 @@ See the `INSTALL` file in `third_party/p4est-0.3.4.1.143-e573.tar.gz` for
 more information.
 
 ### libocca
-
-We include a version of libocca from:
-
-    https://github.com/libocca/occa
-
-with the command:
-
-    git subtree pull --prefix=third_party/OCCA2 --squash git@github.com:libocca/occa.git master
-
 libocca has  the license:
 
     The MIT License (MIT)
