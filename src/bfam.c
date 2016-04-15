@@ -7384,31 +7384,34 @@ static void bfam_subdomain_dgx_glue_init(
   const int N = subdomain->N;
   const int Nrp = N + 1;
 
-  bfam_subdomain_dgx_interpolator_t *proj_m2g =
+
+  /* v2g: volume to glue */
+  /* g2v: glue to volume */
+  bfam_subdomain_dgx_interpolator_t *proj_v2g =
       bfam_subdomain_dgx_get_interpolator(N2N, N_m, N, inDIM);
-  bfam_subdomain_dgx_interpolator_t *proj_g2m =
+  bfam_subdomain_dgx_interpolator_t *proj_g2v =
       bfam_subdomain_dgx_get_interpolator(N2N, N, N_m, inDIM);
 
-  BFAM_ASSERT(proj_m2g);
-  BFAM_ASSERT(proj_g2m);
+  BFAM_ASSERT(proj_v2g);
+  BFAM_ASSERT(proj_g2v);
 
   glue_m->interpolation =
       bfam_malloc_aligned(glue_m->num_interp * sizeof(bfam_real_t *));
-  glue_m->interpolation[0] = proj_m2g->prj[0];
-  glue_m->interpolation[1] = proj_m2g->prj[3];
-  glue_m->interpolation[2] = proj_m2g->prj[4];
+  glue_m->interpolation[0] = proj_v2g->prj[0];
+  glue_m->interpolation[1] = proj_v2g->prj[3];
+  glue_m->interpolation[2] = proj_v2g->prj[4];
 
   glue_m->projection =
       bfam_malloc_aligned(glue_m->num_interp * sizeof(bfam_real_t *));
-  glue_m->projection[0] = proj_g2m->prj[0];
-  glue_m->projection[1] = proj_g2m->prj[1];
-  glue_m->projection[2] = proj_g2m->prj[2];
+  glue_m->projection[0] = proj_g2v->prj[0];
+  glue_m->projection[1] = proj_g2v->prj[1];
+  glue_m->projection[2] = proj_g2v->prj[2];
 
   glue_m->massprojection =
       bfam_malloc_aligned(glue_m->num_interp * sizeof(bfam_real_t *));
-  glue_m->massprojection[0] = proj_g2m->mass_prj[0];
-  glue_m->massprojection[1] = proj_g2m->mass_prj[1];
-  glue_m->massprojection[2] = proj_g2m->mass_prj[2];
+  glue_m->massprojection[0] = proj_g2v->mass_prj[0];
+  glue_m->massprojection[1] = proj_g2v->mass_prj[1];
+  glue_m->massprojection[2] = proj_g2v->mass_prj[2];
 
   glue_p->same_order = (N_p == N) && (N_m == N);
   glue_p->EToEp = bfam_malloc_aligned(K * sizeof(bfam_locidx_t));
