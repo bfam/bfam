@@ -8393,8 +8393,8 @@ const char *occa_modes[5] = {"SERIAL", "OpenMP", "OpenCL", "CUDA", NULL};
 
 /* These names have to do with the type of h refinement */
 const char *prj_base_names[6] = {"Pr",     /* Same in h */
-                                 "Pr_c2b", /* coarsen from bottom */
-                                 "Pr_c2t", /* coarsen from top */
+                                 "Pr_cfb", /* coarsen from bottom */
+                                 "Pr_cft", /* coarsen from top */
                                  "Pr_r2b", /* refine to bottom */
                                  "Pr_r2t", /* refine to top */
                                  NULL};
