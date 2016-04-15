@@ -1612,10 +1612,10 @@ typedef double metric_real_t;
 #define CUDA 3
 extern const char *occa_modes[5];
 
-/* prefix for the projection dictionary */
+/* prefix for the projection dictionary: h-refinement */
 extern const char *prj_base_names[6];
 
-/* coarse, same, refine order */
+/* p-refinement coarse, same, refine order */
 #define BFAMO_ADAPT_PR 0
 #define BFAMO_ADAPT_PS 1
 #define BFAMO_ADAPT_PC 2

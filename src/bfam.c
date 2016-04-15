@@ -8391,10 +8391,19 @@ stats_t _t;
 
 const char *occa_modes[5] = {"SERIAL", "OpenMP", "OpenCL", "CUDA", NULL};
 
-const char *prj_base_names[6] = {"Pr",     "Pr_c2b", "Pr_c2t",
-                                 "Pr_r2b", "Pr_r2t", NULL};
+/* These names have to do with the type of h refinement */
+const char *prj_base_names[6] = {"Pr",     /* Same in h */
+                                 "Pr_c2b", /* coarsen from bottom */
+                                 "Pr_c2t", /* coarsen from top */
+                                 "Pr_r2b", /* refine to bottom */
+                                 "Pr_r2t", /* refine to top */
+                                 NULL};
 
-const char *bfamo_adapt_postfix[4] = {"R", "S", "C", NULL};
+/* These names have to do with p refinement */
+const char *bfamo_adapt_postfix[4] = {"R", /* refine */
+                                      "S", /* same */
+                                      "C", /*coarsen */
+                                      NULL};
 
 bfamo_sub_kernel_t bfamo_sub_kernel_null()
 {
