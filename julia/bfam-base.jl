@@ -27,10 +27,12 @@ const _bfam_functions = Dict{Symbol, ASCIIString}(
 
 const _p4est_functions = Dict{Symbol, ASCIIString}(
     :pxest_connectivity_new_brick => "p4est_connectivity_new_brick",
+    :pxest_vtk_write_all => "p4est_vtk_write_all",
     )
 
 const _p8est_functions = Dict{Symbol, ASCIIString}(
     :pxest_connectivity_new_brick => "p8est_connectivity_new_brick",
+    :pxest_vtk_write_all => "p8est_vtk_write_all",
     )
 
 function __init__()
@@ -106,4 +108,19 @@ function domain_balance(domain::Domain)
                 Void,
                 (Ptr{Void},),
                 domain.domain_ptr)
+end
+
+function domain_pxest_write(domain::Domain, output)
+  ccall(pxest_vtk_write_all,
+        Void, (Ptr{Void}, # p4est_t * p4est,
+               Ptr{Void}, # p4est_geometry_t * geom,
+               Cdouble,   # double         scale,
+               Cint,      # int write_tree,
+               Cint,      # int write_level,
+               Cint,      # int write_rank,
+               Cint,      # int wrap_rank,
+               Cint,      # int num_scalars,
+               Cint,      # int num_vectors,
+               Cstring),  # const char * filename,
+          domain.pxest_ptr, C_NULL, 1, 1, 1, 1, 0, 0, 0, output)
 end

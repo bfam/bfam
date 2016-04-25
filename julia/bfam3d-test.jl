@@ -16,5 +16,7 @@ mesh_min_level = 0
 domain = bfam.domain_pxest_new_ext_f(comm, conn, mesh_min_elements,
                                               mesh_min_level, 1)
 bfam.domain_balance(domain)
+bfam.domain_pxest_write(domain, "pxest3d")
+
 
 MPI.Finalized()
