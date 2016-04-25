@@ -8386,6 +8386,7 @@ uint32_t bfam_pcg32_boundedrand_r(bfam_pcg32_random_t *rng, uint32_t bound)
 }
 // }}}
 
+// {{{ bfamo
 #ifdef BFAM_USE_BFAMO
 
 #ifdef STATS
@@ -9087,4 +9088,5 @@ void bfamo_lsrk_init(bfamo_lsrk_t *ts, bfam_domain_t *dom,
     break;
   }
 }
+/// }}}
 #endif
