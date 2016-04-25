@@ -8,6 +8,8 @@ MPI.Init()
 
 bfam.init()
 
+conn = bfam.connectivity_brick(2, 3, false, true)
+
 
 MPI.Finalized()
 

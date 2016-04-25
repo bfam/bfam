@@ -40,6 +40,7 @@ function __init__()
 end
 
 
+# initialization functions
 function init()
   init(STDOUT)
 end
@@ -57,3 +58,18 @@ function init(stream::IO, comm::MPI.Comm, verbosity::Int)
         stream.handle, comm.val, loglevel)
 end
 
+# pxest connectivity
+function connectivity_brick(nx::Int, ny::Int, px::Bool, py::Bool)
+  @assert volumedim == 2
+  conn = ccall(pxest_connectivity_new_brick,
+               Ptr{Void}, (Cint, Cint, Cint, Cint), nx, ny, px, py)
+  return conn
+end
+function connectivity_brick(nx::Int , ny::Int , nz::Int,
+                            px::Bool, py::Bool, pz::Bool)
+  @assert volumedim == 3
+  conn = ccall(pxest_connectivity_new_brick,
+               Ptr{Void}, (Cint, Cint, Cint, Cint, Cint, Cint),
+               nx, ny, nz, px, py, pz)
+
+end
