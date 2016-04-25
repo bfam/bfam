@@ -35,6 +35,7 @@ endif
 
 ifndef RELEASE
 	CPPFLAGS += -DBFAM_DEBUG
+	P4EST_DEBUG = --enable-debug
 endif
 
 ifdef USE_LUA
@@ -98,7 +99,7 @@ third_party/p4est:
 	mv p4est-1.1 third_party/p4est
 	cd third_party/p4est \
 		&& ./configure CC=$(CC) CXX=$(CXX) F77=$(F77) FC=$(FC) --enable-mpi \
-		--without-blas && $(MAKE) install
+		--without-blas $(P4EST_DEBUG) && $(MAKE) install
 
 # Dependencies
 
