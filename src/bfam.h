@@ -323,6 +323,8 @@ void bfam_free_aligned(void *ptr);
  */
 void bfam_signal_handler_set();
 
+void bfam_init_helper_f(FILE *stream, int f_comm, int verbosity);
+
 // }}}
 
 // {{{ critbit
@@ -1154,8 +1156,21 @@ typedef struct
  */
 bfam_domain_pxest_t *bfam_domain_pxest_new_ext(MPI_Comm domComm,
                                                p4est_connectivity_t *conn,
-                                               p4est_locidx_t min_quadrants,
-                                               int min_level, int fill_uniform);
+                                               int min_quadrants, int min_level,
+                                               int fill_uniform);
+bfam_domain_pxest_t *
+bfam_domain_pxest_new_ext_f(int f_domcomm, p4est_connectivity_t *conn,
+                            int min_quadrants, int min_level, int fill_uniform);
+
+/** Helper function to return pxest from domain_pxest
+ *
+ * \param[in]  domain  domain pointer
+ *
+ * \return pointer to the contained pxest
+ */
+p4est_t *bfam_domain_get_pxest(bfam_domain_pxest_t *domain);
+
+void bfam_domain_pxest_balance(bfam_domain_pxest_t *domain);
 
 /** Clean up domain
  *

@@ -405,6 +405,23 @@ void bfam_signal_handler_set()
   }
 }
 
+void bfam_init_helper_f(FILE *stream, int f_comm, int verbosity)
+{
+  MPI_Comm comm = MPI_Comm_f2c(f_comm);
+
+  int rank;
+  BFAM_MPI_CHECK(MPI_Comm_rank(comm, &rank));
+
+  int loglevel = BFAM_MAX(BFAM_LL_INFO - verbosity, BFAM_LL_ALWAYS);
+
+  bfam_log_init(rank, stdout, loglevel);
+  bfam_signal_handler_set();
+
+  int sc_log_priorities = BFAM_MAX(SC_LP_STATISTICS - verbosity, SC_LP_ALWAYS);
+  sc_init(comm, 0, 0, NULL, sc_log_priorities);
+  p4est_init(NULL, sc_log_priorities);
+}
+
 /*
  *  The follow code snippet is from:
  *
@@ -3802,6 +3819,14 @@ static void bfam_domain_pxest_init_ext(bfam_domain_pxest_t *domain,
 
 /* Domain managed by pxest based functions */
 
+bfam_domain_pxest_t *
+bfam_domain_pxest_new_ext_f(int f_domComm, p4est_connectivity_t *conn,
+                            int min_quadrants, int min_level, int fill_uniform)
+{
+  return bfam_domain_pxest_new_ext(MPI_Comm_f2c(f_domComm), conn, min_quadrants,
+                                   min_level, fill_uniform);
+}
+
 bfam_domain_pxest_t *bfam_domain_pxest_new_ext(MPI_Comm domComm,
                                                p4est_connectivity_t *conn,
                                                p4est_locidx_t min_quadrants,
@@ -3811,6 +3836,16 @@ bfam_domain_pxest_t *bfam_domain_pxest_new_ext(MPI_Comm domComm,
   bfam_domain_pxest_init_ext(newDomain, domComm, conn, min_quadrants, min_level,
                              fill_uniform);
   return newDomain;
+}
+
+p4est_t *bfam_domain_get_pxest(bfam_domain_pxest_t *domain)
+{
+  return domain->pxest;
+}
+
+void bfam_domain_pxest_balance(bfam_domain_pxest_t *domain)
+{
+  p4est_balance(domain->pxest, P4EST_CONNECT_CORNER, NULL);
 }
 
 /** free the dgx_ops data put in the dgx_ops dictionary
@@ -7383,7 +7418,6 @@ static void bfam_subdomain_dgx_glue_init(
 
   const int N = subdomain->N;
   const int Nrp = N + 1;
-
 
   /* v2g: volume to glue */
   /* g2v: glue to volume */
