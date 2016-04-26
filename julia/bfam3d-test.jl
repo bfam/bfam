@@ -4,6 +4,15 @@ using bfam3d
 bfam = bfam3d
 using MPI
 
+
+function test_refine(which_tree, level, x, y, z, user_data)
+  refine = 0
+  if rand() < 0.5 && level < 4
+    refine = 1
+  end
+  return Cint(refine)
+end
+
 MPI.Init()
 
 bfam.init()

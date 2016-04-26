@@ -23,6 +23,7 @@ const _bfam_functions = Dict{Symbol, ASCIIString}(
     :bfam_domain_pxest_new_ext_f => "bfam_domain_pxest_new_ext_f",
     :bfam_domain_get_pxest => "bfam_domain_get_pxest",
     :bfam_domain_pxest_balance => "bfam_domain_pxest_balance",
+    :bfam_domain_pxest_refine => "bfam_domain_pxest_refine",
     )
 
 const _p4est_functions = Dict{Symbol, ASCIIString}(
@@ -123,4 +124,17 @@ function domain_pxest_write(domain::Domain, output)
                Cint,      # int num_vectors,
                Cstring),  # const char * filename,
           domain.pxest_ptr, C_NULL, 1, 1, 1, 1, 0, 0, 0, output)
+end
+
+function domain_pxest_refine(domain, refine_recursive, refine_fn, user_data)
+  if volumedim == 2
+    const refine_fn_c = cfunction(refine_fn, Cint,
+                                  (Cint, Cint, Cint, Cint, Ref{Void}))
+  elseif volumedim == 2
+    const refine_fn_c = cfunction(refine_fn, Cint,
+                                  (Cint, Cint, Cint, Cint, Cint, Ref{Void}))
+  end
+
+  ccall(bfam_domain_pxest_refine, Void, (Ptr{Void}, Cint, Ptr{Void}, Ref{Void}),
+        domain.domain_ptr, refine_recursive, refine_fn_c, user_data)
 end
