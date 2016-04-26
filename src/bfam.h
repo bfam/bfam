@@ -1296,14 +1296,15 @@ void bfam_domain_pxest_quadrant_replace(p4est_t *p4est,
                                         p4est_quadrant_t *incoming[]);
 
 #if BFAM_DGX_DIMENSION == 2
-typedef int (*bfam_pxest_refine_t)(int which_tree, int level, int x, int y);
+typedef int (*bfam_pxest_refine_t)(int which_tree, int level, int x, int y,
+                                   void *user_data);
 #elif BFAM_DGX_DIMENSION == 3
 typedef int (*bfam_pxest_refine_t)(int which_tree, int level, int x, int y,
                                    int z, void *user_data);
 #endif
 
-void bfam_pxest_refine(bfam_domain_pxest_t *domain, int refine_recursive,
-                       bfam_pxest_refine_t refine_fn, void *user_data);
+void bfam_domain_pxest_refine(bfam_domain_pxest_t *domain, int refine_recursive,
+                              bfam_pxest_refine_t refine_fn, void *user_data);
 
 // }}}
 

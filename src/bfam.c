@@ -5455,8 +5455,8 @@ static int bfam_pxest_refine_wrap(p4est_t *p4est, p4est_topidx_t which_tree,
                          quadrant->z, data->user_pointer);
 #endif
 }
-void bfam_pxest_refine(bfam_domain_pxest_t *domain, int refine_recursive,
-                       bfam_pxest_refine_t refine_fn, void *user_pointer)
+void bfam_domain_pxest_refine(bfam_domain_pxest_t *domain, int refine_recursive,
+                              bfam_pxest_refine_t refine_fn, void *user_pointer)
 {
   bfam_pxest_refine_wrap_data_t data;
   data.refine_fn = refine_fn;
@@ -5464,7 +5464,7 @@ void bfam_pxest_refine(bfam_domain_pxest_t *domain, int refine_recursive,
   void *old_user_pointer = domain->pxest->user_pointer;
   domain->pxest->user_pointer = &data;
   p4est_refine(domain->pxest, refine_recursive, bfam_pxest_refine_wrap, NULL);
-  p4est->user_pointer = old_user_pointer;
+  domain->pxest->user_pointer = old_user_pointer;
 }
 
 // }}}
