@@ -1505,231 +1505,235 @@ typedef struct opt_s opt_t;
 void *bfam_gopt_sort(int *argc, const char **argv, const void *opt_specs)
 {
   void *opts;
-  {{{const char *const *arg_p = argv + 1;
-  size_t opt_count = 1;
-  for (; *arg_p; ++arg_p)
   {
-    if ('-' == (*arg_p)[0] && (*arg_p)[1])
     {
-      if ('-' == (*arg_p)[1])
       {
-        if ((*arg_p)[2])
-          ++opt_count;
-        else
-          break;
-      }
-      else
-      {
-        const opt_spec_t *opt_spec_p = opt_specs;
-        for (; opt_spec_p->key; ++opt_spec_p)
+        const char *const *arg_p = argv + 1;
+        size_t opt_count = 1;
+        for (; *arg_p; ++arg_p)
         {
-          if (strchr(opt_spec_p->shorts, (*arg_p)[1]))
+          if ('-' == (*arg_p)[0] && (*arg_p)[1])
           {
-            opt_count +=
-                opt_spec_p->flags & BFAM_GOPT_ARG ? 1 : strlen((*arg_p) + 1);
-            break;
+            if ('-' == (*arg_p)[1])
+            {
+              if ((*arg_p)[2])
+                ++opt_count;
+              else
+                break;
+            }
+            else
+            {
+              const opt_spec_t *opt_spec_p = opt_specs;
+              for (; opt_spec_p->key; ++opt_spec_p)
+              {
+                if (strchr(opt_spec_p->shorts, (*arg_p)[1]))
+                {
+                  opt_count += opt_spec_p->flags & BFAM_GOPT_ARG
+                                   ? 1
+                                   : strlen((*arg_p) + 1);
+                  break;
+                }
+              }
+            }
           }
         }
+        opts = bfam_malloc(opt_count * sizeof(opt_t));
       }
     }
   }
-  opts = bfam_malloc(opt_count * sizeof(opt_t));
-}
-}
-}
-{
-  const char **arg_p = argv + 1;
-  const char **next_operand = arg_p;
-  opt_t *next_option = opts;
-
-  if (!opts)
   {
-    perror(argv[0]);
-    exit(EX_OSERR);
-  }
-  for (; *arg_p; ++arg_p)
-    if ('-' == (*arg_p)[0] && (*arg_p)[1])
-      if ('-' == (*arg_p)[1])
-        if ((*arg_p)[2])
-        {
+    const char **arg_p = argv + 1;
+    const char **next_operand = arg_p;
+    opt_t *next_option = opts;
+
+    if (!opts)
+    {
+      perror(argv[0]);
+      exit(EX_OSERR);
+    }
+    for (; *arg_p; ++arg_p)
+      if ('-' == (*arg_p)[0] && (*arg_p)[1])
+        if ('-' == (*arg_p)[1])
+          if ((*arg_p)[2])
           {
             {
-              const opt_spec_t *opt_spec_p = opt_specs;
-              const char *const *longs = opt_spec_p->longs;
-              next_option->key = 0;
-              while (*longs)
               {
-                const char *option_cp = (*arg_p) + 2;
-                const char *name_cp = *longs;
-                while (*option_cp && *option_cp == *name_cp)
+                const opt_spec_t *opt_spec_p = opt_specs;
+                const char *const *longs = opt_spec_p->longs;
+                next_option->key = 0;
+                while (*longs)
                 {
-                  ++option_cp;
-                  ++name_cp;
-                }
-                if ('=' == *option_cp || !*option_cp)
-                {
-                  if (*name_cp)
+                  const char *option_cp = (*arg_p) + 2;
+                  const char *name_cp = *longs;
+                  while (*option_cp && *option_cp == *name_cp)
                   {
-                    if (next_option->key)
+                    ++option_cp;
+                    ++name_cp;
+                  }
+                  if ('=' == *option_cp || !*option_cp)
+                  {
+                    if (*name_cp)
                     {
-                      BFAM_LERROR(
-                          "%s: --%.*s: abbreviated option is ambiguous\n",
-                          argv[0], (int)(option_cp - ((*arg_p) + 2)),
-                          (*arg_p) + 2);
-                      bfam_free(opts);
-                      exit(EX_USAGE);
+                      if (next_option->key)
+                      {
+                        BFAM_LERROR(
+                            "%s: --%.*s: abbreviated option is ambiguous\n",
+                            argv[0], (int)(option_cp - ((*arg_p) + 2)),
+                            (*arg_p) + 2);
+                        bfam_free(opts);
+                        exit(EX_USAGE);
+                      }
+                      next_option->key = opt_spec_p->key;
                     }
-                    next_option->key = opt_spec_p->key;
+                    else
+                    {
+                      next_option->key = opt_spec_p->key;
+                      goto found_long;
+                    }
                   }
-                  else
+                  if (!*++longs)
                   {
-                    next_option->key = opt_spec_p->key;
-                    goto found_long;
+                    ++opt_spec_p;
+                    if (opt_spec_p->key)
+                      longs = opt_spec_p->longs;
                   }
                 }
-                if (!*++longs)
+                if (!next_option->key)
                 {
-                  ++opt_spec_p;
-                  if (opt_spec_p->key)
-                    longs = opt_spec_p->longs;
-                }
-              }
-              if (!next_option->key)
-              {
-                BFAM_LERROR("%s: --%.*s: unknown option\n", argv[0],
-                            (int)strcspn((*arg_p) + 2, "="), (*arg_p) + 2);
-                bfam_free(opts);
-                exit(EX_USAGE);
-              }
-              for (opt_spec_p = opt_specs; opt_spec_p->key != next_option->key;
-                   ++opt_spec_p)
-                ;
-            found_long:
-
-              if (!(opt_spec_p->flags & BFAM_GOPT_REPEAT))
-              {
-                const opt_t *opt_p = opts;
-                for (; opt_p != next_option; ++opt_p)
-                  if (opt_p->key == opt_spec_p->key)
-                  {
-                    BFAM_LERROR("%s: --%.*s: option may not be repeated (in "
-                                "any long or short form)\n",
-                                argv[0], (int)strcspn((*arg_p) + 2, "="),
-                                (*arg_p) + 2);
-                    bfam_free(opts);
-                    exit(EX_USAGE);
-                  }
-              }
-              if (opt_spec_p->flags & BFAM_GOPT_ARG)
-              {
-                next_option->arg = strchr((*arg_p) + 2, '=') + 1;
-                if ((char *)0 + 1 == next_option->arg)
-                {
-                  ++arg_p;
-                  if (!*arg_p || ('-' == (*arg_p)[0] && (*arg_p)[1]))
-                  {
-                    BFAM_LERROR(
-                        "%s: --%s: option requires an option argument\n",
-                        argv[0], (*(arg_p - 1)) + 2);
-                    bfam_free(opts);
-                    exit(EX_USAGE);
-                  }
-                  next_option->arg = *arg_p;
-                }
-              }
-              else
-              {
-                if (strchr((*arg_p) + 2, '='))
-                {
-                  BFAM_LERROR(
-                      "%s: --%.*s: option may not take an option argument\n",
-                      argv[0], (int)strcspn((*arg_p) + 2, "="), (*arg_p) + 2);
+                  BFAM_LERROR("%s: --%.*s: unknown option\n", argv[0],
+                              (int)strcspn((*arg_p) + 2, "="), (*arg_p) + 2);
                   bfam_free(opts);
                   exit(EX_USAGE);
                 }
-                next_option->arg = NULL;
-              }
-              ++next_option;
-            }
-          }
-        }
-        else
-        {
-          for (++arg_p; *arg_p; ++arg_p)
-            *next_operand++ = *arg_p;
-          break;
-        }
-      else
-      {
-        {
-          {
-            const char *short_opt = (*arg_p) + 1;
-            for (; *short_opt; ++short_opt)
-            {
-              const opt_spec_t *opt_spec_p = opt_specs;
+                for (opt_spec_p = opt_specs;
+                     opt_spec_p->key != next_option->key; ++opt_spec_p)
+                  ;
+              found_long:
 
-              for (; opt_spec_p->key; ++opt_spec_p)
-                if (strchr(opt_spec_p->shorts, *short_opt))
+                if (!(opt_spec_p->flags & BFAM_GOPT_REPEAT))
                 {
-                  if (!(opt_spec_p->flags & BFAM_GOPT_REPEAT))
-                  {
-                    const opt_t *opt_p = opts;
-                    for (; opt_p != next_option; ++opt_p)
-                      if (opt_p->key == opt_spec_p->key)
-                      {
-                        BFAM_LERROR("%s: -%c: option may not be repeated (in "
-                                    "any long or short form)\n",
-                                    argv[0], *short_opt);
-                        bfam_free(opts);
-                        exit(EX_USAGE);
-                      }
-                  }
-                  next_option->key = opt_spec_p->key;
-
-                  if (opt_spec_p->flags & BFAM_GOPT_ARG)
-                  {
-                    if (short_opt[1])
-                      next_option->arg = short_opt + 1;
-
-                    else
+                  const opt_t *opt_p = opts;
+                  for (; opt_p != next_option; ++opt_p)
+                    if (opt_p->key == opt_spec_p->key)
                     {
-                      ++arg_p;
-                      if (!*arg_p || ('-' == (*arg_p)[0] && (*arg_p)[1]))
-                      {
-                        BFAM_LERROR(
-                            "%s: -%c: option requires an option argument\n",
-                            argv[0], *short_opt);
-                        bfam_free(opts);
-                        exit(EX_USAGE);
-                      }
-                      next_option->arg = *arg_p;
+                      BFAM_LERROR("%s: --%.*s: option may not be repeated (in "
+                                  "any long or short form)\n",
+                                  argv[0], (int)strcspn((*arg_p) + 2, "="),
+                                  (*arg_p) + 2);
+                      bfam_free(opts);
+                      exit(EX_USAGE);
                     }
-                    ++next_option;
-                    goto break_2;
+                }
+                if (opt_spec_p->flags & BFAM_GOPT_ARG)
+                {
+                  next_option->arg = strchr((*arg_p) + 2, '=') + 1;
+                  if ((char *)0 + 1 == next_option->arg)
+                  {
+                    ++arg_p;
+                    if (!*arg_p || ('-' == (*arg_p)[0] && (*arg_p)[1]))
+                    {
+                      BFAM_LERROR(
+                          "%s: --%s: option requires an option argument\n",
+                          argv[0], (*(arg_p - 1)) + 2);
+                      bfam_free(opts);
+                      exit(EX_USAGE);
+                    }
+                    next_option->arg = *arg_p;
+                  }
+                }
+                else
+                {
+                  if (strchr((*arg_p) + 2, '='))
+                  {
+                    BFAM_LERROR(
+                        "%s: --%.*s: option may not take an option argument\n",
+                        argv[0], (int)strcspn((*arg_p) + 2, "="), (*arg_p) + 2);
+                    bfam_free(opts);
+                    exit(EX_USAGE);
                   }
                   next_option->arg = NULL;
-                  ++next_option;
-                  goto continue_2;
                 }
-              BFAM_LERROR("%s: -%c: unknown option\n", argv[0], *short_opt);
-              bfam_free(opts);
-              exit(EX_USAGE);
-            continue_2:
+                ++next_option;
+              }
+            }
+          }
+          else
+          {
+            for (++arg_p; *arg_p; ++arg_p)
+              *next_operand++ = *arg_p;
+            break;
+          }
+        else
+        {
+          {
+            {
+              const char *short_opt = (*arg_p) + 1;
+              for (; *short_opt; ++short_opt)
+              {
+                const opt_spec_t *opt_spec_p = opt_specs;
+
+                for (; opt_spec_p->key; ++opt_spec_p)
+                  if (strchr(opt_spec_p->shorts, *short_opt))
+                  {
+                    if (!(opt_spec_p->flags & BFAM_GOPT_REPEAT))
+                    {
+                      const opt_t *opt_p = opts;
+                      for (; opt_p != next_option; ++opt_p)
+                        if (opt_p->key == opt_spec_p->key)
+                        {
+                          BFAM_LERROR("%s: -%c: option may not be repeated (in "
+                                      "any long or short form)\n",
+                                      argv[0], *short_opt);
+                          bfam_free(opts);
+                          exit(EX_USAGE);
+                        }
+                    }
+                    next_option->key = opt_spec_p->key;
+
+                    if (opt_spec_p->flags & BFAM_GOPT_ARG)
+                    {
+                      if (short_opt[1])
+                        next_option->arg = short_opt + 1;
+
+                      else
+                      {
+                        ++arg_p;
+                        if (!*arg_p || ('-' == (*arg_p)[0] && (*arg_p)[1]))
+                        {
+                          BFAM_LERROR(
+                              "%s: -%c: option requires an option argument\n",
+                              argv[0], *short_opt);
+                          bfam_free(opts);
+                          exit(EX_USAGE);
+                        }
+                        next_option->arg = *arg_p;
+                      }
+                      ++next_option;
+                      goto break_2;
+                    }
+                    next_option->arg = NULL;
+                    ++next_option;
+                    goto continue_2;
+                  }
+                BFAM_LERROR("%s: -%c: unknown option\n", argv[0], *short_opt);
+                bfam_free(opts);
+                exit(EX_USAGE);
+              continue_2:
+                BFAM_NOOP();
+              }
+            break_2:
               BFAM_NOOP();
             }
-          break_2:
-            BFAM_NOOP();
           }
         }
-      }
-    else
-      *next_operand++ = *arg_p;
+      else
+        *next_operand++ = *arg_p;
 
-  next_option->key = 0;
-  *next_operand = NULL;
-  *argc = (int)(next_operand - argv);
-}
-return opts;
+    next_option->key = 0;
+    *next_operand = NULL;
+    *argc = (int)(next_operand - argv);
+  }
+  return opts;
 }
 
 size_t bfam_gopt(const void *vptr_opts, int key)
@@ -5440,21 +5444,19 @@ typedef struct bfam_pxest_refine_wrap_data
 } bfam_pxest_refine_wrap_data_t;
 
 static int bfam_pxest_refine_wrap(p4est_t *p4est, p4est_topidx_t which_tree,
-                           p4est_quadrant_t *quadrant)
+                                  p4est_quadrant_t *quadrant)
 {
-  bfam_pxest_refine_wrap_data_t * data = p4est->user_pointer;
-#if BFAM_DGX_DIMENSION==2
-  return data->refine_fn(which_tree, quadrant->level, quadrant->x, quadrant->y, data->user_pointer);
-#elif BFAM_DGX_DIMENSION==3
+  bfam_pxest_refine_wrap_data_t *data = p4est->user_pointer;
+#if BFAM_DGX_DIMENSION == 2
   return data->refine_fn(which_tree, quadrant->level, quadrant->x, quadrant->y,
-                   quadrant->z, data->user_pointer);
+                         data->user_pointer);
+#elif BFAM_DGX_DIMENSION == 3
+  return data->refine_fn(which_tree, quadrant->level, quadrant->x, quadrant->y,
+                         quadrant->z, data->user_pointer);
 #endif
-
 }
-void bfam_pxest_refine(bfam_domain_pxest_t *domain,
-                      int refine_recursive,
-                      bfam_pxest_refine_t refine_fn,
-                      void * user_pointer)
+void bfam_pxest_refine(bfam_domain_pxest_t *domain, int refine_recursive,
+                       bfam_pxest_refine_t refine_fn, void *user_pointer)
 {
   bfam_pxest_refine_wrap_data_t data;
   data.refine_fn = refine_fn;
@@ -5464,8 +5466,6 @@ void bfam_pxest_refine(bfam_domain_pxest_t *domain,
   p4est_refine(domain->pxest, refine_recursive, bfam_pxest_refine_wrap, NULL);
   p4est->user_pointer = old_user_pointer;
 }
-
-
 
 // }}}
 

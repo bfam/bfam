@@ -109,7 +109,7 @@
 
 #if (defined __GNUC__) || (defined __PGI) || (defined __IBMC__)
 #define BFAM_ALIGN(n) __attribute__((aligned(n)))
-#elif (defined _MSC_VER)
+#elif(defined _MSC_VER)
 #define BFAM_ALIGN(n) __declspec(align(n))
 #else
 #error Need equilvent of __attribute__((aligned(n))) for this compiler
@@ -892,7 +892,8 @@ typedef struct bfam_domain
                                       subdomain names to numbers */
 } bfam_domain_t;
 
-typedef enum bfam_domain_match {
+typedef enum bfam_domain_match
+{
   BFAM_DOMAIN_AND,
   BFAM_DOMAIN_OR,
 } bfam_domain_match_t;
@@ -1294,18 +1295,15 @@ void bfam_domain_pxest_quadrant_replace(p4est_t *p4est,
                                         int num_incoming,
                                         p4est_quadrant_t *incoming[]);
 
-#if BFAM_DGX_DIMENSION==2
-typedef int (*bfam_pxest_refine_t) (int which_tree, int level,
-    int x, int y);
-#elif BFAM_DGX_DIMENSION==3
-typedef int (*bfam_pxest_refine_t) (int which_tree, int level,
-    int x, int y, int z, void* user_data);
+#if BFAM_DGX_DIMENSION == 2
+typedef int (*bfam_pxest_refine_t)(int which_tree, int level, int x, int y);
+#elif BFAM_DGX_DIMENSION == 3
+typedef int (*bfam_pxest_refine_t)(int which_tree, int level, int x, int y,
+                                   int z, void *user_data);
 #endif
 
-void bfam_pxest_refine(bfam_domain_pxest_t *domain,
-                      int refine_recursive,
-                      bfam_pxest_refine_t refine_fn,
-                      void *user_data);
+void bfam_pxest_refine(bfam_domain_pxest_t *domain, int refine_recursive,
+                       bfam_pxest_refine_t refine_fn, void *user_data);
 
 // }}}
 
@@ -1873,7 +1871,8 @@ typedef struct
   bfamo_real_t *C;
 } bfamo_lsrk_t;
 
-typedef enum bfamo_lsrk_method {
+typedef enum bfamo_lsrk_method
+{
   BFAMO_TS_LSRK_KC54,
   BFAMO_TS_LSRK_FE,
   BFAMO_TS_LSRK_HEUN,
