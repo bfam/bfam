@@ -5433,6 +5433,40 @@ void bfam_domain_pxest_transfer_maps_free(
   bfam_free_aligned(maps->coarse_dst_to_src_elem_id);
 }
 
+typedef struct bfam_pxest_refine_wrap_data
+{
+  bfam_pxest_refine_t refine_fn;
+  void *user_pointer;
+} bfam_pxest_refine_wrap_data_t;
+
+static int bfam_pxest_refine_wrap(p4est_t *p4est, p4est_topidx_t which_tree,
+                           p4est_quadrant_t *quadrant)
+{
+  bfam_pxest_refine_wrap_data_t * data = p4est->user_pointer;
+#if BFAM_DGX_DIMENSION==2
+  return data->refine_fn(which_tree, quadrant->level, quadrant->x, quadrant->y, data->user_pointer);
+#elif BFAM_DGX_DIMENSION==3
+  return data->refine_fn(which_tree, quadrant->level, quadrant->x, quadrant->y,
+                   quadrant->z, data->user_pointer);
+#endif
+
+}
+void bfam_pxest_refine(bfam_domain_pxest_t *domain,
+                      int refine_recursive,
+                      bfam_pxest_refine_t refine_fn,
+                      void * user_pointer)
+{
+  bfam_pxest_refine_wrap_data_t data;
+  data.refine_fn = refine_fn;
+  data.user_pointer = user_pointer;
+  void *old_user_pointer = domain->pxest->user_pointer;
+  domain->pxest->user_pointer = &data;
+  p4est_refine(domain->pxest, refine_recursive, bfam_pxest_refine_wrap, NULL);
+  p4est->user_pointer = old_user_pointer;
+}
+
+
+
 // }}}
 
 // {{{ subdomain dgx
